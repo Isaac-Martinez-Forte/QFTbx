@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief The boundary stage of the pipeline.
+ *
+ * Declares the stage that computes the QFT bounds on the Nichols plane, one
+ * set per design frequency plus their union, over a given phase and
+ * magnitude grid. It owns its preconditions, its engine, its parameters and
+ * the publishing of its output, and not the dependency graph: a new set of
+ * boundaries voids the design found against the old ones, but the facade
+ * applies that. Which template data must be present depends on whether the
+ * computation reads each template's contour or the whole cloud.
+ */
+
 #ifndef QFTBX_BOUNDARY_STAGE_H
 #define QFTBX_BOUNDARY_STAGE_H
 
@@ -53,6 +66,6 @@ private:
     std::unique_ptr<BoundaryEngine> m_engine;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BOUNDARY_STAGE_H
+#endif

@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Reads, verifies and lists the specifications.
+ *
+ * The band and the magnitude are checked where they are typed, a finite
+ * band with 0 <= start <= end and a finite positive linear magnitude,
+ * since the specification constructors only see them when the boundaries
+ * are computed and an inverted band would quietly apply to no frequency.
+ * The frequencies are ticks: the band runs from the first tick to the last,
+ * what is unticked between them is the exception list, and a specification
+ * not yet entered applies everywhere. Bounds are entered in decibels and
+ * stored linear. Each type has one slot, replaced rather than added to, and
+ * removing one empties the record, system included. A missing frequency
+ * set is refused before the widget tree is built.
+ */
+
 #include "src/gui/specifications/specifications_form.h"
 #include "ui_specifications_form.h"
 
@@ -25,38 +41,19 @@ namespace qftbx {
 
 namespace {
 
-//How much of the form the tick boxes are worth: enough for three rows of
-//them, and a scroll bar for a design with thirty frequencies.
 const int kFrequencyHeight = 110;
 
-//The band is checked here, where it was typed. Specification::constant and
-//fromSystem both refuse an inverted or non-finite band, but that throw only
-//happens when the records are turned into specifications, which is when the
-//BOUNDARIES are computed: the form accepted "start 10, end 1" without a
-//word and the complaint arrived several steps later, naming no
-//specification. Worse than the message was the silence when it did not
-//throw at all - a band is only used through appliesAt(), which answers
-//min <= omega && omega <= max, so an inverted one quietly applied to no
-//frequency and the requirement did nothing.
 bool bandIsUsable(double start, double end)
 {
     return std::isfinite(start) && std::isfinite(end) &&
             start >= 0.0 && end >= start;
 }
 
-//A bound's magnitude, in linear units by the time it gets here. Same story
-//as the band: Specification::constant refuses a non-finite or non-positive
-//magnitude, but only when the records become specifications. And a NaN gets
-//here easily - "0/0" evaluates quietly to one.
 bool magnitudeIsUsable(double magnitude)
 {
     return std::isfinite(magnitude) && magnitude > 0.0;
 }
 
-//Nominal coefficients in the format the reader expects (space separated).
-//The families other than the free form have no textual representation of
-//their own, and painting numeratorString()=="" makes the specification
-//vanish when it is opened again.
 QString coefficientsText(std::vector<Parameter> & parameters)
 {
     QString text;
@@ -91,7 +88,7 @@ QString denominatorText(LtiSystem * system)
     return coefficientsText(system->denominator());
 }
 
-} // namespace
+}
 
 SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
                                        const qftbx::SpecificationRecords * loaded,
@@ -99,12 +96,6 @@ SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
     StepPanel(parent),
     m_reader(tr("Specifications"))
 {
-    //The step order of the main window guarantees a frequency set here, but
-    //an empty one reaches front()/back() below.
-    //
-    //This runs BEFORE the widget tree is built on purpose: a constructor
-    //that throws gets no destructor, so anything allocated before the throw
-    //would be lost.
     if (frequencies == nullptr || frequencies->empty()) {
         throw qftbx::InvalidInput("The design frequencies must be entered "
                                   "before the specifications.");
@@ -117,7 +108,6 @@ SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
 
     setWindowTitle(tr("Specifications"));
 
-    //The seven, in the order of the slots they index.
     ui->typeCombo->addItem(tr("Tracking, lower bound"));
     ui->typeCombo->addItem(tr("Tracking, upper bound"));
     ui->typeCombo->addItem(tr("Stability"));
@@ -133,9 +123,6 @@ SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
     ui->specificationsTable->horizontalHeader()->setStretchLastSection(true);
     ui->specificationsTable->setItemDelegateForColumn(2, new FormulaDelegate(this));
 
-    //If the project carries specifications (a loaded file), the form starts
-    //from THEM: starting from seven empty records means the first apply
-    //wipes whatever was loaded.
     if (loaded != nullptr) {
         for (std::size_t i = 0; i < kSpecificationCount; ++i) {
             m_records.at(i) = loaded->at(i).clone();
@@ -153,13 +140,8 @@ SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
         connect(field, &QLineEdit::textChanged, this, &SpecificationsForm::fieldEdited);
     }
 
-    //The frequencies a specification applies at are chosen, not typed.
     m_frequencies = new FrequencyLegend(ui->frequencyHolder);
-    //Just the ticks: the label beside them already says what they are, and
-    //a filter over six numbers is furniture.
     m_frequencies->setBare(true);
-    //Three rows of them and then it scrolls: this is a band, not the main
-    //event of the form.
     m_frequencies->setMaximumHeight(kFrequencyHeight);
     ui->frequencyLayout->addWidget(m_frequencies);
     connect(m_frequencies, &FrequencyLegend::rowToggled, this, &SpecificationsForm::fieldEdited);
@@ -176,17 +158,12 @@ SpecificationsForm::SpecificationsForm(const std::vector<double> * frequencies,
 
 SpecificationsForm::~SpecificationsForm()
 {
-    //The seven working records (and their systems) are members, and so is
-    //anything published but never taken: nothing to free by hand.
 }
 
 void SpecificationsForm::setFrequencies(const std::vector<double> * frequencies)
 {
     m_design = frequencies;
 
-    //The ticks are the design frequencies themselves, so a new set of them
-    //is a new set of ticks. What the record being edited applies at is put
-    //back on the ones that are still there.
     buildFrequencyRows();
     showFrequenciesOf(m_records.at(std::size_t(selectedType())));
 }
@@ -199,8 +176,6 @@ void SpecificationsForm::buildFrequencyRows()
         return;
     }
 
-    //The colour of the text: these are not curves in a diagram, they are
-    //the frequencies the design works at.
     const QColor ink = palette().color(QPalette::WindowText);
 
     for (double frequency : *m_design) {
@@ -217,9 +192,6 @@ void SpecificationsForm::showFrequenciesOf(const qftbx::SpecificationRecord & re
     for (int i = 0; i < m_frequencies->rowCount() && i < int(m_design->size()); ++i) {
         const double frequency = m_design->at(std::size_t(i));
 
-        //A specification nobody has entered yet applies everywhere: that is
-        //the answer that needs no thinking about, and the user takes out
-        //what does not belong.
         const bool applies = !record.used
                 || (record.omegaStart <= frequency && frequency <= record.omegaEnd
                     && std::find(record.skipped.begin(), record.skipped.end(), frequency)
@@ -251,9 +223,6 @@ bool SpecificationsForm::readFrequencies(qftbx::SpecificationRecord & record)
     record.omegaStart = m_design->at(std::size_t(first));
     record.omegaEnd = m_design->at(std::size_t(last));
 
-    //The band is from the first tick to the last, and what is unticked
-    //between them is the exception list: a band with a hole in it is an
-    //ordinary thing to ask for, and there is no other way to say it.
     record.skipped.clear();
     for (int i = first + 1; i < last; ++i) {
         if (!m_frequencies->isRowChecked(i)) {
@@ -306,17 +275,12 @@ void SpecificationsForm::typeChosen()
         return;
     }
 
-    //The specification chosen is shown as it stands: the one already
-    //entered, or an empty form for a new one.
     showRecord(selectedType());
 }
 
 Formula SpecificationsForm::boundOf(const qftbx::SpecificationRecord & record) const
 {
     if (record.constant) {
-        //In decibels, which is the unit a bound is read in. One upright
-        //literal, units included: a constant bound is a number, not an
-        //expression with a unit multiplied into it.
         return formula::number(qftbx::shownText(qftbx::linearToDb(record.height)).toStdString()
                                + " dB");
     }
@@ -328,9 +292,6 @@ Formula SpecificationsForm::boundOf(const qftbx::SpecificationRecord & record) c
     return formulaOf(*record.system, shownDigits());
 }
 
-//The whole requirement: what the program checks on the left, the bound the
-//user gave on the right. Drawn and not photographed, so it says the bound
-//it was given and not a W with a subscript.
 Formula SpecificationsForm::formulaOfRecord(SpecificationType type,
                                             const qftbx::SpecificationRecord & record) const
 {
@@ -342,9 +303,6 @@ void SpecificationsForm::setVerified(std::optional<qftbx::SpecificationRecord> r
     m_verified = std::move(record);
 
     if (!m_verified.has_value()) {
-        //Not the empty view: what this specification requires of the loop is
-        //worth showing before there is a bound to put on the other side of
-        //the sign, and it is what the figure of the old screens said.
         ui->boundFormula->setFormula(requirementOf(selectedType()));
         ui->addButton->setText(tr("Verify"));
         return;
@@ -352,8 +310,6 @@ void SpecificationsForm::setVerified(std::optional<qftbx::SpecificationRecord> r
 
     ui->boundFormula->setFormula(formulaOfRecord(selectedType(), *m_verified));
 
-    //A slot that already holds a specification is replaced, not added to:
-    //there is one of each.
     ui->addButton->setText(m_records.at(std::size_t(ui->typeCombo->currentIndex())).used
                            ? tr("Update") : tr("Add"));
 }
@@ -376,8 +332,6 @@ void SpecificationsForm::showRecord(SpecificationType type)
 
     if (record.used && record.constant) {
         ui->constantRadio->setChecked(true);
-        //Written in the unit it is read in, which is the one the field
-        //offers: a bound of 0.5 linear is -6.02 dB.
         ui->decibelsRadio->setChecked(true);
         ui->magnitudeEdit->setText(qftbx::numberText(qftbx::linearToDb(record.height)));
     } else if (record.used && record.system != nullptr) {
@@ -409,7 +363,6 @@ void SpecificationsForm::showRecord(SpecificationType type)
     showBound();
     say(QString());
 
-    //One already entered is shown verified: it is what it says it is.
     setVerified(record.used ? std::optional<SpecificationRecord>(record.clone())
                             : std::nullopt);
 }
@@ -428,12 +381,9 @@ void SpecificationsForm::showTable()
         ui->specificationsTable->insertRow(row);
 
         QTableWidgetItem * name = new QTableWidgetItem(ui->typeCombo->itemText(int(i)));
-        //Which slot the row stands for: the table only lists the used ones,
-        //so the row number is not the type.
         name->setData(Qt::UserRole, int(i));
         ui->specificationsTable->setItem(row, 0, name);
 
-        //The band, and how many of its frequencies it was taken out of.
         QString band = tr("%1 to %2").arg(qftbx::shownText(record.omegaStart),
                                           qftbx::shownText(record.omegaEnd));
         if (!record.skipped.empty()) {
@@ -446,11 +396,6 @@ void SpecificationsForm::showTable()
                        QVariant::fromValue(formulaOfRecord(static_cast<SpecificationType>(i),
                                                            record)));
 
-        //The one requirement the screen cannot state on its own line: the
-        //prefilter multiplies the whole closed loop, so it cannot change
-        //the SPREAD of it over the plant family, and the spread against the
-        //two bounds is what the loop shaping works with. The prefilter is a
-        //later design, which the toolbox does not do yet.
         if (i == std::size_t(SpecificationType::TrackingLower)
                 || i == std::size_t(SpecificationType::TrackingUpper)) {
             bound->setToolTip(tr("The loop shaping bounds the spread of the closed loop over "
@@ -495,7 +440,6 @@ std::optional<Parameter> SpecificationsForm::scalarFrom(const QString & text, do
     try {
         return Parameter(*value);
     } catch (const qftbx::Exception &) {
-        //Parses, but is not a finite number a model can use.
         return std::nullopt;
     }
 }
@@ -573,7 +517,6 @@ std::optional<qftbx::SpecificationRecord> SpecificationsForm::build()
         return refuse(ui->delayEdit, tr("The delay is not a number."));
     }
 
-    //A free-form bound carries its expressions and no coefficient vectors.
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
 
@@ -622,8 +565,6 @@ std::optional<qftbx::SpecificationRecord> SpecificationsForm::build()
 
 void SpecificationsForm::on_addButton_clicked()
 {
-    //One button and two steps: what is added has been seen first, drawn as
-    //the bound it is.
     if (!m_verified.has_value()) {
         setVerified(build());
         return;
@@ -633,7 +574,6 @@ void SpecificationsForm::on_addButton_clicked()
 
     showTable();
 
-    //And the form is left ready for the next one.
     setVerified(std::nullopt);
     say(tr("Added: %1.").arg(ui->typeCombo->currentText()));
     markWrong(ui->statusLabel, false);
@@ -676,8 +616,6 @@ void SpecificationsForm::on_removeButton_clicked()
 
     const int slot = ui->specificationsTable->item(row, 0)->data(Qt::UserRole).toInt();
 
-    //A slot that is not used is a specification that does not exist: the
-    //record is emptied, system included.
     m_records.at(std::size_t(slot)) = SpecificationRecord();
 
     showTable();
@@ -707,4 +645,4 @@ std::optional<qftbx::SpecificationRecords> SpecificationsForm::takeSpecification
     return published;
 }
 
-} // namespace qftbx
+}

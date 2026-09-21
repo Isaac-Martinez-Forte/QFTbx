@@ -1,11 +1,24 @@
+/**
+ * @file
+ * @brief Algorithm NK: the NT branch and bound with Quick Solution and local search.
+ *
+ * The additions are wired at the paper's steps: Quick Solution inside the
+ * feasibility test of every box, applied per frequency with the latest
+ * updated box as section 3.3 asks; local optimisation launched from the
+ * leading box under the ten percent rule, whose certified result prunes the
+ * list and stands in as the answer when the search exhausts the space.
+ * Nominal stability of a bounds-feasible box is checked when it reaches the
+ * head of the list rather than on insertion, which gives the same search at
+ * a fraction of the criterion's cost. Termination and cancellation are as in
+ * algorithm NT.
+ */
+
 #include <vector>
 #include <cstdint>
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/nk/algorithm_nk.h"
 
-
 namespace quick_solution = qftbx::quick_solution;
-
 
 namespace qftbx {
 
@@ -20,11 +33,6 @@ void AlgorithmNk::setProblem(LtiSystem *plant, LtiSystem *controller, std::vecto
     m_start = initialisation == 1 ? Extremes : Centre;
 }
 
-
-//Main loop: the NT branch & bound (Tharewal 2005, sec. 3.3.3) with the
-//NK additions wired at the paper's steps: local optimization on the
-//leading box (steps 5-6 and 18-20) and Quick Solution inside the
-//feasibility test of every box (steps 2 and 9).
 bool AlgorithmNk::solve(){
 
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
@@ -36,8 +44,6 @@ bool AlgorithmNk::solve(){
     bestLocalController.reset();
     launchGains.clear();
 
-    //Stable prototype for building point controllers: the working box
-    //pointer is replaced as Quick Solution rebuilds it.
     prototype = controller->clone();
 
     nominalPlantValues.clear();
@@ -47,26 +53,15 @@ bool AlgorithmNk::solve(){
         nominalPlantValues.push_back(c);
     }
 
-    //Steps 1-3: Quick Solution and feasibility of the initial box happen
-    //inside check_box_feasibility, which inserts it unless certainly
-    //infeasible.
     check_box_feasibility(std::move(controller));
 
     while (true) {
 
-        //Once per node: the cheapest possible place to notice, and the only
-        //one that bounds how long a cancellation takes to take effect. It
-        //throws rather than returning false, because false already means
-        //"searched everything and found nothing", which is a different
-        //answer and one the caller reports differently.
         if (qftbx::cancellationAsked(m_cancellation)) {
             throw qftbx::Cancelled();
         }
 
         if (liveList->isEmpty()) {
-            //Step 15. A certified feasible local solution stands in as
-            //the answer when the interval search exhausts the space (the
-            //local point was verified against bounds and stability).
             if (bestLocalController != nullptr) {
                 designedController = std::move(bestLocalController);
                 return true;
@@ -77,42 +72,26 @@ bool AlgorithmNk::solve(){
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
-        //Nominal closed-loop stability of a bounds-feasible box (the paper
-        //demands the zeros of 1 + L0 in the left half-plane; checked on the
-        //Nichols chart), when the box reaches the head of the list rather
-        //than when it entered it: a feasible box takes no part in the
-        //search until it is popped, so everything popped after it is the
-        //same either way, and the criterion is dear (see AlgorithmNt).
         if (node->flag() == feasible && !stability->isNominallyStable(cornerOf(node->system(), true))) {
             continue;
         }
 
-        //Pruning by the local solution (step 4 of the paper's outline /
-        //G-bis of the thesis): a node whose gain infimum cannot improve
-        //the certified local solution is discarded.
         if (node->system()->gain().range().min >= bestLocalGain) {
             continue;
         }
 
-        //Steps 17-20: local optimization launched from the leading box
-        //under the 10% decision rule; a feasible result prunes the list
-        //through bestLocalGain.
         localOptimization(node->system());
 
         if (node->system()->gain().range().min >= bestLocalGain) {
             continue;
         }
 
-        //Step 21 and Remark 3.1 termination, as reviewed for NT.
         if (node->flag() == feasible) {
             designedController = pointFromBox(node->system(), true);
             return true;
         }
 
         if (isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
-            //The corner must satisfy the boundaries and the nominal
-            //stability criterion (see verifiedCorner). A box with no
-            //certified corner, or an unstable one, is dropped, as in NT.
             const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
                     conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
@@ -123,15 +102,12 @@ bool AlgorithmNk::solve(){
             designedController = systemFromPoint(node->system(), *corner);
             return true;
         }
-        //Step 8: bisect along the widest parameter direction.
         BisectionResult halves = bisectWidestParameter(node->system());
 
-        //Steps 9-14: Quick Solution + feasibility + insertion.
         check_box_feasibility(std::move(halves.v1));
         check_box_feasibility(std::move(halves.v2));
     }
 }
-
 
 std::size_t AlgorithmNk::peakLiveNodes() const
 {
@@ -158,23 +134,15 @@ LoopShapingStatistics AlgorithmNk::statistics() const
     return statistics;
 }
 
-
 std::unique_ptr<LtiSystem> AlgorithmNk::controllerStructure(){
     return std::move(designedController);
 }
 
-
-//Feasibility test over every design frequency with the NK Quick Solution
-//cutting applied per frequency with the latest updated box (paper,
-//sec. 3.3: "one always uses the latest updated values"). Certainly
-//infeasible boxes are destroyed; anything else enters the live list.
 void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
 
     BoxClassification classification;
     BoxFlag flag_final = feasible;
 
-    //Step 20 of the paper: the certified local solution caps the useful
-    //gain range of every new box.
     if (bestLocalGain < box->gain().range().max &&
             bestLocalGain > box->gain().range().min) {
         box = box->create(box->name(), box->numerator(), box->denominator(),
@@ -199,9 +167,6 @@ void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
         if (classification.flag() == ambiguous) {
             flag_final = ambiguous;
 
-            //Quick Solution at this frequency: sound only when the zone
-            //under every boundary point is certainly forbidden, certified
-            //by the parity classification of the box's lower corner.
             if (classification.isBottomLeftForbidden()) {
                 box = quickSolution(std::move(box), classification.extremes()[0],
                                     o, nominalPlantValues.at(frequencyIndex));
@@ -211,25 +176,15 @@ void AlgorithmNk::check_box_feasibility(std::unique_ptr<LtiSystem> box){
         frequencyIndex++;
     }
 
-    //The nominal stability of a feasible box is checked when it is popped
-    //(see solve()). An ambiguous box whose members are all unstable dies
-    //here (NominalStabilityChecker::isBoxUnstable, as in NT).
     if (flag_final == ambiguous && stability->isBoxUnstable(box.get(), *conversion)) {
         return;
     }
 
-    //The index is read BEFORE the box is handed over: as arguments of one
-    //call their evaluation order is unspecified.
     const double gainInf = box->gain().range().min;
 
     liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 }
 
-
-//Quick Solution (paper sec. 3.3, algorithm QS): cut the certainly
-//infeasible subranges of the gain, every zero and every pole with the
-//closed-form monotonicity equations, sequentially, using the latest
-//updated values. boundMinDb is |B_i|min over the box's phase interval.
 std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<LtiSystem> v, double boundMinDb,
                                                        double w, std::complex<double> p0){
 
@@ -244,19 +199,6 @@ std::unique_ptr<LtiSystem> AlgorithmNk::quickSolution(std::unique_ptr<LtiSystem>
     return boxFromBounds(v.get(), bounds);
 }
 
-
-//Local optimization (paper sec. 3.2; the paper only says "call any
-//nonlinear constrained local optimization routine", so the routine is
-//ours): a lean two-level pattern search. The objective is the gain alone,
-//so the inner level finds the minimal feasible gain for fixed zeros/poles
-//by logarithmic bisection (the predicate is the point bounds test; local
-//crossing only, as a local method promises), and the outer level moves
-//the zeros/poles with a Hooke-Jeeves style coordinate pattern in LOG
-//space with an adaptive, coarsening step. A hard evaluation budget keeps
-//the search cheaper than the pruning it buys, and the candidate must pass
-//the nominal stability criterion once, at the end, before it may prune
-//the global search. Launched under the paper's 10% decision rule.
-
 double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
                                                        const std::vector<double> & poles,
                                                        LtiSystem * box, std::int32_t & budget){
@@ -264,8 +206,6 @@ double AlgorithmNk::minimalFeasibleGain(const std::vector<double> & zeros,
     double high = box->gain().range().max;
     double low = box->gain().range().min;
 
-    //The zeros and poles stay put while the gain is bisected: their
-    //products at every design frequency are computed once here.
     std::vector<NaturalIntervalExtension::Factors> factors;
     factors.reserve(omega->size());
     for (double w : *omega) {
@@ -318,7 +258,6 @@ void AlgorithmNk::localOptimization(LtiSystem * box){
     std::vector<double> bestZeros = zeros;
     std::vector<double> bestPoles = poles;
 
-    //Coordinate pattern over zeros/poles in log space, coarse to fine.
     const auto logRange = [](Parameter & var) {
         return std::log10(var.range().max) - std::log10(std::max<double>(var.range().min, 1e-12));
     };
@@ -380,7 +319,6 @@ void AlgorithmNk::localOptimization(LtiSystem * box){
     }
 }
 
-
 std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & zeros,
                                                      const std::vector<double> & poles, double gain){
     std::vector<Parameter> numerator;
@@ -399,12 +337,6 @@ std::unique_ptr<LtiSystem> AlgorithmNk::pointSystem(const std::vector<double> & 
                              Parameter(gain), prototype->delay());
 }
 
-
-//Point feasibility against the bounds at every design frequency, with the
-//same projection and detection the interval test uses. The zeros and poles
-//come as their products per frequency: the local search asks this hundreds
-//of times per launch, mostly with the same zeros and poles and another
-//gain, so neither the products nor a system are rebuilt for each.
 bool AlgorithmNk::pointIsFeasible(const std::vector<NaturalIntervalExtension::Factors> & factors,
                                   double gain){
 
@@ -425,9 +357,6 @@ bool AlgorithmNk::pointIsFeasible(const std::vector<NaturalIntervalExtension::Fa
     return true;
 }
 
-
-//Starting point of the local search, per the GUI choice: the box centre
-//or the |L0|-maximal corner.
 void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & zeros,
                                                 std::vector<double> & poles, double & gain){
 
@@ -460,4 +389,4 @@ void AlgorithmNk::startingPoint(LtiSystem * box, std::vector<double> & zeros,
     }
 }
 
-} // namespace qftbx
+}

@@ -1,18 +1,17 @@
-// The boundaries computed from the template's contour and from its full
-// cloud, and the controller each leads the search to.
-//
-// The raw sweep over a sample is the same whichever sample it is fed, since
-// the closed-loop worst case over a template is attained on its border. The
-// guard near the singular locus (SingularLocus) tells the two apart: the
-// contour is a border, so the extremes over the family are exact on its
-// polygon and differ from the sampled ones only next to the locus; the cloud
-// has no border, so its extremes are widened by a first-order bound in the
-// local spacing, and it guards more widely. The cloud path is therefore the
-// MORE CONSERVATIVE of the two - never a lower optimum - and the contour
-// path is the tight one, which is what makes the contour the sample to
-// prefer for the boundaries when it closes (the full cloud stands in per
-// frequency when it does not). On example 2: contour 557.07 (the raw sweep
-// gave 556.94; the optimum lies far from the locus), cloud 585.87.
+/**
+ * @file
+ * @brief Compares the boundaries from a template's contour and its cloud.
+ *
+ * The raw sweep is the same whichever sample it is fed, since the worst
+ * closed-loop case over a template lies on its border; the guard near the
+ * singular locus tells the two apart. The contour is a border, so its
+ * extremes are exact on the polygon; the cloud has none and is widened by a
+ * first-order bound, so the cloud path is the more conservative and never
+ * gives a lower optimum. On QFT toolbox example 2 NT must reach 557.0721774
+ * from the contour and 585.8737221 from the cloud, and the contour must be
+ * the cheaper to compute.
+ */
+
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -35,10 +34,6 @@ struct Solution {
 Solution solveFrom(bool fromContour)
 {
     ProjectController controller;
-    //This test compares boundary SOURCES, not readings: the published
-    //reading of the columns keeps NT on this fixture in the tens of
-    //milliseconds and its goldens where the fixture's history left them,
-    //where the conservative one takes it to a minute.
     {
         Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -47,7 +42,6 @@ Solution solveFrom(bool fromContour)
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     const auto t0 = std::chrono::steady_clock::now();
-    //The grid the fixture's boundaries were computed on.
     const bool bounds = controller.computeBoundaries(Range(-360.0, 0.0), 361,
                                                      Range(-60.0, 160.0), 441,
                                                      1.0e6, fromContour, false);
@@ -62,7 +56,7 @@ Solution solveFrom(bool fromContour)
             result->denominator()[0].nominal(), ms};
 }
 
-} // namespace
+}
 
 TEST(BoundarySource, TheContourIsTheTightPathAndTheCloudTheConservativeOne)
 {
@@ -81,10 +75,7 @@ TEST(BoundarySource, TheContourIsTheTightPathAndTheCloudTheConservativeOne)
     EXPECT_TRUE(near(contour.gain, 557.0721774)) << "contour path gain " << contour.gain;
     EXPECT_TRUE(near(cloud.gain, 585.8737221)) << "cloud path gain " << cloud.gain;
 
-    //The cloud never certifies what the contour forbids near the locus, so
-    //its optimum is never the lower one.
     EXPECT_GE(cloud.gain, contour.gain);
 
-    //And the contour is the one that earns its keep on cost.
     EXPECT_LT(contour.boundaryMs, cloud.boundaryMs);
 }

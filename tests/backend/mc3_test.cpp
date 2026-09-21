@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Tests of algorithm MC3 on QFT toolbox example 2.
+ *
+ * MC3 keeps the gain out of the search tree: it bisects the zeros and poles
+ * only and reads the admissible gains of a whole box off the boundary
+ * columns as a union of intervals. It stops on a different measure from
+ * MC2, so its answer differs, but it must be an answer to the same problem:
+ * at or above 556.913, the optimum of this structure found by brute force
+ * over the phase grid, within a fifth of a per cent of MC2's 557.0241, and
+ * pinned at 558.397 under the published reading of the columns. Under the
+ * conservative reading, where both nodes bracketing a phase must allow the
+ * box, the design it returns must pass the direct check against the
+ * specifications, of which the boundaries are only a discretisation.
+ */
+
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -13,8 +29,6 @@ using namespace qftbx;
 
 namespace {
 
-//The published reading of the boundary columns, which is what the goldens
-//of the other algorithms on this fixture were measured with.
 void publishedReading(ProjectController & controller)
 {
     Settings published;
@@ -26,15 +40,8 @@ const auto near = [](double value, double expected) {
     return std::abs(value - expected) <= std::abs(expected) * 1e-4 + 1e-12;
 };
 
-} // namespace
+}
 
-//MC3 keeps the gain out of the search tree: it bisects the zeros and poles
-//only, and reads the admissible gains of a whole box off the boundary
-//columns as a union of intervals. So its answer is not the same as MC2's -
-//it stops on a different measure - but it must be an answer of the same
-//problem: at or above the true optimum of the structure, within the
-//tolerance of what the other searches find, and accepted by the direct
-//check against the specifications.
 TEST(Mc3, TheGainStaysOutOfTheTreeOnExampleTwo)
 {
     ProjectController controller;
@@ -52,16 +59,10 @@ TEST(Mc3, TheGainStaysOutOfTheTreeOnExampleTwo)
     EXPECT_TRUE(near(result->numerator()[0].range().min, 2.0627810)) << result->numerator()[0].range().min;
     EXPECT_TRUE(near(result->denominator()[0].range().min, 138.23722)) << result->denominator()[0].range().min;
 
-    //The exact optimum of this structure, found by brute force over the
-    //phase grid: no search may return less.
     EXPECT_GE(result->gain().range().min, 556.913);
-    //And within a fifth of a per cent of what MC2 finds (557.0241).
     EXPECT_LT(std::abs(result->gain().range().min / 557.0241 - 1.0), 0.005);
 }
 
-//Under the conservative reading of the columns - both nodes that bracket a
-//phase must allow the box - what MC3 returns satisfies the specifications
-//themselves, which is the test the boundaries are only a discretisation of.
 TEST(Mc3, WhatItReturnsUnderTheConservativeReadingSatisfiesTheSpecifications)
 {
     ProjectController controller;

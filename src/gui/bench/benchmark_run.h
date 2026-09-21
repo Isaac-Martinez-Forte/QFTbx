@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief The benchmark runner as driven from the interface, on its own thread.
+ *
+ * Declares the object that runs a benchmark plan through the worker
+ * processes without blocking the window: the runner goes on a standard
+ * thread and every event it reports is posted to the GUI thread, where the
+ * handlers the window installed are called. Handlers are plain callbacks,
+ * one listener each; the crossing of threads is the one thing Qt's event
+ * queue is used for. Also locates the worker program, next to the
+ * application or on the path, with an override for tests.
+ */
+
 #ifndef QFTBX_GUI_BENCH_BENCHMARK_RUN_H
 #define QFTBX_GUI_BENCH_BENCHMARK_RUN_H
 
@@ -70,6 +83,6 @@ private:
     DoneHandler m_done;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_BENCH_BENCHMARK_RUN_H
+#endif

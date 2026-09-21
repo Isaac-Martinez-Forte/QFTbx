@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief The results of one boundary computation, held by value.
+ *
+ * The traced curves, their labels, the union per frequency and the columns
+ * the search reads, together so that a project can store, reload and
+ * compare them as one object.
+ */
+
 #ifndef QFTBX_BOUNDARY_DATA_H
 #define QFTBX_BOUNDARY_DATA_H
 
@@ -53,7 +62,6 @@ public:
     const std::vector<bool> & openFlags () const;
     const std::vector<bool> & upperFlags () const;
 
-
 private:
     BoundarySet m_boundaries;
     std::vector<bool> m_openFlags;
@@ -68,7 +76,6 @@ private:
     std::vector<BoundaryColumns> m_columns;
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_BOUNDARY_DATA_H
+#endif

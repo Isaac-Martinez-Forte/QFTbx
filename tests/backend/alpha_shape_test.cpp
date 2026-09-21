@@ -1,11 +1,16 @@
-// The alpha-shape: the epsilon-hull by its definition, edge by edge.
-//
-// What the walk of Nordin gets from a sequence of steps that may not close,
-// the alpha-shape gets from one test per edge - a disc of diameter epsilon
-// through both ends holds no other point - so it cannot fail, and it returns
-// every component and every hole as a loop. These cases pin the shapes the
-// walk is tested on (e_hull_test) plus the ones the walk cannot do: holes,
-// and the guarantee of closing at the connecting epsilon.
+/**
+ * @file
+ * @brief Tests of the alpha-shape contour of a template cloud.
+ *
+ * The alpha-shape is the epsilon-hull taken by its definition, one test per
+ * edge: a disc of diameter epsilon through both ends holds no other point.
+ * Unlike the walk of Nordin it cannot fail to close, and it returns every
+ * component as a loop, rightmost first. The cases pin the shapes the walk is
+ * tested on, grids, separated blocks, a ring, collinear points, isolated
+ * points, and what the walk cannot do: closing at the connecting epsilon on
+ * every frequency of QFT toolbox example 2. The last case checks that the
+ * alpha-shape and the walk lead the boundaries and NT to the same gain.
+ */
 
 #include <gtest/gtest.h>
 
@@ -40,12 +45,10 @@ std::size_t edgeCount(const AlphaShape & s)
     return n;
 }
 
-} // namespace
+}
 
 TEST(AlphaShape, ARegularGridKeepsExactlyItsBorderAsOneLoop)
 {
-    //9x9 unit grid, epsilon between the spacing and the diagonal: the
-    //disc of diameter 1.2 fits between neighbours along the border only.
     const ComplexCloud g = grid(9, 1.0);
     const AlphaShape s = alphaShape(g, 1.2);
 
@@ -56,7 +59,6 @@ TEST(AlphaShape, ARegularGridKeepsExactlyItsBorderAsOneLoop)
         EXPECT_TRUE(z.real() == 0.0 || z.real() == 8.0 || z.imag() == 0.0 || z.imag() == 8.0)
             << "interior point " << z << " on the contour";
     }
-    //Starts at the rightmost (then topmost) point.
     EXPECT_EQ(g[static_cast<std::size_t>(s.loops[0][0])], std::complex<double>(8.0, 8.0));
 }
 
@@ -75,8 +77,6 @@ TEST(AlphaShape, TwoBlocksFartherApartThanEpsilonAreTwoLoopsRightmostFirst)
 
 TEST(AlphaShape, ARingReturnsItsOuterBorderOnly)
 {
-    //A 9x9 grid without its 3x3 centre: the outer border of 32, and the
-    //hole is not returned, as the walk would not return it either.
     ComplexCloud c;
     for (const std::complex<double> & z : grid(9, 1.0)) {
         if (std::abs(z.real() - 4.0) <= 1.0 && std::abs(z.imag() - 4.0) <= 1.0) continue;
@@ -89,8 +89,6 @@ TEST(AlphaShape, ARingReturnsItsOuterBorderOnly)
 
 TEST(AlphaShape, CollinearPointsAreWalkedOutAndBack)
 {
-    //Five points on a line: every edge is a spike, so the single loop
-    //traverses the four edges twice, 8 steps, like the walk does.
     ComplexCloud c{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
     const AlphaShape s = alphaShape(c, 1.5);
     ASSERT_EQ(s.loops.size(), 1u);
@@ -108,13 +106,7 @@ TEST(AlphaShape, TooSmallAnEpsilonLeavesIsolatedPoints)
 
 TEST(AlphaShape, TheEngineClosesAtTheConnectingEpsilonAndMarksNothing)
 {
-    //On example 2 the walk needs up to twice the connecting epsilon to
-    //close; the alpha-shape closes at it, at every frequency, and the
-    //proposal says so without walking a ladder.
     ProjectController controller;
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -146,29 +138,19 @@ TEST(AlphaShape, TheEngineClosesAtTheConnectingEpsilonAndMarksNothing)
         EXPECT_EQ(r.components, 1u) << "frequency " << i;
         EXPECT_GT(engine.contours()[i].size(), 4u);
         EXPECT_LT(engine.contours()[i].size(), engine.clouds()[i].size());
-        //Closed by its first point.
         EXPECT_EQ(engine.contours()[i].front(), engine.contours()[i].back());
     }
 }
 
 TEST(AlphaShape, TheBoundariesFromTheAlphaShapeMatchTheWalksOnExampleTwo)
 {
-    //Same contour, same boundaries, same controller: the alpha-shape and
-    //the walk, both at the epsilon the fixture carries (10, complex plane),
-    //lead NT to the same gain to the precision the search stops at.
     const auto solve = [](bool alpha) {
         ProjectController controller;
-        //Boundary-chain test: it compares boundaries, not readings, and the
-        //published reading keeps its goldens where the history left them and
-        //NT in the seconds; the conservative one takes NT to a minute here.
         {
             qftbx::Settings published;
             published.algorithms.conservativeBoundaryColumns = false;
             controller.applySettings(published);
         }
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;

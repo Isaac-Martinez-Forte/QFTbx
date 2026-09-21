@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief A closed interval of reals as a named pair.
+ *
+ * The uncertainty of a parameter, the spans of the Nichols grid and a plot's
+ * frequency window are all ranges. The pair says which end is which, orders
+ * an inverted pair and gives the width and midpoint every bisection needs.
+ */
+
 #ifndef QFTBX_RANGE_H
 #define QFTBX_RANGE_H
 
@@ -73,7 +82,6 @@ struct Range
     }
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_RANGE_H
+#endif

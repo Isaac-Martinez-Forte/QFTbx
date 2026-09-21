@@ -10,6 +10,7 @@
 #include "src/bench/record.h"
 
 /**
+ * @file
  * @brief Runs the cases of a plan, each in a process of its own, several
  * at a time.
  *
@@ -40,7 +41,7 @@ public:
     using Listener = std::function<void(const Event &)>;
 
     /// @param workerProgram the executable that runs one case:
-    ///        <program> case <plan file> <case index>.
+    ///        PROGRAM case PLAN-FILE CASE-INDEX.
     /// @param jobs processes at once; 0 takes the plan's value.
     /// @return the number of cases that did not end solved or infeasible.
     std::size_t run(const Plan & plan, const std::string & planPath, const std::string & workerProgram,
@@ -54,10 +55,10 @@ private:
     std::atomic<bool> m_cancel{false};
 };
 
-/// Gathers the records of a plan into <output>/<name>.jsonl and writes the
-/// summary tables <output>/<name>-summary.csv and .md.
+/// Gathers the records of a plan into `output/name.jsonl` and writes the
+/// summary tables `output/name-summary.csv` and .md.
 void gather(const Plan & plan);
 
-} // namespace qftbx::bench
+}
 
-#endif // QFTBX_BENCH_RUNNER_H
+#endif

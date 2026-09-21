@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Tests of the drawn formula and its LaTeX rendering.
+ *
+ * Numbers are rounded to the digits shown with padding dropped, and a digit
+ * count out of range gives the full number a file keeps. Division becomes a
+ * fraction, powers rise, functions take their usual notation, and only the
+ * parentheses that change the meaning survive. A zero coefficient drops its
+ * term, a unit one drops its factor, an uncertain one keeps both, and every
+ * system family is written as its own literature writes it. An empty
+ * coefficient list is written as 1, which is what the evaluation uses for
+ * it, so a numerator nobody filled in does not make the bound vanish.
+ */
+
 #include <gtest/gtest.h>
 
 #include <memory>
@@ -22,7 +36,7 @@ std::string latexOfText(const std::string & expression)
     return latexOf(formulaOfText(expression, kDigits));
 }
 
-} // namespace
+}
 
 TEST(Formula, RoundsWhatItShowsAndDropsThePadding)
 {
@@ -31,7 +45,6 @@ TEST(Formula, RoundsWhatItShowsAndDropsThePadding)
     EXPECT_EQ(text::number(-6.988436109557454e-05, 4), "-6.988e-05");
     EXPECT_EQ(text::number(0.0, 4), "0");
 
-    //Out of range is the full number, which is what a file keeps.
     EXPECT_EQ(text::number(567.3175312139062, 0), text::number(567.3175312139062));
     EXPECT_EQ(text::number(567.3175312139062, 99), text::number(567.3175312139062));
 }
@@ -49,7 +62,6 @@ TEST(Formula, DivisionBecomesAFractionAndPowersRise)
 
 TEST(Formula, KeepsTheParenthesesThatChangeTheMeaningAndNoOthers)
 {
-    //A fraction and an exponent fence their own parts.
     EXPECT_EQ(latexOfText("(a*b)/(c*d)"), "\\frac{ab}{cd}");
     EXPECT_EQ(latexOfText("(a+b)*c"), "\\left(a + b\\right)c");
     EXPECT_EQ(latexOfText("a-(b-c)"), "a - \\left(b - c\\right)");
@@ -92,8 +104,6 @@ TEST(Formula, EachFamilyIsWrittenTheWayItsOwnLiteratureWritesIt)
     EXPECT_EQ(latexOf(formulaOf(static_cast<LtiSystem &>(tcg), kDigits)),
               "5 \\cdot \\frac{1}{\\left(1 + \\frac{s}{2}\\right)}");
 
-    //A zero coefficient drops its term, a unit one drops its factor, and an
-    //uncertain one keeps both.
     PolynomialForm poly("plant", {Parameter(double(1)), Parameter(double(0)), Parameter(double(3))},
                         {Parameter(double(1)), Parameter("b", range, 2.0)},
                         Parameter(double(1)), Parameter(double(0)));
@@ -103,10 +113,6 @@ TEST(Formula, EachFamilyIsWrittenTheWayItsOwnLiteratureWritesIt)
 
 TEST(Formula, AnEmptyPolynomialIsTheOneTheEvaluationUses)
 {
-    //Every family evaluates an empty coefficient list as 1 (the product or
-    //the Horner loop starts there), and the formula has to say the same
-    //thing: written as 0, a numerator nobody filled in made the bound
-    //vanish on screen.
     PolynomialForm empty("plant", {}, {Parameter(double(1))},
                          Parameter(double(1)), Parameter(double(0)));
     EXPECT_EQ(latexOf(formulaOf(static_cast<LtiSystem &>(empty), kDigits)),

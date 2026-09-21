@@ -121,7 +121,7 @@ public:
 
 private:
     std::vector<std::vector<Segment>> m_loops;
-    //Cloud mode: per sample.
+    /// Cloud mode: per sample.
     std::vector<double> m_spacing;
     bool m_isContour = false;
 
@@ -129,6 +129,6 @@ private:
     static double distanceToSegment(std::complex<double> z, const Segment & s);
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_SINGULAR_LOCUS_H
+#endif

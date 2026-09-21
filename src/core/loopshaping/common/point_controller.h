@@ -7,6 +7,7 @@
 #include "src/core/system/lti_system.h"
 
 /**
+ * @file
  * @brief One controller of a zero-pole-gain box: the gain and the values of
  * its zeros and poles, nothing else.
  *
@@ -16,7 +17,7 @@
  * parameter vectors, a formatted name per value) is thrown away a moment
  * later. The projection and the stability check accept this record
  * directly and compute exactly what they compute for the equivalent
- * system; pointFromBox() still builds the system when a point leaves the
+ * system; pointFromBox() builds the system when a point leaves the
  * search as a result.
  */
 namespace qftbx {
@@ -73,6 +74,6 @@ inline std::unique_ptr<LtiSystem> systemFromPoint(LtiSystem * prototype, const P
                              Parameter(point.gain), prototype->delay());
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_POINT_CONTROLLER_H
+#endif

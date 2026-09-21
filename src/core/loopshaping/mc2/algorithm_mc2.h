@@ -24,6 +24,7 @@
 #include "src/core/loopshaping/common/common_functions.h"
 
 /**
+ * @file
  * @brief Algorithm MC2: the strategies of the QFTbx thesis with the errors
  * of their formulation corrected.
  *
@@ -43,8 +44,7 @@
  * own header documents; MC2 is where the formulation is rebuilt instead of
  * patched.
  *
- * The corrections MC2 carries, each proved in the formalisation of
- * the project's internal notes on the validity of the improvements:
+ * The corrections MC2 carries:
  *
  * - T1, the correct-vertex theorem: the four cuts are valid if and only if
  *   the other parameters sit at one particular vertex, and the four use only
@@ -71,19 +71,17 @@
  * - The execution stages of sec. 4.4 are NOT here. They disable the cuts of
  *   a node, and of all its children, the first time a full pass improves
  *   nothing, which is a decision taken on a box far larger than the ones
- *   where the cuts bite. Measured over fourteen problems, sixteen strategy
- *   combinations and two structure orders, dropping them leaves the search
- *   at 1.19 times the best combination of each case, against 2.30 with them
- *   on, and it returns an equal or lower gain. MC of the thesis keeps them,
+ *   where the cuts bite. Without them the search is faster on every problem
+ *   tried and returns an equal or lower gain. MC of the thesis keeps them,
  *   under its own setting, as the published algorithm.
  * - What the stages were really contributing is their bisection rule, not
  *   the cuts they switched off: their final stage splits the parameter that
  *   most narrows the WIDER side of the projection, which is the side the
  *   termination test reads, while the rest of the search splits by the AREA
- *   of the projection. MC2 uses the first rule everywhere. Under the
- *   conservative column reading the area rule does not terminate at all on
- *   four of five problems, and where both terminate this one returns an
- *   equal or better gain, up to thirty times faster. (The published
+ *   of the projection. MC2 uses the first rule everywhere: the area rule
+ *   can fail to terminate under the conservative column reading, and where
+ *   both terminate this one returns an equal or better gain, faster. (The
+ *   published
  *   algorithms bisect at the middle of the widest parameter RANGE, which is
  *   a third rule; see common/common_functions.h.)
  *
@@ -91,11 +89,6 @@
  * nominal stability of every certified point and the box-level instability
  * prune - MC2 keeps as MC of the thesis has it, and the two share their
  * search node (common/mc_search_node.h).
- *
- * At this revision MC2 is a faithful copy of MC of the thesis and returns
- * the same result on every fixture, which is the checkpoint the corrections
- * are measured against: each one lands on top, alone, with its own
- * measurement.
  */
 namespace qftbx {
 
@@ -116,14 +109,13 @@ public:
      * to disable a proof.
      */
     struct Strategies {
-        bool infeasibleMagnitude = true;  //QSInv, magnitude cuts (NK's QS)
-        bool infeasiblePhase = true;      //QSInv, phase cuts (thesis 4.1.2)
-        bool feasibleMagnitude = true;    //QSFact, magnitude (thesis 4.1.1)
-        bool feasiblePhase = true;        //QSFact, phase
-        bool bestGain = true;             //MG (thesis 4.3)
-        bool treeBisection = true;        //thesis 4.2.4
+        bool infeasibleMagnitude = true;   ///< QSInv, magnitude cuts (NK's QS)
+        bool infeasiblePhase = true;   ///< QSInv, phase cuts (thesis 4.1.2)
+        bool feasibleMagnitude = true;   ///< QSFact, magnitude (thesis 4.1.1)
+        bool feasiblePhase = true;   ///< QSFact, phase
+        bool bestGain = true;   ///< MG (thesis 4.3)
+        bool treeBisection = true;   ///< thesis 4.2.4
     };
-
 
     void setStrategies(const Strategies & s);
 
@@ -165,26 +157,26 @@ public:
 
 private:
 
-    //One certainly feasible per-frequency threshold of one parameter
-    //(thesis MM/MF): cutting the range at 'threshold' leaves the side
-    //named by 'upperSide' feasible for frequency 'freqIndex'.
+    /// One certainly feasible per-frequency threshold of one parameter
+    /// (thesis MM/MF): cutting the range at 'threshold' leaves the side
+    /// named by 'upperSide' feasible for frequency 'freqIndex'.
     struct FeasibleThreshold {
-        std::int32_t parameter;   //0 = gain, 1..nz = zero, nz+1.. = pole
+        std::int32_t parameter;   ///< 0 = gain, 1..nz = zero, nz+1.. = pole
         std::size_t freqIndex;
         double threshold;
-        bool upperSide;     //true: [threshold, sup] is the feasible part
-        double fraction;     //|feasible part| / |range|
+        bool upperSide;   ///< true: [threshold, sup] is the feasible part
+        double fraction;   ///< |feasible part| / |range|
     };
 
-    //Detection results of one node, one entry per design frequency
-    //(empty for frequencies the node is marked feasible at).
+    /// Detection results of one node, one entry per design frequency
+    /// (empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
-        std::vector<std::optional<NicholsBox>> projection;   //the Nichols box itself
-        std::vector<Range> boxMag;     //dB edges of the projected box
-        std::vector<Range> boxPhase;   //degree edges
+        std::vector<std::optional<NicholsBox>> projection;   ///< the Nichols box itself
+        std::vector<Range> boxMag;   ///< dB edges of the projected box
+        std::vector<Range> boxPhase;   ///< degree edges
         qftbx::BoxFlag flag = qftbx::feasible;
-        std::size_t mainFrequency = 0;    //largest ambiguous projected area
+        std::size_t mainFrequency = 0;   ///< largest ambiguous projected area
     };
 
     bool analyse(McSearchNode * node, NodeAnalysis & out);
@@ -268,8 +260,8 @@ private:
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    //Prune variable C (thesis 5.4.3): gain and controller of the best
-    //certified solution found by MG.
+    /// Prune variable C (thesis 5.4.3): gain and controller of the best
+    /// certified solution found by MG.
     double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
@@ -292,6 +284,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
+#endif

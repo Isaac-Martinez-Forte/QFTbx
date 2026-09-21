@@ -4,13 +4,13 @@
 #include <memory>
 #include <optional>
 
-
 #include "src/core/loopshaping/loop_shaping_statistics.h"
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/system/lti_system.h"
 
 /**
+ * @file
  * @brief The outcome of a loop-shaping run: the computed controller plus
  * the frequency window and point count the viewer plots it over.
  *
@@ -73,6 +73,6 @@ private:
     Run m_run;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_RESULT_H
+#endif

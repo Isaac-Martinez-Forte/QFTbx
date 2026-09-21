@@ -6,6 +6,7 @@
 #include <vector>
 
 /**
+ * @file
  * @brief A text meant for the user, kept apart from its arguments so that
  * it can be translated where the user is.
  *
@@ -58,6 +59,6 @@ private:
 /// translation file; it is "Core" everywhere.
 #define QFTBX_TR(context, text) ::qftbx::Message(context, text)
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_MESSAGE_H
+#endif

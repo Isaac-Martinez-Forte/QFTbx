@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Recursive measuring and drawing of a formula tree.
+ *
+ * Every dimension is a fraction of the em of the font in use, so the whole
+ * drawing scales together, with the usual constants of a maths setting: the
+ * fraction rule sits on the axis of the line a little above the baseline,
+ * an exponent rises by half the ascent of its base, and exponents and
+ * subscripts take seven tenths of the font. Parentheses are enlarged to
+ * hold what they enclose and centred on it, not on the baseline; a product
+ * is drawn as a centred dot, a function name upright, and the digits a
+ * symbol ends in as a subscript. The widget draws the whole formula at one
+ * size, the largest between half and twice its font at which it fits, and
+ * a pixel font is scaled by its pixel size since it has no point size.
+ */
+
 #include "src/gui/common/formula_view.h"
 
 #include <algorithm>
@@ -16,22 +32,17 @@ namespace qftbx {
 
 namespace {
 
-//The typographic constants of the drawing, as fractions of the em of the
-//font in use, so that everything scales together. They are the usual ones
-//of a maths setting: the fraction rule sits on the axis of the line, a bit
-//above the baseline, and the exponent is raised by half the height of what
-//it is raised over.
-const double kSmaller = 0.7;      //exponents and subscripts
+const double kSmaller = 0.7;
 const double kSmallestPoints = 5.0;
-const double kAxis = 0.28;        //where the fraction rule sits
-const double kRule = 0.055;       //how thick it is
-const double kFractionGap = 0.16; //air between the rule and its two halves
-const double kFractionSide = 0.18;//air at the sides of a fraction
-const double kOperatorAir = 0.28; //air around + and -
-const double kProductAir = 0.06;  //air of a product written without a sign
+const double kAxis = 0.28;
+const double kRule = 0.055;
+const double kFractionGap = 0.16;
+const double kFractionSide = 0.18;
+const double kOperatorAir = 0.28;
+const double kProductAir = 0.06;
 const double kSubscriptDrop = 0.2;
 const double kSuperscriptRise = 0.45;
-const double kFenceAir = 0.06;    //how much taller than its content a parenthesis is
+const double kFenceAir = 0.06;
 const double kRadicalWidth = 0.6;
 const double kRadicalAir = 0.1;
 
@@ -47,8 +58,6 @@ struct Box
     qreal height() const { return ascent + descent; }
 };
 
-//A font given in pixels has no point size to scale, and asking for one
-//gives -1: the resized font would come out unreadable rather than small.
 QFont scaled(const QFont & font, double factor)
 {
     QFont resized = font;
@@ -90,7 +99,6 @@ Box textBox(const QString & text, const QFont & font)
     return box;
 }
 
-//A name and the digits it ends in, set as a subscript.
 Box measureSymbol(const Formula & formula, const QFont & font, QString & stem, QString & subscript)
 {
     std::string stemText;
@@ -112,8 +120,6 @@ Box measureSymbol(const Formula & formula, const QFont & font, QString & stem, Q
     return box;
 }
 
-//How much a parenthesis has to be blown up to hold a box of this height,
-//and what it then measures.
 QFont fenceFont(const QFont & font, const QString & glyph, qreal height)
 {
     const QFontMetricsF metrics(font);
@@ -128,9 +134,6 @@ QFont fenceFont(const QFont & font, const QString & glyph, qreal height)
     return scaled(font, factor);
 }
 
-//The operator as it is WRITTEN: the model says "*", because that is what
-//was typed and what an evaluator reads, and a formula on paper says a
-//centred dot.
 QString drawn(const Formula & formula)
 {
     if (formula.kind == Formula::Kind::Operator && formula.text == "*") {
@@ -231,7 +234,6 @@ Box measure(const Formula & formula, const QFont & font)
         Box box = inside;
         box.width += metrics.horizontalAdvance(openingOf(formula))
                 + metrics.horizontalAdvance(closingOf(formula));
-        //The parentheses stick out above and below what they enclose.
         box.ascent += kFenceAir * em(font);
         box.descent += kFenceAir * em(font);
         return box;
@@ -355,8 +357,6 @@ void draw(QPainter & painter, const Formula & formula, const QFont & font,
         const QFont grown = fenceFont(font, openingOf(formula), inside.height());
         const QFontMetricsF metrics(grown);
 
-        //The parentheses are centred on what they enclose, not on the
-        //baseline: a fraction hangs well below it.
         const qreal centre = baseline - inside.ascent + inside.height() / 2.0;
         const QRectF glyph = metrics.boundingRect(openingOf(formula));
         const qreal fenceBaseline = centre - (glyph.top() + glyph.bottom()) / 2.0;
@@ -367,8 +367,6 @@ void draw(QPainter & painter, const Formula & formula, const QFont & font,
         const qreal opening = metrics.horizontalAdvance(openingOf(formula));
         draw(painter, formula.parts[0], font, x + opening, baseline);
 
-        //What was drawn inside left its own font behind, and the closing
-        //parenthesis is as tall as the opening one.
         painter.setFont(grown);
         painter.drawText(QPointF(x + opening + inside.width, fenceBaseline), closingOf(formula));
         return;
@@ -380,7 +378,6 @@ void draw(QPainter & painter, const Formula & formula, const QFont & font,
         Formula name = formula::symbol(formula.text);
         const Box nameBox = measureSymbol(name, font, stem, subscript);
 
-        //The name of a function is upright: sin is not s times i times n.
         painter.setFont(font);
         painter.drawText(QPointF(x, baseline), stem);
 
@@ -410,8 +407,6 @@ void draw(QPainter & painter, const Formula & formula, const QFont & font,
         painter.setPen(pen);
         painter.setBrush(Qt::NoBrush);
 
-        //The sign: the short stroke down, the long one up, and the bar over
-        //everything it takes the root of.
         QPainterPath radical;
         radical.moveTo(x, baseline - inside.height() / 2.0);
         radical.lineTo(x + tick * 0.35, baseline + inside.descent);
@@ -424,7 +419,7 @@ void draw(QPainter & painter, const Formula & formula, const QFont & font,
     }
 }
 
-} // namespace
+}
 
 FormulaMetrics formulaMetrics(const Formula & formula, const QFont & font)
 {
@@ -513,9 +508,6 @@ void FormulaView::paintEvent(QPaintEvent *)
         return;
     }
 
-    //One size for the whole formula: the largest, within reason, at which
-    //it still fits. A short one grows into the space a family figure used
-    //to take; a long one shrinks instead of being cut off.
     const QRectF room = QRectF(rect()).adjusted(8, 6, -8, -6);
     const Box natural = measure(m_formula, font());
 
@@ -550,4 +542,4 @@ void FormulaView::contextMenuEvent(QContextMenuEvent * event)
     }
 }
 
-} // namespace qftbx
+}

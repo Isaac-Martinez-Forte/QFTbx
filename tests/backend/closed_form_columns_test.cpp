@@ -1,12 +1,18 @@
-// The closed form of the five magnitude specifications, against the sheet.
-//
-// At a fixed phase each specification is a quadratic in the gain for each
-// plant (Chait and Yaniv 1993); the allowed set of the template is the exact
-// intersection of the plants' sets (RangeUnion), multivalued where it is.
-// The sheet samples the same worst case on a magnitude grid and cuts it at
-// the bound with linear interpolation, so the two must agree to that
-// interpolation's error, and where they disagree the closed form is the
-// exact one.
+/**
+ * @file
+ * @brief Tests of the closed-form allowed gains against the sampled sheet.
+ *
+ * At a fixed phase each magnitude specification is a quadratic in the loop
+ * gain for every plant of the template (Chait and Yaniv 1993), and the
+ * allowed set of the template is the exact intersection of the plants'
+ * sets, multivalued where it is. Random plants, phases and bounds check
+ * that the closed-form set agrees with the inequality evaluated directly at
+ * every gain except within a hair of a root. On QFT toolbox example 2 the
+ * closed-form columns must match the sheet cut at the bound to within half
+ * a magnitude cell, differing only on features narrower than a cell; NT
+ * must land within a tenth of a per cent of the sheet's gain, and a cloud,
+ * which has no polygon, must keep the sheet's columns exactly.
+ */
 
 #include <gtest/gtest.h>
 
@@ -30,7 +36,6 @@ using namespace qftbx;
 
 namespace {
 
-//The magnitude the specification bounds, at L = g e^{j phi}, for one plant.
 double magnitudeOf(SpecificationType type, std::complex<double> p0, std::complex<double> p,
                    std::complex<double> q, double g, double phaseDegrees)
 {
@@ -54,13 +59,10 @@ bool contains(const RangeUnion & set, double g)
     return false;
 }
 
-} // namespace
+}
 
 TEST(ClosedFormColumns, TheQuadraticAgreesWithTheInequalityItSolves)
 {
-    //Random plants, phases and bounds; the closed-form set and the
-    //inequality evaluated directly must agree at every gain except within
-    //a hair of a root.
     std::mt19937 rng(7);
     std::uniform_real_distribution<double> mag(-2.0, 2.0), ang(-M_PI, M_PI), ph(-360.0, 0.0), db(-20.0, 20.0);
     const SpecificationType types[] = {SpecificationType::Stability, SpecificationType::OutputDisturbance,
@@ -81,8 +83,6 @@ TEST(ClosedFormColumns, TheQuadraticAgreesWithTheInequalityItSolves)
                 const bool closed = contains(allowed, g);
                 ++checked;
                 if (direct != closed) {
-                    //Only acceptable right at a root: nudging g by 0.1 per
-                    //cent must flip the direct verdict.
                     const bool flips = (magnitudeOf(type, p0, p, q, g * 1.001, phase) <= W) != direct ||
                                        (magnitudeOf(type, p0, p, q, g / 1.001, phase) <= W) != direct;
                     if (!flips) ++disagreements;
@@ -95,17 +95,7 @@ TEST(ClosedFormColumns, TheQuadraticAgreesWithTheInequalityItSolves)
 
 TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationError)
 {
-    //Example 2: stability at every frequency. The sheet columns (guard on,
-    //as the engine computes them, 441 magnitude nodes of 0.5 dB) against
-    //the closed form with the same guard (the segments between samples and
-    //the inside of the polygon): every crossing within a fraction of a
-    //cell, and where the interval counts differ the feature is narrower than
-    //a cell, which is what the sheet cannot see. The largest deviation is
-    //printed.
     ProjectController controller;
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -121,13 +111,11 @@ TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationErr
         const std::complex<double> p0 = controller.plant()->evaluate(omega[f]);
         const ComplexCloud & cloud = controller.contour()[f];
         const std::vector<std::complex<double>> q = nominalOverValueSet(p0, cloud);
-        //Example 2's stability bound is 1.2 at every frequency.
         const double boundDb = 20.0 * std::log10(1.2);
 
         const SingularLocus locus(q, true);
         const BoundaryColumns closed = ClosedFormColumns::columns(SpecificationType::Stability, boundDb, p0, cloud, q,
                                                                   phases, Range(-360.0, 0.0), &locus);
-        //The sheet, sampled as the engine samples it, guard off.
         const std::vector<double> magnitudes = qftbx::math::linspace(-60.0, 160.0, 441);
         std::vector<std::vector<double>> sheet(magnitudes.size(), std::vector<double>(phases.size()));
         for (std::size_t k = 0; k < magnitudes.size(); ++k) {
@@ -144,9 +132,6 @@ TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationErr
             const BoundaryColumns::Intervals a = closed.intervals(c);
             const BoundaryColumns::Intervals b = fromSheet.intervals(c);
             if (a.count != b.count) {
-                //A count the sheet cannot see: an allowed or forbidden band
-                //narrower than a magnitude cell. Every interval on either
-                //side that has no counterpart must be that narrow.
                 ++mismatchedCounts;
                 std::printf("  w=%g column %d (phase %g): closed form", omega[f], c, phases[static_cast<std::size_t>(c)]);
                 for (std::int32_t i = 0; i < a.count; ++i) std::printf(" [%.2f, %.2f]", a.lo[i], a.hi[i]);
@@ -163,7 +148,6 @@ TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationErr
                     }
                     if (!matched) narrowest = std::min(narrowest, more.hi[i] - more.lo[i]);
                 }
-                //Or a gap: two intervals of 'more' that 'fewer' holds as one.
                 double narrowestGap = 1e300;
                 for (std::int32_t i = 0; i + 1 < more.count; ++i) narrowestGap = std::min(narrowestGap, more.lo[i + 1] - more.hi[i]);
                 EXPECT_LT(std::min(narrowest, narrowestGap), 0.5) << "a feature wider than a cell that only one side sees";
@@ -193,22 +177,13 @@ TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationErr
 
 TEST(ClosedFormColumns, TheSearchOnExampleTwoLandsWithinTheInterpolationError)
 {
-    //Boundaries from the sheet and from the closed form (guard on in both,
-    //the sheet with its segment widening, the closed form with the inside
-    //test), NT on each: gains within a tenth of a per cent, printed.
     const auto solve = [](bool closedForm) {
         ProjectController controller;
-        //Boundary-chain test: it compares boundaries, not readings, and the
-        //published reading keeps its goldens where the history left them and
-        //NT in the seconds; the conservative one takes NT to a minute here.
         {
             qftbx::Settings published;
             published.algorithms.conservativeBoundaryColumns = false;
             controller.applySettings(published);
         }
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -229,22 +204,13 @@ TEST(ClosedFormColumns, TheSearchOnExampleTwoLandsWithinTheInterpolationError)
 
 TEST(ClosedFormColumns, ACloudKeepsTheSheetsColumns)
 {
-    //A cloud has no polygon, and its guard on the sheet has no closed form:
-    //with the option on, boundaries from the cloud are the sheet's, and the
-    //search lands where it always did (example 2, NT from the cloud).
     const auto solve = [](bool closedForm) {
         ProjectController controller;
-        //Boundary-chain test: it compares boundaries, not readings, and the
-        //published reading keeps its goldens where the history left them and
-        //NT in the seconds; the conservative one takes NT to a minute here.
         {
             qftbx::Settings published;
             published.algorithms.conservativeBoundaryColumns = false;
             controller.applySettings(published);
         }
-    //Boundary-chain test: it compares boundaries, not readings, and the
-    //published reading keeps its goldens where the history left them and
-    //NT in the seconds; the conservative one takes NT to a minute here.
     {
         qftbx::Settings published;
         published.algorithms.conservativeBoundaryColumns = false;

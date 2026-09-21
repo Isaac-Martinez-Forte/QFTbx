@@ -4,12 +4,12 @@
 #include <map>
 #include <memory>
 
-
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/search_node.h"
 #include "src/core/loopshaping/common/stages.h"
 
 /**
+ * @file
  * @brief Live-list node of the MC family: a SearchNode plus the node
  * history of thesis sec. 4.4.4 - the execution stage, the cut switch and
  * the design frequencies the node is certified feasible at.
@@ -49,6 +49,6 @@ protected:
     std::map<double, double> m_feasibleFrequencies;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
+#endif

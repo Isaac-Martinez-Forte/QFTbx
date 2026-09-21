@@ -1,77 +1,24 @@
-// Characterisation tests over the two thesis chapter-6 benchmark fixtures
-// (phase 8b.0 safety net):
-//
-//   qft_toolbox_ex2.qft - Matlab QFT Toolbox design example 2.
-//       P(s) = k a / (s (s + a)), k,a in [1,10]; tracking spec
-//       alpha/beta + stability gamma = 1.2; Omega = {0.1,0.5,1,2,15,100}.
-//   acc90.qft - ACC'90 benchmark.
-//       P(s) = e / (s^2 (s^2 + 2 e)), e in [0.5,2], with the light damping
-//       the thesis prescribes for the undamped resonance (+ 0.02 s, an
-//       xi = 0.01 at the nominal omega_p = 1: a working choice, to confirm);
-//       stability gamma = 1.75; Omega = {0.1,0.98,...,100}.
-//
-// Both fixtures carry the full pipeline (templates on the thesis-defined
-// grids, boundaries on the standard (-360,0)x361 / (-60,60)x121 grid) and
-// an n = 3 controller structure C(s) = kc (s + z1) / (s + p1) with a wide
-// initial search box. The goldens pin CURRENT behaviour as a regression
-// net for the algorithm rewrites; correctness is judged against each
-// algorithm's paper, not against these values.
-//
-// Pinned observations (updated after 8b.2b: nominal stability check per
-// Tharewal sec. 3.3.5, the open-boundary parity fix, the contour tracer
-// grid fix, and the tracking model swap - see the fixture generator):
-// - The fixtures were regenerated: T_L/T_U assigned per Tharewal 2005
-//   Example 3.1 (the QFTbx thesis text swaps their names, which makes the
-//   allowed tracking band empty and the boundary impossible), a taller
-//   magnitude grid so the low-frequency tracking bound fits, and search
-//   boxes sized to keep the honest branch & bound tractable.
-// - Ex2 is pinned for NT, NK, MC1 and MC (thesis) since the boundary
-//   columns and the box-level stability test (2026-09): the searches that
-//   took minutes on this box, bisecting the closed-loop unstable lag
-//   designs the boundaries cannot see down to epsilon, run in tens of
-//   milliseconds. NT, NK and MC1 agree on k = 557 within a per mille; MC
-//   (thesis) stops at the same epsilon on a box wider in k (its bisection
-//   splits by Nichols magnitude or phase and it has no gain contractor),
-//   and the anti-blocking corner returns that box's top gain: 567.7 at
-//   epsilon 0.5, 0.17 dB above, 557.0 at epsilon 0.02. MR is not pinned
-//   on ex2.
-// - Acc90 NT returns the bottom gain corner (k = 1000): the benchmark
-//   only has the stability specification and the lightly damped plant
-//   keeps low-gain loops stable, so the floor of the gain box is the
-//   formal optimum (the box floor keeps the trivially sluggish loops
-//   meaningful).
-// - MR was rebuilt in 8b.4 as the paper's pure ICSP (quadratic
-//   constraints from specs and template representatives, HC4 branch &
-//   prune, no boundaries). On ACC'90 it reproduces the same optimum as
-//   NT and NK through a third independent route. On ex2 the honest
-//   constraint search takes minutes on this box: not pinned.
-// - MC1 was rebuilt in 8b.5 as the MC of its paper
-//   (Martinez-Forte and Cervera, IJRNC 2021): NT/NK branch & bound + QS2
-//   (magnitude, phase and feasible-boxes cuts) + the prune variable C.
-//   On ACC'90 it reproduces the same optimum as NT, NK and MR through a
-//   fourth independent route. On ex2 it is pinned above. The
-//   historical implementation discarded the low-gain feasible strip
-//   instead of keeping it as the paper's feasible box z', which is why
-//   the old pinned values were far above the true optimum.
-// - NK was reviewed against its paper in 8b.3 (Quick Solution rebuilt on
-//   the closed-form linear equations, local optimisation reconnected with
-//   the 10% rule, stability check wired): the process abort disappeared
-//   with the dimensionally broken cutting equations. Both fixtures are
-//   pinned below.
-// - MC (thesis) was rebuilt in 8b.6 against thesis chapters 4-5 (QSInv,
-//   QSFact with the feasible boxes UM/UF, MG, tree bisection, execution
-//   stages). The legacy shell threw "initial parameter space not valid"
-//   on these fixtures; the rebuilt algorithm reproduces the ACC'90
-//   optimum of the other four algorithms (the zero/pole land on a
-//   different corner of the optimal-gain shelf; the objective is the
-//   gain alone).
+/**
+ * @file
+ * @brief Goldens of every loop-shaping algorithm on the benchmark fixtures.
+ *
+ * `qft_toolbox_ex2.qft` is design example 2 of the MATLAB QFT Toolbox, P(s) =
+ * k a / (s (s + a)) with k, a in [1, 10], tracking bounds and a stability
+ * margin of 1.2; `acc90.qft` is the ACC'90 benchmark, P(s) = e / (s^2 (s^2 +
+ * 0.02 s + 2 e)) with e in [0.5, 2] and stability 1.75 as its only
+ * specification. The gain, zero and pole of the first-order controller each
+ * algorithm returns are pinned to a relative 1e-4, the two best-gain searches
+ * also under the conservative reading of the columns. The values are a
+ * regression net; correctness is judged against each algorithm's paper. On
+ * ACC'90 the optimum is the top of the gain range and many zero-pole boxes
+ * realise it, so the zero and pole pinned there are whichever a search meets.
+ */
 
 #include <gtest/gtest.h>
 
 #include <string>
 
 #include <vector>
-
 
 #include "src/core/math/point.h"
 #include "src/core/math/range.h"
@@ -82,8 +29,6 @@
 using namespace qftbx;
 
 namespace {
-
-//---------------------------------------------------------------- fixtures
 
 TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 {
@@ -105,9 +50,9 @@ TEST(ThesisBenchmarkFixture, QftToolboxEx2LoadsWithTheFullPipeline)
 
     const qftbx::SpecificationRecords * specs = controller.specifications();
     ASSERT_NE(specs, nullptr);
-    EXPECT_TRUE(specs->at(0).used);  // tracking lower (alpha)
-    EXPECT_TRUE(specs->at(1).used);  // tracking upper (beta)
-    ASSERT_TRUE(specs->at(2).used);  // stability
+    EXPECT_TRUE(specs->at(0).used);
+    EXPECT_TRUE(specs->at(1).used);
+    ASSERT_TRUE(specs->at(2).used);
     EXPECT_TRUE(specs->at(2).constant);
     EXPECT_DOUBLE_EQ(specs->at(2).height, 1.2);
 
@@ -147,7 +92,7 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     const qftbx::SpecificationRecords * specs = controller.specifications();
     ASSERT_NE(specs, nullptr);
     EXPECT_FALSE(specs->at(0).used);
-    ASSERT_TRUE(specs->at(2).used);  // stability, the only spec
+    ASSERT_TRUE(specs->at(2).used);
     EXPECT_TRUE(specs->at(2).constant);
     EXPECT_DOUBLE_EQ(specs->at(2).height, 1.75);
 
@@ -161,8 +106,6 @@ TEST(ThesisBenchmarkFixture, Acc90LoadsWithTheFullPipeline)
     ASSERT_NE(controller.controllerStructure(), nullptr);
 }
 
-//----------------------------------------------------------------- goldens
-
 struct BenchmarkGolden {
     const char* name;
     const char* file;
@@ -173,7 +116,6 @@ struct BenchmarkGolden {
     bool conservativeColumns = false;
 };
 
-//Readable test names in ctest (instead of a raw byte dump).
 void PrintTo(const BenchmarkGolden& golden, std::ostream* os)
 {
     *os << golden.name;
@@ -203,8 +145,6 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
     LtiSystem* result = controller.loopShapingResult()->controller();
     ASSERT_NE(result, nullptr);
 
-    //Relative tolerance: the exact optimum wobbles with build flags (FP
-    //rounding of the bisection), as the planta1 goldens showed.
     const auto near = [](double value, double expected) {
         return std::abs(value - expected) <=
                std::abs(expected) * 1e-4 + 1e-12;
@@ -220,10 +160,6 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
         << golden.name << " pole " << result->denominator()[0].range().min;
 }
 
-//MR stopping on the Nichols box like the other four algorithms
-//(algorithms.mr-nichols-epsilon): the departure from the paper that makes
-//the running times comparable. On ACC'90 it must reach the same optimal
-//gain as the paper's termination, and the same box.
 TEST(ThesisBenchmarkFixture, Acc90MrWithTheNicholsEpsilon)
 {
     ProjectController controller;
@@ -247,11 +183,6 @@ TEST(ThesisBenchmarkFixture, Acc90MrWithTheNicholsEpsilon)
 INSTANTIATE_TEST_SUITE_P(
     Algorithms, ThesisBenchmarkGolden,
     ::testing::Values(
-        //With stability as the only specification the optimal gain is the
-        //top of its range and many zero/pole boxes realise it; each
-        //algorithm returns the first feasible one its search meets, so the
-        //zero and pole pinned here are bisection points of the domain
-        //[0.01, 1000] that move whenever the enclosures change tightness.
         BenchmarkGolden{"Acc90NT", "acc90.qft", qftbx::nt,
                         1000.0, 500.005, 0.01},
         BenchmarkGolden{"Acc90NK", "acc90.qft", qftbx::nk,
@@ -262,19 +193,8 @@ INSTANTIATE_TEST_SUITE_P(
                         1000.0, 500.005, 0.01},
         BenchmarkGolden{"Acc90McThesis", "acc90.qft", qftbx::mc_thesis,
                         1000.0, 500.005, 0.01},
-        //MC2 keeps the gain at the top of the range, as every other search
-        //does on this fixture, and reaches it through a different zero: it
-        //bisects the parameter that narrows the wider side of the
-        //projection, not the one that shrinks its area.
         BenchmarkGolden{"Acc90Mc2", "acc90.qft", qftbx::mc2,
                         1000.0, 28.006664282179663, 0.01},
-        //Example 2 with its tracking and stability bounds, the columns read
-        //at the nearest node as the published algorithms read them: the four
-        //boundary-driven searches, the first three within a per mille of one
-        //another and MC (thesis) 0.17 dB above on its wider terminal box (see
-        //the header). These points exceed the stability bound at w = 100 by
-        //0.05 dB, which the specification check records; the optimum of the
-        //structure by brute force is 568.911.
         BenchmarkGolden{"Ex2NT", "qft_toolbox_ex2.qft", qftbx::nt,
                         556.9433291, 1.87155365, 137.642901},
         BenchmarkGolden{"Ex2NK", "qft_toolbox_ex2.qft", qftbx::nk,
@@ -283,29 +203,14 @@ INSTANTIATE_TEST_SUITE_P(
                         556.9603483, 1.868936823, 137.642901},
         BenchmarkGolden{"Ex2McThesis", "qft_toolbox_ex2.qft", qftbx::mc_thesis,
                         567.6912501, 3.305865479, 142.5866992},
-        //MC2 with the exact best gain (T3), the gain contractor on the
-        //terminal box, no execution stages and the bisection by the wider
-        //side of the projection: it lands on the same optimum as NT, NK and
-        //MC1 (557.0) instead of stopping 1.9 % above it, and on a third of
-        //the nodes MC (thesis) needs.
         BenchmarkGolden{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2,
                         557.0240549, 1.88739668, 137.6822785},
-        //The same two with the columns read conservatively (both nodes
-        //bracketing a phase): the returned controller then satisfies the
-        //specifications, and the gain rises. Only the two searches with a
-        //best-gain bound are pinned this way; NT, NK and MC1 under the
-        //conservative reading take one to two minutes each on this fixture
-        //(the strip cuts stop applying) and were measured once at
-        //567.2976504, 567.4241360 and 567.4219156.
         BenchmarkGolden{"Ex2McThesisConservative", "qft_toolbox_ex2.qft", qftbx::mc_thesis,
                         579.4719402, 3.183796387, 144.5398047, true},
-        //Under the conservative reading MC2 now returns what NT, NK and MC1
-        //return (567.30, 567.42, 567.42), in 0.15 s against their 69, 78 and
-        //131 s: the same answer, two to three orders of magnitude faster.
         BenchmarkGolden{"Ex2Mc2Conservative", "qft_toolbox_ex2.qft", qftbx::mc2,
                         567.3175312, 1.819430571, 140.0436795, true}),
     [](const ::testing::TestParamInfo<BenchmarkGolden>& info) {
         return std::string(info.param.name);
     });
 
-} // namespace
+}

@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Assembling and completing the boundary results.
+ *
+ * Columns missing for a frequency or a specification are rebuilt from the
+ * traces, so a file written without them still reads whole; a frequency's
+ * columns are the intersection over its specifications.
+ */
+
 #include <cstdint>
 #include "src/core/boundaries/boundary_data.h"
 
@@ -20,8 +29,6 @@ BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
       m_specificationColumns(std::move(columns))
 {
 
-    //Rebuilt from the traces where a frequency or a specification lacks
-    //them: a file written before the columns were stored.
     m_specificationColumns.resize(m_boundaries.size());
     for (std::size_t f = 0; f < m_boundaries.size(); ++f) {
         for (const auto & entry : m_boundaries[f]) {
@@ -36,7 +43,6 @@ BoundaryData::BoundaryData(BoundarySet boundaries, std::vector<bool> openFlags,
         }
     }
 
-    //The frequency's columns are the intersection over its specifications.
     m_columns.reserve(m_boundaries.size());
     for (std::size_t f = 0; f < m_boundaries.size(); ++f) {
         BoundaryColumns all(m_phaseCount, m_phaseRange);
@@ -92,4 +98,4 @@ const std::vector<bool> & BoundaryData::upperFlags() const
     return m_upperFlags;
 }
 
-} // namespace qftbx
+}

@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief A layout that wraps its items into rows like words in a paragraph.
+ *
+ * Every item keeps the size it asks for and what does not fit goes to the
+ * next line, so a wall of panels reads at any width; inside a scroll area
+ * the overflow is scrolled to. The layout answers height-for-width, which
+ * is how the scroll area learns the total height once the width is known,
+ * and a hidden widget takes no room. It also moves an item to another
+ * position and says where a point would land, which is what dragging a
+ * card over another needs.
+ */
+
 #ifndef QFTBX_FLOW_LAYOUT_H
 #define QFTBX_FLOW_LAYOUT_H
 
@@ -58,6 +71,6 @@ private:
     int m_spacing;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_FLOW_LAYOUT_H
+#endif

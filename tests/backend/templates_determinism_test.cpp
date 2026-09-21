@@ -1,14 +1,15 @@
-// The template sweep runs one OpenMP iteration per design frequency, and the
-// epsilon hull another one per frequency. A data race in either would not
-// necessarily crash: it would quietly change the numbers, which for a toolbox
-// whose whole claim is a rigorous enclosure is the worst kind of failure -
-// and it is the shape of the intermittent golden failure this suite saw once
-// and could not reproduce.
-//
-// What is pinned here is the property that matters: the sweep is BIT-EXACT
-// however many threads run it, and bit-exact when repeated. That covers both
-// a race that reorders writes and one that loses them, without needing a
-// thread sanitiser (there is no gcc libtsan on this machine).
+/**
+ * @file
+ * @brief The template sweep is bit-exact across thread counts and repetitions.
+ *
+ * The sweep runs one OpenMP iteration per design frequency and the hull
+ * another, and a data race in either would quietly change the numbers rather
+ * than crash. Every computed number of a sweep of `planta2.qft` over the
+ * golden 10x10 grid, clouds first and then contours, must be identical with
+ * one thread and with six, and identical across repetitions at six, which
+ * covers a race that reorders writes and one that loses them without a thread
+ * sanitiser. The process-wide thread count is restored afterwards.
+ */
 
 #include <gtest/gtest.h>
 
@@ -16,7 +17,6 @@
 
 #include <complex>
 #include <vector>
-
 
 #ifdef OpenMP_AVAILABLE
 #include <omp.h>
@@ -33,8 +33,6 @@ using namespace qftbx;
 
 namespace {
 
-//Every computed number of one run, in order: the clouds first, then the
-//contours. Compared with ==, so any changed bit shows up.
 using Numbers = std::vector<double>;
 
 void appendAll(const qftbx::CloudSet & sets, Numbers & out)
@@ -48,13 +46,9 @@ void appendAll(const qftbx::CloudSet & sets, Numbers & out)
     }
 }
 
-//One full sweep of planta2.qft over the 10x10 grid of the golden fixture,
-//with the requested thread count.
 Numbers sweep(int threads)
 {
 #ifdef OpenMP_AVAILABLE
-    //Process-wide: restored by the caller so the rest of the binary keeps
-    //the thread count it was launched with.
     omp_set_num_threads(threads);
 #else
     (void) threads;
@@ -87,8 +81,6 @@ Numbers sweep(int threads)
     return numbers;
 }
 
-//RAII for the process-wide thread count: leaving it at 1 would quietly
-//serialise every test that runs after these.
 class ThreadCount
 {
 public:
@@ -107,7 +99,6 @@ TEST(TemplatesDeterminism, TheSweepIsBitExactWhateverTheThreadCount)
     const Numbers single = sweep(1);
     ASSERT_FALSE(single.empty()) << "the sweep produced nothing";
 
-    //Six is the ceiling this project builds and runs with.
     const Numbers many = sweep(6);
 
     ASSERT_EQ(single.size(), many.size())
@@ -121,8 +112,6 @@ TEST(TemplatesDeterminism, TheSweepRepeatsItselfBitExactly)
 {
     ThreadCount restore;
 
-    //Same thread count twice: catches a race whose outcome depends on
-    //scheduling rather than on the number of workers.
     const Numbers first = sweep(6);
     ASSERT_FALSE(first.empty()) << "the sweep produced nothing";
 
@@ -134,4 +123,4 @@ TEST(TemplatesDeterminism, TheSweepRepeatsItselfBitExactly)
     }
 }
 
-} // namespace
+}

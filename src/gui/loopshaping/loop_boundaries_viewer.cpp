@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Draws the two diagrams of the union, cut at the same places.
+ *
+ * Each frequency gets two rows, one per diagram, sharing its place in the
+ * sweep and differing in shade so the pair reads as one. Where a boundary
+ * is more than one curve the cuts are found on the Nichols trace and
+ * applied to both diagrams, the Nyquist points being the Nichols ones read
+ * in polar form, one for one. Every piece is its own curve under the one
+ * legend row; a piece of one point is drawn as a disc.
+ */
+
 #include "src/gui/common/qt_containers.h"
 #include "src/gui/common/plot_export.h"
 #include "src/gui/common/number_text.h"
@@ -7,7 +19,6 @@
 #include "src/gui/application/error_message.h"
 #include "src/gui/common/plot_setup.h"
 #include "src/gui/common/trace_segments.h"
-
 
 namespace qftbx {
 
@@ -19,12 +30,9 @@ LoopBoundariesViewer::LoopBoundariesViewer(QWidget *parent) :
     qftbx::setUpPlot(*ui->plot, tr("phase (degrees)"), tr("magnitude (dB)"));
     setWindowTitle(tr("Boundary union"));
 
-
     legend = new FrequencyLegend(ui->legendHolder);
     ui->legendHolder->layout()->addWidget(legend);
 
-    //The column of controls does not take half the card: the chart needs
-    //the width more than the buttons do.
     narrowSideColumn(ui->sideLayout);
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopBoundariesViewer::applyCheckboxes);
 }
@@ -44,17 +52,14 @@ void LoopBoundariesViewer::clearDiagram(){
     ui->plot->clearFocus();
     ui->plot->clearGraphs();
     ui->plot->clearItems();
-    //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
     legend->clear();
 
     curves.clear();
 
-
     plotted = false;
 }
-
 
 void LoopBoundariesViewer::setData(const BoundaryData *nicholsData,
                              const qftbx::NyquistTraces & nyquistTraces, std::vector<double> *omega,
@@ -70,9 +75,7 @@ void LoopBoundariesViewer::setData(const BoundaryData *nicholsData,
 
 void LoopBoundariesViewer::showDiagram(){
 
-
     clearDiagram();
-
 
     plotted = true;
 
@@ -80,18 +83,12 @@ void LoopBoundariesViewer::showDiagram(){
 
     QVector <QColor> rowColors;
 
-    //Sweep the design frequencies.
-
     qint32 c = 0;
     for (const qftbx::Trace & boundNichols : nicholsData->unionBoundaries()) {
 
         const qftbx::NyquistTrace & boundNyquist =
                 nyquistTraces.at(static_cast<std::size_t>(frequencyIndex));
 
-
-        //Two rows per frequency, one per diagram: the pair shares the
-        //frequency's place in the sweep and differs in shade, so the Nichols
-        //and the Nyquist curve of one frequency read as a pair.
         const int frequencies = static_cast<int>(nicholsData->unionBoundaries().size());
         QColor color = frequencyColour(c / 2, frequencies);
         QColor color2 = color.lighter(145);
@@ -116,13 +113,9 @@ void LoopBoundariesViewer::showDiagram(){
             realParts.push_back(pNyquist.re);
             imaginaryParts.push_back(pNyquist.im);
 
-
             secondIndex++;
         }
 
-        //Where the boundary of a frequency is more than one curve, the two
-        //diagrams are cut at the same places: the Nyquist points are the
-        //Nichols ones read in polar form, one for one.
         const std::vector<std::size_t> cuts = qftbx::segmentEnds(boundNichols);
 
         if (nichols){
@@ -130,8 +123,6 @@ void LoopBoundariesViewer::showDiagram(){
             addFrequencyRow(color, frequencyIndex, tr("Nichols"));
         }
 
-        //The Nyquist-only mode drew nothing: the curve also required
-        //the Nichols flag.
         if (nyquist){
             curves.push_back(piecesOf(realParts, imaginaryParts, cuts, color2));
             addFrequencyRow(color2, frequencyIndex, tr("Nyquist"));
@@ -142,11 +133,9 @@ void LoopBoundariesViewer::showDiagram(){
 
     ui->plot->rescaleAxes();
 
-
     ui->plot->replot();
 }
 
-//One curve per piece, all of them one row of the legend.
 QVector<QCPCurve *> LoopBoundariesViewer::piecesOf(const std::vector<double> & x,
                                                   const std::vector<double> & y,
                                                   const std::vector<std::size_t> & cuts,
@@ -191,10 +180,9 @@ void LoopBoundariesViewer::addFrequencyRow(QColor color, qint32 pos, QString dia
     legend->addRow(numberText(omega->at(pos)) + " " + diagram, color);
 }
 
-
 void LoopBoundariesViewer::on_saveImage_clicked()
 {
     qftbx::exportPlot(this, *ui->plot, tr("Boundary plot"));
 }
 
-} // namespace qftbx
+}

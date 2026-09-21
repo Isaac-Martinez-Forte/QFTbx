@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Error reporting with a replaceable destination, and the translation of core messages.
+ *
+ * The current reporter is a function object kept in a static; when none is
+ * set, the message opens a parentless critical box. A core message is
+ * looked up under its own context and its arguments are substituted after
+ * translation. A parse error is translated inside out: its inner message
+ * first, then the frame that puts the file and line around it.
+ */
+
 #include "src/gui/application/error_message.h"
 
 #include <QCoreApplication>
@@ -15,7 +26,7 @@ ErrorReporter & reporter()
     return current;
 }
 
-} // namespace
+}
 
 void errorMessage(QString message, QString title)
 {
@@ -57,4 +68,4 @@ QString translated(const std::exception & failure)
     return QString::fromUtf8(failure.what());
 }
 
-} // namespace qftbx
+}

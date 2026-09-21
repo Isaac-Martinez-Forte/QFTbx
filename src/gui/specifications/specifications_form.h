@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief The step that enters the specifications and lists those entered.
+ *
+ * Declares the panel where one specification is described at a time, its
+ * band chosen by ticking design frequencies, verified before it is added,
+ * and listed beside the form with its bound drawn as a formula; from the
+ * list it is edited again or removed. Underneath are the seven positional
+ * records every consumer indexes by type, and the list is the used ones.
+ * The form is pointed at the project's current frequencies and refuses to
+ * publish while there are none; it hands over what the user applied.
+ */
+
 #ifndef QFTBX_SPECIFICATIONS_FORM_H
 #define QFTBX_SPECIFICATIONS_FORM_H
 
@@ -25,14 +38,12 @@ namespace qftbx {
  * @brief Step 3 of the design: the specifications, one form and the list of
  * the ones already entered.
  *
- * It used to be seven screens, one per kind, each with its own fields, its
- * own figure and - for tracking - two of everything: the design was in
- * seven places and never on screen at once. Here one form describes ONE
- * specification, the button verifies it before it can be added, and what is
+ * One form describes ONE specification, the button verifies it before it
+ * can be added, and what is
  * added goes to the list beside it, with the bound drawn as the formula it
  * is. From the list a specification is edited again or removed.
  *
- * The seven positional slots are still the model underneath - every
+ * The seven positional slots are the model underneath - every
  * consumer indexes them by SpecificationType - and the list is the used
  * ones.
  *
@@ -150,21 +161,21 @@ private:
 
     std::unique_ptr<Ui::SpecificationsForm> ui;
 
-    //The seven working slots, by value: the form edits them and publishes
-    //deep clones.
+    /// The seven working slots, by value: the form edits them and publishes
+    /// deep clones.
     qftbx::SpecificationRecords m_records;
 
-    //What the button would add, once it has been verified.
+    /// What the button would add, once it has been verified.
     std::optional<qftbx::SpecificationRecord> m_verified;
 
     std::optional<qftbx::SpecificationRecords> m_published;
 
-    //True while the form is writing its own fields.
+    /// True while the form is writing its own fields.
     bool m_filling = false;
 
-    //One tick per design frequency, which is what a band is asked through:
-    //the numbers are not typed, they are chosen from the ones the design
-    //actually uses.
+    /// One tick per design frequency, which is what a band is asked through:
+    /// the numbers are not typed, they are chosen from the ones the design
+    /// actually uses.
     FrequencyLegend * m_frequencies = nullptr;
 
     SystemDescriptionReader m_reader;
@@ -172,6 +183,6 @@ private:
     const std::vector<double> * m_design = nullptr;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_SPECIFICATIONS_FORM_H
+#endif

@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Accounting of where in the search tree the nodes are.
+ *
+ * One row per depth and the frequencies that make boxes ambiguous. Depth is
+ * read off the box as the number of halvings that separate it from the
+ * initial box, summed over its parameters, so a cut counts as a fraction of
+ * a level. It measures and decides nothing, off the hot path.
+ */
+
 #ifndef QFTBX_LOOPSHAPING_DEPTH_ACCOUNTING_H
 #define QFTBX_LOOPSHAPING_DEPTH_ACCOUNTING_H
 
@@ -88,6 +98,6 @@ private:
     std::vector<std::size_t> m_ambiguousByFrequency;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_DEPTH_ACCOUNTING_H
+#endif

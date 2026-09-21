@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Common implementation of the transfer-function systems.
+ *
+ * Declares the intermediate class that holds the numerator and denominator
+ * parameters, the gain and the delay by value and answers the nominal
+ * evaluation, the nominal poles and cloning for every form; the concrete
+ * forms only provide their expression and the evaluation of their shape
+ * from coefficient values.
+ */
+
 #ifndef QFTBX_TRANSFER_FUNCTION_H
 #define QFTBX_TRANSFER_FUNCTION_H
 
@@ -57,8 +68,6 @@ protected:
     std::vector <Parameter> m_denominator;
 };
 
+}
 
-} // namespace qftbx
-
-
-#endif // QFTBX_TRANSFER_FUNCTION_H
+#endif

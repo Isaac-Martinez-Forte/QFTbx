@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief The mathematical constants the toolbox uses.
+ *
+ * Pi and e, taken from the standard library where it provides them and
+ * spelled out to full double precision where it does not.
+ */
+
 #ifndef QFTBX_MATH_CONSTANTS_H
 #define QFTBX_MATH_CONSTANTS_H
 
@@ -18,7 +26,7 @@ inline constexpr double kPi = 3.141592653589793238462643383279502884;
 inline constexpr double kE = 2.718281828459045235360287471352662498;
 #endif
 
-} // namespace math
-} // namespace qftbx
+}
+}
 
-#endif // QFTBX_MATH_CONSTANTS_H
+#endif

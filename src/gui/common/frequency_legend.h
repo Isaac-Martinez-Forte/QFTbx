@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief The colour-coded box of frequency rows beside a plot.
+ *
+ * One checkbox per curve, in the curve's colour, shows or hides it. The
+ * rows flow into as many columns as the width allows and live in a scroll
+ * area, since a problem has as many rows as design frequencies and the last
+ * ones must stay reachable; a filter and All and None buttons work them
+ * together. A caller that needs more than a tick in a row adds it to the
+ * row's own line, or to the column under it. The bare mode keeps only the
+ * ticks, for where the box is not a legend but the question of which
+ * frequencies a specification applies at. The rows belong to the widget
+ * and are destroyed when it is cleared.
+ */
+
 #ifndef QFTBX_GUI_FREQUENCY_LEGEND_H
 #define QFTBX_GUI_FREQUENCY_LEGEND_H
 
@@ -104,7 +119,7 @@ private:
     bool passesFilter(int index) const;
     void applyFilter(const QString & text);
 
-    //The filter and the two buttons above the rows, hidden by setBare().
+    /// The filter and the two buttons above the rows, hidden by setBare().
     QGridLayout * m_controls = nullptr;
 
     bool m_bare = false;
@@ -113,11 +128,11 @@ private:
     FlowLayout * m_layout = nullptr;
     QLineEdit * m_filter = nullptr;
 
-    //Observers: the rows are Qt children of the holder.
+    /// Observers: the rows are Qt children of the holder.
     QVector<QWidget *> m_rows;
     QVector<QCheckBox *> m_checks;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_FREQUENCY_LEGEND_H
+#endif

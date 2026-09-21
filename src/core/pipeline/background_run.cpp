@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Worker-thread execution with the exception caught at the boundary.
+ *
+ * The catch chain covers the core's own exceptions, cancellation, every
+ * std::exception (the interval arithmetic reports domain errors as
+ * std::domain_error) and anything else, because none of them is a reason
+ * to let the process die. The outcome fields are written before the running
+ * flag is released and read only after it is acquired, so that pair is
+ * what publishes them and no mutex is needed. A finished worker may still
+ * be unjoined, since a run ends by clearing the flag, so the next start
+ * joins it first.
+ */
+
 #include "src/core/pipeline/background_run.h"
 
 #include <exception>
@@ -22,8 +36,6 @@ bool BackgroundRun::start(Work work, Done done)
         return false;
     }
 
-    //The previous worker is finished but not necessarily joined: a run ends
-    //by clearing m_running, which does not join anything.
     if (m_worker.joinable()) {
         m_worker.join();
     }
@@ -34,9 +46,6 @@ bool BackgroundRun::start(Work work, Done done)
     m_running.store(true, std::memory_order_release);
 
     m_worker = std::thread([this, work = std::move(work), done = std::move(done)]() {
-        //Everything is caught: an exception escaping this lambda would
-        //terminate the process. The interval arithmetic reports its domain
-        //errors as std::domain_error, so the standard family covers it.
         try {
             const bool produced = work();
             finish(produced, false, Message());
@@ -47,8 +56,6 @@ bool BackgroundRun::start(Work work, Done done)
         } catch (const std::exception & failure) {
             finish(false, false, Message::plain(failure.what()));
         } catch (...) {
-            //Nothing else is expected, and "nothing else is expected" is not
-            //a reason to let the process die.
             finish(false, false, QFTBX_TR("Core", "the computation failed for an unknown reason"));
         }
 
@@ -67,8 +74,6 @@ void BackgroundRun::finish(bool produced, bool cancelled, const Message & error)
     m_errorMessage = error;
     m_error = error.text().empty() ? std::string() : error.rendered();
 
-    //Released last, so anyone who sees running() == false also sees the three
-    //fields above.
     m_running.store(false, std::memory_order_release);
 }
 
@@ -79,4 +84,4 @@ void BackgroundRun::wait()
     }
 }
 
-} // namespace qftbx
+}

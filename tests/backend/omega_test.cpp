@@ -1,5 +1,16 @@
-// Tests for the design-frequency machinery: Omega and the sequence and
-// text helpers that feed it.
+/**
+ * @file
+ * @brief Tests of the design-frequency set and the helpers that feed it.
+ *
+ * The frequency set holds its values by value, keeps its point count equal
+ * to their number whatever count it is handed, since old files carry a
+ * desynchronised one, tolerates being handed its own values and rejects an
+ * empty set leaving itself unchanged. The linear and logarithmic sequences
+ * follow MATLAB: the endpoint is exact, a single point is the start, a
+ * non-positive count is empty, and an inverted range descends. The reader of
+ * space-separated reals splits on any whitespace, so a file with one value
+ * per line reads, and answers an empty optional to an invalid token.
+ */
 
 #include <gtest/gtest.h>
 
@@ -21,10 +32,6 @@ using namespace qftbx;
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// Omega DTO
-// ---------------------------------------------------------------------------
-
 TEST(Omega, ConstructorStoresFieldsVerbatim)
 {
     const std::vector<double> values{0.1, 5.0, 10.0, 100.0};
@@ -34,45 +41,36 @@ TEST(Omega, ConstructorStoresFieldsVerbatim)
     EXPECT_DOUBLE_EQ(omega.end(), 100.0);
     EXPECT_EQ(omega.pointCount(), 4);
     EXPECT_EQ(omega.type(), Omega::Manual);
-    EXPECT_EQ(*omega.values(), values); // the set holds them by value
+    EXPECT_EQ(*omega.values(), values);
 }
 
 TEST(Omega, ConstructorEnforcesTheSizeInvariant)
 {
-    // Hardened: nPuntos is always valores->size(); the constructor argument
-    // is ignored on purpose (old files carry a desynchronised <nPuntos>).
     Omega omega(1.0, 2.0, 99, std::vector<double>{1.0, 2.0}, Omega::Manual);
     EXPECT_EQ(omega.pointCount(), 2);
 }
 
 TEST(Omega, ConstructorRejectsEmptyValues)
 {
-    //There is no null case left to reject: the frequencies arrive by value.
     EXPECT_THROW(Omega(0.0, 0.0, 0, std::vector<double>(), Omega::Manual),
                  qftbx::InvalidInput);
 }
 
 TEST(Omega, SetOmegaKeepsTheInvariant)
 {
-    // Hardened: setOmega keeps pointCount == values().size(), tolerates
-    // being handed the very frequencies it holds, and rejects empty sets.
     Omega omega(1.0, 3.0, 3, std::vector<double>{1.0, 2.0, 3.0}, Omega::Manual);
 
     omega.setOmega(std::vector<double>{5.0, 6.0});
     EXPECT_EQ(omega.values()->size(), 2);
     EXPECT_EQ(omega.pointCount(), 2);
 
-    omega.setOmega(*omega.values()); // self-assignment must be safe
+    omega.setOmega(*omega.values());
     EXPECT_EQ(omega.pointCount(), 2);
     EXPECT_EQ(*omega.values(), std::vector<double>({5.0, 6.0}));
 
     EXPECT_THROW(omega.setOmega(std::vector<double>()), qftbx::InvalidInput);
-    EXPECT_EQ(omega.values()->size(), 2); // unchanged after the throw
+    EXPECT_EQ(omega.values()->size(), 2);
 }
-
-// ---------------------------------------------------------------------------
-// qftbx::linspace
-// ---------------------------------------------------------------------------
 
 TEST(Linspace, TwoPointsAreExact)
 {
@@ -93,8 +91,6 @@ TEST(Linspace, InteriorPointsFollowStep)
 
 TEST(Linspace, LastElementIsExactlyTheEndpoint)
 {
-    // Fixed: values used to accumulate (val += h), so the endpoint could
-    // drift; the canonical implementation pins it exactly, like MATLAB.
     const std::vector<double> v = qftbx::linspace(0.0, 0.3, 4);
     ASSERT_EQ(v.size(), 4);
     EXPECT_DOUBLE_EQ(v.back(), 0.3);
@@ -102,7 +98,6 @@ TEST(Linspace, LastElementIsExactlyTheEndpoint)
 
 TEST(Linspace, SinglePointReturnsStart)
 {
-    // Fixed: N == 1 used to divide by zero when computing the step.
     const std::vector<double> v = qftbx::linspace(2.0, 7.0, 1);
     ASSERT_EQ(v.size(), 1);
     EXPECT_DOUBLE_EQ(v.at(0), 2.0);
@@ -110,8 +105,6 @@ TEST(Linspace, SinglePointReturnsStart)
 
 TEST(Linspace, NonPositiveCountReturnsEmpty)
 {
-    // Documented contract: an invalid count yields an empty vector. The
-    // GUI must validate the count before building an Omega (pending).
     const std::vector<double> v = qftbx::linspace(0.0, 1.0, 0);
     EXPECT_TRUE(v.empty());
 }
@@ -144,10 +137,6 @@ TEST(Linspace, InvertedRangeDescendsSilently)
     EXPECT_DOUBLE_EQ(v.at(1), 3.0);
 }
 
-// ---------------------------------------------------------------------------
-// qftbx::logspace
-// ---------------------------------------------------------------------------
-
 TEST(Logspace, ArgumentsAreExponents)
 {
     const std::vector<double> v = qftbx::logspace(-1.0, 2.0, 4);
@@ -168,11 +157,6 @@ TEST(Logspace, MatchesTenToTheLinspace)
     }
 }
 
-// ---------------------------------------------------------------------------
-// qftbx::text::reals (feeds the manual and file frequency modes and the
-// XML parser)
-// ---------------------------------------------------------------------------
-
 TEST(SrToVectorReal, ParsesSpaceSeparatedValues)
 {
     const std::optional<std::vector<double>> v = qftbx::text::reals(std::string("1 2.5 10"));
@@ -192,20 +176,15 @@ TEST(SrToVectorReal, SkipsRepeatedSpaces)
 
 TEST(SrToVectorReal, InvalidTokenReturnsNothing)
 {
-    // The sentinel used to be a null pointer, dereferenced unchecked by six
-    // call sites in the XML parser and by the manual-frequency dialog. An
-    // empty optional cannot be read by mistake.
     EXPECT_FALSE(qftbx::text::reals(std::string("1 x 3")).has_value());
 }
 
 TEST(SrToVectorReal, SplitsOnAnyWhitespace)
 {
-    // Fixed: the split used to be on single spaces only, so a frequencies
-    // file with one value per line produced an unparseable token.
     const std::optional<std::vector<double>> v = qftbx::text::reals(std::string("1.0\n2.0\t3"));
     ASSERT_TRUE(v.has_value());
     ASSERT_EQ(v->size(), 3);
     EXPECT_DOUBLE_EQ(v->at(1), 2.0);
 }
 
-} // namespace
+}

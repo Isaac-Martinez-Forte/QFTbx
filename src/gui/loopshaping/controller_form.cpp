@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Reads the controller structure and its freedom from the form.
+ *
+ * Every field is read even after one fails so that every problem is marked
+ * at once. The gain is a constant when both ends agree and the parameter
+ * `k` over them otherwise, in either order; its ends are numbers and never
+ * names. A named coefficient needs a range, and the range only counts when
+ * the freedom panel was applied over the coefficients now on screen, in
+ * range-only mode since a structure has no nominal value of its own. A
+ * form filled from the project answers from the structure's own
+ * parameters while its fields still describe them, coefficients and gain
+ * separately. The structure receives copies; the panel keeps its own for
+ * further editing.
+ */
+
 #include "src/gui/loopshaping/controller_form.h"
 #include "ui_controller_form.h"
 
@@ -34,7 +50,7 @@ const char * figureOf(LtiSystem::SystemType type)
     return nullptr;
 }
 
-} // namespace
+}
 
 ControllerForm::ControllerForm(QWidget * parent) :
     StepPanel(parent),
@@ -47,8 +63,6 @@ ControllerForm::ControllerForm(QWidget * parent) :
     ui->gainStart->setText("1");
     ui->gainEnd->setText("1");
 
-    //The freedom of the controller is a page of this form, not a window on
-    //top of it: it is part of describing the structure.
     m_freedom = new UncertaintyPanel(this);
     m_freedom->setTitle(tr("Search range of every parameter of the structure"));
     ui->uncertaintyLayout->addWidget(m_freedom);
@@ -76,7 +90,6 @@ ControllerForm::ControllerForm(QWidget * parent) :
 
 ControllerForm::~ControllerForm()
 {
-    //The freedom panel is a Qt child of this form, so Qt frees it.
 }
 
 std::optional<LtiSystem::SystemType> ControllerForm::selectedType() const
@@ -94,16 +107,11 @@ std::optional<LtiSystem::SystemType> ControllerForm::selectedType() const
         return LtiSystem::SystemType::TimeConstantGain;
     }
 
-    //The path is unfinished: a transfer function, and nothing said yet
-    //about how it is written.
     return std::nullopt;
 }
 
 void ControllerForm::showFamily()
 {
-    //The same path as the plant, and for the same reason: every level of it
-    //stays marked, because a structure written as zeros and poles is a
-    //transfer function first.
     const bool transfer = ui->transferFunctionRadio->isChecked();
     const bool factored = transfer && ui->zerosPolesRadio->isChecked();
 
@@ -202,8 +210,6 @@ void ControllerForm::setVerified(std::unique_ptr<LtiSystem> structure)
 
     ui->formulaView->setFormula(formulaOf(*m_verified, shownDigits()));
 
-    //And the same structure with the search box of every parameter in place
-    //of its name: the freedom the search is being given, in one line.
     const bool free = hasUncertainty(*m_verified);
     ui->rangeFormula->setVisible(free);
     ui->formulaRule->setVisible(free);
@@ -233,17 +239,12 @@ std::optional<CoefficientTable> ControllerForm::readTables(CoefficientTable & ex
 
     const LtiSystem::SystemType type = *chosen;
 
-    //A family written as factors has no factors when its field is empty;
-    //only a polynomial reads an empty field as the constant 1.
     const bool factored = type == LtiSystem::SystemType::ZeroPoleGain
             || type == LtiSystem::SystemType::TimeConstantGain;
 
     CoefficientTable tables;
     bool valid = true;
 
-    //Rows in the order the freedom panel expects: numerator, denominator,
-    //gain range. Every field is read even after one fails, so that every
-    //problem is marked at once.
     const auto readPolynomial = [&](QLineEdit * field) {
         const bool read = type == LtiSystem::SystemType::FreeForm
                 ? m_reader.readFreeForm(field->text(), tables, expressionTable, uncertainTable)
@@ -263,8 +264,6 @@ std::optional<CoefficientTable> ControllerForm::readTables(CoefficientTable & ex
     m_reader.readGainRange(ui->gainStart->text(), ui->gainEnd->text(),
                            tables, expressionTable, uncertainTable);
 
-    //The two ends of the search box are numbers, and nothing else: a name
-    //there would be a parameter of a parameter.
     for (QLineEdit * field : {ui->gainStart, ui->gainEnd}) {
         if (!m_reader.evaluate(field->text()).has_value()) {
             const QString complaint = tr("The ends of the gain range are numbers.");
@@ -323,8 +322,6 @@ std::unique_ptr<LtiSystem> ControllerForm::build()
         return nullptr;
     }
 
-    //A parameter that was given a name is what the search moves, and it
-    //needs the range it may move in.
     const bool hasFreedom = std::any_of(uncertainTable.begin(), uncertainTable.begin() + 2,
                                         [](const UncertainRow & row) {
                                             return std::find(row.begin(), row.end(), true)
@@ -339,14 +336,10 @@ std::unique_ptr<LtiSystem> ControllerForm::build()
     }
     markWrong(ui->uncertaintyButton, false);
 
-    //A form filled from the project answers from the structure's own
-    //parameters while its fields still describe them, field by field.
     const bool coefficientsFromProject = !m_describedCoefficients.isEmpty()
             && currentCoefficients() == m_describedCoefficients;
     const bool gainFromProject = !m_describedGain.isEmpty() && currentGain() == m_describedGain;
 
-    //The gain: a constant when both ends agree, the search box "k" over
-    //them otherwise (in either order).
     std::optional<Parameter> gain;
     try {
         if (gainFromProject) {
@@ -366,9 +359,6 @@ std::unique_ptr<LtiSystem> ControllerForm::build()
             }
         }
     } catch (const qftbx::Exception & e) {
-        //A value that parses but is not a number a model can use: "0/0" and
-        //"1/0" evaluate to a NaN and an infinity, and Parameter refuses
-        //those.
         say(translated(e));
         return nullptr;
     }
@@ -376,8 +366,6 @@ std::unique_ptr<LtiSystem> ControllerForm::build()
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
 
-    //The freedom only counts if its panel was APPLIED; the structure
-    //receives COPIES, the panel keeps its own for further editing.
     if ((freedomIsCurrent() || coefficientsFromProject) && m_freedom->wasAccepted()) {
         numerator = m_freedom->numerator();
         denominator = m_freedom->denominator();
@@ -431,8 +419,6 @@ void ControllerForm::on_uncertaintyButton_clicked()
         return;
     }
 
-    //rangeOnly: a structure has no nominal value of its own, the search
-    //finds it.
     m_freedom->launch(std::move(*valueTable), std::move(expressionTable),
                       std::move(uncertainTable), true);
     ui->pageStack->setCurrentWidget(ui->uncertaintyPage);
@@ -458,7 +444,6 @@ void ControllerForm::setFromProject(LtiSystem * structure)
 
     m_filling = true;
 
-    //The whole path, not only its last step.
     switch (described.type) {
     case LtiSystem::SystemType::PolynomialForm:
         ui->transferFunctionRadio->setChecked(true);
@@ -482,7 +467,6 @@ void ControllerForm::setFromProject(LtiSystem * structure)
     ui->numeratorEdit->setText(described.numerator);
     ui->denominatorEdit->setText(described.denominator);
 
-    //The gain is a search box, not a value: its two ends are the fields.
     const Range gain = structure->gain().rawRange();
     ui->gainStart->setText(numberText(gain.min));
     ui->gainEnd->setText(numberText(gain.max));
@@ -498,7 +482,6 @@ void ControllerForm::setFromProject(LtiSystem * structure)
     m_describedGain = currentGain();
     m_freedomCoefficients = m_describedCoefficients;
 
-    //A structure that came from a file is one already verified.
     setVerified(structure->clone());
     say(QString());
 }
@@ -508,4 +491,4 @@ std::unique_ptr<LtiSystem> ControllerForm::takeControllerStructure()
     return std::move(m_applied);
 }
 
-} // namespace qftbx
+}

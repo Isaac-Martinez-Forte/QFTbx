@@ -5,36 +5,30 @@
 #include <memory>
 #include <type_traits>
 
-
 #include "src/core/loopshaping/common/search_node.h"
 
 /**
+ * @file
  * @brief Ceiling on the number of nodes the branch and bound may keep alive
  * at once.
  *
  * A branch and bound on a problem it cannot resolve at the requested
- * accuracy grows its live list without limit. There was no ceiling, and on
- * Linux with the default heuristic overcommit (vm.overcommit_memory = 0)
- * that does NOT end in a std::bad_alloc anyone could report: malloc keeps
+ * accuracy grows its live list without limit, and on Linux with the default
+ * heuristic overcommit (vm.overcommit_memory = 0) that does NOT end in a
+ * std::bad_alloc anyone could report: malloc keeps
  * succeeding and the OOM killer takes the process down when it touches the
  * pages, so the user loses the project with no message at all. A ceiling is
  * the only mechanism that turns that into a diagnosis.
  *
  * A live node measures 528 bytes for a two-parameter controller and 1056
- * for an eight-parameter one (measured: the tree node of the list, the
+ * for an eight-parameter one (the tree node of the list, the
  * SearchNode, the box and its parameter vector), so this ceiling is about
  * 17 to 34 GB. It is deliberately far above the millions of nodes a normal
  * hard run reaches: it is there to catch a runaway search, not to cap a
  * legitimate one.
  *
- * NOT YET VALIDATED against a genuinely hard problem. Every fixture in the
- * tree resolves early - peaks of 1 to 281 nodes, whatever the epsilon,
- * because acc90 and planta1 both terminate on a certified feasible box
- * before the accuracy matters - so this figure is reasoned from the
- * measured node size, not confirmed by a run that approaches it. That is
- * why LoopShaping reports the peak of every run next to the elapsed time:
- * the peaks of the thesis benchmarks (the ones that take tens of minutes)
- * are what to set this against.
+ * LoopShaping reports the peak of every run next to the elapsed time, which
+ * is what to set this figure against.
  *
  * The ceiling in effect comes from the settings file (search.max-live-nodes,
  * qftbx::Settings::Search) through the algorithm that builds the list.
@@ -109,7 +103,7 @@ public:
 
 private:
 
-    //Ascending or descending by node index; ties keep insertion order.
+    /// Ascending or descending by node index; ties keep insertion order.
     std::multimap <double, std::unique_ptr<ListNode>, bool(*)(double, double)> m_nodes;
 
     void requireNodes() const;
@@ -120,6 +114,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ORDERED_LIST_H
+#endif

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief The clouds of a template computation, one per design frequency.
+ *
+ * A cloud is the plant values at one frequency as complex numbers, and a
+ * set of them is either the templates themselves or their contours.
+ */
+
 #ifndef QFTBX_CLOUD_SET_H
 #define QFTBX_CLOUD_SET_H
 
@@ -28,6 +36,6 @@ using ComplexCloud = std::vector<std::complex<double>>;
  */
 using CloudSet = std::vector<ComplexCloud>;
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_CLOUD_SET_H
+#endif

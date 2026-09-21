@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief The parser behind the project reader.
+ *
+ * A project may be saved at any point of a design, so a missing part is not
+ * an error: a section or element that is not there is simply not read and
+ * its step stays undone, while content that is there and broken refuses the
+ * file with its line number; the two are separate exceptions. Numeric lists
+ * are space-separated reals rejected whole on a bad token. The columns of a
+ * specification are stored per phase column as an interval count and the
+ * ends of each interval, which may be infinite, and must cover the phase
+ * grid exactly. The seven specification slots are positional, and one that
+ * cannot be read whole stays unused without taking the others down. Only the
+ * worst excess of the verifier's check is stored, so it comes back unitemised.
+ */
+
 #include <limits>
 #include <cmath>
 #include <fstream>
@@ -26,9 +42,6 @@
 
 namespace qftbx {
 
-
-//All the parsing state of one load() call, so the reader class itself only
-//keeps the results.
 class ProjectFileParser
 {
 public:
@@ -46,16 +59,11 @@ public:
                               m_raw.begin() + static_cast<std::ptrdiff_t>(offset), '\n');
     }
 
-    /// The file says something this reader cannot make sense of: broken,
-    /// not unfinished.
     [[noreturn]] void fail(const pugi::xml_node & node, const Message & what) const
     {
         throw ParseError(what, lineOf(node), m_filePath);
     }
 
-    /// Something is not in the file. Its own exception, because a project
-    /// may be saved half way through a design and what is missing is then
-    /// simply not read: see load().
     [[noreturn]] void absent(const pugi::xml_node & node, const Message & what) const
     {
         throw MissingPart(what, lineOf(node), m_filePath);
@@ -133,13 +141,8 @@ public:
         return value;
     }
 
-    //Space-separated real vector, the encoding of every numeric list in the
-    //format. A list with a garbage token is rejected whole, not truncated
-    //at the token.
     std::vector <double> realVector(const pugi::xml_node & node) const
     {
-        //text::reals answers exactly this, whole-token validation and all:
-        //this loop was a second implementation of the same rule.
         const std::optional<std::vector<double>> values =
                 qftbx::text::reals(node.text().get());
 
@@ -161,9 +164,6 @@ public:
         return bools;
     }
 
-    //The columns of one specification: per column, the interval count and
-    //then the ends of each interval ("inf" and "-inf" are ends too). The
-    //list must cover exactly the grid's columns.
     qftbx::BoundaryColumns columnsOf(const pugi::xml_node & node, std::int32_t phaseCount, qftbx::Range phaseRange) const
     {
         const std::vector<double> reals = realVector(node);
@@ -189,7 +189,6 @@ public:
         return qftbx::BoundaryColumns(std::move(columns), phaseCount, phaseRange);
     }
 
-    //"x y x y ..." pairs; an unpaired trailing token is rejected.
     qftbx::Trace pointVector(const pugi::xml_node & node) const
     {
         const std::vector <double> reals = realVector(node);
@@ -210,8 +209,6 @@ public:
         const bool uncertain = boolChild(node, t.uncertain);
 
         if (!uncertain) {
-            //A constant is its value: no <range> is read for one, and the
-            //writer emits none.
             return Parameter(nominal);
         }
 
@@ -249,8 +246,6 @@ public:
             denominator.push_back(readParameter(child));
         }
 
-        //Gain and delay: the two parameter elements that are direct children
-        //of <type>.
         std::vector <Parameter> scalars;
         for (const pugi::xml_node & child : typeNode.children()) {
             if (child.child(t.nominal)) {
@@ -287,7 +282,6 @@ public:
             fail(typeNode, QFTBX_TR("Core", "unknown system type"));
         }
 
-        //A file written before the description existed simply has none.
         system->setDescription(std::string(systemNode.attribute(t.descriptionAttribute).value()));
 
         return system;
@@ -295,10 +289,6 @@ public:
 
     qftbx::SpecificationRecords readSpecifications(const pugi::xml_node & section) const
     {
-        //The set is positional with 7 fixed slots: consumers index blindly,
-        //and the type carries that count. A file with fewer fills the ones
-        //it has and leaves the rest unused - a specification nobody entered
-        //is exactly an unused slot - and one with more is read up to seven.
         qftbx::SpecificationRecords specifications;
         std::size_t slot = 0;
 
@@ -309,11 +299,7 @@ public:
 
             qftbx::SpecificationRecord & record = specifications.at(slot++);
 
-            //And a slot that cannot be read whole stays unused, instead of
-            //taking the other six down with it.
             try {
-                //Canonical as stored: the English names, since the
-                //translation from the Spanish ones went with the dialect.
                 record.name = std::string(node.attribute(t.nameAttribute).value());
                 record.used = boolChild(node, t.used);
 
@@ -321,9 +307,6 @@ public:
                     record.omegaStart = realChild(node, t.minFrequency);
                     record.omegaEnd = realChild(node, t.maxFrequency);
 
-                    //The frequencies of the band this one was taken out of.
-                    //A file that names none - every file written before
-                    //they existed - leaves the whole band.
                     if (const pugi::xml_node skipped = node.child(t.skipped)) {
                         record.skipped = realVector(skipped);
                     }
@@ -333,8 +316,6 @@ public:
                     if (record.constant) {
                         record.height = realChild(node, t.magnitude);
                     } else {
-                        //The embedded plant is the child that carries a
-                        //<type> element.
                         pugi::xml_node systemNode;
                         for (const pugi::xml_node & child : node.children()) {
                             if (child.child(t.type)) {
@@ -360,20 +341,12 @@ public:
     {
         const double min = realChild(section, t.omegaMin);
         const double max = realChild(section, t.omegaMax);
-        //The stored count is read and passed on, but Omega ignores it and
-        //recomputes the count from the values (old files carry a
-        //desynchronised one). It is still clamped before the conversion:
-        //turning a file's "1e300" into an std::int32_t is undefined
-        //behaviour, whether or not anybody reads the result.
         const double storedCount = realChild(section, t.pointCount);
         const std::int32_t pointCount = std::isfinite(storedCount)
                 ? static_cast<std::int32_t>(std::clamp(storedCount, 0.0,
                           static_cast<double>(std::numeric_limits<std::int32_t>::max())))
                 : 0;
 
-        //An unknown generation type is refused: travelling in as-is, it
-        //behaves as linear wherever it is compared and hides a corrupt
-        //file instead of reporting it.
         const double storedType = realChild(section, t.omegaType);
         if (storedType != static_cast<double>(Omega::LinSpace) &&
                 storedType != static_cast<double>(Omega::LogSpace) &&
@@ -388,8 +361,6 @@ public:
                                       realVector(require(section, t.values)), type);
     }
 
-    //Template sets are stored as (real-vector, imaginary-vector) element
-    //pairs, one pair per design frequency.
     qftbx::CloudSet readComplexVectors(const pugi::xml_node & section) const
     {
         qftbx::CloudSet vectors;
@@ -420,7 +391,6 @@ public:
         return vectors;
     }
 
-    //One trace per child element, each a flat "x y x y ..." list.
     qftbx::TraceSet readTraces(const pugi::xml_node & section) const
     {
         qftbx::TraceSet traces;
@@ -455,8 +425,6 @@ public:
             boundaries.push_back(std::move(map));
         }
 
-        //The columns are optional: files written before they were stored
-        //have none, and BoundaryData rebuilds them from the traces.
         qftbx::ColumnSet columns;
         for (const pugi::xml_node & frequencyNode : metadata.child(t.boundaryColumns).children()) {
             std::map<std::string, qftbx::BoundaryColumns> map;
@@ -473,8 +441,6 @@ public:
             unionBuckets.push_back(readTraces(frequencyNode));
         }
 
-        //No takeOwnership() any more: BoundaryData holds its containers by
-        //value, so there is one owner and it is the object itself.
         return BoundaryData(std::move(boundaries), std::move(openFlags), std::move(upperFlags),
                             phaseCount, phaseRange, std::move(unionBoundaries),
                             std::move(unionBuckets), magnitudeCount, magnitudeRange,
@@ -484,12 +450,9 @@ public:
     std::unique_ptr<LoopShapingResult> readLoopShaping(const pugi::xml_node & section) const
     {
         const pugi::xml_node data = require(section, t.boundariesData);
-        //A real, as LoopShapingResult holds it and the writer writes it: read
-        //as an integer, a count with a fractional part was refused.
         const double pointCount = realAttribute(data, t.loopShapingPointCountAttribute);
         const qftbx::Range range(realChild(data, t.axisMin), realChild(data, t.axisMax));
 
-        //The embedded controller is the child that carries a <type> element.
         pugi::xml_node systemNode;
         for (const pugi::xml_node & child : section.children()) {
             if (child.child(t.type)) {
@@ -503,14 +466,8 @@ public:
 
         auto result = std::make_unique<LoopShapingResult>(readSystem(systemNode), range, pointCount);
 
-        //The verdict, when the file carries one. Only the worst excess is
-        //stored, so the check that comes back has no itemised entries: it
-        //says whether the design satisfied its specifications and by how
-        //much it missed, which is what the file was asked to remember.
         if (const pugi::xml_node checkNode = section.child(t.check)) {
             SpecificationCheck check;
-            //Absent when nothing was active to exceed; the default is the
-            //minus infinity the checker itself starts from.
             if (checkNode.attribute("worst-excess-db")) {
                 check.worstExcessDb = realAttribute(checkNode, "worst-excess-db");
             }
@@ -527,14 +484,10 @@ public:
 
 ProjectReader::ProjectReader() = default;
 
-//Whatever no caller claimed through take*() dies with the reader, which no
-//longer needs to be told: every member owns what it holds.
 ProjectReader::~ProjectReader() = default;
 
 ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 {
-    //An earlier load() must not show through this one: a section absent
-    //from this file leaves nothing of the previous file's behind.
     m_plant.reset();
     m_specifications.reset();
     m_omega.reset();
@@ -573,11 +526,6 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         throw ParseError(QFTBX_TR("Core", "not a QFT project file (root <%1>)").arg(root.name()), 1, filePath);
     }
 
-    //A file without the attribute is refused, not guessed at: the older
-    //Spanish dialect shares tag names with DIFFERENT meanings (<inicio> is
-    //a range start and also an omega start, <tipo> is an element in one
-    //place and an attribute in another), so a wrong guess does not fail,
-    //it reads the wrong numbers.
     const int version = root.attribute("version").as_int(0);
     if (version != kVersion) {
         throw ParseError(version == 0
@@ -591,23 +539,14 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     ProjectFileParser parser(filePath, raw, kV4);
     const Tags & t = kV4;
 
-    //The three parts of the file, any of which may be missing: a project is
-    //saved at whatever point of the design it has reached.
     const pugi::xml_node inputs = root.child(t.inputs);
     const pugi::xml_node settings = root.child(t.settings);
     const pugi::xml_node results = root.child(t.results);
 
-    //And so may any part of any of them. A plant whose uncertainty was
-    //never entered, a boundary section written by a run that was stopped -
-    //what is not there is simply not read, and the rest of the file comes
-    //in: the user finishes what he left unfinished, which is what he would
-    //have to do anyway. Only content that IS there and is broken - a number
-    //that is not a number - refuses the file.
     const auto part = [](auto && read) {
         try {
             read();
         } catch (const MissingPart &) {
-            //Not there. The step stays undone.
         }
     };
 
@@ -628,11 +567,6 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
             m_omega = parser.readOmega(section);
         }
     });
-    //The epsilon of the templates. It lives in the settings, which is what
-    //it is - the tolerance the hull walk was asked for - but the first
-    //files of version 4 carried it among the results, under the templates
-    //themselves. Read from there when the settings do not have it, rather
-    //than leaving a project with clouds and no tolerance behind them.
     pugi::xml_node epsilonHolder = settings.child(t.templates);
 
     if (!epsilonHolder) {
@@ -676,7 +610,6 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     });
     part([&] {
         if (const pugi::xml_node section = inputs.child(t.controller)) {
-            //Every type lands in the controller, free-form included.
             m_controller = parser.readSystem(section);
         }
     });
@@ -684,10 +617,6 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         if (const pugi::xml_node section = results.child(t.loopShaping)) {
             m_loopShaping = parser.readLoopShaping(section);
 
-            //What the search was run with. A file that does not say keeps
-            //the defaults of the Run, and the interface shows a design whose
-            //settings it cannot vouch for as such rather than inventing
-            //them.
             if (const pugi::xml_node runNode = settings.child(t.loopShaping)) {
                 LoopShapingResult::Run run;
                 const std::string name = runNode.attribute("algorithm").value();
@@ -703,7 +632,6 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
         }
     });
 
-    //Section flags, ALWAYS all 8: consumers index into them.
     Loaded loaded;
 
     if (m_plant != nullptr)                { loaded.steps.add(qftbx::Step::Plant); }
@@ -719,4 +647,4 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
     return loaded;
 }
 
-} // namespace qftbx
+}

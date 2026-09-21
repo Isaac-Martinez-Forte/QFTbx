@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Reading, writing and expanding benchmark plans.
+ *
+ * The plan is a small XML document parsed with pugixml; every numeric
+ * attribute is validated whole and flags must be 0 or 1. Cases are expanded
+ * with the structures outermost, so that a plan cut short leaves whole rows
+ * of the results table rather than a column of every row; a warm-up, when
+ * asked for, is repetition zero. A structure is built from the project's
+ * zero-pole-gain controller by appending the steps' zeros and poles under
+ * fresh names that collide with nothing already there. Case identifiers
+ * replace the characters of an epsilon that a file name cannot carry.
+ */
+
 #include "src/bench/plan.h"
 
 #include <algorithm>
@@ -52,7 +66,7 @@ std::string text(double value)
     return out.str();
 }
 
-} // namespace
+}
 
 Plan readPlan(const std::string & path)
 {
@@ -277,8 +291,6 @@ std::vector<std::size_t> measuredStructures(const Plan & plan)
 std::vector<Case> expandCases(const Plan & plan)
 {
     std::vector<Case> cases;
-    //Structures outermost, so that a plan cut short has whole rows of the
-    //thesis table rather than a column of every row.
     for (const std::size_t stepsApplied : measuredStructures(plan)) {
         for (const LoopShapingAlgorithm algorithm : plan.algorithms) {
             for (const double epsilon : plan.epsilons) {
@@ -361,4 +373,4 @@ std::unique_ptr<LtiSystem> structureAfter(const Plan & plan, LtiSystem & base, s
     return base.create(base.name(), std::move(numerator), std::move(denominator), gain, base.delay());
 }
 
-} // namespace qftbx::bench
+}

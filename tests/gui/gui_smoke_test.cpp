@@ -1,16 +1,18 @@
-// Smoke tests over the Qt dialogs, run headless (QT_QPA_PLATFORM=offscreen).
-//
-// The dialogs are where the user's numbers become model objects, and the
-// backend suite cannot reach them: they were the blind spot of the phase-9
-// type changes (parameters by value, ranges as their own type, the
-// optional-returning builders). These tests drive each dialog the way a
-// user does - fill the fields by object name, press OK - and then check
-// what the dialog handed back. The dialogs do not know the project: they
-// build objects and the main window publishes them, so the assertions read
-// the dialog's own answer.
-//
-// They are smoke tests: they answer "does the data path still work end to
-// end", not "is every validation rule right".
+/**
+ * @file
+ * @brief Smoke tests over the Qt interface, run headless.
+ *
+ * The forms are where the user's numbers become model objects, and the backend
+ * suite cannot reach them. Each test drives a form the way a user does, filling
+ * its fields by object name and pressing its button, and reads the form's own
+ * answer; the modal error box is redirected so a rejection is asserted rather
+ * than waited on. The main window is driven through its panels and cards: what
+ * a step publishes and unlocks, what every fixture project puts on the canvas
+ * when opened, how cards fold, grow, wrap and change places, what the theme,
+ * tooltips, legends and figure export must do, and that a computation runs off
+ * the GUI thread and cancels leaving the project as it was. The probes that
+ * render forms into `QFTBX_RENDER_DIR` are skipped unless that variable is set.
+ */
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/specifications/specification_record.h"
@@ -98,10 +100,6 @@ using namespace qftbx;
 
 namespace {
 
-//Every dialog reports invalid input through qftbx::errorMessage, which
-//opens a MODAL dialog: an automated run would block on it forever. The
-//fixture redirects it and keeps what was reported, so a rejection can be
-//asserted rather than waited on.
 class GuiSmoke : public ::testing::Test
 {
 protected:
@@ -124,8 +122,6 @@ private:
     qftbx::ErrorReporter m_previous;
 };
 
-//The dialogs keep their widgets private; uic gives every one of them an
-//object name, which is the handle a user's click resolves to as well.
 template <typename Widget>
 Widget * child(QWidget * dialog, const char * name)
 {
@@ -164,8 +160,6 @@ void press(QWidget * dialog, const char * name)
     }
 }
 
-//The forms mark what is wrong WHERE it is wrong and say it in their status
-//line, instead of stopping everything with a message box.
 QString complaintOf(QWidget * form)
 {
     QLabel * status = form->findChild<QLabel *>(QStringLiteral("statusLabel"));
@@ -178,23 +172,14 @@ bool isMarked(QWidget * form, const char * name)
     return field != nullptr && field->property("wrong").toBool();
 }
 
-//One button and two steps: nothing is applied that has not been verified,
-//and verifying is what draws the formula.
 void verifyAndApply(QWidget * form)
 {
     press(form, "okButton");
     press(form, "okButton");
 }
 
-//A minimal one-frequency boundary set: one named boundary of three points
-//over the default Nichols window. Enough to drive the drawing code, which
-//is what the viewer tests are after.
 BoundaryData oneBoundary()
 {
-    //Twenty-two lines of heap allocation and a takeOwnership() call became
-    //this. The curve is one named boundary of three points over the default
-    //Nichols window - enough to drive the drawing code, which is what the
-    //viewer tests are after.
     const qftbx::Trace curve{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0),
                              qftbx::NicholsPoint(-90.0, 10.0)};
 
@@ -203,8 +188,6 @@ BoundaryData oneBoundary()
                         {curve}, {qftbx::TraceSet(361)},
                         121, qftbx::Range(-60.0, 60.0));
 }
-
-// ---------------------------------------------------------------------------
 
 TEST_F(GuiSmoke, PlantFormBuildsAZeroPoleGainPlant)
 {
@@ -220,8 +203,6 @@ TEST_F(GuiSmoke, PlantFormBuildsAZeroPoleGainPlant)
     type(&form, "gainEdit", "3");
     type(&form, "delayEdit", "0");
 
-    //Verifying draws the formula and offers to apply; nothing is applied
-    //before that.
     press(&form, "okButton");
     EXPECT_FALSE(form.wasAccepted()) << "verifying is not applying";
     EXPECT_EQ(child<QPushButton>(&form, "okButton")->text(), QString("Apply"));
@@ -231,14 +212,12 @@ TEST_F(GuiSmoke, PlantFormBuildsAZeroPoleGainPlant)
     ASSERT_TRUE(form.wasAccepted()) << "the form rejected valid data: "
                                     << complaintOf(&form).toStdString();
 
-    //Ownership comes with it: the window would hand it to the project.
     std::unique_ptr<LtiSystem> plant(form.takePlant());
     ASSERT_NE(plant, nullptr);
     EXPECT_EQ(plant->type(), LtiSystem::SystemType::ZeroPoleGain);
     EXPECT_EQ(plant->name(), "smoke");
     EXPECT_EQ(plant->description(), "the one of the smoke test");
 
-    //The numbers must have travelled into parameter VALUES.
     ASSERT_EQ(plant->numerator().size(), 1u);
     EXPECT_DOUBLE_EQ(plant->numerator()[0].nominal(), 2.0);
     ASSERT_EQ(plant->denominator().size(), 2u);
@@ -250,9 +229,6 @@ TEST_F(GuiSmoke, PlantFormBuildsAZeroPoleGainPlant)
 
 TEST_F(GuiSmoke, ThePathOfTheFamilyStaysMarkedWholeAndTheFormulaFollowsIt)
 {
-    //Every level of the path is a group of its own, so choosing the leaf
-    //does not unmark the branch it hangs from - a plant written as zeros
-    //and poles is a transfer function first.
     PlantForm form;
 
     type(&form, "nameEdit", "path");
@@ -264,7 +240,6 @@ TEST_F(GuiSmoke, ThePathOfTheFamilyStaysMarkedWholeAndTheFormulaFollowsIt)
     EXPECT_TRUE(child<QRadioButton>(&form, "zerosPolesRadio")->isChecked());
     EXPECT_TRUE(child<QRadioButton>(&form, "tcgRadio")->isChecked());
 
-    //And the fields are named for the family in use.
     EXPECT_EQ(child<QLabel>(&form, "numeratorLabel")->text(), QString("Zeros:"));
     EXPECT_EQ(child<QLabel>(&form, "denominatorLabel")->text(), QString("Poles:"));
 
@@ -285,8 +260,6 @@ TEST_F(GuiSmoke, ThePathOfTheFamilyStaysMarkedWholeAndTheFormulaFollowsIt)
     EXPECT_EQ(formula->latex().toStdString(),
               "5 \\cdot \\frac{1}{\\left(1 + \\frac{s}{2}\\right)}");
 
-    //Changing the family takes the formula away again: it described the
-    //other one.
     check(&form, "zpkRadio");
     EXPECT_EQ(figures->currentIndex(), 0);
     EXPECT_EQ(child<QPushButton>(&form, "okButton")->text(), QString("Verify"));
@@ -294,8 +267,6 @@ TEST_F(GuiSmoke, ThePathOfTheFamilyStaysMarkedWholeAndTheFormulaFollowsIt)
 
 TEST_F(GuiSmoke, PlantFormRejectsAnInvalidExpression)
 {
-    //A malformed coefficient must be reported, not crash the application
-    //(the expression parser throws and the form used to let it through).
     PlantForm form;
 
     type(&form, "nameEdit", "broken");
@@ -315,9 +286,6 @@ TEST_F(GuiSmoke, PlantFormRejectsAnInvalidExpression)
 
 TEST_F(GuiSmoke, PlantFormRejectsAnInvalidCoefficient)
 {
-    //The gain path reports a malformed expression, but buildParameters
-    //catches the parser error per COEFFICIENT and substitutes 0, so a
-    //numerator of "1*/" became the polynomial 0 with nothing said.
     PlantForm form;
 
     type(&form, "nameEdit", "broken-numerator");
@@ -338,10 +306,6 @@ TEST_F(GuiSmoke, PlantFormRejectsAnInvalidCoefficient)
 
 TEST_F(GuiSmoke, PlantFormRejectsAReservedParameterName)
 {
-    //"pi" is a constant of the expression grammar: a parameter under that
-    //name would be read as the constant, never as the parameter. Naming a
-    //parameter after anything the grammar defines used to pass the form -
-    //only FUNCTION names were checked - and fail much later.
     PlantForm form;
 
     type(&form, "nameEdit", "reserved");
@@ -364,10 +328,6 @@ TEST_F(GuiSmoke, PlantFormRejectsAReservedParameterName)
 
 TEST_F(GuiSmoke, ANameWithADigitInItIsTheWholeName)
 {
-    //The reader took the LETTERS of a coefficient as its name, so "z1" was
-    //a parameter called "z": the ranges of a controller written with z1 and
-    //p1 were filed under names nothing else in the program had heard of,
-    //and the uncertainty page came up empty over a project that had them.
     ControllerForm form;
 
     check(&form, "zpkRadio");
@@ -378,7 +338,6 @@ TEST_F(GuiSmoke, ANameWithADigitInItIsTheWholeName)
 
     press(&form, "uncertaintyButton");
 
-    //One row per NAME, and the names are whole.
     qftbx::UncertaintyPanel * freedom = form.findChild<qftbx::UncertaintyPanel *>();
     ASSERT_NE(freedom, nullptr);
 
@@ -397,8 +356,6 @@ TEST_F(GuiSmoke, ANameWithADigitInItIsTheWholeName)
 
 TEST_F(GuiSmoke, ACoefficientInScientificNotationIsANumberAndNotAParameter)
 {
-    //The e of 1e3 was read as the constant e, and the whole plant was
-    //refused with a complaint about a name nobody had typed.
     PlantForm form;
 
     type(&form, "nameEdit", "scientific");
@@ -440,8 +397,6 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 {
     FrequenciesForm dialog;
 
-    //modeStack is the generation-mode combo (manual is entry 0); the pages
-    //of values live in the selecVector stack, which follows it.
     QComboBox * mode = child<QComboBox>(&dialog, "modeStack");
     ASSERT_NE(mode, nullptr);
     mode->setCurrentIndex(0);
@@ -461,10 +416,6 @@ TEST_F(GuiSmoke, FrequenciesDialogBuildsTheDesignFrequencies)
 
 TEST_F(GuiSmoke, ASpecificationThatCannotBeReadIsNotAddedToTheList)
 {
-    //What the seven tabs used to get wrong: a field that could not be read
-    //lost the whole specification and showed a blank tab. Here nothing
-    //leaves the form until it has been verified, the field that is wrong is
-    //marked, and what was typed stays where it can be corrected.
     const std::vector<double> frequencies{0.1, 1.0, 10.0};
     SpecificationsForm form(&frequencies);
 
@@ -483,14 +434,11 @@ TEST_F(GuiSmoke, ASpecificationThatCannotBeReadIsNotAddedToTheList)
     EXPECT_EQ(child<QTableWidget>(&form, "specificationsTable")->rowCount(), 0)
         << "a specification that could not be read was added anyway";
 
-    //The user's text is still on screen, where it can be corrected.
     EXPECT_EQ(child<QLineEdit>(&form, "magnitudeEdit")->text(), "1.2*/");
 }
 
 TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
 {
-    //The list is the design: every specification entered is on it, with the
-    //band it holds over and the bound drawn as the formula it is.
     const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
     SpecificationsForm form(&frequencies);
 
@@ -499,7 +447,6 @@ TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
     ASSERT_NE(typeCombo, nullptr);
     ASSERT_NE(table, nullptr);
 
-    //A constant stability bound, verified and added.
     typeCombo->setCurrentIndex(int(qftbx::SpecificationType::Stability));
     check(&form, "constantRadio");
     check(&form, "decibelsRadio");
@@ -512,7 +459,6 @@ TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
 
     ASSERT_EQ(table->rowCount(), 1);
 
-    //And a tracking upper bound as a transfer function.
     typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingUpper));
     check(&form, "systemRadio");
     check(&form, "polynomialRadio");
@@ -525,30 +471,20 @@ TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
 
     ASSERT_EQ(table->rowCount(), 2);
 
-    //And the stability row, which is the same closed loop without the
-    //prefilter: the six requirements are the literature's, one per slot.
     const QVariant stability = table->item(1, 2)->data(qftbx::FormulaDelegate::formulaRole);
     ASSERT_TRUE(stability.canConvert<qftbx::Formula>());
     EXPECT_EQ(qftbx::latexOf(stability.value<qftbx::Formula>()),
               std::string("\\left|\\frac{L}{1 + L}\\right| \\leq 3.5 dB"));
 
-    //The list is in the order of the slots, not of the typing: the tracking
-    //bound comes before the stability one wherever they were entered.
     EXPECT_EQ(table->item(0, 0)->text(), QString("Tracking, upper bound"));
     EXPECT_EQ(table->item(1, 0)->text(), QString("Stability"));
 
-    //The bound of the row carries its formula, which is what the list is
-    //for: a quotient read as "1 4 19.752" says nothing.
     const QVariant held = table->item(0, 2)->data(qftbx::FormulaDelegate::formulaRole);
     ASSERT_TRUE(held.canConvert<qftbx::Formula>());
-    //The whole requirement: what the program checks of the loop, the sign,
-    //and the bound that was typed.
     EXPECT_EQ(qftbx::latexOf(held.value<qftbx::Formula>()),
               std::string("\\left|F\\frac{L}{1 + L}\\right| \\leq "
                           "\\frac{0.6584}{s^{2} + 4s + 19.75}"));
 
-    //And the lower bound of the tracking band is the one that reads the
-    //other way.
     typeCombo->setCurrentIndex(int(qftbx::SpecificationType::TrackingLower));
     check(&form, "constantRadio");
     check(&form, "decibelsRadio");
@@ -561,7 +497,6 @@ TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
     EXPECT_EQ(qftbx::latexOf(lower.value<qftbx::Formula>()),
               std::string("\\left|F\\frac{L}{1 + L}\\right| \\geq -3 dB"));
 
-    //Applying publishes the seven slots with the two that are used.
     press(&form, "okButton");
     ASSERT_TRUE(form.wasAccepted());
 
@@ -571,16 +506,12 @@ TEST_F(GuiSmoke, TheSpecificationsEnteredAreListedWithTheirBound)
     EXPECT_TRUE(records->at(int(qftbx::SpecificationType::TrackingUpper)).used);
     EXPECT_FALSE(records->at(int(qftbx::SpecificationType::SensorNoise)).used);
 
-    //3.5 dB is what was typed, and linear is what the record keeps.
     EXPECT_NEAR(records->at(int(qftbx::SpecificationType::Stability)).height,
                 qftbx::dbToLinear(3.5), 1e-12);
 }
 
 TEST_F(GuiSmoke, ASpecificationAppliesAtTheFrequenciesThatAreTicked)
 {
-    //The band is not typed: it is the design frequencies, ticked. And a
-    //frequency in the middle can be taken out, which a pair of numbers
-    //cannot say.
     const std::vector<double> frequencies{0.1, 1.0, 10.0, 100.0};
     SpecificationsForm form(&frequencies);
 
@@ -594,7 +525,6 @@ TEST_F(GuiSmoke, ASpecificationAppliesAtTheFrequenciesThatAreTicked)
         EXPECT_TRUE(ticks->isRowChecked(i)) << "a new specification applies everywhere";
     }
 
-    //Out with the second one, and with the last.
     ticks->setRowChecked(1, false);
     ticks->setRowChecked(3, false);
 
@@ -614,14 +544,11 @@ TEST_F(GuiSmoke, ASpecificationAppliesAtTheFrequenciesThatAreTicked)
     const qftbx::SpecificationRecord & effort =
             records->at(int(qftbx::SpecificationType::ControlEffort));
 
-    //The band runs from the first tick to the last, and the hole in the
-    //middle travels as an exception.
     EXPECT_DOUBLE_EQ(effort.omegaStart, 0.1);
     EXPECT_DOUBLE_EQ(effort.omegaEnd, 10.0);
     ASSERT_EQ(effort.skipped.size(), 1u);
     EXPECT_DOUBLE_EQ(effort.skipped.front(), 1.0);
 
-    //Which is what the specification the engines see answers.
     const qftbx::Specification specification =
             qftbx::toSpecification(effort, qftbx::SpecificationType::ControlEffort);
     EXPECT_TRUE(specification.appliesAt(0.1));
@@ -687,9 +614,6 @@ TEST_F(GuiSmoke, ASpecificationIsRemovedFromTheListItIsOn)
 
 TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
 {
-    //Pressing OK on a freshly opened dialog ABORTED the application: the
-    //Omega constructor refuses an empty frequency set by throwing, and that
-    //exception escaped this slot into Qt's event loop.
     FrequenciesForm dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
@@ -703,9 +627,6 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptySetInsteadOfDying)
 
 TEST_F(GuiSmoke, FrequenciesDialogRefusesNonPositiveFrequencies)
 {
-    //A design frequency is evaluated on the imaginary axis at s = jw and
-    //plotted on a logarithmic axis: zero and negative values are not a
-    //frequency set, and the manual mode used to accept them.
     FrequenciesForm dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(0);
@@ -721,14 +642,11 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesNonPositiveFrequencies)
 
 TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptyPointCount)
 {
-    //An empty count reads as zero, linspace answers an empty set, and the
-    //same throw followed.
     FrequenciesForm dialog;
 
     child<QComboBox>(&dialog, "modeStack")->setCurrentIndex(2);
     type(&dialog, "linStart", "1");
     type(&dialog, "linEnd", "10");
-    //linCount deliberately left empty
 
     press(&dialog, "okButton");
 
@@ -736,7 +654,6 @@ TEST_F(GuiSmoke, FrequenciesDialogRefusesAnEmptyPointCount)
     EXPECT_FALSE(m_reported.empty()) << "the rejection must be reported";
 }
 
-//A QObject whose event handling throws, to reach the net underneath.
 class ThrowingObject : public QObject
 {
 public:
@@ -748,9 +665,6 @@ public:
 
 TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
 {
-    //Each case belongs guarded where it happens; this is the net underneath,
-    //so that the next one to be missed is a message and not a crash. The
-    //suite runs under the same Application as the program.
     ThrowingObject victim;
     QEvent event(QEvent::User);
 
@@ -769,7 +683,6 @@ TEST_F(GuiSmoke, ControllerFormBuildsTheControllerStructure)
     check(&dialog, "zpkRadio");
     type(&dialog, "numeratorEdit", "1");
     type(&dialog, "denominatorEdit", "100");
-    //The controller's gain is a SEARCH RANGE, not a value.
     type(&dialog, "gainStart", "1");
     type(&dialog, "gainEnd", "1000");
 
@@ -793,9 +706,6 @@ TEST_F(GuiSmoke, ControllerFormBuildsTheControllerStructure)
 
 TEST_F(GuiSmoke, ControllerFormRejectsAnInvalidNumerator)
 {
-    //readTables() keeps only the LAST of its three parse results, so a
-    //malformed numerator or denominator was overwritten by a gain range that
-    //parsed. The plant dialog rejects the same input.
     ControllerForm dialog;
 
     check(&dialog, "zpkRadio");
@@ -815,9 +725,6 @@ TEST_F(GuiSmoke, ControllerFormRejectsAnInvalidNumerator)
 
 TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
 {
-    //The main window gates the step order, but the dialog used to reach
-    //first()/last() on a null frequency vector and take the application
-    //down; it says so now.
     EXPECT_THROW(SpecificationsForm dialog(nullptr), qftbx::InvalidInput);
 
     const std::vector<double> empty;
@@ -826,9 +733,6 @@ TEST_F(GuiSmoke, SpecificationsDialogNeedsTheFrequenciesFirst)
 
 TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
 {
-    //The viewer runs no computation of its own: the recompute button calls
-    //the handler the window installed, handing it the epsilon it read from
-    //the fields. A plain callback, not a Qt signal.
     TemplateViewer viewer;
 
     const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
@@ -836,8 +740,6 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
     std::vector<double> omega{1.0};
     std::vector<double> epsilon{0.05};
 
-    //The viewer takes its own copy of the clouds; the frequency and epsilon
-    //vectors are still the project's.
     viewer.setData(templates, contour, &omega, &epsilon);
     viewer.plotDiagram(true);
 
@@ -854,10 +756,6 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
     ASSERT_EQ(asked.size(), 1);
     EXPECT_DOUBLE_EQ(asked[0], 0.05);
 
-    //Each frequency row is colour coded to its curve. The English rename
-    //(a9621ff) renamed a local QColor over the CSS property name inside the
-    //literal, so the stylesheet read "colorsCreated : #rrggbb" and Qt
-    //dropped it with an "Unknown property" warning on stderr.
     QCheckBox * row = child<QCheckBox>(&viewer, "check");
     ASSERT_NE(row, nullptr);
     EXPECT_TRUE(row->styleSheet().startsWith("color"))
@@ -868,8 +766,6 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
 
 TEST_F(GuiSmoke, TemplateViewerWithNothingPlottedIgnoresTheRecomputeButton)
 {
-    //With no plot the epsilon controls do not exist yet; the button used to
-    //walk pointers that had never been assigned.
     TemplateViewer viewer;
 
     press(&viewer, "recomputeButton");
@@ -877,18 +773,13 @@ TEST_F(GuiSmoke, TemplateViewerWithNothingPlottedIgnoresTheRecomputeButton)
 
 TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
 {
-    //The menu entry had been dead since the initial upload, so nothing had
-    //exercised this path. It draws two plots, magnitude and phase, over the
-    //design frequency span.
     BodeViewer viewer;
 
-    //A first-order plant, 1/(s+1): -3 dB and -45 degrees at 1 rad/s.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
     PolynomialForm plant("bode", numerator, denominator,
                          Parameter(1.0), Parameter(0.0));
 
-    //Logarithmic span: start() and end() are EXPONENTS here, 0.01 to 100.
     Omega omega(-2.0, 2.0, 100, qftbx::logspace(-2.0, 2.0, 100), Omega::LogSpace);
 
     viewer.drawBode(&plant, &omega);
@@ -901,17 +792,13 @@ TEST_F(GuiSmoke, BodeViewerDrawsBothAxesOfTheDiagram)
     EXPECT_EQ(magnitude->plottableCount(), 1) << "the magnitude curve is missing";
     EXPECT_EQ(phase->plottableCount(), 1) << "the phase curve is missing";
 
-    //The sweep must start at the design start, not at a hardcoded -1: a
-    //logarithmic axis cannot render a range that begins at or below zero.
     EXPECT_GT(magnitude->xAxis->range().lower, 0.0);
     EXPECT_NEAR(magnitude->xAxis->range().lower, 0.01, 1e-9);
     EXPECT_NEAR(magnitude->xAxis->range().upper, 100.0, 1e-6);
 
-    //Phase in DEGREES: a first-order lag spans (0, -90], never radians.
     EXPECT_LT(phase->yAxis->range().lower, -80.0);
     EXPECT_GT(phase->yAxis->range().lower, -90.5);
 
-    //Redrawing must replace the curves, not pile new ones on.
     viewer.drawBode(&plant, &omega);
     EXPECT_EQ(magnitude->plottableCount(), 1) << "a redraw piled up curves";
 }
@@ -920,8 +807,6 @@ TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
 {
     BoundaryGridForm dialog;
 
-    //The DEFAULT window must be the full [-360, 0]: loop shaping refuses a
-    //narrower one, and the reader of the phase buckets is scaled by it.
     ASSERT_NE(child<QPushButton>(&dialog, "okButton"), nullptr);
 
     type(&dialog, "phasePoints", "361");
@@ -937,8 +822,6 @@ TEST_F(GuiSmoke, BoundaryGridDialogBuildsTheNicholsGrid)
     EXPECT_EQ(dialog.magnitudeCountValue(), 121);
     EXPECT_LT(dialog.magnitudeRangeValue().min, dialog.magnitudeRangeValue().max);
 
-    //A window narrower than 360 degrees would be refused later by
-    //LoopShaping::run; the default one must not be.
     EXPECT_DOUBLE_EQ(dialog.phaseRangeValue().max - dialog.phaseRangeValue().min, 360.0);
 }
 
@@ -968,8 +851,6 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     type(&dialog, "epsilonEdit", "0.05");
 
-    //The general section demands a spacing and a point count for the
-    //parameter grids.
     check(&dialog, "linspaceRadio");
     type(&dialog, "globalPointCount", "3");
     check(&dialog, "allVariablesRadio");
@@ -979,16 +860,12 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
     ASSERT_TRUE(dialog.wasAccepted()) << "the form rejected valid data";
 
-    //One epsilon per design frequency: the template computation indexes it
-    //by frequency.
     const std::vector<double> epsilon = dialog.takeEpsilon();
     EXPECT_EQ(epsilon.size(), 4);
     for (double value : epsilon) {
         EXPECT_DOUBLE_EQ(value, 0.05);
     }
 
-    //A grid per uncertain parameter, and none for the constants. By value now:
-    //nothing to free, and nothing to be null.
     const qftbx::ParameterGrids grids = dialog.grids();
     EXPECT_EQ(grids.count("a"), 1u)
         << "the uncertain parameter got no grid";
@@ -996,10 +873,6 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
 
 TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
 {
-    //The field opens filled with the least epsilon each template asks for,
-    //computed from the grids as the dialog holds them on launch, so that OK
-    //alone is a complete answer, shown as the engine gives it; the Propose
-    //button asks again with the plane as chosen.
     TemplatesForm dialog;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
@@ -1037,30 +910,23 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::ComplexPlane);
     EXPECT_EQ(child<QLineEdit>(&dialog, "epsilonEdit")->text(), QString("2.78 0.0124"));
 
-    //Propose again in the other plane.
     child<QComboBox>(&dialog, "metricCombo")->setCurrentIndex(0);
     press(&dialog, "proposeButton");
     EXPECT_EQ(calls, 2);
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::Nichols);
 
-    //The border sweep needs two uncertain parameters; this plant has one,
-    //so the box is offered disabled and reads as off whatever it holds.
     EXPECT_FALSE(child<QCheckBox>(&dialog, "borderSweepCheck")->isEnabled());
     child<QCheckBox>(&dialog, "borderSweepCheck")->setChecked(true);
     EXPECT_FALSE(dialog.borderSweep());
 
-    //The contour is the walk by default; the alpha-shape on request.
     EXPECT_FALSE(dialog.alphaShapeContour());
     child<QComboBox>(&dialog, "contourCombo")->setCurrentIndex(1);
     EXPECT_TRUE(dialog.alphaShapeContour());
 
-    //Where a contour does not close, the whole template stands in by default;
-    //the user can ask for an error instead.
     EXPECT_TRUE(dialog.wholeTemplateIfNoContour());
     child<QCheckBox>(&dialog, "wholeTemplateCheck")->setChecked(false);
     EXPECT_FALSE(dialog.wholeTemplateIfNoContour());
 
-    //And OK accepts the filled-in field as it stands.
     check(&dialog, "nicholsRadio");
     press(&dialog, "okButton");
     ASSERT_TRUE(dialog.wasAccepted()) << "the dialog rejected its own proposal";
@@ -1109,10 +975,6 @@ TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
 
 TEST_F(GuiSmoke, UncertaintyPanelBuildsAnUncertainParameter)
 {
-    //This is what turns a named coefficient into an uncertain Parameter, so
-    //it feeds the uncertainty of every plant and controller. It is driven
-    //the way the plant dialog drives it: the three parallel tables, one row
-    //per uncertain name.
     UncertaintyPanel dialog;
 
     const CoefficientTable valueTable{{"1"}, {"a"}};
@@ -1121,7 +983,6 @@ TEST_F(GuiSmoke, UncertaintyPanelBuildsAnUncertainParameter)
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
-    //One uncertain name, so one generated row: minimum, nominal, maximum.
     type(&dialog, "rangeMinimum", "1");
     type(&dialog, "rangeMaximum", "5");
     type(&dialog, "rangeNominal", "3");
@@ -1135,8 +996,6 @@ TEST_F(GuiSmoke, UncertaintyPanelBuildsAnUncertainParameter)
 
     ASSERT_TRUE(dialog.wasAccepted()) << "the panel rejected valid data";
 
-    //The constant numerator coefficient must travel as a constant, and the
-    //named denominator one as uncertain with its range and nominal.
     ASSERT_EQ(dialog.numerator().size(), 1u);
     EXPECT_FALSE(dialog.numerator()[0].isUncertain());
 
@@ -1148,7 +1007,6 @@ TEST_F(GuiSmoke, UncertaintyPanelBuildsAnUncertainParameter)
     EXPECT_DOUBLE_EQ(uncertain.rawRange().max, 5.0);
     EXPECT_DOUBLE_EQ(uncertain.rawNominal(), 3.0);
 
-    //Gain and delay are search RANGES here, not values.
     EXPECT_DOUBLE_EQ(dialog.gain().min, 2.0);
     EXPECT_DOUBLE_EQ(dialog.gain().max, 8.0);
     EXPECT_DOUBLE_EQ(dialog.delay().min, 0.0);
@@ -1157,8 +1015,6 @@ TEST_F(GuiSmoke, UncertaintyPanelBuildsAnUncertainParameter)
 
 TEST_F(GuiSmoke, UncertaintyPanelRejectsAnEmptyRange)
 {
-    //An empty range used to be read as a null sentinel; it must be reported
-    //and refused, not turned into a parameter.
     UncertaintyPanel dialog;
 
     const CoefficientTable valueTable{{"1"}, {"a"}};
@@ -1167,7 +1023,6 @@ TEST_F(GuiSmoke, UncertaintyPanelRejectsAnEmptyRange)
 
     ASSERT_TRUE(dialog.launch(valueTable, expressionTable, uncertainTable, false));
 
-    //The row is left blank on purpose.
     type(&dialog, "rangeGainStart", "2");
     type(&dialog, "rangeGainEnd", "8");
     type(&dialog, "rangeDelayStart", "0");
@@ -1180,9 +1035,6 @@ TEST_F(GuiSmoke, UncertaintyPanelRejectsAnEmptyRange)
 
 TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
 {
-    //Draw-only viewer: the value here is that the drawing code runs over a
-    //real boundary set and leaves curves behind, and that a redraw does not
-    //pile them up (the bug the Bode and template viewers both had).
     BoundaryViewer viewer;
 
     const BoundaryData boundaries = oneBoundary();
@@ -1200,12 +1052,6 @@ TEST_F(GuiSmoke, BoundaryViewerDrawsTheBoundariesItIsGiven)
     EXPECT_EQ(plot->plottableCount(), drawn) << "a redraw piled up curves";
 }
 
-//A viewer has to grow with its window: a form whose widgets are placed at
-//absolute coordinates keeps them where they were put, whatever the user does
-//to the window, and the plot then stays the size it was drawn at in
-//Designer. The check is the behaviour and not the mechanism - resize the
-//viewer and see whether the canvas followed - so it holds however the form
-//is laid out.
 template <typename Viewer>
 void expectThePlotGrowsWithTheWindow(const char * what)
 {
@@ -1236,7 +1082,6 @@ TEST_F(GuiSmoke, EveryViewerGrowsWithItsWindow)
     expectThePlotGrowsWithTheWindow<LoopBoundariesViewer>("loop boundaries viewer");
     expectThePlotGrowsWithTheWindow<LoopShapingViewer>("loop shaping viewer");
 
-    //Bode draws two canvases, one over the other, and both have to follow.
     BodeViewer bode;
     bode.resize(700, 500);
     bode.show();
@@ -1258,10 +1103,6 @@ TEST_F(GuiSmoke, EveryViewerGrowsWithItsWindow)
 
 TEST_F(GuiSmoke, TheFrequencyPanelGrowsWithTheTemplateViewer)
 {
-    //The card growing used to widen the diagram alone: the frequency column
-    //was pinned to the width of the buttons, so a row that did not fit could
-    //not be read, and there was no way of trading one for the other by hand
-    //either. The two share the width now, and the separation is a handle.
     TemplateViewer viewer;
     viewer.resize(700, 500);
     viewer.show();
@@ -1282,8 +1123,6 @@ TEST_F(GuiSmoke, TheFrequencyPanelGrowsWithTheTemplateViewer)
         << "the viewer grew by 600 px and the frequencies stayed at " << panel->width();
     EXPECT_GT(plot->width(), plotBefore) << "and the diagram has to grow as well";
 
-    //Of what is opened up the diagram still takes the larger share: the
-    //panel growing is not the panel taking over the card.
     EXPECT_GT(plot->width() - plotBefore, panel->width() - panelBefore);
 
     QSplitter * splitter = viewer.findChild<QSplitter *>();
@@ -1332,9 +1171,6 @@ TEST_F(GuiSmoke, ProposingAnEpsilonFillsTheFieldsAndComputesNothing)
 
 TEST_F(GuiSmoke, TheEpsilonOfAFrequencyIsAFieldAndNothingElse)
 {
-    //Each row carried a slider beside the field for the same number. Two
-    //controls for one value is a row that does not fit and a pair to keep in
-    //step; the field alone says it exactly, which is what it is read for.
     TemplateViewer viewer;
 
     const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
@@ -1375,7 +1211,6 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
 {
     LoopShapingViewer viewer;
 
-    //1/(s+1) as the plant and a unit gain as the computed controller.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
     PolynomialForm plant("loop", numerator, denominator,
@@ -1412,9 +1247,6 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
     const BoundaryData nichols = oneBoundary();
     std::vector<double> omega{1.0};
 
-    //The Nyquist half is now the curves themselves, converted from the same
-    //union: the viewer no longer takes a BoundaryData built to look like
-    //something it is not.
     qftbx::NyquistTraces nyquist;
     for (const qftbx::Trace & trace : nichols.unionBoundaries()) {
         qftbx::NyquistTrace converted;
@@ -1434,32 +1266,16 @@ TEST_F(GuiSmoke, LoopBoundariesViewerDrawsBothDiagrams)
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
 {
-    //Every dialog, viewer and menu is constructed here: a broken .ui
-    //reference or a null child shows up as a crash on construction.
     MainWindow window;
     EXPECT_FALSE(window.windowTitle().isEmpty());
 }
 
-// --- the window driven, not just built -------------------------------------
-//
-// The steps used to be modal dialogs, so a test that pressed a step button
-// hung there for ever and the window could only be built, never driven. They
-// are panels in docks now: pressing the button brings the phase up, the test
-// fills the panel it finds in the window and presses its button, and the
-// window does what a user's acceptance makes it do.
-//
-// This is the net the rest of the window work needs: the seven bool flags,
-// the repeated teardown and the invalidation ladder are about to be replaced,
-// and until now there was nothing watching.
-
-//The panel of a phase, as the window built it.
 template <typename Panel>
 Panel * panelIn(QWidget * window)
 {
     return window->findChild<Panel *>();
 }
 
-//The user of the plant panel: a plant that needs no uncertainty.
 void fillPlant(PlantForm * plant, const QString & name)
 {
     type(plant, "nameEdit", name);
@@ -1485,14 +1301,10 @@ TEST_F(GuiSmoke, PressingThePlantStepPublishesAPlantAndOpensTheNextSteps)
     ASSERT_NE(plant, nullptr) << "pressing the step must bring its panel up";
     fillPlant(plant, "driven");
 
-    //The step counts as done, which the progress bar is what says out loud.
     QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
     ASSERT_NE(progress, nullptr);
     EXPECT_EQ(progress->value(), 1);
 
-    //A plant on its own opens nothing: the templates need the frequencies as
-    //well, and everything below needs the templates. Written down because it
-    //is the sort of thing the seven flags could get wrong quietly.
     QPushButton * templates = child<QPushButton>(&window, "templatesButton");
     ASSERT_NE(templates, nullptr);
     EXPECT_FALSE(templates->isEnabled());
@@ -1506,8 +1318,6 @@ TEST_F(GuiSmoke, APanelNobodyAcceptsLeavesTheStepUndone)
 {
     MainWindow window;
 
-    //A user who brings the phase up, looks at it and does nothing: the step
-    //is not done until its button is pressed.
     QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
     ASSERT_NE(plantButton, nullptr);
     plantButton->click();
@@ -1520,8 +1330,6 @@ TEST_F(GuiSmoke, APanelNobodyAcceptsLeavesTheStepUndone)
         << "a step nobody accepted must not count as done";
 }
 
-
-//The user of the frequency panel: four frequencies, typed.
 void fillFrequencies(FrequenciesForm * frequencies)
 {
     QComboBox * mode = child<QComboBox>(frequencies, "modeStack");
@@ -1551,25 +1359,17 @@ TEST_F(GuiSmoke, WalkingTwoStepsOpensTheThirdAndNoFurther)
     ASSERT_NE(progress, nullptr);
     EXPECT_EQ(progress->value(), 2);
 
-    //The templates need both, and now have both.
     QPushButton * templates = child<QPushButton>(&window, "templatesButton");
     ASSERT_NE(templates, nullptr);
     EXPECT_TRUE(templates->isEnabled());
 
-    //The specifications need the frequencies, and the Bode view needs both.
     EXPECT_TRUE(child<QPushButton>(&window, "specificationsButton")->isEnabled());
 
-    //And the boundaries need the templates, which nobody has computed.
     EXPECT_FALSE(child<QPushButton>(&window, "boundariesButton")->isEnabled());
 }
 
 TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
 {
-    //The panels stay open now, so what they were handed can be destroyed
-    //under them: the specifications read the frequency values of the
-    //project's Omega, and entering a new set frees the old one. The window
-    //hands them the new one, and a panel with none refuses rather than
-    //reading a vector that is gone.
     const std::vector<double> frequencies{0.1, 1.0, 10.0};
     SpecificationsForm specifications(&frequencies);
 
@@ -1584,8 +1384,6 @@ TEST_F(GuiSmoke, APanelRefusesToPublishWhatTheProjectHasTakenAwayFromIt)
     EXPECT_FALSE(specifications.wasAccepted())
         << "a panel with no frequencies must not publish a band read from them";
 
-    //The same for the grids of the templates, which describe the parameters
-    //of a plant the project owns.
     TemplatesForm templates;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
@@ -1728,11 +1526,6 @@ TEST_F(GuiSmoke, APhaseIsClosedFromItsBarAndOpenedFromItsStepButton)
 
 TEST_F(GuiSmoke, OpeningAProjectPutsItsCardsOnTheCanvasFolded)
 {
-    //What the toolbox is for: the results of a project, all of them, on the
-    //screen at once. Every phase is a card on the canvas - what it was
-    //asked for and what came out of it, together - and a project that is
-    //opened shows them with their forms folded away, so that what is on
-    //screen is the diagrams.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -1745,22 +1538,16 @@ TEST_F(GuiSmoke, OpeningAProjectPutsItsCardsOnTheCanvasFolded)
         EXPECT_FALSE(card->isFormShown()) << name << " opened with its form in front of its diagram";
     }
 
-    //They are laid out one after another on the canvas, not on top of each
-    //other and not in tabs.
     QWidget * canvas = window.findChild<QWidget *>("canvasContent");
     ASSERT_NE(canvas, nullptr);
     EXPECT_GE(canvas->layout()->count(), 4) << "the cards are not on the canvas";
 
-    //And pressing a step unfolds the form of that phase.
     child<QPushButton>(&window, "plantButton")->click();
     EXPECT_TRUE(window.findChild<PhaseCard *>("plantCard")->isFormShown());
 }
 
 TEST_F(GuiSmoke, TheCanvasWrapsAndScrollsInsteadOfSqueezing)
 {
-    //The rule of the canvas: a card keeps the size it asks for. What does
-    //not fit in a row goes to the row below, and what does not fit
-    //downwards is scrolled to - nothing is ever shrunk to make room.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -1776,12 +1563,9 @@ TEST_F(GuiSmoke, TheCanvasWrapsAndScrollsInsteadOfSqueezing)
     QWidget * content = window.findChild<QWidget *>("canvasContent");
     ASSERT_NE(content, nullptr);
 
-    //Seven phases of 560 by 360 do not fit on one screen, so the canvas is
-    //taller than what is on show and there is somewhere to scroll to.
     EXPECT_GT(content->height(), canvas->viewport()->height())
         << "the cards were squeezed into the viewport instead of wrapping below it";
 
-    //And every card is at least as wide as a diagram worth looking at.
     for (const char * name : {"plantCard", "templatesCard", "boundariesCard", "loopShapingCard"}) {
         PhaseCard * card = window.findChild<PhaseCard *>(name);
         ASSERT_NE(card, nullptr);
@@ -1791,9 +1575,6 @@ TEST_F(GuiSmoke, TheCanvasWrapsAndScrollsInsteadOfSqueezing)
 
 TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
 {
-    //The point of the canvas: unfolding the form of a phase makes its card
-    //bigger, and the canvas moves the ones beside it out of the way instead
-    //of the card taking its space from its neighbours.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -1811,9 +1592,6 @@ TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
     EXPECT_EQ(open.width(), folded.width())
         << "unfolding a form must not widen the card: the row would break up every time";
 
-    //And every card is one of the two sizes, never its own: a wall of
-    //panels of one height reads as a wall, each at the size of its own form
-    //reads as a pile.
     for (const char * name : {"plantCard", "templatesCard", "boundariesCard", "loopShapingCard"}) {
         PhaseCard * other = window.findChild<PhaseCard *>(name);
         ASSERT_NE(other, nullptr);
@@ -1821,9 +1599,6 @@ TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
             << name << " asks for a size of its own";
     }
 
-    //The form-only phases are as tall as a folded card, and one column
-    //wide - two only for the specifications, whose form was drawn wider
-    //than a column and asks for the same width always, folded or not.
     for (const char * name : {"frequenciesCard", "controllerCard"}) {
         PhaseCard * other = window.findChild<PhaseCard *>(name);
         ASSERT_NE(other, nullptr);
@@ -1839,11 +1614,6 @@ TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
 
 TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
 {
-    //The specifications are worth two squares and are the one phase that
-    //can fall off the end of a row; the templates are the one phase that
-    //can take that square without lying about the design. Everything else
-    //keeps the order of the work: the boundaries are computed FROM the
-    //specifications and never come before them.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -1864,8 +1634,6 @@ TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
         return card == nullptr ? QPoint() : card->geometry().topLeft();
     };
 
-    //Two columns: the specifications fit in a row of their own from the
-    //start, so they go first and the templates follow.
     window.resize(PhaseCard::unitFor(1280).width() * 2 + 64, 900);
     window.show();
     QCoreApplication::processEvents();
@@ -1874,9 +1642,6 @@ TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
     EXPECT_LT(placeOf("specificationsCard").y(), placeOf("templatesCard").y())
         << "on two columns the specifications go first, whole";
 
-    //Three columns: the specifications would start at the last square of
-    //the first row, so the templates take it and the specifications open
-    //the next row.
     window.resize(PhaseCard::unitFor(1900).width() * 3 + 64, 900);
     QCoreApplication::processEvents();
 
@@ -1884,7 +1649,6 @@ TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
     EXPECT_LT(placeOf("templatesCard").y(), placeOf("specificationsCard").y())
         << "on three columns the templates fill the square that was left";
 
-    //And the phases that must not change places did not.
     const QStringList names = orderOf();
     EXPECT_LT(names.indexOf("plantCard"), names.indexOf("frequenciesCard"));
     EXPECT_LT(names.indexOf("specificationsCard"), names.indexOf("boundariesCard"))
@@ -1894,9 +1658,6 @@ TEST_F(GuiSmoke, TheTwoPhasesThatMayChangePlacesDoSoAndNoOthers)
 
 TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
 {
-    //The order of the canvas is the user's: a card taken by its bar and
-    //dragged over another changes places with it, and the layout opens the
-    //hole by itself while the drag is still going on.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -1920,7 +1681,6 @@ TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
     const int wasLast = layout->indexOf(last);
     ASSERT_GT(wasLast, 0);
 
-    //Taken by its bar and dropped on the first card.
     QWidget * bar = last->findChild<QWidget *>("loopShapingCardBar");
     ASSERT_NE(bar, nullptr);
 
@@ -1939,8 +1699,6 @@ TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
     EXPECT_EQ(layout->indexOf(last), 0) << "the card did not move to where it was dropped";
     EXPECT_EQ(layout->indexOf(first), 1) << "the one it was dropped on did not move over";
 
-    //The bar is the handle and says so with the hand; the buttons on it are
-    //not, and a hand over something you only press says the wrong thing.
     EXPECT_EQ(bar->cursor().shape(), Qt::OpenHandCursor);
     for (const char * button : {"loopShapingCardFold", "loopShapingCardNarrower",
                                 "loopShapingCardWider"}) {
@@ -1952,9 +1710,6 @@ TEST_F(GuiSmoke, ACardDraggedByItsBarChangesPlaces)
 
 TEST_F(GuiSmoke, TheCanvasComesBackAsTheLastSessionLeftIt)
 {
-    //The order and the sizes are the user's, so they outlive the session:
-    //the window writes them into the settings on the way out and puts every
-    //card back where it was on the way in.
     qftbx::Settings settings;
     settings.interface.canvas = "loopShapingCard:2 plantCard:1";
 
@@ -1986,7 +1741,6 @@ TEST_F(GuiSmoke, TheWindowOpensAtTheSizeItWasLeft)
     MainWindow window(settings);
     EXPECT_EQ(window.size(), QSize(1100, 700));
 
-    //And a line this build cannot read is no reason to refuse to start.
     qftbx::Settings broken;
     broken.interface.window = "as wide as you like";
     MainWindow other(broken);
@@ -1995,10 +1749,6 @@ TEST_F(GuiSmoke, TheWindowOpensAtTheSizeItWasLeft)
 
 TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
 {
-    //The look is flat and square, and it is one style sheet over three
-    //palettes: the light one, the dark one and the machine's own. What has
-    //to be checked is that choosing one reaches everything - including the
-    //diagrams, which are drawn by QCustomPlot and not by the style sheet.
     qftbx::Settings settings;
     settings.interface.theme = "light";
 
@@ -2027,7 +1777,6 @@ TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
     EXPECT_GT(QApplication::palette().color(QPalette::Window).lightness(), 200);
     EXPECT_LT(plot->xAxis->tickLabelColor().lightness(), 100);
 
-    //And the accent is the blue of the icon, in both.
     EXPECT_NEAR(QApplication::palette().color(QPalette::Highlight).hue(), 204, 12);
 
     qftbx::applyTheme(qftbx::kSystemTheme);
@@ -2035,38 +1784,25 @@ TEST_F(GuiSmoke, TheThemeDressesTheWindowAndItsDiagrams)
 
 TEST_F(GuiSmoke, ATraceIsCutWhereItJumpsAndNotWhereItStandsUp)
 {
-    //A boundary drawn as one polyline reached across the chart for a point
-    //that has nothing to do with its neighbours: the union of a frequency
-    //can hold more than one curve, and the walk that orders its points is a
-    //nearest-neighbour one, which comes back at the end for whatever it
-    //left behind. The cut is made where the PHASE jumps, measured in
-    //columns of the grid the trace was traced on.
     const auto at = [](double phase, double magnitude) {
         return qftbx::NicholsPoint(phase, magnitude);
     };
 
-    //One curve: a column at a time, and a vertical run in the middle, which
-    //is a boundary standing up and not a jump.
     qftbx::Trace one{at(-10, 0), at(-9, 1), at(-8, 2), at(-8, 30), at(-8, 60), at(-7, 61)};
     EXPECT_EQ(qftbx::continuousSegments(one).size(), 1u)
         << "a steep boundary was cut in two";
 
-    //Two curves, and the jump between them.
     qftbx::Trace two{at(-10, 0), at(-9, 0), at(-8, 0), at(-100, 5), at(-99, 5)};
     const std::vector<qftbx::Trace> cut = qftbx::continuousSegments(two);
     ASSERT_EQ(cut.size(), 2u);
     EXPECT_EQ(cut.front().size(), 3u);
     EXPECT_EQ(cut.back().size(), 2u);
 
-    //And the point the ordering left for the end: its own piece of one,
-    //which the viewers draw as the point it is.
     qftbx::Trace orphan{at(-10, 0), at(-9, 0), at(-8, 0), at(-125, -16.5)};
     const std::vector<qftbx::Trace> alone = qftbx::continuousSegments(orphan);
     ASSERT_EQ(alone.size(), 2u);
     EXPECT_EQ(alone.back().size(), 1u);
 
-    //The same cuts by index, which is what a caller holding two readings of
-    //the same points needs.
     const std::vector<std::size_t> ends = qftbx::segmentEnds(orphan);
     ASSERT_EQ(ends.size(), 2u);
     EXPECT_EQ(ends.front(), 3u);
@@ -2075,11 +1811,6 @@ TEST_F(GuiSmoke, ATraceIsCutWhereItJumpsAndNotWhereItStandsUp)
 
 TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
 {
-    //A tooltip on everything the user fills in or presses, because the
-    //label of a field has room for its name and nothing else: the units it
-    //is in, the format it expects and what the program does with it are
-    //what the user cannot guess. The exceptions are listed by name, and
-    //each one is a field that is already explained where it stands.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -2087,11 +1818,6 @@ TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
     window.findChild<QAction *>("actionOpen")->trigger();
     QCoreApplication::processEvents();
 
-    //The two coefficient fields of the plant and of the controller: the
-    //line under them says what they take, and it changes with the family,
-    //which a tooltip written once could not. The description of a plant
-    //carries its own placeholder. And a tick of the specifications is one
-    //design frequency, with the label "Applies at" beside it.
     const QStringList explained{"numeratorEdit", "denominatorEdit", "descriptionEdit", "check"};
 
     QStringList silent;
@@ -2123,10 +1849,6 @@ TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
     EXPECT_TRUE(silent.isEmpty()) << "fields with nothing to say: "
                                   << silent.join(", ").toStdString();
 
-    //And marking a field as wrong does not cost it what it says: the reason
-    //takes the place of its tooltip while it is wrong, and its own comes
-    //back afterwards. It went missing the first time round, because every
-    //keystroke marks every field of a form as not-wrong.
     PlantForm plant;
     QLineEdit * gain = child<QLineEdit>(&plant, "gainEdit");
     ASSERT_NE(gain, nullptr);
@@ -2143,26 +1865,16 @@ TEST_F(GuiSmoke, EveryFieldSaysWhatItIsFor)
 
 TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
 {
-    //Resources compiled into a STATIC library are dropped by the linker
-    //unless the target owns them: the figures of the plant and the
-    //specifications came up blank and the application had no icon, and
-    //nothing said so - a missing resource is an empty pixmap.
     for (const char * size : {"16", "32", "64", "128", "256"}) {
         const QPixmap icon(QString(":/icons/qftbx_%1.png").arg(size));
         EXPECT_FALSE(icon.isNull()) << "the icon of " << size << " pixels is not in the build";
     }
 
-    //The three that are still shown: the families a plant or a controller
-    //can be written in. The six of the specifications are gone - what a
-    //specification requires is DRAWN now, from the definition the program
-    //computes, so it says the bound that was typed and not a W with a
-    //subscript.
     for (const char * figure : {"copol", "kgan", "knogan"}) {
         const QPixmap picture(QString(":/figures/%1.png").arg(figure));
         EXPECT_FALSE(picture.isNull()) << "the figure " << figure << " is not in the build";
     }
 
-    //And a form shows the one of the family chosen.
     PlantForm plant;
     check(&plant, "transferFunctionRadio");
     check(&plant, "zerosPolesRadio");
@@ -2172,8 +1884,6 @@ TEST_F(GuiSmoke, TheFiguresAndTheIconAreInTheBuild)
     EXPECT_FALSE(image->pixmap().isNull()) << "the plant form has no figure in it";
 }
 
-//Waits for the phase that is computing, spinning the loop as the
-//application does: the result arrives through a queued call.
 void waitForComputation(MainWindow & window)
 {
     for (int spin = 0; spin < 2000 && window.isComputing(); ++spin) {
@@ -2185,11 +1895,6 @@ void waitForComputation(MainWindow & window)
 
 TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
 {
-    //The window used to freeze for as long as a computation took - tens of
-    //minutes on a real problem - with an hourglass over it and no way out
-    //but killing the process. Now the phase says it is working, its form is
-    //not to be touched while its numbers are in use, and the rest of the
-    //window answers.
     MainWindow window;
 
     child<QPushButton>(&window, "plantButton")->click();
@@ -2211,8 +1916,6 @@ TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
     PhaseCard * card = window.findChild<PhaseCard *>("templatesCard");
     ASSERT_NE(card, nullptr);
 
-    //It says so while it runs - and the form is disabled, because its
-    //numbers are what is being computed.
     if (window.isComputing()) {
         EXPECT_TRUE(card->isBusy());
         EXPECT_NE(window.findChild<QToolButton *>("templatesCardCancel"), nullptr);
@@ -2224,11 +1927,9 @@ TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
 
     QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
     ASSERT_NE(progress, nullptr);
-    //Plant, frequencies and templates: three of the seven steps.
     EXPECT_EQ(progress->value(), 3) << "the templates did not reach the project: "
                                     << m_reported.join(" | ").toStdString();
 
-    //And what it computed is on the screen.
     TemplateViewer * viewer = window.findChild<TemplateViewer *>();
     ASSERT_NE(viewer, nullptr);
     QCustomPlot * plot = child<QCustomPlot>(viewer, "plot");
@@ -2238,9 +1939,6 @@ TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
 
 TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
 {
-    //Giving up has to leave nothing behind: half a sweep is not a set of
-    //templates, and a project that kept one would carry a result nobody
-    //computed.
     MainWindow window;
 
     child<QPushButton>(&window, "plantButton")->click();
@@ -2252,7 +1950,6 @@ TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
     TemplatesForm * templates = panelIn<TemplatesForm>(&window);
     ASSERT_NE(templates, nullptr);
 
-    //A sweep big enough to still be running when the cancel arrives.
     type(templates, "epsilonEdit", "0.5");
     check(templates, "linspaceRadio");
     type(templates, "globalPointCount", "400");
@@ -2317,7 +2014,6 @@ TEST_F(GuiSmoke, ZZPlantForm)
     QCoreApplication::processEvents();
     typed.grab().save(out + "/planta-verificada.png");
 
-    //And what a wrong field looks like.
     PlantForm wrong;
     wrong.resize(card);
     type(&wrong, "nameEdit", "rota");
@@ -2365,14 +2061,9 @@ TEST_F(GuiSmoke, ZZContours)
         GTEST_SKIP();
     }
 
-    //What each contour of a real project is: closed by the faithful walk,
-    //open because the relaxed one had to stand in, or several components
-    //concatenated into one vector.
     ProjectController project;
     project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
-    //The contours the file was computed with, walked again over the clouds
-    //it carries.
     project.recomputeContour(*project.epsilon());
 
     const std::vector<qftbx::TemplateEngine::ContourReport> & reports = project.contourReports();
@@ -2389,7 +2080,6 @@ TEST_F(GuiSmoke, ZZContours)
                     reports[i].components, (int) (std::abs(first - last) < 1e-12));
     }
 
-    //And what each one would need to close.
     const std::vector<qftbx::TemplateEngine::EpsilonProposal> asked = project.proposeEpsilon();
     std::vector<double> proposed;
     for (std::size_t i = 0; i < asked.size(); ++i) {
@@ -2399,7 +2089,6 @@ TEST_F(GuiSmoke, ZZContours)
         proposed.push_back(asked[i].epsilon);
     }
 
-    //And what the contour is once it has been walked with that.
     project.recomputeContour(proposed);
 
     const std::vector<qftbx::TemplateEngine::ContourReport> & after = project.contourReports();
@@ -2412,8 +2101,6 @@ TEST_F(GuiSmoke, ZZContours)
     }
     std::fflush(stdout);
 
-    //And the other way of extracting the same boundary: the alpha-shape,
-    //which closes by construction.
     project.setAlphaShapeContour(true);
 
     const std::vector<qftbx::TemplateEngine::EpsilonProposal> alpha = project.proposeEpsilon();
@@ -2431,9 +2118,6 @@ TEST_F(GuiSmoke, ZZContours)
                     shapes[i].components);
     }
 
-    //And the same clouds at a hand-given radius, which is how much of the
-    //cloud each one keeps: the contour is one component throughout, so the
-    //number to read is how many of the points survive.
     for (const double radius : {1.0, 10.0, 100.0}) {
         const std::vector<double> same(alphaEpsilon.size(), radius);
         project.recomputeContour(same);
@@ -2461,9 +2145,6 @@ TEST_F(GuiSmoke, ZZFormulas)
         GTEST_SKIP();
     }
 
-    //One sheet with the shapes that have to come out right: fractions,
-    //exponents, roots, tall parentheses, subscripts, and the four families
-    //of a real plant.
     struct Case { const char * title; qftbx::Formula formula; };
 
     ProjectController project;
@@ -2501,12 +2182,6 @@ TEST_F(GuiSmoke, ZZFormulas)
     sheet.save(out + "/formulas.png");
 }
 
-//The three probes below are not tests: they are how the forms are LOOKED
-//at. Each writes what it makes into QFTBX_RENDER_DIR and is skipped when
-//that variable is not set, so an ordinary run never sees them. They are
-//kept because a layout is reviewed by looking at it, and looking at it by
-//hand means building the whole application, opening a project and pressing
-//seven buttons.
 TEST_F(GuiSmoke, ZZEjemploCompleto)
 {
     const QString out = qEnvironmentVariable("QFTBX_RENDER_DIR");
@@ -2514,9 +2189,6 @@ TEST_F(GuiSmoke, ZZEjemploCompleto)
         GTEST_SKIP();
     }
 
-    //A project solved FOR REAL by this binary: the file it saves carries
-    //the settings it was computed with and the verdict of the checker,
-    //which is what the older .qft files do not have.
     ProjectController project;
     project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
@@ -2554,7 +2226,6 @@ TEST_F(GuiSmoke, ZZGaleria)
     window.show();
     QCoreApplication::processEvents();
 
-    //Every card, folded and open, at the size the canvas gives it.
     for (const char * nombre : {"plantCard", "frequenciesCard", "specificationsCard",
                                 "templatesCard", "boundariesCard", "controllerCard",
                                 "loopShapingCard"}) {
@@ -2573,8 +2244,6 @@ TEST_F(GuiSmoke, ZZGaleria)
 
     window.grab().save(out + "/ventana.png");
 
-    //And the same wall three columns wide, which is where the phase worth
-    //two squares has to find its place.
     window.resize(1980, 1100);
     QCoreApplication::processEvents();
     window.grab().save(out + "/ventana-tres-columnas.png");
@@ -2582,9 +2251,6 @@ TEST_F(GuiSmoke, ZZGaleria)
 
 TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)
 {
-    //The cards fill the width they are given instead of being a fixed size:
-    //a column of 560 leaves 144 pixels of nothing on a 1280 screen, and
-    //makes six tiny cards on a 4K one where three big ones were wanted.
     const QSize narrow = PhaseCard::unitFor(700);
     const QSize normal = PhaseCard::unitFor(1264);
     const QSize wide = PhaseCard::unitFor(3800);
@@ -2597,7 +2263,6 @@ TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)
     EXPECT_EQ(normal.width() * 2 + 8, 1264) << "two across share it exactly";
     EXPECT_GT(wide.width(), normal.width()) << "a wider screen gives bigger cards, not more";
 
-    //And a square is a square-ish: a card is never a strip.
     for (const QSize & unit : {narrow, normal, wide}) {
         EXPECT_GT(unit.height(), unit.width() / 2);
         EXPECT_LT(unit.height(), unit.width());
@@ -2606,10 +2271,6 @@ TEST_F(GuiSmoke, TheSquareOfTheCanvasFollowsTheScreenItIsGiven)
 
 TEST_F(GuiSmoke, TheWidthOfACardIsTheUsersAndTheFoldDoesNotTouchIt)
 {
-    //Two sizes that answer to two different things: the user says how much
-    //of the canvas a phase is worth, with its own buttons, and folding the
-    //form only adds or removes the band below the diagram. A card made wide
-    //stays wide with its form open or closed.
     MainWindow window;
     window.setFileChooser([](bool) {
         return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
@@ -2624,8 +2285,6 @@ TEST_F(GuiSmoke, TheWidthOfACardIsTheUsersAndTheFoldDoesNotTouchIt)
 
     card->findChild<QToolButton *>("loopShapingCardWider")->click();
     EXPECT_EQ(card->span(), 2);
-    //Bigger, not longer: a card of two takes two columns across AND two
-    //rows down, so the diagram in it is seen better and not just wider.
     EXPECT_GT(card->sizeHint().width(), one.width());
     EXPECT_GT(card->sizeHint().height(), one.height());
 
@@ -2637,7 +2296,6 @@ TEST_F(GuiSmoke, TheWidthOfACardIsTheUsersAndTheFoldDoesNotTouchIt)
     card->showForm(false);
     EXPECT_EQ(card->sizeHint(), wide);
 
-    //And it stops where the canvas does, instead of growing for ever.
     card->findChild<QToolButton *>("loopShapingCardWider")->click();
     card->findChild<QToolButton *>("loopShapingCardWider")->click();
     card->findChild<QToolButton *>("loopShapingCardWider")->click();
@@ -2651,9 +2309,6 @@ TEST_F(GuiSmoke, TheWidthOfACardIsTheUsersAndTheFoldDoesNotTouchIt)
 
 TEST_F(GuiSmoke, EachPhaseIsOneCardWithItsFormAndItsDiagramsInside)
 {
-    //What the cards are for: the form that describes a step and the
-    //diagrams of that step in one thing on the screen, instead of a modal
-    //dialog that vanished and a viewer in a window of its own.
     MainWindow window;
 
     child<QPushButton>(&window, "plantButton")->click();
@@ -2665,7 +2320,6 @@ TEST_F(GuiSmoke, EachPhaseIsOneCardWithItsFormAndItsDiagramsInside)
         << "the Bode diagram belongs in the card of the plant it draws";
     EXPECT_TRUE(plant->isFormShown()) << "pressing the step opens the form";
 
-    //A phase that is only a form is a card too, and has nothing to fold.
     fillPlant(panelIn<PlantForm>(&window), "carded");
     child<QPushButton>(&window, "frequenciesButton")->click();
 
@@ -2677,9 +2331,6 @@ TEST_F(GuiSmoke, EachPhaseIsOneCardWithItsFormAndItsDiagramsInside)
 
 TEST_F(GuiSmoke, TheBodeDiagramIsDrawnAsSoonAsThereIsSomethingToDraw)
 {
-    //It used to be a window of its own behind a menu entry, asked for and
-    //gone stale in silence. It is in the plant's dock now, and it is redrawn
-    //whenever the plant or the frequencies change.
     MainWindow window;
 
     child<QPushButton>(&window, "plantButton")->click();
@@ -2701,11 +2352,6 @@ TEST_F(GuiSmoke, TheBodeDiagramIsDrawnAsSoonAsThereIsSomethingToDraw)
 
 TEST_F(GuiSmoke, LookingAgainAtAStepAlreadyDoneLeavesItDone)
 {
-    //The defect that deriving the state fixed, pinned so it cannot come back.
-    //Cancelling the dialog of a step that was already finished used to delete
-    //its widgets and walk the progress bar backwards, while the project still
-    //held the artefact - the window said the step was undone and the project
-    //said it was done.
     MainWindow window;
 
     QPushButton * plantButton = child<QPushButton>(&window, "plantButton");
@@ -2717,7 +2363,6 @@ TEST_F(GuiSmoke, LookingAgainAtAStepAlreadyDoneLeavesItDone)
     ASSERT_NE(progress, nullptr);
     ASSERT_EQ(progress->value(), 1);
 
-    //Now a user who brings the phase up again and accepts nothing.
     plantButton->click();
 
     EXPECT_EQ(progress->value(), 1)
@@ -2726,9 +2371,6 @@ TEST_F(GuiSmoke, LookingAgainAtAStepAlreadyDoneLeavesItDone)
 
 TEST_F(GuiSmoke, OpeningAProjectRebuildsTheStepsItCarried)
 {
-    //The fifty lines that used to be ninety-six: after a load, the window's
-    //state is the project's state, and the widgets of the steps the file
-    //carried are the ones that exist.
     MainWindow window;
 
     window.setFileChooser([](bool forSaving) {
@@ -2740,25 +2382,17 @@ TEST_F(GuiSmoke, OpeningAProjectRebuildsTheStepsItCarried)
     ASSERT_NE(open, nullptr) << "the open action is what the test drives";
     open->trigger();
 
-    //planta1.qft is a finished design: every step done.
     QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
     ASSERT_NE(progress, nullptr);
     EXPECT_EQ(progress->value(), static_cast<int>(qftbx::kStepCount));
 
-    //And every button that a finished design unlocks.
     EXPECT_TRUE(child<QPushButton>(&window, "templatesButton")->isEnabled());
     EXPECT_TRUE(child<QPushButton>(&window, "boundariesButton")->isEnabled());
     EXPECT_TRUE(child<QPushButton>(&window, "loopButton")->isEnabled());
 }
 
-
 TEST_F(GuiSmoke, ThePlantFormShowsThePlantOfTheProject)
 {
-    //Opening a project used to leave the plant form empty: the project
-    //carries a system, not the text it was typed as, so the form is written
-    //back from it. Accepting without editing must give back the same plant,
-    //uncertainty included - the intervals come with the parameters and not
-    //from the fields.
     ProjectController project;
     project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(project.plant(), nullptr);
@@ -2782,9 +2416,6 @@ TEST_F(GuiSmoke, ThePlantFormShowsThePlantOfTheProject)
 
 TEST_F(GuiSmoke, EditingThePlantFormLeavesTheProjectsParametersBehind)
 {
-    //The other half: the parameters of the loaded plant describe the text
-    //the form was filled with and nothing else, so an edited field is read
-    //as what it says.
     ProjectController project;
     project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(project.plant(), nullptr);
@@ -2793,8 +2424,6 @@ TEST_F(GuiSmoke, EditingThePlantFormLeavesTheProjectsParametersBehind)
     dialog.setFromProject(project.plant());
     type(&dialog, "denominatorEdit", "2 7");
 
-    //An edit undoes the verification the file came with: what is on screen
-    //is no longer what was checked.
     EXPECT_EQ(child<QPushButton>(&dialog, "okButton")->text(), QString("Verify"));
     verifyAndApply(&dialog);
     ASSERT_TRUE(dialog.wasAccepted());
@@ -2807,8 +2436,6 @@ TEST_F(GuiSmoke, EditingThePlantFormLeavesTheProjectsParametersBehind)
         << "the edited coefficient is the number typed, not the old interval";
     EXPECT_DOUBLE_EQ(described->denominator().at(0).nominal(), 2.0);
 
-    //And only that: the gain field was not touched, so the gain is still
-    //the plant's own, name included - a form has no field for that name.
     EXPECT_EQ(described->gain().name(), project.plant()->gain().name());
     EXPECT_DOUBLE_EQ(described->gain().nominal(), project.plant()->gain().nominal());
     EXPECT_DOUBLE_EQ(described->gain().range().min, project.plant()->gain().range().min);
@@ -2835,9 +2462,6 @@ TEST_F(GuiSmoke, TheControllerFormShowsTheStructureOfTheProject)
 
 TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
 {
-    //A design is a number that depends on the algorithm, the tolerance and
-    //the reading of the phase grid; the form used to open on the defaults
-    //over a project that had been solved with something else.
     ProjectController project;
     project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(project.loopShapingResult(), nullptr);
@@ -2853,10 +2477,6 @@ TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
 
 TEST_F(GuiSmoke, OpeningAProjectDrawsWhatItCarries)
 {
-    //The diagram sits beside the data that produced it, so a file with
-    //results has them on screen the moment it is opened. It used to be that
-    //the numbers came back and every plot stayed empty until the user found
-    //the right menu entry.
     MainWindow window;
 
     window.setFileChooser([](bool) {
@@ -2902,9 +2522,6 @@ TEST_F(GuiSmoke, OpeningAProjectOverPhasesAlreadyOpenSurvives)
     });
     window.findChild<QAction *>("actionOpen")->trigger();
 
-    //The widgets of the previous project are freed through deleteLater, so
-    //they die here and not before: whatever the window kept pointing at
-    //them shows up now and not in a test without an event loop.
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     QCoreApplication::processEvents();
 
@@ -2913,11 +2530,6 @@ TEST_F(GuiSmoke, OpeningAProjectOverPhasesAlreadyOpenSurvives)
     EXPECT_EQ(progress->value(), static_cast<int>(qftbx::kStepCount));
 }
 
-//Every project of the fixtures, opened through the window: the phases it
-//carries are built, what it carries is drawn, and the window is still
-//standing afterwards. The drawing runs by itself now, so a file that the
-//reader accepts and the diagram cannot draw is a crash on opening, which is
-//exactly what this is here to stop.
 class OpenedProject : public GuiSmoke, public ::testing::WithParamInterface<const char *>
 {
 };
@@ -2936,8 +2548,6 @@ TEST_P(OpenedProject, OpensWithoutTakingTheWindowDown)
     ASSERT_NE(progress, nullptr);
     EXPECT_GT(progress->value(), 0) << "the file carried nothing the window could use";
 
-    //And again over the phases the first one left open, which is what a
-    //user does all day.
     window.findChild<QAction *>("actionOpen")->trigger();
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     QCoreApplication::processEvents();
@@ -2952,10 +2562,6 @@ INSTANTIATE_TEST_SUITE_P(Fixtures, OpenedProject,
 
 TEST_F(GuiSmoke, TheTemplateViewerDrawsAProjectThatBroughtNoEpsilon)
 {
-    //A project can hold the clouds and not the tolerance they were walked
-    //with, and the viewer used to ask its epsilon vector for an element it
-    //did not have: the toolbox died with a message about vector ranges over
-    //a diagram it could perfectly well draw.
     TemplateViewer viewer;
 
     qftbx::CloudSet templates{{{1.0, 2.0}, {2.0, 3.0}, {3.0, 1.0}}};
@@ -2972,9 +2578,6 @@ TEST_F(GuiSmoke, TheTemplateViewerDrawsAProjectThatBroughtNoEpsilon)
 
 TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
 {
-    //StepDialog directly: the seven dialogs used to declare this flag each
-    //for themselves, set it on OK and never clear it, so a reused one
-    //reported an acceptance whose payload it had already handed over.
     PlantForm dialog;
 
     EXPECT_FALSE(dialog.wasAccepted()) << "a fresh dialog has accepted nothing";
@@ -2989,14 +2592,13 @@ TEST_F(GuiSmoke, AReusedDialogForgetsItsPreviousAcceptance)
 
     ASSERT_TRUE(dialog.wasAccepted());
 
-    //Which is what the window does before showing it again.
     dialog.clearAcceptance();
 
     EXPECT_FALSE(dialog.wasAccepted())
         << "an acceptance must not outlive the showing it belongs to";
 }
 
-} // namespace
+}
 
 TEST_F(GuiSmoke, TheHelpMenuSaysWhatTheToolboxIsAndWhoWroteIt)
 {
@@ -3015,18 +2617,12 @@ TEST_F(GuiSmoke, TheHelpMenuSaysWhatTheToolboxIsAndWhoWroteIt)
     EXPECT_TRUE(text.contains("https://github.com/Isaac-Martinez-Forte/QFTbx"));
     EXPECT_TRUE(text.contains("GNU General Public License"));
 
-    //In Spanish too: the texts are filed under the context the box looks in.
     applyLanguage("es");
     EXPECT_TRUE(aboutText().contains("Autores")) << aboutText().toStdString();
     EXPECT_TRUE(aboutText().contains(QString::fromUtf8("en desarrollo")));
     applyLanguage(kSourceLanguage);
 }
 
-//The colour of a curve says which frequency it is, so it has to be distinct
-//for as many frequencies as a problem has. The named-colour palette this
-//replaces ran out at fourteen and painted every one after that the same
-//cyan, which on the twenty-three frequencies of the Horowitz-Sidi motor was
-//eleven curves nobody could tell apart.
 TEST_F(GuiSmoke, TheFrequencyColoursDoNotRepeatOrFadeOut)
 {
     for (const int count : {5, 14, 23, 40}) {
@@ -3036,16 +2632,12 @@ TEST_F(GuiSmoke, TheFrequencyColoursDoNotRepeatOrFadeOut)
             EXPECT_TRUE(colour.isValid()) << count << " frequencies, index " << i;
             seen.insert(colour.rgb());
 
-            //Readable on white: the top of viridis is a light yellow and the
-            //walk has to stop short of it.
             EXPECT_LT(colour.lightness(), 225)
                 << count << " frequencies, index " << i << " is too light to see on white";
         }
         EXPECT_EQ(seen.size(), count) << count << " frequencies gave " << seen.size() << " colours";
     }
 
-    //Ordered: the map walks from dark blue to green, so the first and the
-    //last of a sweep are never neighbours.
     const QColor first = qftbx::frequencyColour(0, 20);
     const QColor last = qftbx::frequencyColour(19, 20);
     const int distance = std::abs(first.red() - last.red())
@@ -3054,10 +2646,6 @@ TEST_F(GuiSmoke, TheFrequencyColoursDoNotRepeatOrFadeOut)
     EXPECT_GT(distance, 150) << "the ends of the sweep are too close to tell apart";
 }
 
-//Every canvas is set up once, when its viewer is built, and not from the
-//drawing routine: a plot configured while drawing has no interactions until
-//it has data. So an untouched viewer already answers for its axes and its
-//mouse.
 TEST_F(GuiSmoke, EveryCanvasIsSetUpBeforeItHasData)
 {
     const auto expectReady = [](QCustomPlot * plot, const char * what) {
@@ -3083,17 +2671,11 @@ TEST_F(GuiSmoke, EveryCanvasIsSetUpBeforeItHasData)
     LoopShapingViewer loop;
     expectReady(loop.findChild<QCustomPlot *>("plot"), "loop shaping viewer");
 
-    //Bode had no interactions at all: its canvases were never set up.
     BodeViewer bode;
     expectReady(bode.findChild<QCustomPlot *>("magnitudePlot"), "Bode magnitude");
     expectReady(bode.findChild<QCustomPlot *>("phasePlot"), "Bode phase");
 }
 
-//A legend has one row per design frequency, and a problem has as many as it
-//has frequencies: twenty-three on the Horowitz-Sidi motor, twice that in the
-//loop viewer's both-diagrams mode. Without a scroll area the last rows
-//cannot be reached at all, and twenty checkboxes are not worked one at a
-//time either.
 TEST_F(GuiSmoke, TheLegendScrollsAndCanBeWorkedInOneGo)
 {
     qftbx::FrequencyLegend legend;
@@ -3104,8 +2686,6 @@ TEST_F(GuiSmoke, TheLegendScrollsAndCanBeWorkedInOneGo)
     }
     ASSERT_EQ(legend.rowCount(), 23);
 
-    //The rows are inside a scroll area, so the box being shorter than they
-    //are does not put any of them out of reach.
     QScrollArea * scroll = legend.findChild<QScrollArea *>("legendScroll");
     ASSERT_NE(scroll, nullptr) << "the rows are not in a scroll area";
     EXPECT_TRUE(scroll->widgetResizable());
@@ -3129,8 +2709,6 @@ TEST_F(GuiSmoke, TheLegendScrollsAndCanBeWorkedInOneGo)
         EXPECT_TRUE(legend.isRowChecked(i)) << "row " << i << " missed All";
     }
 
-    //The filter hides rows, and All then means all of what is in front of
-    //the user: that is what makes the filter worth having.
     legend.show();
     QCoreApplication::processEvents();
     QLineEdit * filter = child<QLineEdit>(&legend, "legendFilter");
@@ -3148,9 +2726,6 @@ TEST_F(GuiSmoke, TheLegendScrollsAndCanBeWorkedInOneGo)
     EXPECT_GT(hiddenAndStillChecked, 0) << "None cleared rows the filter was hiding";
 }
 
-//A figure for a paper has to be vector, has to be the size it was asked for
-//and not the size the window happened to be, and has to be on white however
-//the interface is themed.
 TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
 {
     QTemporaryDir directory;
@@ -3166,7 +2741,6 @@ TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
     ASSERT_NE(plot, nullptr);
 
-    //SVG: vector, and it carries the curve as a path rather than as pixels.
     qftbx::ExportRequest svg;
     svg.fileName = directory.filePath("figure.svg");
     svg.size = QSize(1200, 900);
@@ -3181,14 +2755,12 @@ TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
     EXPECT_TRUE(content.contains("<path") || content.contains("<polyline"))
         << "the curve is not in the file as a path";
 
-    //PDF, the other vector format.
     qftbx::ExportRequest pdf;
     pdf.fileName = directory.filePath("figure.pdf");
     pdf.size = QSize(1200, 900);
     EXPECT_TRUE(qftbx::savePlot(*plot, pdf));
     EXPECT_GT(QFileInfo(pdf.fileName).size(), 0);
 
-    //PNG at the size asked for, not at the window's.
     qftbx::ExportRequest png;
     png.fileName = directory.filePath("figure.png");
     png.size = QSize(1600, 1200);
@@ -3196,8 +2768,6 @@ TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
     const QImage image(png.fileName);
     EXPECT_EQ(image.width(), 1600) << "the PNG came out at the window's size";
 
-    //And the publishing profile leaves the viewer as it found it: it is a
-    //way of writing the figure, not a change to what is on screen.
     const QColor axisBefore = plot->xAxis->labelColor();
     const double penBefore = plot->plottable(0)->pen().widthF();
     qftbx::ExportRequest again = svg;
@@ -3207,10 +2777,6 @@ TEST_F(GuiSmoke, AFigureIsExportedAsVectorAtTheSizeAskedFor)
     EXPECT_DOUBLE_EQ(plot->plottable(0)->pen().widthF(), penBefore) << "the export changed the screen";
 }
 
-//Opening a project has to SHOW it. The dialogs kept their own copy of what
-//the user had typed and nothing ever flowed the other way, so a design read
-//from a file left every form empty: the plant was in the project and the
-//dialog did not know it.
 TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
 {
     MainWindow window;
@@ -3222,9 +2788,6 @@ TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
     ASSERT_NE(open, nullptr);
     open->trigger();
 
-    //The frequencies: the fixture carries twenty of them, and the manual
-    //page lists the values whatever the mode, since that is what the project
-    //has rather than a rule that regenerates them.
     FrequenciesForm * frequencies = window.findChild<FrequenciesForm *>();
     ASSERT_NE(frequencies, nullptr) << "the frequencies dialog was not built";
     QLineEdit * values = child<QLineEdit>(frequencies, "manualValues");
@@ -3233,8 +2796,6 @@ TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
     EXPECT_GE(values->text().split(' ', Qt::SkipEmptyParts).size(), 2)
         << "only one frequency was filled in";
 
-    //The boundary grid: the one the boundaries in the file were computed on,
-    //not the default the dialog opens with.
     BoundaryGridForm * grid = window.findChild<BoundaryGridForm *>();
     ASSERT_NE(grid, nullptr) << "the boundary dialog was not built";
     QLineEdit * phasePoints = child<QLineEdit>(grid, "phasePoints");
@@ -3243,12 +2804,6 @@ TEST_F(GuiSmoke, OpeningAProjectFillsTheFormsWithWhatItHolds)
     EXPECT_GT(phasePoints->text().toInt(), 1) << "the phase count is not a grid";
 }
 
-//The window destroys a viewer from refreshAvailability(), which the project
-//calls when it changes - and a project changes from inside a widget's own
-//slot: the template viewer's Recompute button asks for a contour and the
-//window computes it. Freeing the widget whose slot is still on the stack is
-//a use after free, so they go through deleteLater() and Qt destroys them
-//when control is back at the event loop.
 TEST_F(GuiSmoke, RecomputingFromTheViewerDoesNotFreeItUnderItsOwnSlot)
 {
     MainWindow window;
@@ -3263,18 +2818,13 @@ TEST_F(GuiSmoke, RecomputingFromTheViewerDoesNotFreeItUnderItsOwnSlot)
     TemplateViewer * viewer = window.findChild<TemplateViewer *>();
     ASSERT_NE(viewer, nullptr) << "the template viewer was not built";
 
-    //Its own button, as the user presses it: the handler reaches the project,
-    //the project announces, and the window re-derives its widgets while this
-    //slot is still running.
     QPushButton * recompute = child<QPushButton>(viewer, "recomputeButton");
     ASSERT_NE(recompute, nullptr);
     recompute->click();
 
-    //Still here, and still answering: nothing was freed underneath it.
     EXPECT_NE(window.findChild<TemplateViewer *>(), nullptr)
         << "the viewer was destroyed while its own slot was on the stack";
 
-    //And the event loop can run without tripping over what was queued.
     QCoreApplication::processEvents();
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 }

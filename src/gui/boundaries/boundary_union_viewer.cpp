@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Draws the boundary union as one curve per continuous piece.
+ *
+ * The boundary of a frequency is not always one curve and the list it
+ * arrives in does not say where one ends, so each continuous piece is its
+ * own curve in the frequency's colour; a piece of one point is drawn as a
+ * disc, since a curve of one draws nothing. A legend row shows or hides
+ * all the pieces of its frequency. The secondary axes mirror the primary
+ * ones and are connected once, in the constructor; the side column is
+ * narrowed so the chart gets the width.
+ */
+
 #include "src/gui/common/qt_containers.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
 #include "ui_boundary_union_viewer.h"
@@ -7,7 +20,6 @@
 #include "src/gui/common/plot_export.h"
 #include "src/gui/common/plot_setup.h"
 #include "src/gui/common/trace_segments.h"
-
 
 namespace qftbx {
 
@@ -22,12 +34,9 @@ BoundaryUnionViewer::BoundaryUnionViewer(QWidget *parent) :
     legend = new FrequencyLegend(ui->legendHolder);
     ui->legendHolder->layout()->addWidget(legend);
 
-    //The column of controls does not take half the card: the chart needs
-    //the width more than the buttons do.
     narrowSideColumn(ui->sideLayout);
     connect(legend, &FrequencyLegend::rowToggled, this, &BoundaryUnionViewer::applyCheckboxes);
 
-    //Connected ONCE: a connection per replot duplicates the handler.
     connect(ui->plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->plot->yAxis2, SLOT(setRange(QCPRange)));
 }
@@ -46,13 +55,11 @@ void BoundaryUnionViewer::clearDiagram(){
     ui->plot->clearFocus();
     ui->plot->clearGraphs();
     ui->plot->clearItems();
-    //QCustomPlot owns the curves: clearPlottables frees them.
     ui->plot->clearPlottables();
 
     legend->clear();
 
     curves.clear();
-
 
     plotted = false;
 }
@@ -74,18 +81,12 @@ void BoundaryUnionViewer::showDiagram(){
 
     clearDiagram();
 
-
     plotted = true;
 
-    //One curve per design frequency, in the union's order.
     qint32 frequencyIndex = 0;
     for (const qftbx::Trace & bound : unionTraces) {
         const QColor color = frequencyColour(frequencyIndex, static_cast<int>(unionTraces.size()));
 
-        //The boundary of a frequency is not always one curve, and the list
-        //it arrives in does not say where one ends: drawn as a single
-        //polyline it closed itself with a long straight line across the
-        //chart. One curve per piece, all of them the frequency's colour.
         QVector<QCPCurve *> pieces;
 
         for (const qftbx::Trace & piece : qftbx::continuousSegments(bound)) {
@@ -103,8 +104,6 @@ void BoundaryUnionViewer::showDiagram(){
             curve->setData(qftbx::toQVector(phases), qftbx::toQVector(magnitudes));
             curve->setPen(QPen(color, kCurveWidth));
 
-            //A point the ordering left on its own: drawn as the point it
-            //is, because a curve of one draws nothing at all.
             if (piece.size() == 1) {
                 curve->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 4));
             }
@@ -118,9 +117,7 @@ void BoundaryUnionViewer::showDiagram(){
         frequencyIndex++;
     }
 
-
     ui->plot->rescaleAxes();
-
 
     ui->plot->replot();
 }
@@ -143,4 +140,4 @@ void BoundaryUnionViewer::on_saveImage_clicked()
     qftbx::exportPlot(this, *ui->plot, tr("Boundary plot"));
 }
 
-} // namespace qftbx
+}

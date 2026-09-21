@@ -1,6 +1,14 @@
-//Entry point of the GUI smoke suite: the dialogs need a QApplication, and
-//the platform plugin is forced to "offscreen" so the suite runs on a
-//machine with no display (a build server, or this one).
+/**
+ * @file
+ * @brief Entry point of the GUI test suite.
+ *
+ * The platform plugin is forced to offscreen so the suite runs with no
+ * display, and the application object is the program's own, so the tests
+ * exercise the net that catches a backend error escaping a slot. The numeric
+ * locale is reset to "C" right after it, as the program does: the application
+ * adopts the system locale, and under a decimal-comma one the number readers
+ * stop accepting literals like "0.01".
+ */
 
 #include <clocale>
 #include <cstdlib>
@@ -15,16 +23,8 @@ int main(int argc, char ** argv)
 {
     qputenv("QT_QPA_PLATFORM", "offscreen");
 
-    //The same Application the program uses, so the suite exercises the
-    //safety net that catches a backend error escaping a slot.
     qftbx::Application application(argc, argv);
 
-    //The same reset the application does in main.cpp, and for the same
-    //reason: QApplication adopts the system locale, and with a decimal-comma
-    //one (es_ES, de_DE...) the number readers stop accepting literals like
-    //"0.01", so no expression with decimals evaluates. Without this the suite runs
-    //under a different numeric locale than the program it is testing, which
-    //both invents failures and hides real ones.
     std::setlocale(LC_NUMERIC, "C");
 
     ::testing::InitGoogleTest(&argc, argv);

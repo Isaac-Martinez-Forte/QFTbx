@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Placement and hit testing of the wrapping layout.
+ *
+ * Items are placed in the order they were given and only in that order:
+ * which of two comes first is the caller's business. Each is laid at its
+ * size hint, clamped to the available width, and a row breaks when the
+ * next item would cross the right edge. The drop index is read off the
+ * geometries rather than the list: the item under the point, or the
+ * nearest one when none is under it, and the half of it the point is on
+ * decides whether the dragged item goes before or after.
+ */
+
 #include "src/gui/common/flow_layout.h"
 
 #include <QWidget>
@@ -81,18 +94,12 @@ QSize FlowLayout::minimumSize() const
 
 int FlowLayout::indexAt(const QPoint & position) const
 {
-    //Read off the GEOMETRIES and not off the order of the list: the
-    //placement below fills the holes in a row with whatever item fits, so
-    //the item drawn to the left of another is not always the one before it.
     int nearest = -1;
     qint64 shortest = 0;
 
     for (int i = 0; i < m_items.size(); ++i) {
         const QRect where = m_items.at(i)->geometry();
 
-        //The half of an item the cursor is on decides whether the dragged
-        //one goes before or after it: dropping on the left half of a card
-        //means "in front of this one".
         if (where.contains(position)) {
             return position.x() < where.center().x() ? i : i + 1;
         }
@@ -127,23 +134,15 @@ int FlowLayout::place(const QRect & rect, bool apply) const
     int y = inside.y();
     int rowHeight = 0;
 
-    //In the order they were given, and only in that order: what goes where
-    //is the caller's business. The canvas of phases decides which of two
-    //phases comes first from how many columns it has, because only two of
-    //them may change places - a boundary set that jumped ahead of the
-    //specifications it is computed from would be a lie about the design.
     for (QLayoutItem * item : m_items) {
         if (item->isEmpty()) {
             continue;
         }
 
-        //Every item at the size it asks for, never at the size that is
-        //left: that is the whole point of wrapping.
         QSize size = item->sizeHint();
         size.setWidth(std::min(size.width(), inside.width()));
 
         if (x > inside.x() && x + size.width() > inside.right() + 1) {
-            //It does not fit in what is left of this row: down to the next.
             x = inside.x();
             y += rowHeight + m_spacing;
             rowHeight = 0;
@@ -160,4 +159,4 @@ int FlowLayout::place(const QRect & rect, bool apply) const
     return y + rowHeight - rect.y() + margins.bottom();
 }
 
-} // namespace qftbx
+}

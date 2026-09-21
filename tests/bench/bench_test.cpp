@@ -1,6 +1,17 @@
-// The benchmark library: a plan survives its file, expands into the cases
-// it says, builds the structures it describes, summarises records the way
-// the documentation states, and measures a real run.
+/**
+ * @file
+ * @brief Tests of the benchmark library, from the plan file to a measured run.
+ *
+ * A plan survives its XML file and a malformed one is refused with its reason;
+ * it expands into structures, algorithms, epsilons and repetitions with a
+ * warm-up, and a step sequence grows the base structure by a zero or a pole.
+ * The spread of a sample is its median, mean, deviation and extremes; the
+ * summary groups records, leaves warm-ups and failures out of the timings and
+ * notices when repetitions disagree on the controller. A run of one case on
+ * the ACC'90 fixture must leave a complete record that survives its file,
+ * with the gain of 1000 that fixture's goldens pin.
+ */
+
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -39,7 +50,7 @@ Plan smallPlan(const std::string & outputDirectory)
     return plan;
 }
 
-} // namespace
+}
 
 TEST(BenchmarkPlan, SurvivesItsFile)
 {
@@ -81,10 +92,8 @@ TEST(BenchmarkPlan, AMalformedPlanIsRefusedWithItsReason)
 TEST(BenchmarkPlan, ExpandsIntoStructuresAlgorithmsEpsilonsAndRepetitions)
 {
     const Plan plan = smallPlan(".");
-    //Structures run: the base and the second step (the first does not run).
     EXPECT_EQ(measuredStructures(plan), (std::vector<std::size_t>{0, 2}));
     const std::vector<Case> cases = expandCases(plan);
-    //2 structures x 2 algorithms x 1 epsilon x (2 repetitions + warm-up).
     ASSERT_EQ(cases.size(), 12u);
     EXPECT_TRUE(cases[0].warmUp);
     EXPECT_EQ(cases[0].repetition, 0);
@@ -192,7 +201,6 @@ TEST(BenchmarkMeasurement, ARunOfACaseLeavesACompleteRecord)
     EXPECT_FALSE(record.environment.hostname.empty());
     EXPECT_EQ(record.environment.cores > 0, true);
 
-    //And through its file.
     QDir().mkpath(QString::fromStdString(recordsDirectory(plan)));
     writeRecord(record, recordPath(plan, cases[1]));
     const Record back = readRecord(recordPath(plan, cases[1]));
@@ -201,7 +209,6 @@ TEST(BenchmarkMeasurement, ARunOfACaseLeavesACompleteRecord)
     EXPECT_EQ(back.memoryTrace.size(), record.memoryTrace.size());
     EXPECT_EQ(readRecords(recordsDirectory(plan)).size(), 1u);
 
-    //A structure with an added pole is what the second measured structure runs.
     const Record grown = runCase(plan, cases[7]);
     EXPECT_EQ(grown.structure, "base+z+p");
     EXPECT_EQ(grown.poles.size(), 2u) << grown.message;

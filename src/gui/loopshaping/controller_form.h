@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief The step that describes the controller structure and its search box.
+ *
+ * Declares the panel where the structure is written in one of the families,
+ * with a name in place of any coefficient the search may move and the two
+ * ends of the gain's box. Fields are read as they are typed and marked
+ * where wrong; the freedom of the parameters is a page of the form, and the
+ * one button verifies before it applies, showing the structure drawn as
+ * the formula it is. The fields are read by the description reader shared
+ * with the plant form.
+ */
+
 #ifndef QFTBX_CONTROLLER_FORM_H
 #define QFTBX_CONTROLLER_FORM_H
 
@@ -106,8 +119,8 @@ private:
     /// since makes its ranges answer for something else.
     QString m_freedomCoefficients;
 
-    //True while setFromProject is writing the fields: what it writes is not
-    //an edit.
+    /// True while setFromProject is writing the fields: what it writes is not
+    /// an edit.
     bool m_filling = false;
 
     /// The two of them as setFromProject left them, empty when the form was
@@ -124,6 +137,6 @@ private:
     SystemDescriptionReader m_reader;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_CONTROLLER_FORM_H
+#endif

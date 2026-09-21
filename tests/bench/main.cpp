@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Entry point of the benchmark test suite.
+ *
+ * A core application is built for the Qt classes the library uses, and the
+ * numeric locale is reset to "C" right after it, as the program's own entry
+ * point does: the application adopts the system locale, and under a
+ * decimal-comma one the number readers reject literals like "0.1". A suite
+ * must run under the same numeric locale as the program it tests.
+ */
+
 #include <gtest/gtest.h>
 
 #include <clocale>
@@ -8,11 +19,6 @@ int main(int argc, char ** argv)
 {
     QCoreApplication application(argc, argv);
 
-    //Same as the application's main(): QCoreApplication adopts the system
-    //locale, and with a decimal-comma locale (es_ES...) the number readers
-    //reject literals like "0.1". Numeric code always works with the C
-    //locale, and a test suite must not run under a different one than the
-    //program it tests.
     std::setlocale(LC_NUMERIC, "C");
 
     ::testing::InitGoogleTest(&argc, argv);

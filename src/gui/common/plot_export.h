@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Writing a plot to a PNG, PDF or SVG file.
+ *
+ * PDF and SVG carry the curves as vectors, so a journal can set them at any
+ * size; PNG is for a slide or a message. JPEG and BMP are not offered: one
+ * degrades the lines it exists to show and the other is large for nothing.
+ * A request names the file, the raster size and its scale, and a profile:
+ * as seen on screen, or for publishing, which is white ground, black axes,
+ * heavier strokes and larger type whatever the interface's theme. A dialog
+ * front end asks for the file and reports a failure through the GUI's error
+ * reporter.
+ */
+
 #ifndef QFTBX_GUI_PLOT_EXPORT_H
 #define QFTBX_GUI_PLOT_EXPORT_H
 
@@ -54,6 +68,6 @@ void exportPlot(QWidget * parent, QCustomPlot & plot, const QString & title);
 /// knows, vector first.
 QString exportFilter();
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_PLOT_EXPORT_H
+#endif

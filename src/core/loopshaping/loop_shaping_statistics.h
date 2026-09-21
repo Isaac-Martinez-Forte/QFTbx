@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief What a loop-shaping run cost, as counted by the algorithm itself.
+ *
+ * Nodes visited, bisected, cut and pruned, the peak number of live nodes,
+ * and one row per depth of the search tree; kept with the result for the
+ * interface and the benchmarks to read.
+ */
+
 #ifndef QFTBX_LOOPSHAPING_STATISTICS_H
 #define QFTBX_LOOPSHAPING_STATISTICS_H
 
@@ -49,6 +58,6 @@ struct LoopShapingStatistics
     std::vector<std::size_t> ambiguousByFrequency;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_STATISTICS_H
+#endif

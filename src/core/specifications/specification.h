@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief One QFT specification and the fixed set of seven.
+ *
+ * Declares the seven specification slots in the order the .qft files store
+ * them positionally, the conversion between dB and linear magnitude, and
+ * the specification proper: a magnitude bound, constant or given by a
+ * transfer function, over a closed frequency band minus the design
+ * frequencies it is told to skip. It is built only through validating
+ * factories, so a constant bound is finite and positive, a system bound owns
+ * its plant and the band is ordered; a moved-from specification is an
+ * unused one. The set indexes the seven by type and gives the tracking
+ * spread, upper minus lower in dB, that the tracking boundary is cut at.
+ */
+
 #ifndef QFTBX_SPECIFICATION_H
 #define QFTBX_SPECIFICATION_H
 
@@ -27,13 +42,13 @@ inline double linearToDb(double linear) { return 20.0 * std::log10(linear); }
  * been stored (positional in the .qft files: do not reorder).
  */
 enum class SpecificationType {
-    TrackingLower,      // 0: historical "seguimiento"   (T_L)
-    TrackingUpper,      // 1: historical "seguimiento_1" (T_U)
-    Stability,          // 2: historical "estabilidad"
-    SensorNoise,        // 3: historical "ruido"
-    OutputDisturbance,  // 4: historical "RPS"
-    InputDisturbance,   // 5: historical "RPE"
-    ControlEffort       // 6: historical "EC"
+    TrackingLower,   ///< 0: historical "seguimiento"   (T_L)
+    TrackingUpper,   ///< 1: historical "seguimiento_1" (T_U)
+    Stability,   ///< 2: historical "estabilidad"
+    SensorNoise,   ///< 3: historical "ruido"
+    OutputDisturbance,   ///< 4: historical "RPS"
+    InputDisturbance,   ///< 5: historical "RPE"
+    ControlEffort
 };
 
 inline constexpr std::size_t kSpecificationCount = 7;
@@ -110,8 +125,6 @@ public:
             throw InvalidInput(QFTBX_TR("Core", "A system specification needs a non-null plant."));
         }
 
-        //A throw from here frees the plant on its way out, which the
-        //hand-written catch-and-delete-and-rethrow had to do by hand.
         validateBand(minFrequency, maxFrequency);
 
         Specification spec(type);
@@ -128,8 +141,8 @@ public:
 
     Specification(Specification&& other) noexcept { *this = std::move(other); }
 
-    //Hand-written for the one thing the generated version would not do:
-    //a moved-from specification is an UNUSED one.
+    /// Hand-written for the one thing the generated version would not do:
+    /// a moved-from specification is an UNUSED one.
     Specification& operator=(Specification&& other) noexcept
     {
         if (this != &other) {
@@ -156,9 +169,6 @@ public:
      */
     double boundDb(double omega) const
     {
-        //An unused slot has no bound: its m_system is null. Every caller
-        //checks appliesAt() first, which is discipline; this is the
-        //guarantee.
         if (!m_used) {
             throw InvalidInput(QFTBX_TR("Core", "The %1 specification is not in use, so it has no bound.").arg(name()));
         }
@@ -221,9 +231,9 @@ private:
     double m_minFrequency = 0.0;
     double m_maxFrequency = 0.0;
 
-    //The frequencies of the band this one does not apply at, as an
-    //exception list: empty is the ordinary case and the one every file
-    //written before this existed has.
+    /// The frequencies of the band this one does not apply at, as an
+    /// exception list: empty is the ordinary case and the one every file
+    /// written before this existed has.
     std::vector<double> m_skipped;
     std::unique_ptr<LtiSystem> m_system;
 };
@@ -267,6 +277,6 @@ private:
     std::array<Specification, kSpecificationCount> m_slots;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_SPECIFICATION_H
+#endif

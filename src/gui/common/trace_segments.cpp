@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief The jump rule of the trace splitter.
+ *
+ * The column width is the smallest nonzero phase step the trace takes, and
+ * a step over four columns is a jump: four, so that a curve that skips a
+ * column where one specification stops binding is still one curve. When
+ * every point shares a phase, nothing is a jump and the trace is one
+ * segment.
+ */
+
 #include "src/gui/common/trace_segments.h"
 
 #include <cmath>
@@ -7,14 +18,8 @@ namespace qftbx {
 
 namespace {
 
-//How many columns of the grid a step may take before it stops being a step.
-//Four, so that a curve that skips a column - which the union does where one
-//specification stops binding - is still one curve.
 const double kColumns = 4.0;
 
-//The width of a column of the grid, read off the trace itself: the smallest
-//phase step it takes that is not zero. Zero when every point shares a
-//phase, and then nothing is a jump.
 double columnWidth(const Trace & trace)
 {
     double smallest = std::numeric_limits<double>::infinity();
@@ -29,7 +34,7 @@ double columnWidth(const Trace & trace)
     return std::isfinite(smallest) ? smallest : 0.0;
 }
 
-} // namespace
+}
 
 std::vector<std::size_t> segmentEnds(const Trace & trace)
 {
@@ -85,4 +90,4 @@ std::vector<Trace> continuousSegments(const Trace & trace)
     return segments;
 }
 
-} // namespace qftbx
+}

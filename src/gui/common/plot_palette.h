@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Colours for series that have no order: one per algorithm, case or name.
+ *
+ * A design frequency is an ordered magnitude and takes its colour from the
+ * frequency map of the plot setup; this palette is for the benchmark, where
+ * the series are algorithms and nothing sits between two of them. Past the
+ * eight named colours it walks the hue circle by the golden angle, with the
+ * lightness alternating so that two hues close by eye differ in value,
+ * rather than repeating and painting two series alike.
+ */
+
 #ifndef QFTBX_GUI_PLOT_PALETTE_H
 #define QFTBX_GUI_PLOT_PALETTE_H
 
@@ -34,15 +46,12 @@ inline QColor seriesColour(qint32 i)
         return named[i];
     }
 
-    //The golden angle spreads the hues so that consecutive indices are far
-    //apart, and the lightness alternates so that two hues close by eye are
-    //not close in value as well.
     const qint32 beyond = i - count;
     const int hue = static_cast<int>((beyond * 137) % 360);
     const int lightness = (beyond % 2 == 0) ? 110 : 160;
     return QColor::fromHsl(hue, 170, lightness);
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_PLOT_PALETTE_H
+#endif

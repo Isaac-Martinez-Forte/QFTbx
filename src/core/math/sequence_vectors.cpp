@@ -1,21 +1,22 @@
+/**
+ * @file
+ * @brief Sequence wrappers over the math library.
+ *
+ * The double variants forward to the index-based generators; the float
+ * variant computes its own step and guards the single-point case.
+ */
+
 #include <vector>
 #include <cstdint>
 #include "src/core/math/sequence_vectors.h"
 
-
 #include "src/core/math/sequences.h"
 
-
-//Wrapper over the canonical implementation in src/core/math/ (no
-//accumulation drift, exact final endpoint).
 std::vector <double> qftbx::linspace(double a, double b, std::int32_t N) {
     return qftbx::math::linspace(a, b, static_cast<std::size_t>(N > 0 ? N : 0));
 }
 
-
 std::vector<float> qftbx::linspace1(double a, double b, std::int32_t N){
-    //N == 1 divided by zero here. The canonical linspace was fixed for it and
-    //this float variant, kept for the CUDA path, was not.
     if (N <= 0){
         return std::vector<float>();
     }
@@ -29,7 +30,7 @@ std::vector<float> qftbx::linspace1(double a, double b, std::int32_t N){
 
     float val = a;
 
-    for (std::int32_t i = 0; i < N; i++){ // https://gist.github.com/jmbr/2375233
+    for (std::int32_t i = 0; i < N; i++){
         vec.push_back(val);
         val+=h;
     }
@@ -37,8 +38,6 @@ std::vector<float> qftbx::linspace1(double a, double b, std::int32_t N){
     return vec;
 }
 
-
-//See qftbx::linspace.
 std::vector <double> qftbx::logspace (double a, double b, std::int32_t N){
     return qftbx::math::logspace(a, b, static_cast<std::size_t>(N > 0 ? N : 0));
 }

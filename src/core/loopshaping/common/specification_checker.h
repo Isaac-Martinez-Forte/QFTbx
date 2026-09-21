@@ -78,6 +78,6 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
                                               const CloudSet & templates,
                                               const SpecificationSet & specifications);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_SPECIFICATION_CHECKER_H
+#endif

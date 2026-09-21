@@ -1,16 +1,21 @@
-// Smoke tests for ProjectReader: load the sample .qft project files shipped
-// as test data and check that every section present in the file is recognised
-// and recovered.
-//
-// These tests pin the current behaviour of the loader so that the ongoing
-// backend refactor can be validated against it.
+/**
+ * @file
+ * @brief Smoke tests of the project reader over the sample .qft files.
+ *
+ * Each fixture stops at a different point of the design: a plant and its
+ * frequencies, up to the templates and contour, up to the boundaries and
+ * controller structure, and a finished design. The reader must report exactly
+ * the steps the file carries, recover each section, and forget everything a
+ * previous file carried when a second one is loaded. A missing file is a file
+ * error; malformed XML and a corrupt numeric list are parse errors that name
+ * their line.
+ */
 
 #include <gtest/gtest.h>
 
 #include <string>
 
 #include <vector>
-
 
 #include "src/persistence/project_reader.h"
 #include "src/core/system/lti_system.h"
@@ -26,10 +31,6 @@ std::string fixturePath(const char *name)
     return std::string(QFTBX_TEST_DATA_DIR "/") + name;
 }
 
-//ProjectReader::Loaded says what the file carried, by name. It used to be an
-//eight-element std::vector<bool> read through an enum of indices declared
-//here, seven of whose entries were steps and the eighth something else
-//entirely.
 ProjectReader::Loaded loadSections(ProjectReader &parser, const char *fixture)
 {
     return parser.load(fixturePath(fixture));
@@ -76,7 +77,6 @@ TEST(ProjectReaderSmoke, Planta2LoadsUpToTemplates)
     EXPECT_FALSE(loaded.steps.has(qftbx::Step::Controller));
     EXPECT_FALSE(loaded.steps.has(qftbx::Step::LoopShaping));
 
-    // One template (full cloud + contour) per design frequency.
     ASSERT_FALSE(parser.templates().empty());
     EXPECT_EQ(static_cast<int>(parser.templates().size()), 6);
     ASSERT_FALSE(parser.contour().empty());
@@ -107,9 +107,6 @@ TEST(ProjectReaderSmoke, Planta1LoadsFullProject)
     ProjectReader parser;
     const ProjectReader::Loaded loaded = loadSections(parser, "planta1.qft");
 
-    //Every step, and the contour with them: this fixture is a finished
-    //design. Named one by one rather than looped over indices, which is the
-    //point of the steps having names.
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
@@ -130,8 +127,6 @@ TEST(ProjectReaderSmoke, ASecondLoadDropsWhatTheFirstFileCarried)
     loadSections(parser, "planta1.qft");
     ASSERT_FALSE(parser.templates().empty());
 
-    //cervera.qft carries a plant and frequencies only: nothing of the
-    //finished design read before it may show through.
     const ProjectReader::Loaded loaded = loadSections(parser, "cervera.qft");
 
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Plant));
@@ -166,11 +161,9 @@ TEST(ProjectReaderErrors, MalformedFileThrowsParseErrorWithLine)
 
 TEST(ProjectReaderErrors, CorruptNumericValuesThrowParseError)
 {
-    // A numeric list with garbage is rejected with a located error (the
-    // historical loader silently kept the prefix before the bad token).
     ProjectReader parser;
     EXPECT_THROW(parser.load(fixturePath("corrupt_omega.qft")),
                  qftbx::ParseError);
 }
 
-} // namespace
+}

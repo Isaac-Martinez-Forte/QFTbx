@@ -1,13 +1,17 @@
-// The border sweep: with two uncertain parameters, the template is sampled
-// round the border of the parameter box instead of over its interior grid.
-//
-// The border of the image of a rectangle lies in the image of its border
-// plus isolated critical values, and every closed-loop magnitude a
-// specification bounds is a Mobius function of the plant, so its worst case
-// over the template is on the template's border when the pole lies outside
-// (which the singular-locus guard tells apart). The interior samples add
-// nothing; the same budget spent on the four edges makes the gap between
-// neighbouring points shrink by the grid size.
+/**
+ * @file
+ * @brief Tests of the border sweep of a two-parameter template.
+ *
+ * With two uncertain parameters the template is sampled round the border of
+ * the parameter box instead of over its interior grid: the border of the
+ * image of a rectangle lies in the image of its border plus isolated
+ * critical values, and the worst closed-loop magnitude over a template is on
+ * its border when the pole lies outside. The tests check the point count and
+ * order round the box, that one or three parameters still sweep the interior,
+ * and on QFT toolbox example 2 that the denser border leads NT to the same
+ * gain as the interior sweep (557.0721774) while its check finds a slightly
+ * worse plant, and that a border cloud's contour never exceeds the cloud.
+ */
 
 #include <gtest/gtest.h>
 
@@ -40,12 +44,10 @@ ParameterGrids gridsOf(LtiSystem * plant, int points)
     return g;
 }
 
-} // namespace
+}
 
 TEST(BorderSweep, TwoParametersSpendTheBudgetOnTheFourEdgesInOrder)
 {
-    //P = k / (s + a), k in [1, 2], a in [1, 2], grids of 5: budget 25,
-    //six points per edge, 24 round the box, closed.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{Parameter("a", Range(1.0, 2.0), 1.5), Parameter(1.0)};
     PolynomialForm plant("border", numerator, denominator, Parameter("k", Range(1.0, 2.0), 1.5), Parameter(0.0));
@@ -60,8 +62,6 @@ TEST(BorderSweep, TwoParametersSpendTheBudgetOnTheFourEdgesInOrder)
     ASSERT_EQ(clouds.size(), 1u);
     ASSERT_EQ(clouds[0].size(), 24u);
 
-    //Every point on the border: |P| = k / |j + a| with k or a at an end of
-    //its range. The corners of the box are the extremes of |P|.
     double lo = 1e300, hi = 0.0;
     for (const std::complex<double> & z : clouds[0]) {
         lo = std::min(lo, std::abs(z));
@@ -69,12 +69,10 @@ TEST(BorderSweep, TwoParametersSpendTheBudgetOnTheFourEdgesInOrder)
     }
     EXPECT_NEAR(lo, 1.0 / std::abs(std::complex<double>(2.0, 1.0)), 1e-12);
     EXPECT_NEAR(hi, 2.0 / std::abs(std::complex<double>(1.0, 1.0)), 1e-12);
-    //In order round the box: consecutive points are close, the loop closes.
     for (std::size_t i = 0; i < 24; ++i) {
         EXPECT_LT(std::abs(clouds[0][(i + 1) % 24] - clouds[0][i]), 0.2) << "step " << i;
     }
 
-    //With the request off, the interior grid as always.
     engine.setBorderSweep(false);
     EXPECT_EQ(engine.computeClouds(&plant, &omega)[0].size(), 25u);
     EXPECT_FALSE(engine.borderSweepApplied());
@@ -107,21 +105,7 @@ TEST(BorderSweep, OneOrThreeParametersSweepTheInteriorAsUsual)
 
 TEST(BorderSweep, OnExampleTwoTheBorderIsDenserAndTheBoundariesAgree)
 {
-    //Example 2 has two uncertain parameters. The 25x25 budget goes round
-    //the border, 156 points per edge; the alpha-shape closes at the
-    //connecting epsilon. On the 1-degree grid the boundaries from that
-    //contour lead NT to the SAME gain as the interior sweep, 557.0721774:
-    //at that resolution the phase grid, not the template, sets the
-    //boundary, which is the finding of the chain audit. What the denser
-    //border changes is the check: it finds a slightly worse plant
-    //(+0.0517 dB against +0.0514), the sampling gap of the interior sweep
-    //made visible. The gain is pinned between the interior sweep's and the
-    //true optimum of the structure (568.911).
     ProjectController controller;
-    //These tests compare boundary SOURCES, not readings: the published
-    //reading of the columns keeps NT on this fixture in the tens of
-    //milliseconds and its goldens where the fixture's history left them,
-    //where the conservative one takes it to a minute.
     {
         Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -161,17 +145,7 @@ TEST(BorderSweep, OnExampleTwoTheBorderIsDenserAndTheBoundariesAgree)
 
 TEST(BorderSweep, TheContourOfABorderCloudIgnoresAnOversizedEpsilon)
 {
-    //The fixture's epsilon, 10 in the complex plane, is thousands of times
-    //the sampling step of the border at 100 rad/s. Taken literally on a
-    //curve it exposes almost every chord and the outer loop degenerates into
-    //thousands of spikes (14 000 points from a border of 624, measured); the
-    //border cloud's contour is its alpha-shape at its own connecting epsilon
-    //instead, each point once: never more than the cloud.
     ProjectController controller;
-    //These tests compare boundary SOURCES, not readings: the published
-    //reading of the columns keeps NT on this fixture in the tens of
-    //milliseconds and its goldens where the fixture's history left them,
-    //where the conservative one takes it to a minute.
     {
         Settings published;
         published.algorithms.conservativeBoundaryColumns = false;
@@ -183,8 +157,6 @@ TEST(BorderSweep, TheContourOfABorderCloudIgnoresAnOversizedEpsilon)
     controller.setBorderSweep(true);
     ASSERT_TRUE(controller.computeTemplates(std::vector<double>(f, 10.0), gridsOf(controller.plant(), 25), false));
     for (std::size_t i = 0; i < f; ++i) {
-        //A curve is its own border: every point at most once, plus the
-        //closing repeat of the first.
         EXPECT_LE(controller.contour()[i].size(), controller.templates()[i].size() + 1) << "frequency " << i;
         EXPECT_GT(controller.contour()[i].size(), 4u) << "frequency " << i;
     }

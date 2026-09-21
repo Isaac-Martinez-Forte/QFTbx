@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @brief Algorithm MC3, under development.
+ *
+ * The trial implementation of the search that keeps the gain out of the
+ * tree; it runs only from the benchmark.
+ */
+
 #include "src/core/loopshaping/mc3/algorithm_mc3.h"
 
 #include <algorithm>
@@ -17,10 +25,9 @@ constexpr double kInfinity = std::numeric_limits<double>::infinity();
 double toDb(double gain) { return 20.0 * std::log10(gain); }
 double fromDb(double db) { return std::pow(10.0, db / 20.0); }
 
-//Whether a parameter range is a candidate for the logarithmic split.
 bool positive(const Range & r) { return r.min > 0.0 && r.max > r.min; }
 
-} // namespace
+}
 
 void AlgorithmMc3::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
                               const BoundaryData * boundaries, double epsilon)
@@ -89,14 +96,10 @@ AlgorithmMc3::GainSets AlgorithmMc3::gainSetsOf(LtiSystem * box)
             const BoundaryColumns::Intervals spans = columns.intervals(c);
             lower.clear(); upper.clear(); gapLower.clear(); gapUpper.clear();
 
-            //Allowed intervals [a, b]: the shifted rectangle fits when
-            //a <= m_lo + g and m_hi + g <= b.
             double previousHi = -kInfinity;
             for (std::int32_t j = 0; j < spans.count; ++j) {
                 lower.push_back(spans.lo[j] - mLo);
                 upper.push_back(spans.hi[j] - mHi);
-                //The gap under this interval: previousHi < m_lo + g and
-                //m_hi + g < a.
                 if (spans.lo[j] > previousHi) {
                     gapLower.push_back(previousHi - mLo);
                     gapUpper.push_back(spans.lo[j] - mHi);
@@ -135,8 +138,6 @@ std::unique_ptr<LtiSystem> AlgorithmMc3::withGains(LtiSystem * box, const RangeU
 
 std::pair<std::unique_ptr<LtiSystem>, std::unique_ptr<LtiSystem>> AlgorithmMc3::bisect(LtiSystem * box) const
 {
-    //The widest uncertain zero or pole on a logarithmic scale (linear when
-    //a range touches zero or goes negative).
     int widestIndex = -1;
     bool widestIsZero = true;
     double widest = -1.0;
@@ -260,8 +261,6 @@ bool AlgorithmMc3::solve()
         std::unique_ptr<Node> node = liveList->takeFirstAs<Node>();
         LtiSystem * box = node->system();
 
-        //Bound test on entry: the list is ordered by lower bound, so from
-        //here on nothing can improve the best certified gain by epsilon.
         if (node->getIndex() >= bestGainDb - epsilon) {
             ++m_prunedByBound;
             depthAccounting.record(*box, infeasible);
@@ -270,19 +269,11 @@ bool AlgorithmMc3::solve()
 
         if (!node->sets) {
             node->sets = gainSetsOf(box);
-            //Contract the admissible gains by what the box certainly forbids.
             node->gains.intersectWith(complementOf(node->sets->forbidden));
         }
         const GainSets & sets = *node->sets;
         RangeUnion & admissible = node->gains;
 
-        //Nominal stability as a gain contractor: the lowest slice of the
-        //admissible gains, kSliceDb wide, is tested for the whole box
-        //(NominalStabilityChecker::isBoxUnstable over box x slice); a slice
-        //whose every member is closed-loop unstable is removed and the next
-        //one tested, until a slice survives or nothing is left. Where the
-        //other searches bisect the zeros and poles down to epsilon and
-        //reject the unstable corners one by one, this raises the bound.
         constexpr double kSliceDb = 20.0;
         while (!admissible.isEmpty()) {
             const double lb = admissible.minimum();
@@ -308,9 +299,6 @@ bool AlgorithmMc3::solve()
             continue;
         }
 
-        //The node was queued under its parent's bound; if its own is higher
-        //than the least bound still queued, it goes back in line so that
-        //the node processed next is always the one with the least bound.
         if (lowerBound > node->getIndex() && !liveList->isEmpty()
                 && lowerBound > liveList->first()->getIndex()) {
             node->setIndex(lowerBound);
@@ -318,7 +306,6 @@ bool AlgorithmMc3::solve()
             continue;
         }
 
-        //Certify the whole box at the least gain the columns allow it.
         RangeUnion certifiable = sets.certified;
         certifiable.intersectWith(admissible);
         const bool certified = !certifiable.isEmpty();
@@ -331,17 +318,6 @@ bool AlgorithmMc3::solve()
         }
 
         if (sets.small) {
-            //Best-first termination: this node has the least lower bound of
-            //every node alive, and it is as narrow as the tolerance asks; a
-            //controller of this box within epsilon of that bound is within
-            //epsilon of every gain the rest of the tree could still reach.
-            //The candidates: the box's centre at its lower bound, then at
-            //the gain that certifies the whole box, if any.
-            //Candidates: the centre and the corners of the box, each at the
-            //least gain of its own exact admissible set that lies within
-            //the tolerance above the node's bound (a hair above the
-            //boundary, never on it). Farther candidates are not accepted:
-            //they would break the best-first argument.
             std::vector<PointController> points{centreOf(box, lowerBound)};
             {
                 std::vector<std::size_t> variable;
@@ -386,8 +362,6 @@ bool AlgorithmMc3::solve()
             continue;
         }
 
-        //A certified box whose lower bound is already within tolerance of
-        //its own certificate has nothing left to find.
         if (certified && lowerBound >= certifiable.minimum() - epsilon) {
             continue;
         }
@@ -423,4 +397,4 @@ LoopShapingStatistics AlgorithmMc3::statistics() const
     return statistics;
 }
 
-} // namespace qftbx
+}

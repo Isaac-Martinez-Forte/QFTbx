@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief An item delegate that draws the formula a table cell holds.
+ *
+ * A table of specifications is a table of bounds, and a bound is a transfer
+ * function: as two lists of coefficients it says nothing, drawn as the
+ * quotient it is, it says everything. The model keeps the formula in a user
+ * role of the cell; a cell without one is drawn as the ordinary text it
+ * holds.
+ */
+
 #ifndef QFTBX_GUI_FORMULA_DELEGATE_H
 #define QFTBX_GUI_FORMULA_DELEGATE_H
 
@@ -31,6 +42,6 @@ public:
                    const QModelIndex & index) const override;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_FORMULA_DELEGATE_H
+#endif

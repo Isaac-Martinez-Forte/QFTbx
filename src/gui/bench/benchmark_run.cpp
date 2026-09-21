@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Runs the benchmark on a worker thread and relays its events.
+ *
+ * The runner's case and record live on its thread, so each event is copied
+ * before it is queued to this object's thread. A failure inside the run is
+ * translated into the error the done handler receives, and the running
+ * flag is cleared on the GUI thread, together with that call. Destruction
+ * cancels and joins the thread before the object goes.
+ */
+
 #include "src/gui/application/error_message.h"
 #include "src/gui/bench/benchmark_run.h"
 
@@ -74,7 +85,6 @@ void BenchmarkRun::start(const bench::Plan & plan, const QString & planPath, int
         QString error;
         try {
             failures = m_runner.run(plan, path, worker, jobs, [this](const bench::Runner::Event & event) {
-                //Copies: the runner's case and record live on its thread.
                 if (event.kind == bench::Runner::Event::Kind::Started && event.c != nullptr) {
                     const bench::Case c = *event.c;
                     QMetaObject::invokeMethod(this, [this, c]() {
@@ -111,4 +121,4 @@ void BenchmarkRun::cancel()
     }
 }
 
-} // namespace qftbx
+}

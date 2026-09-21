@@ -7,6 +7,7 @@
 #include "src/bench/record.h"
 
 /**
+ * @file
  * @brief One case, measured in the calling process.
  *
  * This is what the worker process does: load the project, build the
@@ -20,7 +21,7 @@ namespace qftbx::bench {
 
 Record runCase(const Plan & plan, const Case & c);
 
-/// Where the records of a plan go: <output directory>/<plan name>/records.
+/// Where the records of a plan go: `records` under the plan name in the output directory.
 std::string recordsDirectory(const Plan & plan);
 std::string recordPath(const Plan & plan, const Case & c);
 
@@ -28,6 +29,6 @@ std::string recordPath(const Plan & plan, const Case & c);
 /// of a crash.
 Record failureRecord(const Plan & plan, const Case & c, const std::string & status, const std::string & message);
 
-} // namespace qftbx::bench
+}
 
-#endif // QFTBX_BENCH_MEASUREMENT_H
+#endif

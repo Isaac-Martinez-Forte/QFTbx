@@ -1,5 +1,18 @@
-// The interface language: the preference, the translators and the
-// retranslation of the main window, headless.
+/**
+ * @file
+ * @brief Headless tests of the interface language and its translations.
+ *
+ * The available languages come from the compiled translations, with the
+ * system's first and each named in its own tongue. Every .ts source must have
+ * no unfinished or obsolete string, so that a text added to the interface
+ * without a translation fails here. The choice is written to the settings
+ * file, the language menu starts on the setting and falls back to the system's
+ * for one not compiled in, and switching retranslates the main window in
+ * place. A message the core throws in English with its arguments apart reaches
+ * the user translated with the arguments in place, a parse error keeping its
+ * file and line; a plain text has nothing to give.
+ */
+
 #include <gtest/gtest.h>
 
 #include <QAction>
@@ -37,8 +50,6 @@ TEST(Language, EveryTranslationIsCompleteAndLoads)
     EXPECT_FALSE(translator.isEmpty());
     EXPECT_EQ(translator.translate("qftbx::MainWindow", "&Language"), QString::fromUtf8("&Idioma"));
 
-    //Every string the sources carry has a text in every language: lupdate
-    //marks the ones that do not as unfinished, and none may be.
     QDir folder(QStringLiteral(QFTBX_SOURCE_DIR "/src/gui/translations"));
     const QStringList files = folder.entryList({"*.ts"}, QDir::Files);
     ASSERT_FALSE(files.isEmpty());
@@ -105,9 +116,6 @@ TEST(Language, TheMainWindowRetranslatesWhenTheLanguageChanges)
 
 TEST(Language, TheCoreMessagesAreTranslatedAtTheBoundary)
 {
-    //A message thrown by the core in English, with its arguments apart,
-    //reaches the user in the language of the interface with the same
-    //arguments in place; a parse error keeps its file and line around it.
     const InvalidInput cells(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(3).arg(5));
     const ParseError malformed(QFTBX_TR("Core", "missing <%1> element").arg("plant"), 12, "project.qft");
     const FileError plain("a text nobody translates");

@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief Plots the computed QFT boundaries on the Nichols chart.
+ *
+ * Declares the viewer that draws every boundary per design frequency and
+ * specification, coloured by frequency, with a legend that hides a
+ * frequency at a time. It observes the boundary data and the frequencies
+ * and is emptied, not destroyed, when the project drops the step. The
+ * plot owns the curves; the viewer keeps the containers.
+ */
+
 #ifndef QFTBX_BOUNDARY_VIEWER_H
 #define QFTBX_BOUNDARY_VIEWER_H
 
@@ -8,19 +19,16 @@
 #include <QVector>
 #include <QFileDialog>
 
-
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "qcustomplot.h"
 #include "src/gui/common/frequency_legend.h"
-
 
 namespace Ui {
 class BoundaryViewer;
 }
 
 namespace qftbx {
-
 
 /**
  * @brief Plots the computed QFT boundaries on the Nichols chart, one curve
@@ -31,13 +39,12 @@ namespace qftbx {
 class BoundaryViewer : public QWidget
 {
     Q_OBJECT
-    
+
 public:
 
     explicit BoundaryViewer(QWidget *parent = 0);
     ~BoundaryViewer();
 
-    
    /**
     * @brief Publishes what the plot needs. Observers on both: the viewer
     * outlives neither.
@@ -46,8 +53,7 @@ public:
     * @param omega the design frequencies they were computed at.
     */
     void setData (const BoundaryData *data, std::vector<double> *omega);
-    
-    
+
     /**
      * @brief Forgets what it was drawing and empties the plot.
      *
@@ -78,14 +84,13 @@ private:
 
     bool plotted = false;
 
-    //The curves BELONG TO QCustomPlot, which frees them on
-    //clearPlottables(): only these containers are the viewer's.
+    /// The curves BELONG TO QCustomPlot, which frees them on
+    /// clearPlottables(): only these containers are the viewer's.
     QVector <QVector <QCPCurve *> > curves;
-
 
     std::unique_ptr<Ui::BoundaryViewer> ui;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_BOUNDARY_VIEWER_H
+#endif

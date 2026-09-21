@@ -1,45 +1,26 @@
+/**
+ * @file
+ * @brief Algorithm NT: the branch and bound of Tharewal 2005, sections 3.3.3 and 5.2.1.
+ *
+ * The main loop follows steps 1 to 7 of section 3.3.3: the initial box
+ * enters the live list unless certainly infeasible, an empty list proves
+ * there is no feasible solution, and the leading box terminates the search
+ * when feasible or smaller than epsilon at every frequency, in which case a
+ * corner verified against the boundaries and the nominal stability criterion
+ * is returned. Cancellation is checked once per node and reported as an
+ * exception, because a false return already means the space was exhausted.
+ * The gain cuts of section 5.2.1 are applied inside the feasibility test.
+ */
+
 #include <vector>
 #include <cstdint>
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/nt/algorithm_nt.h"
 
-
-/*
- * Algorithm NT (Nataraj-Tharewal): interval branch & bound QFT loop
- * shaping, faithful to Tharewal 2005 ("Automated Synthesis of QFT
- * Controllers and Prefilters using Interval Global Optimization
- * Techniques", IIT Bombay):
- *
- * - chapter 3 (sec. 3.3.3): the branch & bound over the controller
- *   parameter box with the live-node list NL ordered by ascending
- *   inf(k), so the first solution is the global optimum;
- * - chapter 5 (sec. 5.2.1): the constraint-propagation acceleration on
- *   the gain, using the monotonicity of |L0| with respect to k and the
- *   extreme boundary magnitudes B_min / B_max over the box's phase
- *   interval: the certainly infeasible gain subrange is cut off (C_g-)
- *   and the certainly feasible one is split into its own NL triple
- *   (C_g+).
- *
- * Termination follows ch. 3 (p. 29 and Remark 3.1): a feasible leading
- * box, or a leading box whose Nichols projection is smaller than epsilon
- * at every design frequency. In the second case, when the box is still
- * ambiguous, the returned point is a corner of the box (the anti-blocking
- * rule of the QFTbx thesis, sec. 3.1, first; the lower corner next, then
- * the centre and the other corners), verified against the boundaries before
- * it is accepted (verifiedCorner in common_functions.h): a box with no
- * certified corner is dropped and the search goes on.
- *
- * The feasibility test is completed with the nominal closed-loop
- * stability check of sec. 3.3.5, implemented on the Nichols chart by the
- * Cohen-Chait-Yaniv criterion (NominalStabilityChecker): the QFT bounds
- * alone do not exclude loops that encircle the critical point.
- */
-
 namespace qftbx {
 
 void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                                  double epsilon) {
-
 
     this->plant = plant;
     this->controller = controller->clone();
@@ -48,9 +29,6 @@ void AlgorithmNt::setProblem(LtiSystem * plant, LtiSystem * controller, std::vec
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 }
-
-
-//Main loop: Tharewal 2005, sec. 3.3.3 (steps 1-7).
 
 bool AlgorithmNt::solve() {
 
@@ -67,62 +45,31 @@ bool AlgorithmNt::solve() {
         nominalPlantValues.push_back(c);
     }
 
-    //Step 1: feasibility of the initial search box (inserts it into NL
-    //unless certainly infeasible).
     check_box_feasibility(std::move(controller));
-
 
     while (true) {
 
-        //Once per node: the cheapest possible place to notice, and the only
-        //one that bounds how long a cancellation takes to take effect. It
-        //throws rather than returning false, because false already means
-        //"searched everything and found nothing", which is a different
-        //answer and one the caller reports differently.
         if (qftbx::cancellationAsked(m_cancellation)) {
             throw qftbx::Cancelled();
         }
 
-        //Steps 2/6c: an empty list proves there is no feasible solution.
         if (liveList->isEmpty()) {
             throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
         }
 
         std::unique_ptr<SearchNode> node = liveList->takeFirstAs<SearchNode>();
 
-        //Nominal closed-loop stability of a bounds-feasible box (Tharewal
-        //2005, sec. 3.3.5, by the Nichols-chart Nyquist criterion):
-        //satisfied stability bounds plus one nominally stable point make
-        //the whole box robustly stable; an unstable point discards it
-        //entirely. The check runs when the box reaches the head of the
-        //list rather than when it entered it: a feasible box takes no part
-        //in the search until it is popped, so the boxes popped after it are
-        //the same either way, and the criterion samples the loop at
-        //thousands of frequencies, which is not worth paying for a box the
-        //search may never come back to.
         if (node->flag() == feasible && !stability->isNominallyStable(cornerOf(node->system(), true))) {
             continue;
         }
 
-        //Step 3, termination: a feasible leading box (ch. 3, p. 29; its
-        //lower gain corner realises the optimum), or a leading box below
-        //the epsilon accuracy at every frequency (Remark 3.1; if still
-        //ambiguous, the feasible corner is extracted).
         if (node->flag() == feasible) {
-            //The lower corner of a feasible box was certified above.
             designedController = pointFromBox(node->system(), true);
 
-            //Everything else dies with the algorithm (see the destructor).
             return true;
         }
 
         if (isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
-            //The corner is a fresh point: it must satisfy the boundaries
-            //(verifiedCorner) and the nominal stability criterion. A box
-            //with no certified corner, or an unstable one, is dropped and
-            //the search goes on: at epsilon size the box has said what it
-            //can, and bisecting it further would only descend to the
-            //precision of the arithmetic.
             const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
                     conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
@@ -134,15 +81,12 @@ bool AlgorithmNt::solve() {
             return true;
         }
 
-        //Step 4: bisect along the widest parameter direction.
         BisectionResult halves = bisectWidestParameter(node->system());
 
-        //Steps 5-6: classify the subboxes and insert them in NL.
         check_box_feasibility(std::move(halves.v1));
         check_box_feasibility(std::move(halves.v2));
     }
 }
-
 
 std::size_t AlgorithmNt::peakLiveNodes() const
 {
@@ -170,18 +114,9 @@ LoopShapingStatistics AlgorithmNt::statistics() const
     return statistics;
 }
 
-
 std::unique_ptr<LtiSystem> AlgorithmNt::controllerStructure() {
     return std::move(designedController);
 }
-
-
-//Feasibility test of one box over every design frequency (Tharewal 2005,
-//sec. 3.3.4-3.3.5) plus the ch. 5 gain acceleration. Certainly infeasible
-//boxes are destroyed; anything else is inserted into NL ordered by
-//inf(k). When the certainly feasible gain subrange [feasibleFrom, sup(k)]
-//can be split off (C_g+), it is re-certified by this same test and
-//enters NL as its own triple.
 
 void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
 
@@ -192,18 +127,11 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
     std::size_t frequencyIndex = 0;
     NicholsBox projection;
 
-    //C_g+ : the certainly feasible gain subrange must satisfy EVERY
-    //frequency (intersection), so the candidate is the maximum of the
-    //per-frequency lower limits and fails if any ambiguous frequency
-    //cannot certify one.
     double feasibleFrom = 0;
     bool feasibleCertified = true;
 
     for (double o : *omega) {
 
-        //The zero and pole products of this box at this frequency serve
-        //the projection of the box and the two gain contractors below,
-        //which only change the gain.
         const NaturalIntervalExtension::Factors factors = conversion->factorsOf(box.get(), o);
         const std::complex<double> p0 = nominalPlantValues.at(frequencyIndex);
 
@@ -224,12 +152,9 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
             const double minBoundary = classification.extremes()[0];
             const double maxBoundary = classification.extremes()[1];
 
-            //C_g- : cut the certainly infeasible low-gain subrange.
             box = accelerated(std::move(box), minBoundary, factors, frequencyIndex,
                              !classification.isBottomLeftForbidden());
 
-            //C_g+ : candidate lower limit of the certainly feasible
-            //high-gain subrange at this frequency.
             if (feasibleCertified) {
                 double from;
                 if (feasibleGainFrom(box.get(), maxBoundary, projection, factors, frequencyIndex, from)) {
@@ -243,22 +168,9 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
         frequencyIndex++;
     }
 
-    //C_g+ split (Tharewal 2005, sec. 5.2.1-5.2.2): the candidate feasible
-    //part becomes its own box and is re-certified by this same test, so
-    //the split never depends on the heuristic gate for correctness. The
-    //margins skip degenerate slivers that would only bloat the list.
     const double kInf = box->gain().range().min;
     const double kSup = box->gain().range().max;
 
-    //The nominal stability of a feasible box is checked when it is popped
-    //(see solve()).
-
-    //An ambiguous box whose members are all closed-loop unstable dies here
-    //(Tharewal 2005, sec. 3.3.5, over the whole box: see
-    //NominalStabilityChecker::isBoxUnstable). The boundaries at the design
-    //frequencies do not see a loop that crosses -180 degrees above 0 dB
-    //between them; without this, every such box is bisected down to epsilon
-    //and rejected there, corner by corner.
     if (flag_final == ambiguous && stability->isBoxUnstable(box.get(), *conversion)) {
         return;
     }
@@ -266,7 +178,6 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
     if (flag_final == ambiguous && feasibleCertified &&
             feasibleFrom > kInf * 1.01 && feasibleFrom < kSup * 0.99) {
 
-        //Deep copy for the feasible part, with its own gain interval.
         const std::unique_ptr<LtiSystem> base = box->clone();
 
         check_box_feasibility(base->create(base->name(), base->numerator(),
@@ -274,28 +185,17 @@ void AlgorithmNt::check_box_feasibility(std::unique_ptr<LtiSystem> box) {
                 Parameter(base->gain().name(), Range(feasibleFrom, kSup), feasibleFrom),
                 base->delay()));
 
-        //The current box keeps the remaining ambiguous gain subrange.
         box = box->create(box->name(), box->numerator(), box->denominator(),
                 Parameter(box->gain().name(), Range(kInf, feasibleFrom), kInf),
                 box->delay());
     }
 
-    //The index is read BEFORE the box is handed over: as arguments of one
-    //call their evaluation order is unspecified.
     const double gainInf = box->gain().range().min;
 
     depthAccounting.record(*box, flag_final);
     liveList->insert(std::make_unique<SearchNode>(gainInf, std::move(box), flag_final));
 
 }
-
-
-//Geometric contractor C_g- (Tharewal 2005, ch. 5, Algorithm C_g-): using
-//the monotonicity of |L0| w.r.t. the gain, remove the gain subrange
-//[inf(k), k_B] whose boxes lie entirely below B_min, the minimum boundary
-//magnitude over the box's phase interval. The cut only applies when the
-//below-everything zone is certainly forbidden, certified by the parity
-//classification of the box's lower corner (above == false).
 
 std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v,
         double minBoundary, const NaturalIntervalExtension::Factors & factors,
@@ -306,15 +206,11 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
         const double minGainLinear = v->gain().range().min;
         const double minGainDb = 20 * log10(minGainLinear);
 
-        //The box at its lowest gain: the same zeros and poles, the gain
-        //interval collapsed to that end.
         const double magnitudeAtMinGainDb = conversion->nicholsOf(Interval(minGainLinear), factors,
                 nominalPlantValues.at(frequencyIndex)).magnitudeDb.upper();
 
-
         if (magnitudeAtMinGainDb < minBoundary) {
 
-            //k_B = inf(k) + (B_min - sup|L0(inf(k))|), in dB.
             double cutGainDb = minGainDb + (minBoundary - magnitudeAtMinGainDb);
 
             double cutGainLinear = pow(10, cutGainDb / 20);
@@ -327,16 +223,6 @@ std::unique_ptr<LtiSystem> AlgorithmNt::accelerated(std::unique_ptr<LtiSystem> v
 
     return v;
 }
-
-
-//Geometric contractor C_g+ (Tharewal 2005, ch. 5): lower limit of the
-//gain subrange whose boxes lie entirely above B_max, the maximum boundary
-//magnitude over the box's phase interval. Returns false when no part of
-//the gain range can be certified feasible at this frequency. The zone
-//above every boundary point must be an allowed zone, checked by the
-//parity classification of a probe point just above B_max at the centre
-//of the box's phase interval (a heuristic gate: the caller re-certifies
-//the split box with the full feasibility test).
 
 bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
                                    NicholsBox projection, const NaturalIntervalExtension::Factors & factors,
@@ -352,8 +238,6 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
     const double maxGainLinear = v->gain().range().max;
     const double maxGainDb = 20 * log10(maxGainLinear);
 
-    //The box at its highest gain: the same zeros and poles, the gain
-    //interval collapsed to that end.
     const double magnitudeAtMaxGainDb = conversion->nicholsOf(Interval(maxGainLinear), factors,
             nominalPlantValues.at(frequencyIndex)).magnitudeDb.lower();
 
@@ -361,7 +245,6 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
         return false;
     }
 
-    //k_F = sup(k) - (inf|L0(sup(k))| - B_max), in dB.
     const double feasibleGainDb = maxGainDb - (magnitudeAtMaxGainDb - maxBoundary);
 
     from = pow(10, feasibleGainDb / 20);
@@ -369,4 +252,4 @@ bool AlgorithmNt::feasibleGainFrom(LtiSystem * v, double maxBoundary,
     return true;
 }
 
-} // namespace qftbx
+}

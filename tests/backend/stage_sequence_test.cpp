@@ -1,20 +1,18 @@
-// The pipeline walked from nothing, in the order the interface drives it.
-//
-// Everything that reaches the loop shaping in this suite starts from a loaded
-// .qft: the golden tests, the benchmarks, the article validations. Nothing
-// walked the seven stages the way a user does - publish a plant, then the
-// specifications, then the frequencies, compute the templates, the
-// boundaries, publish a controller structure, run the search - asserting that
-// each stage produces its own artefact and that the one before it survives.
-//
-// It is the net for splitting ProjectController into a class per stage
-// (plan 10.3): the split must not change any of this. Written against the
-// CURRENT behaviour on purpose, so a difference means the split changed
-// something, not that the test needs adjusting.
-//
-// The fixture is deliberately tiny - three frequencies, three points per
-// grid, a coarse Nichols grid - because what is under test is the sequence,
-// not the numbers. The numbers have their own golden tests.
+/**
+ * @file
+ * @brief The seven stages of the pipeline walked from nothing, in order.
+ *
+ * A plant, the specifications, the frequencies, the templates, the boundaries,
+ * a controller structure and the search are published or computed in order on
+ * a deliberately tiny problem; each stage must produce its artefact and leave
+ * the one before it standing. A null publish and a reserved parameter name are
+ * refused at publication, and recomputing a stage drops exactly what depends
+ * on it. Cancellation travels out as its own exception, publishes nothing and
+ * does not linger into the next run; a search off the calling thread closes
+ * the project while it runs and reports its failures instead of throwing from
+ * the worker. The completed steps are derived from what the project holds, a
+ * loaded file replaces the project, and every change announces exactly once.
+ */
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
@@ -41,8 +39,6 @@ using namespace qftbx;
 
 namespace {
 
-//P(s) = kv / (a*s + 1), both coefficients uncertain so the sweep has a grid
-//to walk and the templates come out as areas rather than points.
 std::unique_ptr<LtiSystem> makePlant()
 {
     std::vector<Parameter> numerator{Parameter(1.0)};
@@ -55,15 +51,6 @@ std::unique_ptr<LtiSystem> makePlant()
                               Parameter(0.0));
 }
 
-//K(s) = kc * (s + z) / (s + p), with the gain and both roots given as search
-//boxes.
-//
-//Two things this test found by being written, both worth pinning. It is a
-//ZeroPoleGain and not a PolynomialForm because the loop shaping refuses
-//polynomial and free-form structures: the interval projection of those is not
-//implemented. The gain is "kc": any identifier that is not a function, a
-//constant or the Laplace variable serves - see
-//StageSequence.ReservedParameterNamesAreRefusedWhenPublished.
 std::unique_ptr<LtiSystem> makeControllerStructure()
 {
     std::vector<Parameter> numerator{
@@ -89,8 +76,6 @@ qftbx::ParameterGrids makeGrids()
     return grids;
 }
 
-//A permissive constant stability bound, in LINEAR magnitude, over the whole
-//frequency band.
 qftbx::SpecificationRecords makeSpecifications()
 {
     qftbx::SpecificationRecords records;
@@ -108,27 +93,22 @@ qftbx::SpecificationRecords makeSpecifications()
     return records;
 }
 
-} // namespace
+}
 
 TEST(StageSequence, TheSevenStagesWalkedFromNothing)
 {
     ProjectController controller;
 
-    // --- 1: the plant
     EXPECT_TRUE(controller.setPlant(makePlant()));
     ASSERT_NE(controller.plant(), nullptr);
 
-    // --- 2: the specifications
     controller.setSpecifications(makeSpecifications());
     ASSERT_NE(controller.specifications(), nullptr);
 
-    // --- 3: the design frequencies
     EXPECT_TRUE(controller.setOmega(makeOmega()));
     ASSERT_NE(controller.omega(), nullptr);
     ASSERT_EQ(controller.omega()->values()->size(), 3u);
 
-    // --- 4: the templates. One cloud per design frequency, and the plant
-    // and the frequencies are still the ones published above.
     ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
     ASSERT_EQ(controller.templates().size(), 3u);
     for (const qftbx::ComplexCloud & cloud : controller.templates()) {
@@ -137,7 +117,6 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     EXPECT_NE(controller.plant(), nullptr);
     EXPECT_NE(controller.omega(), nullptr);
 
-    // --- 5: the boundaries, over a coarse Nichols grid.
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
                                              -1.0, false, false));
@@ -145,13 +124,10 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     EXPECT_FALSE(controller.templates().empty())
         << "computing the boundaries must not disturb the templates they came from";
 
-    // --- 6: the controller structure. It invalidates nothing here, because
-    // there is no loop shaping yet to invalidate.
     EXPECT_TRUE(controller.setControllerStructure(makeControllerStructure()));
     ASSERT_NE(controller.controllerStructure(), nullptr);
     EXPECT_NE(controller.boundaries(), nullptr);
 
-    // --- 7: the search.
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
     ASSERT_NE(controller.loopShapingResult(), nullptr);
@@ -159,11 +135,9 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     LtiSystem * const designed = controller.loopShapingResult()->controller();
     ASSERT_NE(designed, nullptr);
 
-    // The answer is a POINT of the search box, not the box.
     EXPECT_EQ(designed->gain().range().min, designed->gain().range().max);
     EXPECT_GT(designed->gain().range().min, 0.0);
 
-    // And everything the search consumed is still standing.
     EXPECT_NE(controller.plant(), nullptr);
     EXPECT_NE(controller.boundaries(), nullptr);
     EXPECT_FALSE(controller.templates().empty());
@@ -171,10 +145,6 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
 
 TEST(StageSequence, ANullStepIsRefusedInsteadOfWipingTheProject)
 {
-    //There is no "remove the plant" step in the pipeline: a null publish was
-    //taken as a change and wiped the step and everything computed from it,
-    //which a reused dialog once did by accident. The facade refuses it now,
-    //so no interface mistake can reach the project that way.
     ProjectController controller;
 
     EXPECT_THROW(controller.setPlant(nullptr), qftbx::InvalidInput);
@@ -185,15 +155,6 @@ TEST(StageSequence, ANullStepIsRefusedInsteadOfWipingTheProject)
 
 TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
 {
-    // The expression grammar owns its function names, the constants pi and
-    // e in either case, and the Laplace variable s: a parameter under any of
-    // them would be read as the function or the constant, never as the
-    // parameter. The expression library this replaced also owned the single
-    // letters n, u, m, k, M and G as unit multipliers, and the failure was
-    // as bad as it gets: the name was accepted, the plant and the boundaries
-    // computed fine, and then the search threw from deep inside an error the
-    // window did not catch. Names are refused at publication, which is once
-    // per project and nowhere near the search.
     for (const char * reserved : {"sin", "sqrt", "log", "pi", "PI", "e", "E", "s"}) {
         ProjectController controller;
 
@@ -208,7 +169,6 @@ TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
             << "a parameter named \"" << reserved << "\" has to be refused";
     }
 
-    //And "k", what everybody calls a gain, is a name like any other now.
     ProjectController controller;
     auto plant = std::make_unique<PolynomialForm>(
                 std::string("P"), std::vector<Parameter>{Parameter(1.0)},
@@ -220,9 +180,6 @@ TEST(StageSequence, ReservedParameterNamesAreRefusedWhenPublished)
 
 TEST(StageSequence, AConstantKeepsItsNumericName)
 {
-    // The check must not reach constants: Parameter(double) names itself with
-    // the number, which is not an identifier at all, and no expression ever
-    // binds it as a variable.
     ProjectController controller;
 
     std::vector<Parameter> numerator{Parameter(1.0)};
@@ -237,12 +194,6 @@ TEST(StageSequence, AConstantKeepsItsNumericName)
 
 TEST(StageSequence, RecomputingTheTemplatesDropsTheBoundaries)
 {
-    // The boundaries are computed FROM the templates, so a new sweep voids
-    // them. Every other link of the chain had a test; this one did not, and
-    // it went missing the moment the publishing moved into TemplateStage:
-    // ProjectController::computeTemplates used to reach the invalidation
-    // through setTemplates, and delegating the publishing bypassed it. The
-    // whole suite stayed green.
     ProjectController controller;
 
     controller.setPlant(makePlant());
@@ -255,7 +206,6 @@ TEST(StageSequence, RecomputingTheTemplatesDropsTheBoundaries)
                                              -1.0, false, false));
     ASSERT_NE(controller.boundaries(), nullptr);
 
-    // A second sweep, with a different epsilon: the boundaries must be gone.
     ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 8.0), makeGrids(), false));
 
     EXPECT_EQ(controller.boundaries(), nullptr)
@@ -265,11 +215,6 @@ TEST(StageSequence, RecomputingTheTemplatesDropsTheBoundaries)
 
 TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
 {
-    // The link one below the previous test, and it is written BEFORE the
-    // boundary stage is carved out on purpose: moving the publishing into a
-    // stage is exactly what broke this link for the templates, and the suite
-    // did not notice. The search runs against a set of boundaries, so a new
-    // set voids its answer.
     ProjectController controller;
 
     controller.setPlant(makePlant());
@@ -284,7 +229,6 @@ TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
                                               qftbx::Range(1e-3, 100.0), 100));
     ASSERT_NE(controller.loopShapingResult(), nullptr);
 
-    // A second boundary computation, on a different grid.
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 25,
                                              qftbx::Range(-40.0, 40.0), 15,
                                              -1.0, false, false));
@@ -294,22 +238,8 @@ TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
     EXPECT_NE(controller.boundaries(), nullptr);
 }
 
-// --- cancellation -----------------------------------------------------------
-//
-// The mechanism, without the button: the interface has no way to raise this
-// yet, and where the button goes is a question for a later phase. What is
-// pinned here is that the search reads the flag, that giving up travels all
-// the way out as qftbx::Cancelled, and that a token does not linger into the
-// next run.
-//
-// The cross-thread part is not tested, deliberately: an std::atomic being
-// visible to another thread is the standard library's contract, not this
-// code's. What this code owes is a search that looks at the flag often enough
-// to matter, and it looks once per node.
-
 namespace {
 
-//A project standing at the point where the search can be started.
 void prepareForSearch(ProjectController & controller)
 {
     controller.setPlant(makePlant());
@@ -322,7 +252,7 @@ void prepareForSearch(ProjectController & controller)
     controller.setControllerStructure(makeControllerStructure());
 }
 
-} // namespace
+}
 
 TEST(Cancellation, ACancelledSearchGivesUpAndPublishesNothing)
 {
@@ -343,9 +273,6 @@ TEST(Cancellation, ACancelledSearchGivesUpAndPublishesNothing)
 
 TEST(Cancellation, ATokenDoesNotLingerIntoTheNextRun)
 {
-    // The stage installs the token on EVERY run, so a cancelled one from a
-    // previous attempt cannot poison the next. Without that the engine, which
-    // is kept between runs, would still be holding it.
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
@@ -357,7 +284,6 @@ TEST(Cancellation, ATokenDoesNotLingerIntoTheNextRun)
                                                0, &token),
                  qftbx::Cancelled);
 
-    // Again, with no token at all: it has to run to the end.
     EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
     EXPECT_NE(controller.loopShapingResult(), nullptr);
@@ -380,14 +306,6 @@ TEST(Cancellation, AResetTokenLetsTheSearchRun)
                                               0, &token));
     EXPECT_NE(controller.loopShapingResult(), nullptr);
 }
-
-// --- the search off the calling thread --------------------------------------
-//
-// The worker lives in the facade and not in the interface because the facade
-// owns the project data: while a search is in flight nothing may touch them,
-// and the only place that can enforce that is the one holding them. These
-// tests are the reason that is worth saying - they run the whole thing with
-// no interface at all.
 
 TEST(BackgroundSearch, ASearchRunsOffTheCallingThreadAndPublishesItsResult)
 {
@@ -412,21 +330,12 @@ TEST(BackgroundSearch, ASearchRunsOffTheCallingThreadAndPublishesItsResult)
 
 TEST(BackgroundSearch, TheProjectRefusesToChangeWhileASearchRuns)
 {
-    // The point of the worker being here. A plant published mid-search would
-    // be read by the search from another thread, and the invalidation would
-    // drop the boundaries it is walking.
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
-    // A token cancelled up front keeps the worker alive just long enough to
-    // be observed without racing on how fast the search is: the run has to
-    // finish, and until it does the project is closed for business.
     ASSERT_TRUE(controller.startLoopShaping(0.5, qftbx::nt,
                                             qftbx::Range(1e-3, 100.0), 100));
 
-    // Whether the search is still running by now is a race, so both outcomes
-    // are accepted - what must NOT happen is a change going through while it
-    // is in flight.
     if (controller.isComputing()) {
         EXPECT_THROW(controller.setPlant(makePlant()), qftbx::InvalidInput);
         EXPECT_THROW(controller.load(std::string("/nonexistent.qft")),
@@ -438,17 +347,11 @@ TEST(BackgroundSearch, TheProjectRefusesToChangeWhileASearchRuns)
 
     controller.waitForComputation();
 
-    // And it opens again afterwards.
     EXPECT_NO_THROW(controller.setPlant(makePlant()));
 }
 
 TEST(BackgroundSearch, CancellingFromAnotherThreadStopsTheSearch)
 {
-    // The real race, run the only way it can be run honestly: cancel while
-    // the search is in flight and accept either outcome, because whether the
-    // flag lands before the search finishes depends on the machine. What is
-    // asserted is what must hold EITHER way - it ends, it ends exactly once,
-    // and a cancelled run publishes nothing.
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
@@ -471,13 +374,6 @@ TEST(BackgroundSearch, CancellingFromAnotherThreadStopsTheSearch)
 
 TEST(BackgroundSearch, AFailedSearchIsReportedAndNotThrownFromTheWorker)
 {
-    // An exception escaping the function of an std::thread terminates the
-    // process, and this search can throw four unrelated families - two of
-    // which derive from neither std::exception nor each other. So the worker
-    // catches everything and the outcome is asked for afterwards.
-    //
-    // The preconditions are the exception: they are checked on the CALLER's
-    // thread, before the worker starts, so a caller sees its own mistake.
     ProjectController controller;
     controller.setPlant(makePlant());
     controller.setOmega(makeOmega());
@@ -490,13 +386,8 @@ TEST(BackgroundSearch, AFailedSearchIsReportedAndNotThrownFromTheWorker)
     EXPECT_FALSE(controller.isComputing());
 }
 
-// --- the pipeline as data ---------------------------------------------------
-
 TEST(PipelineSteps, CompletedGrowsWithTheWalkAndIsDerived)
 {
-    // completed() is computed from what the project holds, not stored, so it
-    // cannot go stale - which is the whole reason for it. The window keeps
-    // seven booleans saying the same thing by hand today.
     ProjectController controller;
 
     EXPECT_TRUE(controller.completed().empty());
@@ -527,16 +418,11 @@ TEST(PipelineSteps, CompletedGrowsWithTheWalkAndIsDerived)
 
 TEST(PipelineSteps, CompletedShrinksWhenAnInputIsRepublished)
 {
-    // Being derived is what makes this automatic: publishing a new plant
-    // drops the templates and below, and completed() says so without anyone
-    // having to remember to update it.
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
     ASSERT_TRUE(controller.completed().has(qftbx::Step::Boundaries));
 
-    //A different plant. makePlant() here builds one fixed system, so the
-    //difference is made with the structure, which sameAs() compares whole.
     std::vector<Parameter> numerator{Parameter(2.0)};
     std::vector<Parameter> denominator{
         Parameter(std::string("a"), qftbx::Range(1.0, 2.0), 1.5),
@@ -555,8 +441,6 @@ TEST(PipelineSteps, CompletedShrinksWhenAnInputIsRepublished)
 
 TEST(PipelineSteps, InvalidateFromDropsExactlyTheCascade)
 {
-    // One implementation of the dependency order, asked for by step instead
-    // of through three functions that call each other.
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
@@ -575,8 +459,6 @@ TEST(PipelineSteps, InvalidateFromDropsExactlyTheCascade)
 
 TEST(PipelineSteps, ALoadedProjectAgreesWithWhatItHolds)
 {
-    // The two answers have to be the same one: what load() says it read, and
-    // what completed() derives from the data it left behind.
     ProjectController controller;
 
     const qftbx::StepSet read = controller.load(
@@ -587,12 +469,6 @@ TEST(PipelineSteps, ALoadedProjectAgreesWithWhatItHolds)
 
 TEST(PipelineSteps, OpeningAFileReplacesTheProjectInsteadOfOverlayingIt)
 {
-    // load() used to publish only the steps the file carried, on top of
-    // whatever the project already held. A partial file opened over a finished
-    // design left a hybrid - the new plant under the old controller structure
-    // and the old search result - and completed(), derived from the data,
-    // reported more steps done than the file had. The file replaces the
-    // project now.
     ProjectController controller;
 
     const qftbx::StepSet full = controller.load(
@@ -601,7 +477,6 @@ TEST(PipelineSteps, OpeningAFileReplacesTheProjectInsteadOfOverlayingIt)
     ASSERT_NE(controller.controllerStructure(), nullptr);
     ASSERT_NE(controller.loopShapingResult(), nullptr);
 
-    // cervera carries a plant and the frequencies, nothing else.
     const qftbx::StepSet partial = controller.load(
         std::string(QFTBX_TEST_DATA_DIR "/cervera.qft"));
     ASSERT_EQ(partial.count(), 2u);
@@ -617,10 +492,6 @@ TEST(PipelineSteps, OpeningAFileReplacesTheProjectInsteadOfOverlayingIt)
 
 TEST(PipelineSteps, InvalidatingFromTheSpecificationsKeepsTheTemplates)
 {
-    // The templates do not depend on the specifications, only the boundaries
-    // do. The first invalidateFrom() grouped the specifications with the
-    // plant and dropped the templates too - disagreeing with
-    // setSpecifications(), which had it right.
     ProjectController controller;
     ASSERT_NO_FATAL_FAILURE(prepareForSearch(controller));
 
@@ -632,19 +503,12 @@ TEST(PipelineSteps, InvalidatingFromTheSpecificationsKeepsTheTemplates)
 
 TEST(PipelineSteps, TheUnionGettersRefuseWithoutBoundaries)
 {
-    // Every other getter answers nullptr while its step is not done; these two
-    // return references and cannot, so they used to dereference a null.
     ProjectController controller;
 
     EXPECT_THROW(controller.unionBoundaries(), qftbx::InvalidInput);
     EXPECT_THROW(controller.unionBuckets(), qftbx::InvalidInput);
 }
 
-//The interface derives everything it shows from the project, so it has to be
-//told when the project moves. Asking it to remember at every way out of
-//every handler is how it comes to show something the project does not hold:
-//there were twenty-five such places in the window, and one forgotten is a
-//wrong answer on screen.
 TEST(ChangeHandler, EveryPublishAndEveryComputationAnnouncesOnce)
 {
     ProjectController controller;
@@ -668,9 +532,6 @@ TEST(ChangeHandler, EveryPublishAndEveryComputationAnnouncesOnce)
     EXPECT_EQ(announced, 5) << "a computation is a change too";
 }
 
-//A whole file is ONE change, however many sections it carries: load()
-//publishes seven of them through the same guarded methods, and an interface
-//told seven times would also be told first about a project half read.
 TEST(ChangeHandler, LoadingAFileAnnouncesOnce)
 {
     ProjectController controller;
@@ -682,8 +543,6 @@ TEST(ChangeHandler, LoadingAFileAnnouncesOnce)
     EXPECT_EQ(announced, 1) << "a file with seven sections announced " << announced << " changes";
 }
 
-//Nothing is announced to a project nobody is listening to, and setting a
-//handler does not announce by itself.
 TEST(ChangeHandler, SettingTheHandlerIsNotItselfAChange)
 {
     ProjectController controller;

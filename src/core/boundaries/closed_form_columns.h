@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief The allowed gain intervals of one specification, per phase, in closed form.
+ *
+ * For each phase the set of gains at which no plant of the template violates
+ * the specification is solved exactly from the template contour, instead of
+ * being read off a sampled sheet; the plants along each contour segment are
+ * covered, and the polygon where the closed loop is singular is forbidden.
+ */
+
 #ifndef QFTBX_CLOSED_FORM_COLUMNS_H
 #define QFTBX_CLOSED_FORM_COLUMNS_H
 
@@ -77,6 +87,6 @@ public:
     static bool covers(SpecificationType type);
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_CLOSED_FORM_COLUMNS_H
+#endif

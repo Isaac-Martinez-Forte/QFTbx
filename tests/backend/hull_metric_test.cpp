@@ -1,18 +1,18 @@
-// The plane the epsilon of the hull is measured in, and the epsilon a cloud
-// asks for.
-//
-// The walk only asks how far apart two points are. Measured in the complex
-// plane - the historical reading - an epsilon means one thing where the
-// template sits at 40 dB and another where it sits at -40 dB: on example 2
-// the epsilon the six templates need spans a factor of ten thousand, and the
-// point spacing within one template a factor of seven hundred. Measured in
-// the Nichols plane, in degrees and decibels as Nordin's own prune.m does,
-// those factors are three and thirteen. The metric is a choice of the
-// engine, complex plane by default so that nothing stored moves.
-//
-// And the epsilon a cloud asks for has an exact answer: the longest edge of
-// its minimum spanning tree is the least epsilon that keeps it connected,
-// hence loses nothing, and being the least rolls over the fewest concavities.
+/**
+ * @file
+ * @brief Tests of the hull metric and of the epsilon a cloud asks for.
+ *
+ * The walk only asks how far apart two points are. In the complex plane an
+ * epsilon means one thing where a template sits at 40 dB and another where
+ * it sits at -40 dB; in the Nichols plane, in degrees and decibels as
+ * Nordin's own prune.m measures, one epsilon serves a whole design. The
+ * complex plane is the default so that nothing stored moves, and the branch
+ * cut of the Nichols phase falls in the cloud's widest gap. The epsilon a
+ * cloud asks for is the longest edge of its minimum spanning tree, the least
+ * that keeps it connected. On QFT toolbox example 2 the six templates need
+ * epsilons spanning a factor of ten thousand in the complex plane and about
+ * three in the Nichols plane; the figures are pinned to about a per cent.
+ */
 
 #include <gtest/gtest.h>
 
@@ -35,7 +35,7 @@ Complex atNichols(double phaseDegrees, double db)
     return std::polar(std::pow(10.0, db / 20.0), phaseDegrees * M_PI / 180.0);
 }
 
-} // namespace
+}
 
 TEST(HullMetric, TheDefaultIsTheComplexPlane)
 {
@@ -47,9 +47,6 @@ TEST(HullMetric, TheDefaultIsTheComplexPlane)
 
 TEST(HullMetric, TheSameCloudIsConnectedInOnePlaneAndNotInTheOther)
 {
-    //Two points at the same phase, 40 dB apart: 99 units apart in the
-    //complex plane, 40 in the Nichols plane at one dB per degree. An
-    //epsilon of 45 joins them in Nichols and not in the complex plane.
     ComplexCloud cloud{atNichols(-90.0, 0.0), atNichols(-90.0, 40.0)};
     std::vector<std::size_t> starts;
 
@@ -64,16 +61,12 @@ TEST(HullMetric, TheSameCloudIsConnectedInOnePlaneAndNotInTheOther)
     EXPECT_EQ(b.size(), 3u) << "two points: the minimal closed contour, in the cloud's own units";
     EXPECT_NEAR(std::abs(b.front()), 1.0, 1e-12);
 
-    //Weighing decibels heavier makes the gap larger again.
-    nichols.setHullMetric(TemplateEngine::HullMetric::Nichols, 0.5);   //2 degrees per dB
+    nichols.setHullMetric(TemplateEngine::HullMetric::Nichols, 0.5);
     EXPECT_TRUE(nichols.epsilonHull(cloud, 45.0, nullptr, nullptr, &starts).empty());
 }
 
 TEST(HullMetric, TheBranchCutFallsInTheWidestGap)
 {
-    //Points at -1 and +1 degrees straddle the -360/0 cut of the Nichols
-    //branch: read naively they are 358 degrees apart; the cut placed in the
-    //cloud's widest gap makes them 2 apart.
     ComplexCloud cloud{atNichols(-1.0, 0.0), atNichols(1.0, 0.0), atNichols(0.0, 1.0)};
     std::vector<std::size_t> starts;
 
@@ -86,8 +79,6 @@ TEST(HullMetric, TheBranchCutFallsInTheWidestGap)
 
 TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
 {
-    //A 9x9 unit block: the spanning tree's longest edge is 1, the diameter
-    //8 sqrt 2, in the complex plane.
     ComplexCloud block;
     for (int i = 0; i < 9; ++i) for (int j = 0; j < 9; ++j) block.push_back({double(i), double(j)});
 
@@ -98,11 +89,9 @@ TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
     EXPECT_NEAR(p[0].connected, 1.0, 1e-12);
     EXPECT_NEAR(p[0].diameter, 8.0 * std::sqrt(2.0), 1e-12);
     EXPECT_NEAR(p[0].coarseness(), 1.0 / (8.0 * std::sqrt(2.0)), 1e-12);
-    //On a regular block the walk closes at the connecting epsilon itself.
     EXPECT_TRUE(p[0].closes);
     EXPECT_DOUBLE_EQ(p[0].epsilon, 1.0);
 
-    //Two blocks 40 apart: the longest edge is the bridge between them.
     ComplexCloud two = block;
     for (const Complex & z : block) two.push_back(z + Complex(40.0, 0.0));
     engine.setClouds({two});
@@ -111,7 +100,6 @@ TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
     EXPECT_TRUE(bridge.closes);
     EXPECT_GE(bridge.epsilon, bridge.connected);
 
-    //And with that epsilon the walk finds one component; with less, two.
     std::vector<std::size_t> starts;
     engine.epsilonHull(two, 32.0, nullptr, nullptr, &starts);
     EXPECT_EQ(starts.size(), 1u);
@@ -119,12 +107,6 @@ TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
     EXPECT_EQ(starts.size(), 2u);
 }
 
-//Example 2 as stored (25x25, epsilon 10 in the complex plane at every
-//frequency): what its clouds ask for in each plane. In the complex plane the
-//proposal spans a factor of ten thousand across the six frequencies and the
-//stored epsilon is orders of magnitude above it at the high ones; in the
-//Nichols plane it spans a factor of about three. The figures were measured
-//in Python first (datos/scripts/eps2.py) and are pinned here to a per cent.
 TEST(HullMetric, Example2AsksForOneEpsilonInNicholsAndTenThousandInTheComplexPlane)
 {
     ProjectController controller;
@@ -156,9 +138,5 @@ TEST(HullMetric, Example2AsksForOneEpsilonInNicholsAndTenThousandInTheComplexPla
     EXPECT_NEAR(complexPlane[5].connected, 3.714e-4, 4e-6);
     EXPECT_NEAR(nichols[2].connected, 8.973, 0.09);
     EXPECT_NEAR(nichols[5].connected, 2.766, 0.03);
-    //The stored epsilon, 10, is 27 000 times what w = 100 needs. What the
-    //cloud needs is what connects it, which is not what the button proposes:
-    //the proposal climbs above it to where the walk stops going over its own
-    //points (TemplateEngine::withoutRetracing).
     EXPECT_GT(10.0 / complexPlane[5].connected, 20000.0);
 }

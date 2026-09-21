@@ -14,6 +14,7 @@
 #include "src/core/loopshaping/loop_shaping_statistics.h"
 
 /**
+ * @file
  * @brief What one measured run leaves behind: one JSON document per run,
  * written by the process that ran it, and the environment it ran in.
  */
@@ -92,6 +93,6 @@ void writeJsonLines(const std::vector<Record> & records, const std::string & pat
 /// FNV-1a over the bytes of the doubles, gain then zeros then poles.
 std::string digestOf(double gain, const std::vector<double> & zeros, const std::vector<double> & poles);
 
-} // namespace qftbx::bench
+}
 
-#endif // QFTBX_BENCH_RECORD_H
+#endif

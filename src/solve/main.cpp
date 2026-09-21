@@ -1,20 +1,18 @@
-// qftbx-solve: the seven phases of a design from a command line.
-//
-// It takes a project that carries its inputs - the plant and its
-// uncertainty, the design frequencies, the specifications and the structure
-// the controller is looked for in - and writes the same project with every
-// result in it: the templates, their contours, the boundaries, the
-// controller the search returned and what the verifier says about it.
-//
-// It is what the interface does, without the interface: the facade it drives
-// is the one the windows drive, and this tool links no Qt at all. That is
-// the point of it as much as the batteries of examples it exists to build -
-// a design that can be run from a script can be run from anywhere else.
-//
-// What it does not take from the project it takes from the settings file,
-// the same one the application reads: how many points a parameter is swept
-// at, and the Nichols grid the boundaries are computed over. The epsilon of
-// each contour it works out itself.
+/**
+ * @file
+ * @brief `qftbx-solve`, the seven phases of a QFT design from a command line.
+ *
+ * It takes a project that carries its inputs, the plant and its uncertainty,
+ * the design frequencies, the specifications and the structure the
+ * controller is looked for in, and writes the same project with every result
+ * in it: templates, contours, boundaries, the controller the search returned
+ * and the verifier's verdict on it. It drives the same facade the windows
+ * drive and links no Qt. The Nichols grid comes from the options or from the
+ * settings file the application reads; the points per uncertain parameter
+ * default to a count that brings the whole cloud near the size asked for,
+ * since a sweep costs the product over the parameters. The project is saved
+ * once the boundaries exist and again after the search.
+ */
 
 #include <algorithm>
 #include <cmath>
@@ -40,12 +38,12 @@ struct Options {
     std::string configuration;
     qftbx::LoopShapingAlgorithm algorithm = qftbx::nt;
     double tolerance = 0.5;
-    int points = 0;          //0: derived from the cloud asked for
-    int cloud = 625;         //points per template, over however many parameters
-    std::string phase;       //"min,max,points"; empty: whatever the settings say
+    int points = 0;
+    int cloud = 625;
+    std::string phase;
     std::string magnitude;
     bool quiet = false;
-    bool loop = true;        //false: stop once the boundaries are there
+    bool loop = true;
 };
 
 void usage()
@@ -75,15 +73,6 @@ void usage()
         "  Exit: 0 every specification met, 1 one exceeded, 3 no controller, 2 error.\n";
 }
 
-//Every uncertain parameter of the plant swept at the same number of points
-//over its own range, which is what the templates dialog offers before
-//anybody touches it. A name that appears twice - the same 'a' in the
-//numerator and the denominator - is one grid, as the engine reads it.
-//How many points each parameter is swept at for the cloud to come out at
-//about the size asked for. What a sweep costs is the PRODUCT over the
-//uncertain parameters, so the same count per parameter is 625 points on a
-//plant with two and nine million on a plant with five - which is not a
-//slower answer, it is no answer at all.
 int pointsForCloud(int cloud, std::size_t parameters)
 {
     if (parameters == 0) {
@@ -139,10 +128,6 @@ qftbx::ParameterGrids gridsOf(qftbx::LtiSystem & plant, int points)
     return grids;
 }
 
-//"min,max,points", or what the settings say when nothing was given. An axis
-//is a choice per problem: a plant that needs a hundred decibels of gain is
-//not designed on a grid that stops at sixty, and the search has nothing to
-//read where the grid does not reach.
 void axisFrom(const std::string & text, const char * what,
               double & from, double & to, std::int32_t & points)
 {
@@ -223,7 +208,7 @@ bool readOptions(int argc, char ** argv, Options & into)
     return true;
 }
 
-} // namespace
+}
 
 int main(int argc, char ** argv)
 {
@@ -295,10 +280,6 @@ int main(int argc, char ** argv)
                       << magnitudeFrom << ", " << magnitudeTo << "] dB\n";
         }
 
-        //Written here and not only at the end: what the search costs is not
-        //what the templates and the boundaries cost, and a problem whose
-        //controller nobody finds is still a problem worth having on disc
-        //with everything that was computed for it.
         project.save(options.output);
 
         if (!options.loop) {

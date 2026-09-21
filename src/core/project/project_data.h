@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Owning store of everything a QFT project holds.
+ *
+ * Declares the container for the plant, the design frequencies, the
+ * specifications, the templates with their contours and epsilon, the
+ * boundaries, the controller search box and the loop-shaping result. Every
+ * member owns what it holds, so a setter frees what it replaces and the
+ * accessors hand out observers; the type a setter takes says whether it
+ * takes ownership. The store is movable and not copyable, since opening a
+ * file replaces the whole project. Whether a contour exists follows the
+ * contour itself: publishing an empty one clears it.
+ */
+
 #ifndef QFTBX_PROJECT_DATA_H
 #define QFTBX_PROJECT_DATA_H
 
@@ -15,7 +29,6 @@
 #include "src/core/specifications/specification_record.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
-
 
 namespace qftbx {
 
@@ -38,9 +51,9 @@ public:
     ProjectData(const ProjectData &) = delete;
     ProjectData & operator=(const ProjectData &) = delete;
 
-    //Movable: opening a file REPLACES the project, and "start from an empty
-    //one" is a move-assignment. Spelled out because deleting the copy
-    //operations above silences the implicit move as well.
+    /// Movable: opening a file REPLACES the project, and "start from an empty
+    /// one" is a move-assignment. Spelled out because deleting the copy
+    /// operations above silences the implicit move as well.
     ProjectData(ProjectData &&) = default;
     ProjectData & operator=(ProjectData &&) = default;
 
@@ -105,6 +118,6 @@ private:
     std::unique_ptr<LoopShapingResult> m_loopShaping;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_PROJECT_DATA_H
+#endif

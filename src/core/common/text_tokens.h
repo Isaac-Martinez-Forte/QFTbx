@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief The toolbox's one way of turning reals into text, and back.
+ *
+ * Declares the formatter every file and message uses for a real: the
+ * shortest decimal that reads back as the same double, never shorter than
+ * six significant digits so that 1000 stays "1000" and not "1e+03". A
+ * second form rounds to a number of significant digits for what a form
+ * shows, significant and not decimal so that a small margin does not print
+ * as zero. Alongside them, joining, whitespace tokenising, and a parse of a
+ * whole line of reals that rejects the line when any token is not a number.
+ */
+
 #ifndef QFTBX_TEXT_TOKENS_H
 #define QFTBX_TEXT_TOKENS_H
 
@@ -70,7 +83,7 @@ std::vector<std::string> tokens(const std::string & line);
 /// rejected as a whole rather than silently truncated.
 std::optional<std::vector<double>> reals(const std::string & line);
 
-} // namespace text
-} // namespace qftbx
+}
+}
 
-#endif // QFTBX_TEXT_TOKENS_H
+#endif

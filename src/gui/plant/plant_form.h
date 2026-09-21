@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief The step that describes the plant and its uncertain parameters.
+ *
+ * Declares the panel where the plant is written in one of the four
+ * families, with a name in place of any uncertain coefficient. What is
+ * typed is read as it is typed and the field that cannot be read is
+ * marked with the reason; the uncertainty is a page of the form; and the
+ * one button verifies before it applies, drawing the formula where the
+ * figure of the family was. The form knows nothing of the project and
+ * hands the plant over; the fields are read by the description reader
+ * shared with the controller form.
+ */
+
 #ifndef QFTBX_PLANT_FORM_H
 #define QFTBX_PLANT_FORM_H
 
@@ -129,14 +143,14 @@ private:
     std::optional<Parameter> m_projectGain;
     std::optional<Parameter> m_projectDelay;
 
-    //True while setFromProject is writing the fields: what it writes is not
-    //an edit, and reading it back as one would throw away the parameters of
-    //the plant it is showing.
+    /// True while setFromProject is writing the fields: what it writes is not
+    /// an edit, and reading it back as one would throw away the parameters of
+    /// the plant it is showing.
     bool m_filling = false;
 
     SystemDescriptionReader m_reader;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_PLANT_FORM_H
+#endif

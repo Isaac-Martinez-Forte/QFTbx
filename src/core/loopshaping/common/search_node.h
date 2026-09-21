@@ -8,6 +8,7 @@
 #include "src/core/loopshaping/common/list_node.h"
 
 /**
+ * @file
  * @brief Live-list node of the interval branch & bound: a controller
  * parameter box, its objective infimum (the list index, inherited from
  * ListNode) and its feasibility flag.
@@ -45,6 +46,6 @@ protected:
     qftbx::BoxFlag flags = qftbx::ambiguous;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_SEARCH_NODE_H
+#endif

@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief Abstract base of every LTI system the toolbox handles.
+ *
+ * Both the plant and the controller structure are systems: a numerator, a
+ * denominator, a gain and a pure delay, each a possibly uncertain
+ * parameter held by value, with the concrete subclasses fixing the
+ * mathematical form. A system evaluates at s = j omega from coefficient
+ * values in the order of its parameter vectors and can name its poles for
+ * those values, which is what the stability criterion asks of a plant.
+ * Value equality compares the dynamic type and everything a system is made
+ * of, conservatively, because a wrong "equal" keeps templates computed for
+ * another plant; the free-text description is left out of it on purpose.
+ */
+
 #ifndef QFTBX_LTI_SYSTEM_H
 #define QFTBX_LTI_SYSTEM_H
 
@@ -151,7 +166,6 @@ private:
     std::string m_description;
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_LTI_SYSTEM_H
+#endif

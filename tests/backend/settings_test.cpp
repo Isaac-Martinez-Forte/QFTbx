@@ -1,14 +1,18 @@
-// The settings reader, and mostly what it REFUSES.
-//
-// A configuration file is user input arriving through a path nobody checks, so
-// the interesting cases are the malformed ones. The rule this file pins above
-// all others: a value that does not parse never becomes zero. Silently turning
-// bad input into a plausible number is the defect this project has spent the
-// most time removing - QString::number, std::to_string, QLineEdit::toDouble
-// and the old expression library all did some version of it - and a settings
-// file would be the
-// easiest place yet to reintroduce it, because nobody looks at a file that
-// loads without complaining.
+/**
+ * @file
+ * @brief Tests of the settings file: defaults, sections and what it refuses.
+ *
+ * The compiled defaults are the contract, since the program runs with no file
+ * at all, and a file says only what to change. A value that does not parse
+ * never becomes zero or a default: a word, an empty field, trailing text, a
+ * fraction where an integer belongs, a value out of range, a repeated key and
+ * a malformed line are refused by name, while an unknown key is collected and
+ * reported so that a newer file still starts this build. A file named in the
+ * environment must exist; none anywhere gives the defaults. Writing one
+ * setting leaves the rest of the file alone. The example configuration must
+ * uncomment to exactly the compiled defaults and name every setting the build
+ * knows, and a search budget set in the settings must reach the algorithms.
+ */
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
@@ -45,9 +49,6 @@ protected:
         }
     }
 
-    //Writes a settings file and answers with its path. The name carries the
-    //test's own: one shared name meant that two of these running at once
-    //read each other's file, and the suite failed a different test each run.
     std::string written(const std::string & content)
     {
         m_path = std::string(QFTBX_TEST_DATA_DIR "/../settings_under_test_")
@@ -65,12 +66,10 @@ private:
     std::string m_path;
 };
 
-} // namespace
+}
 
 TEST_F(SettingsFile, TheDefaultsStandOnTheirOwn)
 {
-    //The compiled values, with no file involved. They are the contract: the
-    //program has to run without a settings file at all.
     const qftbx::Settings settings;
 
     EXPECT_EQ(settings.limits.maxGridCells, 10000000);
@@ -98,7 +97,6 @@ TEST_F(SettingsFile, SectionsGroupTheKeys)
     EXPECT_EQ(settings.limits.maxFrequencyCount, 500);
     EXPECT_EQ(settings.search.maxLiveNodes, 1000u);
 
-    //Untouched keys keep their compiled value: a file says what to CHANGE.
     EXPECT_EQ(settings.limits.maxMagnitude, 1.0e12);
 
     EXPECT_FALSE(settings.source.empty()) << "it has to say which file it read";
@@ -106,7 +104,6 @@ TEST_F(SettingsFile, SectionsGroupTheKeys)
 
 TEST_F(SettingsFile, AValueThatIsNotANumberIsRefused)
 {
-    //THE test of this file. Not zero, not a default: refused, by name.
     EXPECT_THROW(qftbx::readSettings(written("[search]\n"
                                              "max-live-nodes = plenty\n")),
                  qftbx::InvalidInput);
@@ -121,8 +118,6 @@ TEST_F(SettingsFile, AnEmptyValueIsRefused)
 
 TEST_F(SettingsFile, ANumberWithTrailingRubbishIsRefused)
 {
-    //strtod would happily read the 12 and stop. The whole field has to be a
-    //number, or it is not one.
     EXPECT_THROW(qftbx::readSettings(written("[search]\n"
                                              "max-live-nodes = 12 nodes\n")),
                  qftbx::InvalidInput);
@@ -130,7 +125,6 @@ TEST_F(SettingsFile, ANumberWithTrailingRubbishIsRefused)
 
 TEST_F(SettingsFile, AValueOutOfRangeIsRefused)
 {
-    //A grid needs at least two points per axis, so four cells.
     EXPECT_THROW(qftbx::readSettings(written("[limits]\n"
                                              "max-grid-cells = 1\n")),
                  qftbx::InvalidInput);
@@ -198,8 +192,6 @@ TEST_F(SettingsFile, WritingASettingCreatesTheFileAndItsDirectory)
 
 TEST_F(SettingsFile, AFractionWhereAWholeNumberBelongsIsRefused)
 {
-    //Refused rather than truncated: "10.5 nodes" is a mistake worth pointing
-    //at, and truncating it is how a file quietly means something else.
     EXPECT_THROW(qftbx::readSettings(written("[search]\n"
                                              "max-live-nodes = 10.5\n")),
                  qftbx::InvalidInput);
@@ -207,8 +199,6 @@ TEST_F(SettingsFile, AFractionWhereAWholeNumberBelongsIsRefused)
 
 TEST_F(SettingsFile, ARepeatedKeyIsRefused)
 {
-    //Last-one-wins is how someone spends an afternoon wondering why their
-    //edit does nothing.
     EXPECT_THROW(qftbx::readSettings(written("[search]\n"
                                              "max-live-nodes = 10\n"
                                              "max-live-nodes = 20\n")),
@@ -227,8 +217,6 @@ TEST_F(SettingsFile, AMalformedLineIsRefused)
 
 TEST_F(SettingsFile, AnUnknownKeyIsReportedAndNotFatal)
 {
-    //A file written by a later version has to be able to start this one, so
-    //an unknown key is collected and named rather than refused.
     const qftbx::Settings settings = qftbx::readSettings(written(
         "[search]\n"
         "max-live-nodes = 10\n"
@@ -241,7 +229,6 @@ TEST_F(SettingsFile, AnUnknownKeyIsReportedAndNotFatal)
 
 TEST_F(SettingsFile, TheSameKeyInTwoSectionsIsTwoSettings)
 {
-    //Which is the point of the sections: the key is the whole path.
     const qftbx::Settings settings = qftbx::readSettings(written(
         "[limits]\n"
         "max-grid-cells = 400\n"
@@ -262,15 +249,10 @@ TEST_F(SettingsFile, AFileThatIsNotThereIsAFileError)
 
 TEST(Settings, LoadingWithNoFileAnywhereGivesTheDefaults)
 {
-    //loadSettings() searches, and finding nothing is a success: adding this
-    //system must not be able to break an installation that never had a file.
-    //QFTBX_CONFIG is cleared so the test does not read the developer's own.
     ::unsetenv("QFTBX_CONFIG");
 
     const qftbx::Settings settings = qftbx::loadSettings();
 
-    //Either it found ./qftbx.conf next to the test runner - it should not,
-    //nothing installs one - or it returned the defaults untouched.
     if (settings.source.empty()) {
         EXPECT_EQ(settings.search.maxLiveNodes, 32000000u);
     }
@@ -296,8 +278,6 @@ TEST(Settings, AFileNamedInTheEnvironmentIsUsed)
 
 TEST(Settings, AFileNamedInTheEnvironmentThatCannotBeReadIsAnError)
 {
-    //Naming a file says it is meant to be used, so falling back silently to
-    //the defaults would hide a typo in the variable.
     ::setenv("QFTBX_CONFIG", "/nonexistent/qftbx.conf", 1);
 
     EXPECT_THROW(qftbx::loadSettings(), qftbx::FileError);
@@ -307,11 +287,6 @@ TEST(Settings, AFileNamedInTheEnvironmentThatCannotBeReadIsAnError)
 
 TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
 {
-    // qftbx.conf.example is the only documentation anybody reads, so it has
-    // to be true. Every setting in it is commented out, and uncommenting all
-    // of them has to produce exactly the compiled defaults - which means this
-    // test fails the day a default changes in the code and the example is not
-    // followed, which is the day it would start lying.
     std::ifstream example(QFTBX_EXAMPLE_CONFIG);
     ASSERT_TRUE(example.good()) << "the example settings file is missing";
 
@@ -323,8 +298,6 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     int settingsFound = 0;
 
     while (std::getline(example, line)) {
-        // A commented-out setting looks like "# key = value"; a prose comment
-        // does not have an "=" right after one word.
         const std::string body = line.rfind("# ", 0) == 0 ? line.substr(2) : line;
         const std::size_t equals = body.find(" = ");
 
@@ -400,11 +373,6 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.log.enabled, defaults.log.enabled);
     EXPECT_EQ(fromExample.log.sizeLimitKilobytes, defaults.log.sizeLimitKilobytes);
 
-    //Every setting the build knows has to be IN the example, or the example
-    //is not documentation. Forty-five today; the count is asserted so
-    //adding one without documenting it fails here. The three whose default
-    //is an empty string - the canvas, the window and the path of the record
-    //- are written "# key =" and do not count towards it.
     EXPECT_EQ(settingsFound, 45)
         << "a setting was added to the code and not to qftbx.conf.example";
 
@@ -415,18 +383,12 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
 
 TEST(Settings, TheSearchBudgetReachesTheAlgorithms)
 {
-    // The setting has to arrive where it matters, and the chain is long -
-    // ProjectController to the stage to LoopShaping to whichever algorithm it
-    // builds - so this pins that it is connected rather than merely declared.
-    // A budget of one node cannot hold a search, so the search refuses.
     qftbx::Settings settings;
     settings.search.maxLiveNodes = 1;
 
     ProjectController controller;
     controller.applySettings(settings);
 
-    // Enough project to reach the search: the same fixture the stage tests
-    // use, built here to keep this file standing on its own.
     std::vector<Parameter> numerator{Parameter(1.0)};
     std::vector<Parameter> denominator{
         Parameter(std::string("a"), qftbx::Range(1.0, 2.0), 1.5),
@@ -467,8 +429,6 @@ TEST(Settings, TheSearchBudgetReachesTheAlgorithms)
         Parameter(std::string("kc"), qftbx::Range(0.01, 100.0), 1.0),
         Parameter(0.0)));
 
-    // With room for one node the list refuses to grow, and the search says so
-    // instead of running out of memory.
     EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::nt,
                                                qftbx::Range(1e-3, 100.0), 100),
                  qftbx::Exception);

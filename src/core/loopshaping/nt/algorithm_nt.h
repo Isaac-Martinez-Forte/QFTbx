@@ -20,8 +20,8 @@
 
 #include "src/core/loopshaping/common/common_functions.h"
 
-
 /**
+ * @file
  * @brief Algorithm NT (Nataraj and Tharewal): QFT loop shaping as an
  * interval branch & bound over the controller parameter box.
  *
@@ -59,7 +59,7 @@
  * the corresponding corner, so neither depends on a heuristic for
  * correctness.
  *
- * QFTbx deviations, documented:
+ * Deviations from the thesis of Tharewal:
  * - Nominal closed-loop stability is checked with the Nichols-chart
  *   Nyquist criterion (NominalStabilityChecker) rather than by the zeros
  *   of \f$ 1 + L_0 \f$: satisfied stability bounds plus one nominally
@@ -122,12 +122,11 @@ public:
     /// What the run cost, read from the algorithm's own counters.
     LoopShapingStatistics statistics() const;
 
-
 private:
 
-    //Every working structure below owns itself, so an exit through an
-    //exception - an infeasible problem throws - frees them like a normal
-    //return would.
+    /// Every working structure below owns itself, so an exit through an
+    /// exception - an infeasible problem throws - frees them like a normal
+    /// return would.
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     std::unique_ptr<LtiSystem> accelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
                                           const NaturalIntervalExtension::Factors & factors,
@@ -146,14 +145,11 @@ private:
 
     std::unique_ptr<LtiSystem> designedController;
 
-
     std::unique_ptr<BoundaryViolationDetector> detector;
-
 
     DepthAccounting depthAccounting;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::vector<std::complex<double>> nominalPlantValues;
-
 
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
@@ -163,6 +159,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_NT_H
+#endif

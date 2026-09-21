@@ -1,19 +1,15 @@
-// The numeric locale of the process, which the benchmark module forgot to
-// pin.
-//
-// QCoreApplication adopts the system locale when it is constructed, so under
-// a decimal-comma locale (es_ES, de_DE, fr_FR...) std::strtod stops
-// accepting "0.1". Every number the project reads goes through it: the
-// <min-frequency> of a .qft, the epsilon of a benchmark plan. The
-// application's main() and the backend and GUI test mains all reset
-// LC_NUMERIC to "C" right after the application object for exactly this
-// reason; the benchmark tool and this test binary were written later and did
-// not (2026-09-09). The tool then refused a plan with epsilon="0.5" -- "is
-// not a number" -- and, once past that, refused the project itself.
-//
-// This is a one-line convention with no compiler to enforce it, so it is
-// pinned here instead: on a machine whose environment says comma the whole
-// suite fails without the line, and on any machine the assertion below does.
+/**
+ * @file
+ * @brief The benchmark process runs with the C numeric locale.
+ *
+ * The application object adopts the system locale, and under a decimal-comma
+ * one `strtod` stops accepting "0.1"; every number the project reads goes
+ * through it, from a frequency in a .qft to the epsilon of a plan. The reset
+ * to "C" is a one-line convention no compiler enforces, so it is asserted
+ * here: the active numeric locale is "C", a dotted literal is read whole, and
+ * a case identifier built from an epsilon never grows a comma, since it
+ * becomes a file name.
+ */
 
 #include <gtest/gtest.h>
 
@@ -37,7 +33,6 @@ TEST(NumericLocale, TheProcessRunsWithTheCLocaleForNumbers)
 
 TEST(NumericLocale, ADottedDecimalIsReadAsWritten)
 {
-    //What the plan reader does with the attribute values, and what broke.
     const char * text = "0.5";
     char * end = nullptr;
     const double value = std::strtod(text, &end);
@@ -54,8 +49,6 @@ TEST(NumericLocale, TheExamplePlanRoundTripsItsEpsilon)
     const std::vector<Case> cases = expandCases(plan);
     ASSERT_FALSE(cases.empty());
 
-    //A comma would survive into the identifier, which becomes a file name:
-    //caseId() only replaces dots.
     for (const Case & one : cases) {
         const std::string id = caseId(one);
         EXPECT_EQ(id.find(','), std::string::npos) << "identifier grew a comma: " << id;

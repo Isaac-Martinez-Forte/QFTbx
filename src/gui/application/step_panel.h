@@ -1,3 +1,16 @@
+/**
+ * @file
+ * @brief Base of the seven forms that describe one step of a design.
+ *
+ * A plain widget rather than a dialog: each form lives inside the card of
+ * its phase and several are open at once. The base holds the two things
+ * the forms share: an accepted flag, cleared on every visit because the
+ * window reuses a form and would otherwise publish a payload already
+ * handed over, and the signal by which a form says the user pressed its
+ * button with valid data. The window listens and does the rest; a form
+ * knows nothing about the project.
+ */
+
 #ifndef QFTBX_STEP_PANEL_H
 #define QFTBX_STEP_PANEL_H
 
@@ -55,6 +68,6 @@ private:
     bool m_accepted = false;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_STEP_PANEL_H
+#endif

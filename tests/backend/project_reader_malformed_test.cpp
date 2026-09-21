@@ -1,15 +1,17 @@
-// Adversarial tests of the .qft boundary.
-//
-// The file loader is the one input surface with no hostile tests: the golden
-// tests only ever feed it WELL-FORMED files. The project's robustness policy
-// says every external input is validated at the boundary, and the GUI half of
-// that is covered by the smoke suite; this is the file half.
-//
-// Each case MUTATES a real fixture rather than hand-writing XML, so the rest
-// of the document stays valid and the test isolates exactly one defect. What
-// is asserted is not only that loading fails, but that it fails with a typed
-// exception carrying a useful message, and that a failed load leaves nothing
-// half-built behind.
+/**
+ * @file
+ * @brief Adversarial tests of the .qft reader: what a damaged file does to it.
+ *
+ * Each case mutates a real fixture so that exactly one defect is present:
+ * bytes that are not XML, an empty or truncated file, a foreign root, a
+ * missing or unknown format version, non-numeric and non-boolean values, an
+ * unknown system type, a garbage count. Loading must fail with a typed
+ * exception whose message names the file and the element, leave nothing
+ * half-built, and not spoil the next load. The version is required because
+ * earlier dialects share tag names with different meanings. A project saved
+ * unfinished, or a section with an element missing, is read for what it holds
+ * and the rest left empty; a redundant size attribute is ignored.
+ */
 
 #include <gtest/gtest.h>
 
@@ -38,8 +40,6 @@ QByteArray fixtureBytes(const char * name)
 class MalformedProject : public ::testing::Test
 {
 protected:
-    //Writes content into the case's own temporary directory and returns its
-    //path. The directory goes away with the fixture.
     std::string write(const QByteArray & content, const std::string & name = std::string("case.qft"))
     {
         const QString path = m_dir.path() + "/" + QString::fromStdString(name);
@@ -52,9 +52,6 @@ protected:
         return path.toStdString();
     }
 
-    //A fixture with one substring replaced. Fails the test if the substring
-    //is not there, so a fixture edit cannot silently turn a case into a
-    //no-op that still passes.
     std::string mutated(const char * fixture, const char * from, const char * to)
     {
         QByteArray bytes = fixtureBytes(fixture);
@@ -71,9 +68,6 @@ protected:
         return write(bytes);
     }
 
-    //A fixture with the FIRST element of that name removed, whatever its
-    //indentation: matching the literal text of one is a test that breaks
-    //whenever the file is re-indented, and says nothing when it does.
     std::string without(const char * fixture, const char * element)
     {
         QByteArray bytes = fixtureBytes(fixture);
@@ -96,8 +90,6 @@ protected:
 
     QTemporaryDir m_dir;
 };
-
-// --- the file itself --------------------------------------------------------
 
 TEST_F(MalformedProject, AMissingFileIsAFileError)
 {
@@ -129,8 +121,6 @@ TEST_F(MalformedProject, AnEmptyFileIsAParseError)
 
 TEST_F(MalformedProject, ATruncatedFileIsAParseError)
 {
-    //Cut in the middle of the document: well-formed prefix, no closing tags.
-    //This is what a crash or a full disk during a save leaves behind.
     QByteArray bytes = fixtureBytes("planta1.qft");
     ASSERT_FALSE(bytes.isEmpty());
 
@@ -153,10 +143,6 @@ TEST_F(MalformedProject, AForeignRootElementIsAParseError)
 
 TEST_F(MalformedProject, AFileWithNoVersionIsRefused)
 {
-    //A file with no version attribute is refused rather than guessed at: the
-    //dialects this format has had share tag names with DIFFERENT meanings -
-    //<inicio> is both a range start and an omega start - so reading one as
-    //another would not fail, it would return wrong numbers.
     qftbx::ProjectReader parser;
 
     const std::string path = mutated("planta1.qft", "<QFT version=\"4\">", "<QFT>");
@@ -167,10 +153,6 @@ TEST_F(MalformedProject, AFileWithNoVersionIsRefused)
 
 TEST_F(MalformedProject, AVersionThisBuildDoesNotKnowIsRefused)
 {
-    //Either side of the one it reads: an older file whose sections are not
-    //where version 4 puts them, and a newer one whose meaning it cannot
-    //know. Reading a 3 as a 4 finds the inputs missing rather than
-    //misplaced, which is a confusing way to fail.
     qftbx::ProjectReader parser;
 
     for (const char * version : {"<QFT version=\"3\">", "<QFT version=\"5\">"}) {
@@ -190,8 +172,6 @@ TEST_F(MalformedProject, DISABLED_placeholderForTheOldFutureVersionCase)
 
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
-
-// --- the contents ----------------------------------------------------------
 
 TEST_F(MalformedProject, ANonNumericValueIsAParseError)
 {
@@ -217,14 +197,6 @@ TEST_F(MalformedProject, ANonBooleanFlagIsAParseError)
 
 TEST_F(MalformedProject, AnUnfinishedProjectLoadsWhateverItHas)
 {
-    //The rule, written down once: a .qft is saved at whatever point of the
-    //design it has reached, and every part of it may be missing. What is
-    //there is read, what is not is left for the user to enter; nothing is
-    //reported, because there is nothing wrong with an unfinished project.
-    //
-    //Here: a plant that is whole, a specification section with one slot, a
-    //template section with no clouds in it, and a loop-shaping section with
-    //no controller - which is a run that was interrupted.
     const std::string path = write(QByteArray(
         "<?xml version=\"1.0\"?><QFT version=\"4\">"
         "<inputs>"
@@ -257,13 +229,8 @@ TEST_F(MalformedProject, AnUnfinishedProjectLoadsWhateverItHas)
 
 TEST_F(MalformedProject, AMissingElementLeavesItsSectionUnreadAndTheRestLoads)
 {
-    //A project is saved at whatever point of the design it has reached, so
-    //what is NOT in the file is not an error: that section is not read and
-    //the rest of the file comes in. The user finishes what he left
-    //unfinished, which is what he would have to do anyway.
     qftbx::ProjectReader parser;
 
-    //The range of a parameter of the plant, removed whole.
     const std::string path = without("planta1.qft", "range");
     ASSERT_FALSE(path.empty());
 
@@ -274,7 +241,6 @@ TEST_F(MalformedProject, AMissingElementLeavesItsSectionUnreadAndTheRestLoads)
         << "a plant whose parameter has no range is not a plant";
     EXPECT_EQ(parser.plant(), nullptr);
 
-    //And everything else the file carries is there to be worked on.
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Frequencies));
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Specifications));
     EXPECT_TRUE(loaded.steps.has(qftbx::Step::Templates));
@@ -283,11 +249,6 @@ TEST_F(MalformedProject, AMissingElementLeavesItsSectionUnreadAndTheRestLoads)
 
 TEST_F(MalformedProject, TheSizeOfACoefficientListIsRedundantAndIgnored)
 {
-    //The writer emits size="n" on <numerator>/<denominator>, but the reader
-    //counts the <parameter> elements and never looks at it. That is the right
-    //way round - the data decides, not a header that can disagree with it -
-    //and it is pinned here so nobody "optimises" the reader into trusting the
-    //attribute, which would make a stale count silently truncate a plant.
     qftbx::ProjectReader parser;
 
     const std::string wrongCount = mutated("planta1.qft", "<denominator size=\"2\">",
@@ -303,14 +264,8 @@ TEST_F(MalformedProject, TheSizeOfACoefficientListIsRedundantAndIgnored)
 
 TEST_F(MalformedProject, ACountThatIsActuallyReadRejectsGarbage)
 {
-    //The attributes the reader DOES consume - the Nichols grid counts, the
-    //expression size, the loop-shaping point count - must not accept
-    //nonsense, because they size the vectors that follow.
     qftbx::ProjectReader parser;
 
-    //<phases count> in version 2; it was tamFas in the Spanish dialect,
-    //which the reader no longer speaks. The fixture holds exactly one
-    //count="361", so replacing the string cannot hit anything else.
     const std::string path = mutated("multivaluados.qft", "count=\"361\"",
                                  "count=\"many\"");
     ASSERT_FALSE(path.empty());
@@ -328,13 +283,8 @@ TEST_F(MalformedProject, AnUnknownSystemTypeIsAParseError)
     EXPECT_THROW(parser.load(path), qftbx::ParseError);
 }
 
-// --- what a failed load leaves behind --------------------------------------
-
 TEST_F(MalformedProject, AFailedLoadLeavesNothingHalfBuilt)
 {
-    //The reader is reused after a failure - the main window keeps its
-    //instance - so a rejected file must not leave a partial plant, frequency
-    //set or specification list to be picked up as if it had loaded.
     qftbx::ProjectReader parser;
 
     const std::string path = mutated("planta1.qft", "<uncertain>true</uncertain>",
@@ -351,8 +301,6 @@ TEST_F(MalformedProject, AFailedLoadLeavesNothingHalfBuilt)
 
 TEST_F(MalformedProject, AGoodFileStillLoadsAfterARejectedOne)
 {
-    //The state a failure leaves must not poison the next load, which is what
-    //a user does: pick the wrong file, get the message, pick the right one.
     qftbx::ProjectReader parser;
 
     const std::string bad = mutated("planta1.qft", "<nominal>5</nominal>",
@@ -368,7 +316,6 @@ TEST_F(MalformedProject, AGoodFileStillLoadsAfterARejectedOne)
 
 TEST_F(MalformedProject, TheMessageNamesTheFileAndTheLine)
 {
-    //A parse error the user cannot locate is barely better than a crash.
     qftbx::ProjectReader parser;
 
     const std::string path = mutated("planta1.qft", "<nominal>30</nominal>",
@@ -387,4 +334,4 @@ TEST_F(MalformedProject, TheMessageNamesTheFileAndTheLine)
     }
 }
 
-} // namespace
+}

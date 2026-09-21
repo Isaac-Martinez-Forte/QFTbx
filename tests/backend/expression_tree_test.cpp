@@ -1,7 +1,19 @@
-// The expression tree as the toolbox's one expression engine: the grammar a
-// user writes plants and numbers in, the complex evaluation the templates run
-// on, the in-memory construction the constraint propagation builds on, and
-// the names it owns.
+/**
+ * @file
+ * @brief Tests of the expression tree, the toolbox's one expression engine.
+ *
+ * Covers the grammar users write plants and numbers in, with the power
+ * binding to the right as 2^(3^2), constants in either case and a name that
+ * merely starts like a constant read as a variable; the binding of values by
+ * name order; complex evaluation at j omega, where a whole power of j omega
+ * must be exact with no imaginary residue, since a residue keeps an undamped
+ * resonance from ever hitting its zero; the in-memory construction the
+ * constraint propagation of algorithm MR builds on, each tree owning its own
+ * nodes; the reserved names, with the unit-multiplier letters such as `k`
+ * being ordinary variables; and the free-form plant, which refuses an
+ * unreadable expression or an undeclared parameter where it is built.
+ */
+
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -30,7 +42,7 @@ double real(const char * text)
     return tree.evaluate(std::vector<double>());
 }
 
-} // namespace
+}
 
 TEST(ExpressionGrammar, BlanksUnaryMinusAndDecimalPointsAreRead)
 {
@@ -45,7 +57,6 @@ TEST(ExpressionGrammar, BlanksUnaryMinusAndDecimalPointsAreRead)
 
 TEST(ExpressionGrammar, ThePowerBindsToTheRight)
 {
-    //2^3^2 is 2^(3^2) = 512, as in every algebra system, not (2^3)^2 = 64.
     EXPECT_DOUBLE_EQ(real("2^3^2"), 512.0);
     EXPECT_DOUBLE_EQ(real("2*3^2"), 18.0);
 }
@@ -67,7 +78,6 @@ TEST(ExpressionGrammar, ConstantsInEitherCaseAndTheFunctions)
 
 TEST(ExpressionGrammar, ANameThatStartsLikeAConstantIsAVariable)
 {
-    //"ev" is a parameter of the ACC'90 plant; "e" alone is the constant.
     ExpressionTree tree(std::string("ev*2+e"));
     tree.bind({"ev"});
     EXPECT_NEAR(tree.evaluate(std::vector<double>{3.0}), 6.0 + qftbx::math::kE, 1e-15);
@@ -114,7 +124,6 @@ TEST(ExpressionBinding, AnUnboundTreeRefusesToEvaluate)
 
 TEST(ComplexEvaluation, ThePlantOfTheAcc90BenchmarkAtJOmega)
 {
-    //ev / (s^2 (s^2 + 0.02 s + 2 ev)) at s = j w, by hand and by the tree.
     ExpressionTree tree(std::string("(ev)/(s^2*(s^2 + 0.02*s + 2*ev))"));
     tree.bind({"s", "ev"});
 
@@ -130,9 +139,6 @@ TEST(ComplexEvaluation, ThePlantOfTheAcc90BenchmarkAtJOmega)
 
 TEST(ComplexEvaluation, AWholePowerOfJOmegaIsExact)
 {
-    //(j w)^2 is exactly -w^2 with no imaginary residue: the expression
-    //library this replaced went through the logarithm and left 1e-16 j,
-    //which kept an undamped resonance from ever hitting its exact zero.
     ExpressionTree tree(std::string("s^2"));
     tree.bind({"s"});
     const Complex value = tree.evaluate(std::vector<Complex>{Complex(0.0, 3.0)});
@@ -169,8 +175,6 @@ TEST(ExpressionBuilder, ATreeBuiltInMemoryEvaluatesLikeItsText)
 
 TEST(ExpressionBuilder, AnExpressionIsABuildingBlockOfManyTrees)
 {
-    //Two constraints over the same g: each tree owns its own nodes, so the
-    //propagation of one never touches the other.
     const Expression g = Expression::variable("g");
     ExpressionTree first(g - Expression(2.0), 0.0, qftbx::GREATER_EQUAL);
     ExpressionTree second(Expression(5.0) - g, 0.0, qftbx::GREATER_EQUAL);
@@ -197,8 +201,6 @@ TEST(ExpressionNames, TheGrammarOwnsItsFunctionsConstantsAndTheLaplaceVariable)
         EXPECT_FALSE(ExpressionTree::isUsableVariableName(reserved)) << reserved;
     }
 
-    //The letters the expression library used to own as unit multipliers
-    //are ordinary names now, "k" first among them.
     for (const char * usable : {"k", "kv", "kc", "n", "u", "m", "M", "G", "z1", "p_1", "ev", "alpha"}) {
         EXPECT_TRUE(ExpressionTree::isUsableVariableName(usable)) << usable;
     }
@@ -224,7 +226,6 @@ TEST(FreeFormPlant, EvaluatesItsExpressionAtJOmegaWithTheParametersBound)
     EXPECT_NEAR(actual.real(), expected.real(), 1e-14 * std::abs(expected));
     EXPECT_NEAR(actual.imag(), expected.imag(), 1e-14 * std::abs(expected));
 
-    //The same name in the numerator and the denominator is one variable.
     EXPECT_THROW(plant.valueAt(w, {1.0}, {2.0}, 1.0, 0.0), qftbx::InvalidInput);
 }
 
@@ -255,16 +256,11 @@ TEST(ParameterReparametrisation, IsParsedOnceAndAppliedToNominalAndRange)
     const Parameter copy = var;
     EXPECT_DOUBLE_EQ(copy.nominal(), 7.0);
 
-    //An expression the grammar cannot read is refused where the parameter
-    //is made, not where it is first evaluated.
     EXPECT_THROW(Parameter(std::string("a"), Range(1.0, 5.0), 3.0, std::string("a*(")), qftbx::InvalidInput);
 }
 
 TEST(ExpressionTree, BoundDomainsEvaluateAndPropagateLikeNamedOnes)
 {
-    //The constraint propagation of algorithm MR binds its variables once
-    //and hands the domains as a vector; the result must be what the named
-    //map gives.
     ExpressionTree named("x^2 + y - 3", 0.0, qftbx::GREATER_EQUAL);
     ExpressionTree bound("x^2 + y - 3", 0.0, qftbx::GREATER_EQUAL);
     bound.bind({"x", "y"});

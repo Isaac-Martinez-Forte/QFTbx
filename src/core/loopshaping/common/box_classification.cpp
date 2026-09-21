@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Accessors of the classification of a projected box.
+ */
+
 #include "src/core/loopshaping/common/box_classification.h"
 
 namespace qftbx {
@@ -42,4 +47,4 @@ bool BoxClassification::isTopRightForbidden() const
     return m_topRightForbidden;
 }
 
-} // namespace qftbx
+}

@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief The benchmark planner window: a plan edited, saved, run and read.
+ *
+ * Declares the main window that holds the plan editor, the queue of cases
+ * and the results as three tabs, with a toolbar for new, open, save, run,
+ * stop and reading results already on disk. File and confirmation dialogs
+ * are behind replaceable seams so a test can drive the window. Built only
+ * with the benchmark option enabled and opened from the main window's
+ * Tools menu.
+ */
+
 #ifndef QFTBX_GUI_BENCH_BENCHMARK_WINDOW_H
 #define QFTBX_GUI_BENCH_BENCHMARK_WINDOW_H
 
@@ -91,6 +103,6 @@ private:
     Confirmer m_confirm;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_BENCH_BENCHMARK_WINDOW_H
+#endif

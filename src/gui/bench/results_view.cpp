@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Draws the results table and the structure-versus-measure figure.
+ *
+ * The categories of the x axis are the structures in the order their steps
+ * were applied; one curve per algorithm, drawn at the epsilon the plan ran
+ * (the first when there are several). A structure an algorithm did not
+ * solve is left out of its curve. The y axis is logarithmic only when
+ * every plotted value is positive. A row whose repetitions disagree in
+ * result or counters is marked in red.
+ */
+
 #include "src/gui/bench/results_view.h"
 
 #include <algorithm>
@@ -49,7 +61,7 @@ QTableWidgetItem * cell(const QString & text)
     return item;
 }
 
-} // namespace
+}
 
 ResultsView::ResultsView(QWidget * parent) : QWidget(parent)
 {
@@ -165,9 +177,6 @@ void ResultsView::draw()
     m_plot->clearGraphs();
     const int measure = m_measure->currentIndex();
 
-    //The structures in order of steps applied, as the categories of the x
-    //axis; one curve per algorithm, drawn at the epsilon the plan ran (the
-    //figure takes the first when there are several).
     std::map<std::size_t, QString> structures;
     std::set<std::string> algorithms;
     double epsilon = 0.0;
@@ -265,4 +274,4 @@ void ResultsView::exportMarkdown()
     }
 }
 
-} // namespace qftbx
+}

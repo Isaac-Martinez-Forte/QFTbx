@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Accessors and setters of the project store.
+ *
+ * Optional members are exposed as pointers that are null when nothing was
+ * ever set. The contour flag follows the contour: publishing an empty one,
+ * which is how templates are dropped, clears it so the writer does not save
+ * a contour section for nothing.
+ */
+
 #include "src/core/project/project_data.h"
 
 namespace qftbx {
@@ -42,7 +52,6 @@ void ProjectData::setSpecifications(std::optional<SpecificationRecords> specific
     m_specifications = std::move(specifications);
 }
 
-//By value: the assignment frees the previous set.
 const CloudSet & ProjectData::templates() const
 {
     return m_templates;
@@ -62,9 +71,6 @@ void ProjectData::setContour(CloudSet contour)
 {
     m_contour = std::move(contour);
 
-    //Follows the contour itself: publishing an empty one - which is how the
-    //templates are dropped - clears it, so the writer does not save a contour
-    //section for nothing.
     m_hasContour = !m_contour.empty();
 }
 
@@ -118,4 +124,4 @@ void ProjectData::setLoopShapingResult(std::unique_ptr<LoopShapingResult> loopSh
     m_loopShaping = std::move(loopShaping);
 }
 
-} // namespace qftbx
+}

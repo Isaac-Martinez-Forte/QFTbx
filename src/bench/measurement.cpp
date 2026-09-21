@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief Clocks, memory and counters of one benchmark case.
+ *
+ * CPU time and peak resident size come from the process accounting of the
+ * platform, the current resident size from `/proc/self/statm` on Linux, and
+ * an optional trace samples that size from a second thread every ten
+ * milliseconds while the search runs. The plan's settings are written to a
+ * temporary settings file and read back through the ordinary reader, so the
+ * same keys and the same ranges apply as in the application. The memory
+ * limit of the plan becomes an address-space limit on the process before the
+ * project is loaded. A refusal whose message names an infeasible problem is
+ * recorded as such rather than as an error.
+ */
+
 #include "src/bench/measurement.h"
 
 #include <atomic>
@@ -29,7 +44,6 @@ namespace qftbx::bench {
 
 namespace {
 
-//The clocks and the memory of this process, read the same way everywhere.
 double cpuMilliseconds()
 {
 #ifdef _WIN32
@@ -102,8 +116,6 @@ void limitAddressSpace(int megabytes)
 #endif
 }
 
-//The settings of the plan as a settings file, so the same reader applies
-//and the same ranges are enforced.
 Settings settingsOf(const Plan & plan)
 {
     if (plan.settings.empty()) {
@@ -134,7 +146,6 @@ Settings settingsOf(const Plan & plan)
     return readSettings(file.fileName().toStdString());
 }
 
-//Samples the resident size from another thread while the algorithm runs.
 class MemoryTracer
 {
 public:
@@ -167,7 +178,7 @@ private:
     std::chrono::steady_clock::time_point m_start;
 };
 
-} // namespace
+}
 
 std::string recordsDirectory(const Plan & plan)
 {
@@ -277,4 +288,4 @@ Record runCase(const Plan & plan, const Case & c)
     return record;
 }
 
-} // namespace qftbx::bench
+}

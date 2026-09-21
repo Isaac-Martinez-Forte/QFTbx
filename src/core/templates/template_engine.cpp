@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief The template sweep, the epsilon-hull walk and the epsilon proposal.
+ *
+ * The sweep runs one design frequency per thread and every frequency writes
+ * at its own index, so nothing needs a critical section; failures inside the
+ * parallel region are recorded per frequency and reported after it, because
+ * an exception leaving an OpenMP region terminates the process. Before the
+ * sweep the number of right half-plane poles is checked over every distinct
+ * denominator of the family, and a family whose count is not one number is
+ * refused. A frequency where some plant has an infinite value is reported
+ * rather than turned into a contour of noise. The walk finds its candidates
+ * through a grid of cells a quarter of epsilon wide; a walk that does not
+ * close is replaced by the whole cloud or fails, never handed on partial.
+ */
+
 #include <chrono>
 #include "src/core/math/constants.h"
 #include <string>
@@ -10,7 +26,6 @@
 
 #include "src/core/math/polynomial.h"
 #include "src/core/templates/alpha_shape.h"
-
 
 #include "src/core/common/text_tokens.h"
 #include "src/core/common/exception.h"
@@ -27,12 +42,10 @@
 using namespace std;
 
 #ifdef CUDA_AVAILABLE
-//GPU epsilon-hull (relaxed-walk semantics, see the header).
 #include "src/core/gpu/template_contour_cuda.h"
 #endif
 
 namespace qftbx {
-
 
 void TemplateEngine::setGrids(ParameterGrids grids){
     m_grids = std::move(grids);
@@ -54,8 +67,6 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
     m_clouds = computeClouds(plant, omega);
 
-    //Given up on: what was swept is half a sweep and means nothing, so it
-    //is thrown away rather than left behind looking like a result.
     if (cancellationAsked(m_cancellation)) {
         m_clouds.clear();
         throw qftbx::Cancelled();
@@ -77,10 +88,6 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
     const auto timer2 = std::chrono::steady_clock::now();
 
-    //No try/catch and no freeing: m_clouds owns its data, so a throw from
-    //here unwinds and the destructor takes care of it. That whole hand-written
-    //rescue was only needed because the clouds were a raw pointer nobody
-    //owned.
     const bool result = computeContourSet(cuda);
 
     if (cancellationAsked(m_cancellation)) {
@@ -140,8 +147,6 @@ const CloudSet & TemplateEngine::contours() const{
 
 const std::vector<double> & TemplateEngine::gridFor(const Parameter & a){
 
-    //Keyed by NAME: pointer identity went stale on every clone() or
-    //project reload.
     const auto found = m_grids.find(a.name());
 
     if (found == m_grids.end()){
@@ -153,13 +158,8 @@ const std::vector<double> & TemplateEngine::gridFor(const Parameter & a){
 
 CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *omega){
 
-    //Collect the uncertain parameters (the first of each name) and their
-    //grids, in numerator, denominator, gain, delay order. The index in
-    //'names' is the odometer digit; 0 is the fastest.
     std::vector <std::string> names;
 
-    //Pointers INTO the map the engine owns: stable for the whole sweep,
-    //because nothing modifies m_grids while it runs.
     std::vector <const std::vector<double> *> grids;
 
     m_combinationCount = 1;
@@ -184,9 +184,6 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     const std::size_t digitCount = names.size();
     const std::size_t frequencyCount = omega->size();
 
-    //The border sweep: with exactly two uncertain parameters whose grids
-    //span a real box, the same number of evaluations goes round the four
-    //edges instead of over the interior (see setBorderSweep).
     std::vector<std::array<double, 2>> border;
     m_borderSweepApplied = false;
     if (m_borderSweep && digitCount == 2 && grids[0]->size() > 1 && grids[1]->size() > 1){
@@ -194,8 +191,6 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
         std::sort(sorted[0].begin(), sorted[0].end());
         std::sort(sorted[1].begin(), sorted[1].end());
         if (sorted[0].front() < sorted[0].back() && sorted[1].front() < sorted[1].back()){
-            //A point along a grid at a fraction t of its length, following
-            //the grid's own spacing.
             const auto along = [](const std::vector<double> & g, double t) {
                 const double x = t * static_cast<double>(g.size() - 1);
                 const std::size_t k = std::min(static_cast<std::size_t>(x), g.size() - 2);
@@ -205,30 +200,25 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             border.reserve(4 * perEdge);
             for (std::size_t i = 0; i < perEdge; ++i){
                 const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({along(sorted[0], t), sorted[1].front()});          //bottom, left to right
+                border.push_back({along(sorted[0], t), sorted[1].front()});
             }
             for (std::size_t i = 0; i < perEdge; ++i){
                 const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({sorted[0].back(), along(sorted[1], t)});           //right, bottom to top
+                border.push_back({sorted[0].back(), along(sorted[1], t)});
             }
             for (std::size_t i = 0; i < perEdge; ++i){
                 const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({along(sorted[0], 1.0 - t), sorted[1].back()});     //top, right to left
+                border.push_back({along(sorted[0], 1.0 - t), sorted[1].back()});
             }
             for (std::size_t i = 0; i < perEdge; ++i){
                 const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({sorted[0].front(), along(sorted[1], 1.0 - t)});    //left, top to bottom
+                border.push_back({sorted[0].front(), along(sorted[1], 1.0 - t)});
             }
             m_combinationCount = border.size();
             m_borderSweepApplied = true;
         }
     }
 
-    //Which odometer digit drives each coefficient, and the nominals of the
-    //ones no digit drives. Built ONCE and sequentially: Parameter::nominal()
-    //can evaluate a reparametrisation, and a coefficient's plan does not
-    //change with the frequency or the combination. A name appearing twice
-    //shares its digit, which is what makes it one variable.
     const auto slotOf = [&](Parameter & parameter) -> std::int32_t {
         if (!parameter.isUncertain()) {
             return -1;
@@ -258,18 +248,6 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     CloudSet allClouds (frequencyCount);
 
-    //One flag and one error slot per frequency, filled inside the parallel
-    //loop below (nothing may be thrown from within it).
-    //A byte per flag, not std::vector<bool>: that one packs its elements
-    //into bits, and the parallel iterations below writing neighbouring
-    //flags would race on the same byte.
-    //One number of right half-plane poles for the whole family, checked
-    //over the plants the sweep is about to evaluate (once, not per
-    //frequency: the poles do not depend on it) and once per distinct
-    //denominator, which is what they depend on. A family that crosses the
-    //imaginary axis has no single P for the criterion, and QFT's robust
-    //stability argument does not hold for it: it is refused, naming the
-    //two denominators that disagree.
     m_familyRhpPoles.reset();
     {
         std::vector<double> numeratorValues = numeratorNominal;
@@ -347,18 +325,10 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 #endif
     for (std::size_t u = 0; u < frequencyCount; u++){
 
-        //Once per frequency, which is the grain this loop works at: a
-        //frequency that has not started is skipped, and the sweep ends as
-        //soon as the ones in flight do. An OpenMP loop cannot be broken out
-        //of, and it does not need to be - what is left costs a load each.
         if (cancellationAsked(m_cancellation)) {
             continue;
         }
 
-        //No expression TEXT any more: the transfer function is computed
-        //directly in complex arithmetic by valueAt(), or by the free-form
-        //plant's own parsed tree: no expression TEXT, so neither the
-        //coefficients nor the frequency are rounded to pass through it.
         const double w = omega->at(u);
 
         std::vector<double> numeratorValues = numeratorNominal;
@@ -374,16 +344,6 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
         std::vector <std::size_t> counter (digitCount + 1, 0);
 
-        //Non-finite plant values: an undamped resonance inside the
-        //uncertainty makes |P(jw)| infinite at some frequency (the ACC'90
-        //benchmark, whose resonance sqrt(2e) SWEEPS a whole band with e, is
-        //the canonical case). The boundary sweep survives it - the limits
-        //of the four closed-loop magnitudes are well defined as |p| grows -
-        //but a cloud with infinite points has no magnitude grid that covers
-        //it and no epsilon-hull that can walk it, so the contour would come
-        //out as noise. The frequency is recorded and reported instead of
-        //silently producing that noise (the literature's own answer is to
-        //damp the resonance lightly: see the ACC'90 fixture).
         bool nonFinite = false;
 
         for (std::size_t i = 0; i < m_combinationCount; i++){
@@ -409,11 +369,6 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             const double gainValue = gainSlot >= 0 ? digit[static_cast<std::size_t>(gainSlot)] : gainNominal;
             const double delayValue = delaySlot >= 0 ? digit[static_cast<std::size_t>(delaySlot)] : delayNominal;
 
-            //A free-form plant still evaluates an expression, so it can still
-            //reject one (a value the expression cannot take, an inconsistent
-            //request). Nothing may be thrown from inside the OpenMP region -
-            //that TERMINATES the process - so the message is kept and
-            //rethrown after the loop.
             try {
                 value = plant->valueAt(w, numeratorValues, denominatorValues,
                                        gainValue, delayValue);
@@ -448,12 +403,9 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
             nonFiniteFrequencies[u] = true;
         }
 
-        //Every frequency writes at its own index: no critical sections,
-        //no permutations.
         allClouds[u] = std::move(cloud);
     }
 
-    //Reported after the parallel loop, where throwing is safe again.
     for (std::size_t u = 0; u < frequencyCount; u++){
         if (!parserErrors.at(u).empty()){
             const std::string message = parserErrors.at(u);
@@ -461,7 +413,6 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
         }
     }
 
-    //Reported after the parallel loop, naming every affected frequency.
     std::vector<std::string> affected;
     for (std::size_t u = 0; u < frequencyCount; u++){
         if (nonFiniteFrequencies.at(u)){
@@ -487,8 +438,6 @@ const std::vector <double> & TemplateEngine::epsilon() const{
 
 namespace {
 
-//A positive value rounded UP to three significant figures: the form a
-//proposed epsilon takes in a field a person reads and types back.
 double roundedUpToThreeFigures(double value)
 {
     if (!(value > 0.0) || !std::isfinite(value)){
@@ -500,13 +449,10 @@ double roundedUpToThreeFigures(double value)
     return std::strtod(text, nullptr);
 }
 
-} // namespace
+}
 
 bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
-    //One epsilon per cloud, checked here and not by at() inside the
-    //parallel loop below: an exception escaping an OpenMP region terminates
-    //the process instead of reaching anyone.
     if (m_epsilon.size() != m_clouds.size()) {
         throw qftbx::InvalidInput(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(m_epsilon.size()).arg(m_clouds.size()));
     }
@@ -521,8 +467,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
 #ifdef CUDA_AVAILABLE
     if (cuda){
-        //GPU path (relaxed-walk semantics: the parity reference is
-        //epsilonHullRelaxed, not the faithful walk - see the header).
         m_contours.clear();
 
         for (std::size_t i = 0; i < digitCount; i++){
@@ -547,15 +491,8 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     }
 #endif
 
-    //CPU path, shared with and without OpenMP. Every iteration writes at
-    //the index of ITS frequency, so the contours stay aligned with the
-    //clouds whatever order the threads finish in.
     m_contours = CloudSet(digitCount);
 
-    //Per-frequency diagnosis of a failure (nothing may be thrown from
-    //inside the parallel region), and of the frequencies whose faithful walk
-    //did not close.
-    //Bytes, not std::vector<bool>: see computeClouds().
     std::vector<char> failed (digitCount, 0);
     std::vector<char> relaxedFrequencies (digitCount, 0);
     std::vector<char> truncatedFrequencies (digitCount, 0);
@@ -568,9 +505,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         bool fellBack = false;
         bool truncated = false;
         std::vector<std::size_t> starts;
-        //A border cloud is a curve: its contour is the alpha-shape at the
-        //epsilon of its own sampling step (see setBorderSweep); otherwise
-        //the alpha-shape or the walk at the epsilon given.
         ComplexCloud cont = m_borderSweepApplied
                 ? alphaShapeContour(m_clouds[i], roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &starts)
                 : m_alphaShape
@@ -584,12 +518,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
             truncatedFrequencies[i] = true;
         }
 
-        //A walk that did not close, either way. The whole cloud stands in
-        //when asked to - nothing is dropped, the boundaries only cost more
-        //there - and the report says so; otherwise the frequency fails
-        //below, naming itself. A partial contour is never handed on: the
-        //boundaries would then be computed over a value set with a piece
-        //missing, which nothing downstream can detect.
         bool wholeCloud = false;
         if ((truncated || cont.empty()) && m_wholeCloudStandsIn){
             cont = m_clouds[i];
@@ -597,7 +525,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
             wholeCloud = true;
         }
 
-        //Every frequency writes its own report: no critical section.
         m_reports[i].contourPoints = cont.size();
         m_reports[i].relaxed = fellBack;
         m_reports[i].truncated = truncated;
@@ -605,8 +532,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         m_reports[i].components = std::max<std::size_t>(starts.size(), 1);
         m_reports[i].componentStarts = std::move(starts);
 
-        //Empty means the hull could not be built, the same signal the CUDA
-        //path already used. A hull of a non-empty cloud always has points.
         if (cont.empty()){
             failed[i] = true;
 
@@ -621,10 +546,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         m_contours[i] = std::move(cont);
     }
 
-    //Reported HERE, once and outside the parallel region, and naming the
-    //frequencies: from inside the loop it raced on the message handler and
-    //produced N identical lines that said nothing about which frequency fell
-    //back.
     std::vector<std::string> relaxed;
     for (std::size_t i = 0; i < digitCount; i++){
         if (relaxedFrequencies.at(i) && i < m_frequencies.size()){
@@ -632,8 +553,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
         }
     }
 
-    //The frequency when the engine knows it (compute() ran), the index
-    //otherwise: a contour recomputed over loaded clouds has no frequencies.
     const auto label = [this](std::size_t i){
         return i < m_frequencies.size()
                 ? "w = " + qftbx::text::number(m_frequencies.at(i)) + " rad/s"
@@ -666,11 +585,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     }
 
     if (!succeeded){
-        //The message names the frequencies and their largest magnitude: a
-        //resonance inside the uncertainty makes the cloud span astronomical
-        //magnitudes (finite ones when the exact singular frequency is not
-        //representable), and no epsilon walks a cloud like that. Without the
-        //figure the user only saw "could not compute".
         std::vector<std::string> detail;
 
         for (std::size_t i = 0; i < digitCount; i++){
@@ -698,21 +612,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     return true;
 }
 
-
-//The points of a cloud bucketed on a square grid, so that the candidates
-//within epsilon of a point are read from the cells around it instead of by
-//scanning the whole cloud at every step of the walk: the walk visits up to
-//three times the point count, and each visit scanned every point, which
-//made the hull quadratic in the cloud size. The walk still applies its own
-//distance test to every candidate, so the grid only has to hand over a
-//superset of the points within epsilon.
-//
-//The cells measure a quarter of epsilon, and five cells on each side of the
-//centre are gathered: a point within epsilon lies at most four cells away
-//in exact arithmetic, and the fifth absorbs the rounding of the cell
-//coordinates. A cloud the grid cannot index (a non-finite point, a
-//non-positive epsilon, an extent of more than a billion cells) answers every
-//query with the whole cloud, which is the scan this replaces.
 class TemplateEngine::NeighbourGrid
 {
 public:
@@ -751,12 +650,9 @@ public:
             m_cells.push_back({cellOf(points[i]), static_cast<std::int32_t>(i)});
         }
 
-        //By cell, and by index within a cell: the cells of one column are
-        //contiguous, so a column is one binary search and a walk.
         std::sort(m_cells.begin(), m_cells.end());
     }
 
-    //The indices of every point that may lie within epsilon of 'centre'.
     void candidates(const complex<double> & centre, std::vector<std::int32_t> & out) const
     {
         out.clear();
@@ -822,11 +718,6 @@ private:
 
 namespace {
 
-//Whether a candidate can pass the walk's distance test |candidate - centre|
-//<= epsilon at all: the squared distance compared against epsilon squared
-//with a margin wider than the rounding of either side. The candidates the
-//grid hands over fill a square around the centre, and this drops the ones
-//outside the disc before the exact distance is computed for the rest.
 inline bool withinReach(const complex<double> & candidate, const complex<double> & centre,
                         double epsilon)
 {
@@ -836,8 +727,7 @@ inline bool withinReach(const complex<double> & candidate, const complex<double>
     return dx * dx + dy * dy <= epsilon * epsilon * (1.0 + 1e-9);
 }
 
-} // namespace
-
+}
 
 void TemplateEngine::setHullMetric(HullMetric metric, double dbPerDegree){
     if (!(dbPerDegree > 0.0) || !std::isfinite(dbPerDegree)){
@@ -853,24 +743,14 @@ ComplexCloud TemplateEngine::projected(const ComplexCloud & points) const{
         return points;
     }
 
-    //Phases in degrees, on any branch for now.
     std::vector<double> phases;
     phases.reserve(points.size());
     for (const complex<double> & z : points){
-        phases.push_back(std::arg(z) * 180.0 / qftbx::math::kPi);   //(-180, 180]
+        phases.push_back(std::arg(z) * 180.0 / qftbx::math::kPi);
     }
 
-    //The branch cut goes in the widest angular gap of the cloud: sorted
-    //phases, the largest jump between neighbours (the wrap-around jump
-    //included), and every phase is then read on the side of that jump, so
-    //a template straddling -360/0 is not torn in two.
     std::vector<double> sorted = phases;
     std::sort(sorted.begin(), sorted.end());
-    //The gap that wraps from the largest phase round to the smallest is the
-    //one the (-180, 180] branch already cuts in: if it is the widest, the
-    //cloud is contiguous as read and nothing moves. Otherwise the widest
-    //gap lies between two of the sorted phases, and everything at or below
-    //its lower side moves up a turn to sit after the rest.
     double widest = sorted.front() + 360.0 - sorted.back();
     bool shiftBelow = false;
     double cut = 0.0;
@@ -891,18 +771,14 @@ ComplexCloud TemplateEngine::projected(const ComplexCloud & points) const{
             phase += 360.0;
         }
         const double magnitude = std::abs(points[i]);
-        //A zero response has no decibels: far below anything else.
         const double db = magnitude > 0.0 ? 20.0 * std::log10(magnitude) : -400.0;
         out.emplace_back(phase, db / m_dbPerDegree);
     }
     return out;
 }
 
-
 namespace {
 
-//Prim, dense, over distinct points: the longest edge added is the
-//connectivity threshold; the diameter falls out of the same distances.
 void spanningExtremes(const ComplexCloud & pts, double & longest, double & diameter)
 {
     const std::size_t n = pts.size();
@@ -939,7 +815,7 @@ void spanningExtremes(const ComplexCloud & pts, double & longest, double & diame
     }
 }
 
-} // namespace
+}
 
 double TemplateEngine::connectingEpsilon(const ComplexCloud & cloud) const{
     ComplexCloud pts = projected(cloud);
@@ -961,8 +837,6 @@ bool TemplateEngine::retraces(const ComplexCloud & walked)
               });
     seen.erase(std::unique(seen.begin(), seen.end()), seen.end());
 
-    //A closed walk ends where it began, and that is the one repeat a
-    //contour is allowed.
     return walked.size() > seen.size() + 1;
 }
 
@@ -1001,7 +875,6 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
     for (const ComplexCloud & cloud : m_clouds){
         EpsilonProposal proposal;
 
-        //Distinct points only: a repeated point is a zero-length edge.
         ComplexCloud pts = projected(cloud);
         std::sort(pts.begin(), pts.end(), [](const complex<double> & a, const complex<double> & b){
             return a.real() != b.real() ? a.real() < b.real() : a.imag() < b.imag();
@@ -1017,8 +890,6 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
             proposal.diameter = diameter;
             proposal.epsilon = longest;
 
-            //The alpha-shape closes at the connecting epsilon itself: the
-            //ladder below is only for the walk.
             if (m_alphaShape || m_borderSweepApplied){
                 proposal.epsilon = roundedUpToThreeFigures(longest);
                 proposal.closes = true;
@@ -1026,10 +897,6 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
                 continue;
             }
 
-            //The ladder: from the connecting epsilon up to the diameter, one
-            //per cent at a time, each candidate rounded up to three figures
-            //and tried once. At the diameter every point reaches every other,
-            //so the ladder has a natural top.
             double previous = 0.0;
             for (double raw = longest; ; raw *= 1.01){
                 const bool last = raw >= diameter;
@@ -1068,8 +935,6 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
         return {};
     }
 
-    //Distinct points, in the order the walk uses, measured in the plane of
-    //the metric; the points returned are the cloud's own.
     ComplexCloud cv = cloud;
     std::sort(cv.begin(), cv.end(),
               [](const complex<double> & a, const complex<double> & b){
@@ -1087,11 +952,6 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
         if (componentStarts != nullptr){
             componentStarts->push_back(result.size());
         }
-        //Each point once, at its first visit, as the walk's output always
-        //was: a spike is walked out and back, and a curve that folds on
-        //itself exposes chords across the fold, and either would list a
-        //point twice and the boundaries would pay for it twice. The value
-        //set keeps every point; the polygon only loses zero-area detours.
         std::fill(emitted.begin(), emitted.end(), 0);
         for (const std::int32_t idx : loop){
             if (!emitted[static_cast<std::size_t>(idx)]){
@@ -1099,8 +959,6 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
                 result.push_back(cv[static_cast<std::size_t>(idx)]);
             }
         }
-        //Closed by its first point, which is how the loops of a contour are
-        //told apart downstream (SingularLocus).
         if (loop.size() > 1){
             result.push_back(cv[static_cast<std::size_t>(loop.front())]);
         }
@@ -1108,15 +966,6 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
     return result;
 }
 
-//Faithful port of EPSHULL.M (epsh2, Montoya 1998; the algorithm defined in
-//Nordin 1993). Deliberate divergence: with no initial candidate it returns
-//NULL instead of an empty contour (the caller treats it as an error).
-//
-//The walk is Prune (Gutman, Nordin and Cohen 2007, section 3), and Prune is
-//defined for an EPSILON-CONNECTED set: every step looks only within epsilon
-//of the current point, so a walk can never leave the component it started
-//in. So the components are found first and each one is walked: walking from
-//one seed would return that component's contour alone and drop the rest.
 ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,
                                                          bool * fellBack, bool * truncated,
                                                          std::vector<std::size_t> * componentStarts){
@@ -1129,9 +978,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         return {};
     }
 
-    //unique(cv): deduplicated and sorted with MATLAB's ordering for complex
-    //values (modulus, then phase). This order also resolves the psi ties
-    //exactly like the reference.
     ComplexCloud cv = temp;
     std::sort(cv.begin(), cv.end(),
               [](const complex<double> & a, const complex<double> & b){
@@ -1144,8 +990,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
               });
     cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
 
-    //The walk measures in the plane of the metric; the points it returns
-    //are the cloud's own. In the complex plane the two are the same.
     const ComplexCloud cvWalk = projected(cv);
     const ComplexCloud tempWalk = projected(temp);
 
@@ -1153,8 +997,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     const std::vector<std::vector<std::int32_t>> parts = components(cvWalk, epsilon, neighbours);
 
     if (parts.size() == 1){
-        //One component: the historical path, on the whole cloud, with the
-        //relaxed fallback on the ORIGINAL cloud as it has always been.
         if (componentStarts != nullptr){
             componentStarts->push_back(0);
         }
@@ -1173,8 +1015,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
             walkPoints.push_back(cvWalk.at(static_cast<std::size_t>(index)));
         }
 
-        //A grid over the component alone: the walk's candidate queries are
-        //by position, and the indices must be the component's own.
         const NeighbourGrid own(walkPoints, epsilon);
 
         bool partFellBack = false;
@@ -1186,8 +1026,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
             *fellBack = true;
         }
         if (partTruncated){
-            //Neither walk closed on this component: the same failure as on
-            //a single-component cloud, and the same answer - no contour.
             if (truncated != nullptr){
                 *truncated = true;
             }
@@ -1198,9 +1036,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         }
 
         if (contour.empty()){
-            //A component that cannot be walked (a single isolated point has
-            //no second point within epsilon) is still part of the value set:
-            //it enters as it is, so nothing is dropped.
             contour = points;
         } else {
             anyWalked = true;
@@ -1213,10 +1048,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     }
 
     if (!anyWalked){
-        //Epsilon below the spacing everywhere: no component has a second
-        //point within reach. That is the historical failure and it stays
-        //loud - empty, which the caller reports as an error - instead of
-        //handing back the cloud as a contour of isolated points.
         if (componentStarts != nullptr){
             componentStarts->clear();
         }
@@ -1230,9 +1061,6 @@ std::vector<std::vector<std::int32_t>> TemplateEngine::components(const ComplexC
                                                                   const NeighbourGrid & neighbours){
     const std::size_t n = cv.size();
 
-    //Union-find over the points within epsilon of one another: two points
-    //are in the same component when a chain of steps of at most epsilon
-    //joins them (Gutman, Nordin and Cohen 2007, definition 1).
     std::vector<std::int32_t> parent(n);
     for (std::size_t i = 0; i < n; ++i){
         parent[i] = static_cast<std::int32_t>(i);
@@ -1261,7 +1089,6 @@ std::vector<std::vector<std::int32_t>> TemplateEngine::components(const ComplexC
         }
     }
 
-    //Members by root, each list in cv order.
     std::vector<std::vector<std::int32_t>> byRoot(n);
     for (std::size_t i = 0; i < n; ++i){
         byRoot[static_cast<std::size_t>(find(static_cast<std::int32_t>(i)))].push_back(static_cast<std::int32_t>(i));
@@ -1274,8 +1101,6 @@ std::vector<std::vector<std::int32_t>> TemplateEngine::components(const ComplexC
         }
     }
 
-    //Ordered by the rightmost point of each, largest real part first: the
-    //first component is the one the historical seed lies in.
     const auto rightmost = [&cv](const std::vector<std::int32_t> & part){
         double best = -numeric_limits<double>::infinity();
         for (const std::int32_t index : part){
@@ -1296,12 +1121,10 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & source, const Co
                                            double epsilon, const NeighbourGrid & neighbours,
                                            bool * fellBack, bool * truncated){
 
-    const ComplexCloud & cv = walk;   //measured here, returned from 'source'
+    const ComplexCloud & cv = walk;
     const std::size_t pointCount = cv.size();
     const std::size_t MAXP = 3 * pointCount;
 
-    //First point: the largest real part (the rightmost one), as in
-    //EPSHULL.M and in the PFC text. Ties: the first in unique order wins.
     std::int32_t b1 = 0;
     for (std::size_t i = 1; i < pointCount; i++){
         if (real(cv.at(i)) > real(cv.at(static_cast<std::size_t>(b1)))){
@@ -1327,9 +1150,6 @@ ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & source, const Co
 
     std::size_t counter = 2;
 
-    //Stops when the walk returns to the initial (b1, b2) pair. Points may
-    //repeat (out-and-back over template spikes): they are kept, like in
-    //the MATLAB, as real geometric information of the contour.
     while (b1 != currentPoint || b2 != nextPoint){
 
         steps.push_back(nextPoint);
@@ -1373,7 +1193,7 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & source, con
     std::int32_t b1 = 0;
     double largestImag = -numeric_limits<double>::infinity();
 
-    for(std::size_t i = 0;i < pointCount ; i++){   //first point: largest imaginary part.
+    for(std::size_t i = 0;i < pointCount ; i++){
         if (imag(temp.at(i)) > largestImag){
             b1 = i;
             largestImag = imag(temp.at(i));
@@ -1406,9 +1226,6 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & source, con
         counter++;
 
         if (counter > MAXP){
-            //The step limit: the walk did not close either. A failure like
-            //the others, empty, which the caller reports naming the
-            //frequency - never a partial contour handed on as a whole one.
             if (truncated != nullptr){
                 *truncated = true;
             }
@@ -1425,7 +1242,6 @@ ComplexCloud TemplateEngine::epsilonHullRelaxed(const ComplexCloud & source, con
         }
     }
 
-    //Output deduplication, as the relaxed variant specifies.
     std::vector <std::int32_t> uniqueIdx;
     for (std::int32_t idx : walk) {
         if (std::find(uniqueIdx.begin(), uniqueIdx.end(), idx) == uniqueIdx.end()){
@@ -1460,7 +1276,7 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
     std::vector<std::int32_t> nearby;
     neighbours.candidates(firstPoint, nearby);
 
-    for (const std::int32_t i : nearby){    //every point of the cloud within reach.
+    for (const std::int32_t i : nearby){
 
         candidate = cv[static_cast<std::size_t>(i)];
 
@@ -1468,22 +1284,17 @@ std::int32_t TemplateEngine::findSecond(std::int32_t b1, const ComplexCloud & cv
             continue;
         }
 
-        dist = abs(firstPoint - candidate); //distance to the starting point.
+        dist = abs(firstPoint - candidate);
 
-        if (dist > 0 && dist <= epsilon){    //candidates within epsilon.
+        if (dist > 0 && dist <= epsilon){
 
-            phase = arg (candidate - firstPoint); //phase of the difference
+            phase = arg (candidate - firstPoint);
 
-            if (phase < 0)        //brought into [0, 2*PI)
+            if (phase < 0)
                 phase += 2 * qftbx::math::kPi;
 
-            //subtract from the phase the arccosine of distance over epsilon.
             phase -= std::acos(dist / epsilon);
 
-            //Keep the minimum phase; on a tie, the farthest; on a tie of
-            //both, the lowest index. The scan this came from visited the
-            //points in index order and kept the first, which is the same
-            //choice; the grid visits them in cell order.
             if (phase < fmin){
                 fmin = phase;
                 pmin = i;
@@ -1503,7 +1314,7 @@ namespace {
 
 constexpr double kStraightBack = 1e-9;
 
-} // namespace
+}
 
 std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t currentPoint,
                                   const ComplexCloud & cv, double epsilon,
@@ -1521,15 +1332,12 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
 
     double psi = 0;
 
-
     double psiMin = numeric_limits<double>::infinity();
     std::int32_t bestIndex = -1;
 
     complex <double> candidate;
     double distance;
 
-    //The grid hands over the points that can be within epsilon, so the scan
-    //does not run over the whole cloud.
     std::vector<std::int32_t> nearby;
     neighbours.candidates(current, nearby);
 
@@ -1541,30 +1349,17 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
             continue;
         }
 
-        distance = abs(candidate - current); //distance to the current point.
+        distance = abs(candidate - current);
 
-
-        //Candidates: every point at a distance in (0, epsilon] of the
-        //current one, INCLUDING the previous one - its exclusion is
-        //deliberately commented out in EPSHULL.M. It comes in through the
-        //phase == 0 case, and it is what lets the walk go back along the
-        //spikes and the thin branches of a template. The relaxed
-        //historical variant excludes it.
         if (distance > 0 && distance <= epsilon &&
                 !(excludePrevious && (candidate == previous || candidate == current))){
-
-            //--------------------------------------------
 
             phase = arg(candidate - current) - arg(previous - current);
 
             if(phase < 0)
                 phase +=  2 * qftbx::math::kPi;
 
-            //------------------------------------------------------------
-
-            aco1 = std::acos(distance / epsilon );  //half-angle subtended by the step
-
-            //------------------------------------------------------------
+            aco1 = std::acos(distance / epsilon );
 
             if(phase < kStraightBack || phase > 2 * qftbx::math::kPi - kStraightBack){
                 psi =  2 * qftbx::math::kPi - aco1 - aco2;
@@ -1574,16 +1369,9 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
                 psi = phase - aco1 - aco2;
             }
 
-            if (psi < 0)                   //brought into [0, 2*PI)
+            if (psi < 0)
                 psi +=  2 * qftbx::math::kPi;
 
-            //------------------------------------------------------------
-
-            //Keep the minimum psi; on a tie, the farthest candidate (ties
-            //are possible and the longer step wins); on a tie of both, the
-            //lowest index. The scan this came from visited the points in
-            //index order and kept the first, which is the same choice; the
-            //grid visits them in cell order.
             if (psi < psiMin) {
                 psiMin = psi;
                 bestIndex = i;
@@ -1600,4 +1388,4 @@ std::int32_t TemplateEngine::findNext(std::int32_t previousPoint, std::int32_t c
 
 }
 
-} // namespace qftbx
+}

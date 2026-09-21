@@ -1,13 +1,16 @@
-// The phase bucketing of the boundary union is computed in TWO places with
-// the same formula: BoundaryUnion1D::bucketIndex builds the buckets and
-// BoundaryViolationDetector::phaseBucket reads them back. They must agree on
-// the range of valid indices, because the reader indexes the vector the
-// writer sized.
-//
-// The Nichols phase window is free text in the boundaries dialog (defaulted
-// to [-360, 0] but not constrained), while every caller normalises a loop
-// phase into (-360, 0]. A narrower window than the phase it is asked about
-// therefore produces an index past the end of the bucket row.
+/**
+ * @file
+ * @brief Tests that phase bucket indices stay inside the boundary union.
+ *
+ * The bucket index is computed by the writer of the union and again by the
+ * reader in the violation detector, and both must agree on the valid range.
+ * The Nichols phase window is free text in the dialog while loop phases are
+ * normalised into (-360, 0], so the cases probe phases outside the window,
+ * the far edge landing on the last bucket, windows whose width is not a
+ * whole number of degrees or is under one degree, the conservative reading
+ * that consults both bracketing nodes, and that loop shaping refuses a
+ * window narrower than the loop phase before any algorithm starts.
+ */
 
 #include <gtest/gtest.h>
 
@@ -29,14 +32,8 @@ using namespace qftbx;
 
 namespace {
 
-//A one-frequency boundary set over a phase window of [phaseStart, 0] with
-//phaseCount buckets, holding a single closed boundary point.
-//By value throughout: fifteen lines of heap allocation and a takeOwnership()
-//call became five, and there is nothing left for the fixture to free.
 BoundaryData narrowWindow(double phaseStart, std::int32_t phaseCount)
 {
-    //One bucket row of phaseCount buckets, with one boundary point in the
-    //first bucket.
     qftbx::UnionBuckets buckets{qftbx::TraceSet(static_cast<std::size_t>(phaseCount))};
     buckets[0][0].push_back(qftbx::NicholsPoint(phaseStart, 0.0));
 
@@ -47,28 +44,19 @@ BoundaryData narrowWindow(double phaseStart, std::int32_t phaseCount)
 
 TEST(BoundaryBucketBounds, APhaseOutsideTheNicholsWindowStaysInsideTheBuckets)
 {
-    //A window of [-180, 0] with a loop point at -300 degrees: the reader used
-    //to scale -300 by (phaseCount - 1) / 180 and walk off the end of the
-    //bucket row (QVector::at is undefined behaviour out of range, and the
-    //box classification reaches the same row with value(), which answers
-    //nullptr and is then dereferenced).
     const BoundaryData boundaries = narrowWindow(-180.0, 181);
 
     BoundaryViolationDetector detector;
 
-    //The verdict itself is not the point here: not reading out of bounds is.
     qftbx::BoxFlag verdict = detector.classifyPoint(qftbx::NicholsPoint(-300.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 
-    //The far edge of the window is the last valid bucket, not one past it.
     verdict = detector.classifyPoint(qftbx::NicholsPoint(-180.0, 10.0), &boundaries, 0);
     EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 }
 
 TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
 {
-    //The default window: -360 degrees must land on the last bucket of 361,
-    //not on bucket 361.
     const BoundaryData boundaries = narrowWindow(-360.0, 361);
 
     BoundaryViolationDetector detector;
@@ -77,10 +65,6 @@ TEST(BoundaryBucketBounds, TheFullWindowEdgeIsTheLastBucket)
     EXPECT_TRUE(verdict == qftbx::feasible || verdict == qftbx::infeasible);
 }
 
-//A window whose width is NOT a whole number of degrees, with an open floor
-//of one cell at 0 dB on every grid node but one: the columns that hold a
-//cell forbid everything under it; the column without one constrains
-//nothing. Traced cells only, no stored columns: the rebuild from the traces.
 BoundaryData fractionalWindow(double phaseStart, std::int32_t phaseCount, double skippedPhase)
 {
     qftbx::Trace floor;
@@ -100,31 +84,15 @@ BoundaryData fractionalWindow(double phaseStart, std::int32_t phaseCount, double
 
 TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
 {
-    //The reader took the window WIDTH as an integer (its two functions
-    //declared the cell count and the span with their types crossed), so a
-    //window of 1.5 degrees was scaled as if it were 1: exact on the default
-    //360-degree window, wrong on any other.
-    //
-    //Window [-1.5, 0] with 4 nodes: 3 intervals over 1.5 degrees is a node
-    //every 0.5 degrees, so the cell at -1.0 sits on node 1 and its column
-    //spans [-1.25, -0.75], and node 2 at -0.5 holds no cell. Truncating the
-    //width to 1 would have moved them.
     const BoundaryData boundaries = fractionalWindow(-1.5, 4, -0.5);
 
     BoundaryViolationDetector detector;
 
-    //The column of a cell: above it feasible, under it not.
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.0, 10.0), &boundaries, 0), qftbx::feasible);
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-1.1, -10.0), &boundaries, 0), qftbx::infeasible);
 
-    //The column without a cell finds no crossing: -0.6 rounds to node 2.
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.6, -10.0), &boundaries, 0), qftbx::feasible);
 
-    //Read conservatively, a point is judged by BOTH nodes that bracket its
-    //phase. The floor has a cell at every node but node 2 (-0.5): -0.6 lies
-    //between node 1 (cell) and node 2, -0.4 between node 2 and node 3
-    //(cell), and either cell forbids -10 dB. Exactly on the node without a
-    //cell nothing forbids.
     BoundaryViolationDetector conservative(true);
     EXPECT_EQ(conservative.classifyPoint(qftbx::NicholsPoint(-0.6, -10.0), &boundaries, 0), qftbx::infeasible);
     EXPECT_EQ(conservative.classifyPoint(qftbx::NicholsPoint(-0.4, -10.0), &boundaries, 0), qftbx::infeasible);
@@ -133,22 +101,14 @@ TEST(BoundaryBucketBounds, AFractionalPhaseWindowScalesTheBucketsCorrectly)
 
 TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
 {
-    //Under one degree the truncated width was ZERO: the scale divided by it,
-    //the index came out infinite and the clamp sent every phase to the last
-    //cell, whatever it was asked.
     const BoundaryData boundaries = fractionalWindow(-0.5, 3, -0.5);
 
     BoundaryViolationDetector detector;
 
-    //Half the window of 0.5 degrees, with 2 intervals over it: a node every
-    //0.25 degrees, so -0.25 is node 1, which holds a cell, and node 0 at
-    //-0.5 holds none.
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, 10.0), &boundaries, 0), qftbx::feasible);
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.25, -10.0), &boundaries, 0), qftbx::infeasible);
     EXPECT_EQ(detector.classifyPoint(qftbx::NicholsPoint(-0.45, -10.0), &boundaries, 0), qftbx::feasible);
 
-    //Conservatively, -0.45 lies between node 0 (no cell) and node 1 (the
-    //cell): both are consulted and the cell forbids it. On node 0 nothing does.
     BoundaryViolationDetector conservative(true);
     EXPECT_EQ(conservative.classifyPoint(qftbx::NicholsPoint(-0.45, -10.0), &boundaries, 0), qftbx::infeasible);
     EXPECT_EQ(conservative.classifyPoint(qftbx::NicholsPoint(-0.5, -10.0), &boundaries, 0), qftbx::feasible);
@@ -156,23 +116,14 @@ TEST(BoundaryBucketBounds, ASubDegreeWindowDoesNotDivideByZero)
 
 TEST(BoundaryBucketBounds, LoopShapingRefusesAWindowNarrowerThanTheLoopPhase)
 {
-    //The clamp keeps the read inside the buckets, but a point outside the
-    //window would then get the verdict of the edge bucket, which nobody
-    //computed. The search says so instead, once and before any algorithm
-    //starts (a throw from inside an OpenMP region would end the process).
     const BoundaryData narrow = narrowWindow(-180.0, 181);
 
     LoopShaping search;
 
-    //The check runs before anything is dereferenced, which is the point of
-    //putting it first: the rest of the arguments are never touched.
     EXPECT_THROW(search.run(nullptr, nullptr, nullptr, &narrow, 0.0,
                             qftbx::nt, {}, nullptr, 0),
                  qftbx::ComputationError);
 
-    //That a 360 degree window is ACCEPTED needs no assertion here: every
-    //loop-shaping golden test runs over the default [-360, 0] window and
-    //would fail at once if this rejected it.
 }
 
-} // namespace
+}

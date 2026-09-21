@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief A denser template does not change the verifier's verdict on a design.
+ *
+ * The plant family the verifier evaluates is a sample, the one approximation
+ * it cannot remove. The MC2 design of QFT toolbox example 2 is checked against
+ * a template swept at fifty points per parameter, four times the points of the
+ * design, and the verdict and the worst excess must be the same to 1 mdB: what
+ * decides the margin is the reading of the boundary columns, not the density
+ * of the template.
+ */
+
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -16,7 +28,6 @@ using namespace qftbx;
 
 namespace {
 
-//The same project swept with a grid of 'points' per uncertain parameter.
 CloudSet cloudsAt(const std::string & file, int points, std::size_t frequencies)
 {
     ProjectController dense;
@@ -37,15 +48,8 @@ CloudSet cloudsAt(const std::string & file, int points, std::size_t frequencies)
     return dense.templates();
 }
 
-} // namespace
+}
 
-//Every step of the chain approximates, and the last approximation left in
-//the verifier is the one it cannot remove: the plant family is a sample.
-//The question that leaves open is whether a denser sample would find a
-//plant the design missed, and on this fixture it does not: the verdict and
-//the size of the margin are the same over four times the points.
-//What decides is the reading of the boundary columns, not the density of
-//the template.
 TEST(TemplateDensity, ADenserTemplateDoesNotChangeTheVerdict)
 {
     const std::string file(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft");

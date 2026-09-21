@@ -10,6 +10,7 @@
 #include "src/core/loopshaping/common/point_controller.h"
 
 /**
+ * @file
  * @brief The Nichols rectangle of a controller box at one frequency:
  * magnitude in dB and phase in degrees on the (-360, 0] branch.
  */
@@ -105,6 +106,6 @@ private:
     NicholsBox toNichols(const PolarInterval & loop);
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_NATURAL_INTERVAL_EXTENSION_H
+#endif

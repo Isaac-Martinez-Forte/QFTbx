@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief GUI-side error reporting and the translation of core messages.
+ *
+ * By default an error opens a modal dialog, which is right for a user and
+ * impossible for an automated run, so the destination can be replaced and
+ * a test collects what the dialogs would have said. The header also
+ * declares how a core message or an exception becomes text in the language
+ * of the interface: a toolbox exception carries its text and its arguments
+ * apart, so the text is translated and the arguments put back; a parse
+ * error gets its file and line around the translated message; any other
+ * exception is shown as it is.
+ */
+
 #ifndef QFTBX_GUI_ERROR_MESSAGE_H
 #define QFTBX_GUI_ERROR_MESSAGE_H
 
@@ -9,14 +23,6 @@
 
 #include "src/core/common/message.h"
 
-//GUI-side error reporting.
-//
-//By default a message opens a modal dialog, which is right for a user and
-//impossible for an automated run: a headless suite would block forever on
-//it. setReporter() replaces the destination, so a test can collect what
-//the dialogs report and assert on it.
-//
-//The default dialog has no parent, so it is not modal to the main window.
 namespace qftbx {
 
 using ErrorReporter = std::function<void (const QString & message, const QString & title)>;
@@ -38,6 +44,6 @@ QString translated(const std::exception & failure);
 /// A core message in the language of the interface.
 QString translated(const Message & message);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_ERROR_MESSAGE_H
+#endif

@@ -1,8 +1,14 @@
+/**
+ * @file
+ * @brief Accessors of the uncertainty row.
+ *
+ * Pointers are stored and returned. There is no destructor because the line
+ * edits die with their Qt parent and freeing them here would be a double
+ * delete.
+ */
+
 #include "src/gui/common/parlineedit.h"
 
-//Groups three QLineEdits WITHOUT taking ownership: the line edits are Qt
-//children of their row widget and die with it, so a destructor here would
-//be a double delete.
 namespace qftbx {
 
 ParLineEdit::ParLineEdit(QLineEdit * x, QLineEdit*  y, QLineEdit * nominal){
@@ -35,4 +41,4 @@ QLineEdit *ParLineEdit::nominal() const {
     return m_nominal;
 }
 
-} // namespace qftbx
+}

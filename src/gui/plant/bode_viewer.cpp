@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Evaluates the plant over a sweep and draws both Bode canvases.
+ *
+ * The sweep is a hundred points over the design set's range, linear or
+ * logarithmic as the set was generated, starting where the design starts;
+ * the logarithmic ends are in rad/s and converted to exponents here, since
+ * the generator takes exponents. A manual set, one from a file, or a
+ * logarithmic one with a non-positive end is drawn at its own values.
+ * Phase is in degrees. Both axes span the extremes of the data rather than
+ * its first and last points, since a manual set need not be sorted. Export
+ * writes two files, the suffix on the file name and not the path.
+ */
+
 #include <cmath>
 #include "src/core/math/constants.h"
 #include "src/gui/common/plot_export.h"
@@ -13,7 +27,6 @@
 
 #include <QFileInfo>
 
-
 using namespace std;
 
 namespace qftbx {
@@ -25,8 +38,6 @@ BodeViewer::BodeViewer(QWidget *parent) :
     ui->setupUi(this);
     setWindowTitle(tr("Bode diagram"));
 
-    //Both canvases, once: the magnitude carries the label the caller chooses
-    //(the plant's or the controller's), which drawBode() sets.
     qftbx::setUpPlot(*ui->magnitudePlot, tr("frequency (rad/s)"), tr("magnitude (dB)"));
     qftbx::setUpPlot(*ui->phasePlot, tr("frequency (rad/s)"), tr("phase (degrees)"));
 }
@@ -43,31 +54,18 @@ void BodeViewer::clear(){
 
 void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
 
-    //Replottable: without this every call piled new curves up.
     ui->magnitudePlot->clearPlottables();
     ui->phasePlot->clearPlottables();
 
-    //By value, so the sweep is a plain local whether the frequencies are
-    //the project's or this viewer's own.
     std::vector<double> frequencies;
 
-    //The sweep starts where the DESIGN starts, not at a fixed exponent: on
-    //the linear path a fixed -1 asks for negative frequencies, on an axis
-    //that is logarithmic below.
     if (omega->type() == Omega::LinSpace){
         frequencies = linspace(omega->start(), omega->end(), 100);
     }else if (omega->type() == Omega::LogSpace){
-        //start()/end() are in rad/s, like every other frequency in the
-        //toolbox, and qftbx::logspace takes exponents - so the conversion
-        //happens here, the same way the frequencies form does it when it
-        //builds the set. Holding the exponents instead makes the unit a
-        //secret shared between two files.
         if (omega->start() > 0.0 && omega->end() > 0.0){
             frequencies = logspace(std::log10(omega->start()),
                                    std::log10(omega->end()), 100);
         } else {
-            //An older set, or one that cannot be re-derived: its own values
-            //are always there.
             frequencies = *omega->values();
         }
     }else {
@@ -82,8 +80,6 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     for (const std::complex<qreal> &comp : plant->evaluate(frequencies)){
         magnitude.push_back(20*log10(abs(comp)));
 
-        //Degrees: a Bode phase plot is read in degrees, and arg() answers
-        //radians (the axis was labelled in Spanish and scaled in radians).
         phase.push_back(arg(comp) * 180.0 / qftbx::math::kPi);
     }
 
@@ -94,11 +90,9 @@ void BodeViewer::drawBode(LtiSystem *plant, Omega *omega){
     ui->phasePlot->replot();
 }
 
-
 void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_values,
                           const std::vector<double> & frequencies, QCustomPlot * magnitudePlot){
 
-    //QCPCurve attaches itself to the plot, which owns it from then on.
     QCPCurve *curve = new QCPCurve(magnitudePlot->xAxis, magnitudePlot->yAxis);
     curve->setData(qftbx::toQVector(frequencies), qftbx::toQVector(yAxis_values));
 
@@ -106,9 +100,6 @@ void BodeViewer::drawAxis(QString yAxisName, const std::vector<double> & yAxis_v
 
     magnitudePlot->xAxis->setScaleType(QCPAxis::ScaleType::stLogarithmic);
 
-    //Both axes span the EXTREMES of the data: first to last frames the
-    //curve only when it is monotonic and the frequencies are sorted, and a
-    //manual set need not be.
     const auto frequencyEnds = std::minmax_element(frequencies.begin(), frequencies.end());
     const auto valueEnds = std::minmax_element(yAxis_values.begin(), yAxis_values.end());
 
@@ -134,8 +125,6 @@ void BodeViewer::on_saveImage_clicked()
         }
     }
 
-    //Two canvases, two files: the suffix goes on the file NAME, since
-    //prefixing the full path produces something that is not a path.
     const QFileInfo info(fileName);
     const auto named = [&info](const QString & part) {
         return info.dir().filePath(info.completeBaseName() + "-" + part + "." + info.suffix());
@@ -154,4 +143,4 @@ void BodeViewer::on_saveImage_clicked()
     }
 }
 
-} // namespace qftbx
+}

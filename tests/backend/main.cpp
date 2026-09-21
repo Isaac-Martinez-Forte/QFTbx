@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @brief Entry point of the backend test binary.
+ *
+ * Creates the core application object some backend code expects and sets
+ * the numeric locale to C before running the tests: the application object
+ * adopts the system locale, and under a decimal-comma locale the number
+ * readers would reject literals such as "0.1".
+ */
+
 #include <gtest/gtest.h>
 
 #include <clocale>
@@ -6,13 +16,8 @@
 
 int main(int argc, char **argv)
 {
-    // Some backend code still relies on Qt facilities that expect an
-    // application object to exist.
     QCoreApplication app(argc, argv);
 
-    // Same as the application's main(): QCoreApplication adopts the system
-    // locale, and with a decimal-comma locale (es_ES...) the number readers
-    // reject literals like "0.1". Numeric code always works with the C locale.
     std::setlocale(LC_NUMERIC, "C");
 
     ::testing::InitGoogleTest(&argc, argv);

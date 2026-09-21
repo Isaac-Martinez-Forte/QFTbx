@@ -8,9 +8,7 @@
  * @file
  * @brief The look of the interface: flat, square and quiet.
  *
- * The application used to set no style at all, so it took whatever each
- * machine had - on this one, the grey relief of a decade ago. What it wears
- * now is Qt's Fusion with a palette of ours and a small style sheet: right
+ * Qt's Fusion style with a palette of ours and a small style sheet: right
  * angles, one-pixel borders, no gradient and no shadow anywhere, and one
  * accent colour, which is the blue of the toolbox's own icon.
  *
@@ -48,6 +46,6 @@ void applyTheme(const QString & code);
 /// language. An empty path writes nothing: there is nowhere to put it.
 void storeTheme(const QString & code, const std::string & settingsPath);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_THEME_H
+#endif

@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Dispatch to the selected loop-shaping algorithm.
+ *
+ * Every algorithm takes the plant, the controller search box, the design
+ * frequencies and the boundaries; NK also takes the starting point of its
+ * local search, and MR the templates and specifications its constraints are
+ * built from. Before any of them starts, and outside their parallel regions,
+ * the phase window of the boundaries is checked to cover the whole phase a
+ * loop can take, because a narrower window would have the search read
+ * verdicts for phases nobody computed. The cost counters of the run are read
+ * from the algorithm and kept with the result.
+ */
+
 #include <chrono>
 #include <vector>
 #include <cstdint>
@@ -9,13 +23,8 @@
 #include <cmath>
 #include <memory>
 
-
 #include "src/core/common/exception.h"
 
-//Dispatch to the selected loop-shaping algorithm. Every algorithm takes
-//the plant, the controller search box, the design frequencies and the
-//boundaries; NK also takes the local-search starting-point choice, and
-//MR the templates and specifications its constraints are built from.
 namespace qftbx {
 
 bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
@@ -23,18 +32,6 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
                           const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                           std::int32_t initialisation)
 {
-    //Precondition, checked ONCE and sequentially, before any algorithm
-    //starts: the phase window the boundaries were computed over must cover
-    //the phase a loop can take. Every caller normalises phase into
-    //(-360, 0], so a narrower window leaves the search classifying loop
-    //points against buckets that were never computed for their phase - the
-    //reader clamps to the edge bucket rather than reading out of bounds, so
-    //the answer would be a verdict nobody calculated, which for a search
-    //that claims a global optimum is worse than an error.
-    //
-    //Here and not inside the algorithms: a throw escaping an OpenMP region
-    //ends the process. A narrow window is still fine for merely LOOKING at
-    //boundaries, which is why the boundaries dialog does not forbid it.
     const double phaseSpan = std::abs(boundaries->phaseRange().width());
 
     if (phaseSpan < 360.0) {
@@ -42,17 +39,9 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
             .arg(phaseSpan).arg(boundaries->phaseRange().min).arg(boundaries->phaseRange().max));
     }
 
-    //The algorithms own themselves through unique_ptr: solve()
-    //throws on an invalid or infeasible problem, and the raw new/delete
-    //pair leaked the whole algorithm (its lists, its detection, its
-    //nominal-plant caches) on every such throw.
     auto timer = std::chrono::steady_clock::now();
     bool solved = false;
 
-    //What the run cost is read from the algorithm's own counters and kept
-    //with the result, where the interface and the benchmarks read it; the
-    //peak live-node count is what the ceiling of kDefaultMaxLiveNodes has
-    //to be tuned against.
     m_statistics = LoopShapingStatistics();
     const auto report = [&](std::unique_ptr<LtiSystem> designed, LoopShapingStatistics statistics) {
         statistics.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - timer).count();
@@ -152,4 +141,4 @@ std::unique_ptr<LtiSystem> LoopShaping::controllerStructure()
     return std::move(m_controller);
 }
 
-} // namespace qftbx
+}

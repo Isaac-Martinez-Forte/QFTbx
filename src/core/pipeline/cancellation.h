@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief A flag that lets a long search be given up on.
+ *
+ * The search polls the token once per node; whoever started it sets it
+ * from another thread. Threads are otherwise not this class's business nor
+ * the algorithms': the facade runs the search on its worker and raises the
+ * token from the interface, and the algorithms only read it. Both sides use
+ * relaxed ordering on purpose, because the flag carries no data, only
+ * permission to stop, and it does not matter whether the search notices on
+ * this node or the next; the read is a plain load with no lock and no fence,
+ * negligible beside a node. A helper polls a token that may be null, so a
+ * caller that never cancels passes nothing.
+ */
+
 #ifndef QFTBX_CANCELLATION_H
 #define QFTBX_CANCELLATION_H
 
@@ -17,10 +32,8 @@ namespace qftbx {
  *
  * Relaxed ordering on both sides on purpose. There is nothing to synchronise
  * WITH: the flag carries no data, only permission to stop, and it does not
- * matter whether the search notices on this node or the next one. Measured
- * cost of the read (scratchpad/atomcost.cpp): 0.363 ns, which on x86-64 is a
- * plain load with no lock and no fence. Ten million nodes come to 3.6 ms in
- * total, against nodes that cost tens of microseconds each.
+ * matter whether the search notices on this node or the next one. The read
+ * is a plain load with no lock and no fence, negligible beside a node.
  */
 class CancellationToken
 {
@@ -50,6 +63,6 @@ inline bool cancellationAsked(const CancellationToken * token)
     return token != nullptr && token->cancelled();
 }
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_CANCELLATION_H
+#endif

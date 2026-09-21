@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief The palettes and the style sheet of the three themes.
+ *
+ * The style is Fusion rather than the platform's, because the native styles
+ * of Windows and macOS ignore half of the shapes the sheet asks for. The
+ * accent is the blue of the toolbox's icon, hue 204, at the two lightnesses
+ * readable on a light and a dark ground. The sheet says only shapes, in
+ * palette roles, so one sheet dresses all three themes; a tool button gets
+ * no padding of its own, or the icon-only ones of a file dialog come out
+ * blank. What no role can say is appended once the theme is known: the
+ * drop-down arrow image, the red of a wrong field, the colours of a
+ * verdict, and those of the two notices beside a template, which are
+ * warnings and not refusals.
+ */
+
 #include "src/gui/application/theme.h"
 
 #include <QApplication>
@@ -16,9 +32,6 @@ const QString kDarkTheme = QStringLiteral("dark");
 
 namespace {
 
-//The blue of the icon, which is where the accent comes from: its own hue is
-//204 degrees, and these are the two readable ends of it - one for a light
-//ground and one for a dark one.
 const QColor kAccentOnLight(0x2c, 0x7b, 0xb6);
 const QColor kAccentOnDark(0x4a, 0x9b, 0xd4);
 
@@ -95,13 +108,6 @@ QPalette darkPalette()
     return palette;
 }
 
-//Shapes, not colours: every colour here is a palette role, so the same
-//sheet dresses the light theme, the dark one and the machine's own.
-//
-//What it says, in one line: square corners, one-pixel borders, flat
-//surfaces. What it does NOT say is as deliberate - nothing about fonts,
-//nothing about sizes, and no picture anywhere - so the interface stays the
-//system's in everything but its shape.
 const char * const kSheet = R"(
 * {
     border-radius: 0px;
@@ -123,10 +129,6 @@ QPushButton:disabled {
     border-color: palette(alternate-base);
 }
 
-/* A tool button is usually an icon and little else - the ones a file
-   dialog puts in its toolbar are 24 pixels square - so it gets the flat
-   look and NO padding of its own: with the 12 pixels a push button takes,
-   there is no room left for the icon and the button comes out blank. */
 QToolButton {
     background: transparent;
     border: 1px solid transparent;
@@ -139,8 +141,6 @@ QToolButton:pressed, QToolButton:checked {
     background: palette(mid);
 }
 
-/* Except the ones on the bar of a card, which are words and read as
-   buttons. */
 QWidget[cardBar="true"] QToolButton {
     background: palette(button);
     border: 1px solid palette(mid);
@@ -163,9 +163,6 @@ QLineEdit, QComboBox, QTextBrowser, QPlainTextEdit, QAbstractSpinBox {
 QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus, QAbstractSpinBox:focus {
     border-color: palette(highlight);
 }
-/* The arrow of a drop-down is the only thing that tells it from a field you
-   type in, and a styled combo box loses the one the style drew. Its size is
-   here; the image itself is added below, where the theme in use is known. */
 QComboBox::drop-down {
     border: none;
     width: 18px;
@@ -201,8 +198,6 @@ QGroupBox {
     border: 1px solid palette(mid);
     margin-top: 14px;
 }
-/* Except one asked to be bare: no frame, and no room kept for a title it
-   does not have. */
 QGroupBox[bare="true"] {
     border: none;
     margin-top: 0px;
@@ -257,8 +252,6 @@ QScrollBar::add-page, QScrollBar::sub-page {
     background: transparent;
 }
 
-/* The cards of the phases: a surface with a border and a bar of its own,
-   so that where one phase ends and the next begins needs no looking for. */
 qftbx--PhaseCard {
     background: palette(base);
     border: 1px solid palette(mid);
@@ -269,11 +262,6 @@ QWidget[cardBar="true"] {
 }
 )";
 
-//What is added on top of the shapes: the two things that cannot be said in
-//palette roles. The arrow of a drop-down is an image, and it has to be
-//legible against the background of the theme in use; the mark of a field
-//that is wrong is red, and red is not a role - QPalette has no colour for
-//"this is the mistake".
 QString sheetOf(const QPalette & palette)
 {
     const bool dark = palette.color(QPalette::Window).lightness() < 128;
@@ -296,8 +284,6 @@ QLabel[wrong="true"] {
     color: %2;
 }
 
-/* And the verdict of the checker, which is the other thing a palette has no
-   colour for: a design meets its specifications or it does not. */
 QLabel[verdict="met"] {
     color: %3;
 }
@@ -306,10 +292,6 @@ QLabel[verdict="exceeded"] {
     font-weight: bold;
 }
 
-/* The two notices beside a template: one says its contour did not close,
-   the other that the sweep behind it is too coarse to tell. Neither is an
-   error - both are things to look at - so they are the colour of a warning
-   and not of a refusal. */
 QLabel[notice="closed"] {
     color: %2;
 }
@@ -345,9 +327,6 @@ QString themeName(const QString & code)
 
 void applyTheme(const QString & code)
 {
-    //Fusion and not the platform's style: the shapes below are drawn by it
-    //the same way everywhere, and the native styles of Windows and macOS
-    //ignore half of them.
     if (QStyle * fusion = QStyleFactory::create("Fusion")) {
         QApplication::setStyle(fusion);
     }
@@ -357,8 +336,6 @@ void applyTheme(const QString & code)
     } else if (code == kDarkTheme) {
         QApplication::setPalette(darkPalette());
     } else {
-        //The machine's own, whatever it is. setStyle above has already put
-        //Fusion's standard palette in place of the platform style's.
         QApplication::setPalette(QApplication::style()->standardPalette());
     }
 
@@ -374,4 +351,4 @@ void storeTheme(const QString & code, const std::string & settingsPath)
     qftbx::writeSetting(settingsPath, "interface.theme", code.toStdString());
 }
 
-} // namespace qftbx
+}

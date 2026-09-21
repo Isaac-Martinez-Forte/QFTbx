@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Name, description and value equality of a system.
+ *
+ * Equality compares the type first, then the textual numerator and
+ * denominator, which carry whatever a concrete family adds on top of its
+ * parameters, and then every parameter group element by element.
+ */
+
 #include "src/core/system/lti_system.h"
 
 namespace qftbx {
@@ -15,7 +24,6 @@ const std::string & LtiSystem::name() const {
     return m_name;
 }
 
-
 void LtiSystem::setDescription(std::string description)
 {
     m_description = std::move(description);
@@ -26,15 +34,12 @@ const std::string & LtiSystem::description() const
     return m_description;
 }
 
-
 bool LtiSystem::sameAs(LtiSystem & other)
 {
     if (type() != other.type() || name() != other.name()) {
         return false;
     }
 
-    //The textual forms carry whatever the concrete family adds on top of the
-    //parameters - a FreeForm's two expressions, above all.
     if (numeratorString() != other.numeratorString() ||
             denominatorString() != other.denominatorString()) {
         return false;
@@ -60,4 +65,4 @@ bool LtiSystem::sameAs(LtiSystem & other)
     return gain() == other.gain() && delay() == other.delay();
 }
 
-} // namespace qftbx
+}

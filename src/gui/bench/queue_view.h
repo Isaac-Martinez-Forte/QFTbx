@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief The cases of a benchmark run, one row each, with their state.
+ *
+ * Declares the tab that lists every case of a run as it is queued,
+ * started and finished, with a progress bar, a status line and a
+ * timestamped log underneath.
+ */
+
 #ifndef QFTBX_GUI_BENCH_QUEUE_VIEW_H
 #define QFTBX_GUI_BENCH_QUEUE_VIEW_H
 
@@ -43,6 +52,6 @@ private:
     std::size_t m_total = 0;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_GUI_BENCH_QUEUE_VIEW_H
+#endif

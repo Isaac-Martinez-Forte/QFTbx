@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief The name table of the loop-shaping algorithms.
+ */
+
 #include "src/core/loopshaping/algorithm_name.h"
 
 #include <vector>
@@ -34,4 +39,4 @@ std::optional<LoopShapingAlgorithm> algorithmFromName(const std::string & name)
     return std::nullopt;
 }
 
-} // namespace qftbx
+}

@@ -1,5 +1,15 @@
-// The messages of the core: the text kept apart from its arguments, the
-// English rendering, and what the exceptions carry.
+/**
+ * @file
+ * @brief Tests of the core's messages and what the exceptions carry.
+ *
+ * A message keeps its text apart from its arguments and renders in English
+ * with the placeholders filled in order, as QString::arg does: each argument
+ * takes the lowest placeholder left, so %10 is not %1 followed by a zero,
+ * and numbers render in the core's plain format. An exception carries its
+ * message and says it in English; a parse error frames it with the file and
+ * the line.
+ */
+
 #include <gtest/gtest.h>
 
 #include <string>
@@ -26,8 +36,6 @@ TEST(Message, NumbersRenderAsTheCoreAlwaysWroteThem)
 
 TEST(Message, ATenthPlaceholderIsNotTheFirst)
 {
-    //As QString::arg(): the second argument takes the lowest placeholder
-    //left, which is %10, and "%1" inside "%10" is not a placeholder.
     const Message m = QFTBX_TR("Core", "%1 %10").arg("one").arg("ten");
     EXPECT_EQ(m.rendered(), "one ten");
 }

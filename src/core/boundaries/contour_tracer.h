@@ -1,3 +1,12 @@
+/**
+ * @file
+ * @brief Level-curve tracing of a boundary sheet at a fixed height.
+ *
+ * Walks the border of every connected region of the grid that lies at or
+ * above the threshold and returns each border as a curve in Nichols
+ * coordinates.
+ */
+
 #ifndef QFTBX_CONTOUR_TRACER_H
 #define QFTBX_CONTOUR_TRACER_H
 
@@ -49,7 +58,6 @@ private:
 #endif
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_CONTOUR_TRACER_H
+#endif

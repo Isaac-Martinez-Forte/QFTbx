@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief Evaluation and poles of the polynomial form.
+ *
+ * Each polynomial is summed by Horner's rule at s = j omega, which is the
+ * accurate way and needs no power of a complex base; an empty coefficient
+ * list is the constant 1, as the textual expression writes it. A zero
+ * delay needs no special case since exp(0) is exactly 1. The poles are the
+ * roots of the denominator coefficients, found by the polynomial root
+ * finder.
+ */
+
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -8,7 +20,6 @@
 #include "src/core/system/polynomial_form.h"
 
 #include "src/core/math/polynomial.h"
-
 
 namespace qftbx {
 
@@ -39,7 +50,6 @@ std::string PolynomialForm::expression(){
     }else {
         expr +="(" + qftbx::text::number(m_gain.nominal()) + "*(";
     }
-
 
     for (std::size_t i = 1; i < sizeNum; i++){
 
@@ -92,10 +102,6 @@ std::string PolynomialForm::expression(){
     return expr;
 }
 
-//P(s) = k * (a[0]*s^(n-1) + ... + a[n-1]) / (b[0]*s^(m-1) + ... + b[m-1]),
-//at s = j*w, times the pure delay. Evaluated by Horner, which is both the
-//accurate way to sum a polynomial and needs no pow() on a complex base; an
-//empty list is the constant 1, as the expression generator writes it.
 std::complex <double> PolynomialForm::valueAt(double w, const std::vector<double> & numerator,
                                              const std::vector<double> & denominator,
                                              double gain, double delay)
@@ -118,16 +124,13 @@ std::complex <double> PolynomialForm::valueAt(double w, const std::vector<double
         }
     }
 
-    //exp(0) is exactly 1, so a zero delay needs no special case.
     return gain * num / den * std::exp(-s * delay);
 }
 
-//The denominator coefficients are stored highest degree first, as valueAt()
-//reads them; an empty denominator is the constant 1.
 std::optional<std::vector<std::complex<double>>> PolynomialForm::polesAt(const std::vector<double> &,
                                                                          const std::vector<double> & denominator)
 {
     return qftbx::math::polynomialRoots(denominator);
 }
 
-} // namespace qftbx
+}

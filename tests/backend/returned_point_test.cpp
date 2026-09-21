@@ -1,17 +1,15 @@
-// The controller a loop-shaping algorithm returns satisfies the boundaries it
-// searched against, at every design frequency.
-//
-// The termination on an epsilon-small ambiguous box returns a corner of the
-// box. The corner the anti-blocking rule picks assumes the boundary's allowed
-// side is up; where a closed boundary crosses the box that corner falls inside
-// the forbidden region. On the QFT toolbox example 2 with a loose epsilon the
-// four boundary-driven algorithms returned such a point at one or two
-// frequencies before the corner was verified (2026-09-07). These tests pin the
-// verification: the returned controller, projected as a degenerate box by the
-// same extension the search uses, classifies as feasible everywhere.
-//
-// The epsilons are loose so the runs stay short; the loop shaping itself is
-// exercised in Release in a couple of seconds per case.
+/**
+ * @file
+ * @brief The controller a search returns satisfies the boundaries it searched.
+ *
+ * Each boundary-driven algorithm is run on QFT toolbox example 2 with a loose
+ * epsilon, and the controller it returns is projected as a degenerate box by
+ * the same interval extension the search uses and classified against the
+ * boundaries at every design frequency. It must read as feasible everywhere:
+ * the termination on a small ambiguous box returns a corner, and a corner on
+ * the wrong side of a closed boundary is a violation the search would
+ * otherwise hand back. The epsilons are loose so the runs stay short.
+ */
 
 #include <gtest/gtest.h>
 
@@ -88,4 +86,4 @@ INSTANTIATE_TEST_SUITE_P(Algorithms, ReturnedPointSatisfiesBoundaries,
         ReturnedPointCase{"mc_thesis_eps10", mc_thesis, 10.0}),
     [](const ::testing::TestParamInfo<ReturnedPointCase> & info) { return std::string(info.param.name); });
 
-} // namespace
+}

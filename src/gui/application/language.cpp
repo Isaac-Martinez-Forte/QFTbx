@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Installs and resolves the translators of the interface language.
+ *
+ * The code `system` resolves against the translations compiled in: the
+ * machine's language with its region first, then without it, then the
+ * source language. Qt's own translator is installed before the
+ * application's, so the application's wins where both have a text. Both
+ * are owned here rather than parented to the application: one that fails
+ * to load is dropped at once, and one replaced is removed and freed in the
+ * same step. A translation names its own language by translating the name
+ * of the source language; one that has not is named by Qt's locale. The
+ * change events that installing posts are delivered before returning, so
+ * the caller sees the interface already in the new language.
+ */
+
 #include "src/gui/application/language.h"
 
 #include <QCoreApplication>
@@ -16,12 +32,9 @@ namespace qftbx {
 namespace {
 
 const QString kResourceDirectory = QStringLiteral(":/i18n");
-//The name of the source language, which every translation translates into
-//the name of its own: "Español", "Français"...
 const char * const kSourceLanguageName = QT_TRANSLATE_NOOP("Language", "English");
 const QString kFilePrefix = QStringLiteral("qftbx_");
 
-//Owned by the application object; replaced when the language changes.
 std::unique_ptr<QTranslator> g_application;
 std::unique_ptr<QTranslator> g_qt;
 QString g_current = kSourceLanguage;
@@ -36,9 +49,6 @@ void dropTranslators()
     }
 }
 
-//The code "system" resolved against what is available: the machine's
-//language with its region ("es_ES"), then without it ("es"), then the
-//source language.
 QString resolved(const QString & code)
 {
     const QStringList available = availableLanguages();
@@ -56,7 +66,7 @@ QString resolved(const QString & code)
     return kSourceLanguage;
 }
 
-} // namespace
+}
 
 QStringList availableLanguages()
 {
@@ -84,8 +94,6 @@ QString languageName(const QString & code)
     if (code == kSourceLanguage) {
         return QString::fromLatin1(kSourceLanguageName);
     }
-    //Each translation names its own language: the text below, translated.
-    //A translation that has not done so is named by Qt, region and all.
     QTranslator translation;
     if (translation.load(kResourceDirectory + "/" + kFilePrefix + code + ".qm")) {
         const QString name = translation.translate("Language", kSourceLanguageName);
@@ -112,12 +120,6 @@ QString applyLanguage(const QString & code)
     dropTranslators();
 
     if (shown != kSourceLanguage) {
-        //Qt's own first, so the application's takes precedence where both
-        //have a text (the last installed is consulted first).
-        //Owned HERE and not parented to the application: a translator that
-        //fails to load is dropped at once, and one replaced on a language
-        //change is removed from Qt and freed in the same step. Parenting it
-        //would put a second owner on the same object.
         auto qt = std::make_unique<QTranslator>();
         if (qt->load(QStringLiteral("qtbase_") + shown, QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
             QCoreApplication::installTranslator(qt.get());
@@ -133,9 +135,6 @@ QString applyLanguage(const QString & code)
 
     g_current = shown;
 
-    //Installing a translator posts a LanguageChange to every window; it is
-    //delivered here and now, so the caller sees the interface in the new
-    //language when this returns.
     QCoreApplication::sendPostedEvents(nullptr, QEvent::LanguageChange);
     return shown;
 }
@@ -145,4 +144,4 @@ void storeLanguage(const QString & code, const std::string & settingsPath)
     writeSetting(settingsPath.empty() ? userSettingsPath() : settingsPath, "interface.language", code.toStdString());
 }
 
-} // namespace qftbx
+}

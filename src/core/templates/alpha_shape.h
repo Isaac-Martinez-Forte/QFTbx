@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @brief The boundary of the epsilon-hull of a point set, by its definition.
+ *
+ * An edge belongs to the boundary when one of the two discs of radius
+ * epsilon/2 through its ends holds no other point. The result is the outer
+ * loop of every connected component, which is what the walk of the template
+ * engine approximates and what a border sweep, a curve rather than a cloud,
+ * needs computed exactly.
+ */
+
 #ifndef QFTBX_ALPHA_SHAPE_H
 #define QFTBX_ALPHA_SHAPE_H
 
@@ -45,6 +56,6 @@ struct AlphaShape
 
 AlphaShape alphaShape(const ComplexCloud & points, double epsilon);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_ALPHA_SHAPE_H
+#endif

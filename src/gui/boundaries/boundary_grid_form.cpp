@@ -1,9 +1,22 @@
+/**
+ * @file
+ * @brief Validates the Nichols grid before it reaches the engine.
+ *
+ * Accepting requires increasing ranges and at least two points per axis,
+ * since what is read here goes straight into the computation, and a
+ * ceiling on the number of cells: a couple of extra zeros in a count would
+ * otherwise reach an allocation of that many doubles, which is not the
+ * exception the computation is wrapped in. The ceiling guards the typo and
+ * is not a design limit; for scale, a one-degree grid over 360 degrees is
+ * 360 points per axis. Without a GPU build neither half of the CPU/GPU
+ * choice is shown, since a lone choice cannot be unselected.
+ */
+
 #include "src/gui/boundaries/boundary_grid_form.h"
 #include "src/gui/common/number_text.h"
 #include "ui_boundary_grid_form.h"
 
 #include "src/gui/application/error_message.h"
-
 
 namespace qftbx {
 
@@ -23,16 +36,11 @@ BoundaryGridForm::BoundaryGridForm(QWidget *parent) :
 
     ui->infinityEdit->setValidator(new QDoubleValidator(this));
 
-    //Prefilled from the settings, which the window applies right after
-    //construction; these are what stands until it does.
     applyDefaults(qftbx::Settings().defaults);
 
     setWindowTitle(tr("Boundary grid input"));
 
 #ifndef CUDA_AVAILABLE
-    //Without a GPU build there is nothing to choose between, so neither
-    //half of the choice is shown: a lone "CPU" that cannot be unselected
-    //asks a question with one answer.
     ui->cudaCheck->setVisible(false);
     ui->cpu->setVisible(false);
 #endif
@@ -82,7 +90,6 @@ void BoundaryGridForm::applyDefaults(const qftbx::Settings::Defaults & defaults)
     ui->magnitudeEnd->setText(qftbx::numberText(defaults.magnitudeEnd));
     ui->magnitudePoints->setText(qftbx::numberText(defaults.magnitudePoints));
 
-    //Which of the two the run starts on; the user still chooses per run.
     if (defaults.boundariesFromCloud) {
         ui->fullTemplateRadio->setChecked(true);
     } else {
@@ -119,23 +126,12 @@ void BoundaryGridForm::on_okButton_clicked()
     phaseCount = ui->phasePoints->text().toInt();
     magnitudeCount = ui->magnitudePoints->text().toInt();
 
-    //The grid must make sense before launching the computation: increasing
-    //ranges and at least two points per axis: what is here goes straight
-    //into the engine.
     if (phaseRange.min >= phaseRange.max || magnitudeRange.min >= magnitudeRange.max ||
             phaseCount < 2 || magnitudeCount < 2){
         qftbx::errorMessage(tr("The grid ranges must be increasing, with at least 2 points per axis."), tr("Boundary grid input"));
         return;
     }
 
-    //And a ceiling. There was none: the counts only had to be >= 2, so an
-    //extra couple of zeros in either field reached qftbx::linspace, which
-    //reserves that many doubles - a std::bad_alloc, which is not the
-    //qftbx::Exception the computation is wrapped in, so the application went
-    //down on a typo. The budget guards against that typo; it is not a
-    //control-design limit, and it can be raised. For scale, a 1-degree phase
-    //grid over 360 degrees is 360 points per axis. It comes from the
-    //settings now, so it can be moved without a rebuild.
     if (static_cast<std::int64_t>(phaseCount) * magnitudeCount > m_maxGridCells){
         qftbx::errorMessage(tr("The grid asks for %1 cells, and the limit is "
                                "%2. Reduce the number of points per axis.")
@@ -145,7 +141,6 @@ void BoundaryGridForm::on_okButton_clicked()
         return;
     }
 
-    //Read directly, not latched, so unchecking it takes effect.
     cudaCheck = ui->cudaCheck->isChecked();
 
     markAccepted();
@@ -155,4 +150,4 @@ bool BoundaryGridForm::cudaSelected(){
     return cudaCheck;
 }
 
-} // namespace qftbx
+}

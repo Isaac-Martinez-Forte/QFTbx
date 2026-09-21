@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief The step that asks for the parameter grids and the contour epsilon.
+ *
+ * Declares the panel with a general point count and spacing, a row per
+ * uncertain parameter with its own linear, logarithmic or manual grid, the
+ * plane the templates are drawn on and the epsilon is measured in, how the
+ * contour is extracted and what stands in when it does not close, the
+ * border-only sweep, and the per-frequency epsilon. An installed proposer
+ * fills the epsilon field with the least value that closes each contour.
+ * The grids are returned by value; the plant is an observer the project
+ * can take away while the panel is open.
+ */
+
 #ifndef QFTBX_TEMPLATES_FORM_H
 #define QFTBX_TEMPLATES_FORM_H
 
@@ -20,7 +34,6 @@
 #include <QHash>
 #include <QStringList>
 
-
 #include "src/gui/common/parlineedit.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/hull_metric.h"
@@ -29,14 +42,11 @@
 #include "src/core/system/parameter.h"
 #include "src/core/math/sequence_vectors.h"
 
-
-
 namespace Ui {
 class TemplatesForm;
 }
 
 namespace qftbx {
-
 
 /**
  * @brief Step 3 of the design: the sweep grid of every uncertain plant
@@ -48,7 +58,7 @@ namespace qftbx {
 class TemplatesForm : public StepPanel
 {
     Q_OBJECT
-    
+
 public:
     /// Ceiling on a parameter grid's point count, from the settings. It only
     /// ever refuses input, so moving it changes no computed result.
@@ -57,13 +67,10 @@ public:
     /// Prefills the general point count from the settings.
     void setDefaultPointCount(std::int32_t points);
 
-  
-  
     explicit TemplatesForm(QWidget *parent = 0);
 
     ~TemplatesForm();
 
-    
    /**
     * @brief Builds the rows and shows the dialog.
     *
@@ -82,23 +89,19 @@ public:
     /// panel refuses to publish until it is given one again. The project
     /// owns the plant and can drop it while this stays open.
     void forgetPlant();
-    
-    
+
     /// The grids BY VALUE: nobody has to free them, and the dialog keeps its
     /// own copy for a second accept. See qftbx::ParameterGrids.
     qftbx::ParameterGrids grids() const;
-    
-    
+
     /// The per-frequency epsilon the user described, or nullptr when the
     /// dialog was cancelled or rejected. Ownership PASSES to the caller,
     /// so the dialog holds nothing between accepts.
     std::vector<double> takeEpsilon();
-    
-    
+
     /// Which plane the templates and their contour are drawn on: Nichols
     /// rather than Nyquist.
     bool nicholsSelected();
-
 
     /// Whether the user asked for the GPU path (requires a CUDA build).
     bool cudaSelected();
@@ -136,17 +139,14 @@ public:
     /// sweep failed).
     const std::vector<qftbx::TemplateEngine::EpsilonProposal> & proposals() const { return m_proposals; }
 
-
     struct ThreeRadioButtons{
-        //Observers on radio buttons owned by their row widget: the three
-        //ways of entering one parameter's grid.
+        /// Observers on radio buttons owned by their row widget: the three
+        /// ways of entering one parameter's grid.
         QRadioButton * linear = nullptr;
         QRadioButton * logarithmic = nullptr;
         QRadioButton * manual = nullptr;
     };
 
-
-    
 private slots:
     void on_allVariablesRadio_clicked();
 
@@ -156,7 +156,6 @@ private slots:
     void on_numeratorRadio_clicked();
 
     void on_denominatorRadio_clicked();
-
 
     void on_okButton_clicked();
 
@@ -183,7 +182,6 @@ private:
 
     std::unique_ptr<Ui::TemplatesForm> ui;
 
-
     void buildRow (QWidget *widget, QVector<ParLineEdit> & par,
                    QVector <ThreeRadioButtons> & rowRadios);
     void buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator);
@@ -196,8 +194,8 @@ private:
     bool readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
                          bool useLinspace, bool useLogspace);
 
-    //A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
-    //the row widget: the rows themselves are values.
+    /// A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
+    /// the row widget: the rows themselves are values.
     QVector <ParLineEdit> numeratorRows;
     QVector <ParLineEdit> denominatorRows;
     qftbx::ParameterGrids gridMap;
@@ -205,8 +203,8 @@ private:
     QVector <ThreeRadioButtons> denominatorRadios;
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
-    //An observer on the project's plant, handed in by launch(): the
-    //dialog never owns it.
+    /// An observer on the project's plant, handed in by launch(): the
+    /// dialog never owns it.
     LtiSystem * plant = nullptr;
 
     bool rowsBuilt = false;
@@ -214,12 +212,10 @@ private:
 
     bool nicholsDiagram  = true;
 
-
-
     std::vector<double> epsilonValues;
 
-    //Names entered more than once in the current OK pass (numerator and
-    //denominator sharing a parameter): reported once to the user.
+    /// Names entered more than once in the current OK pass (numerator and
+    /// denominator sharing a parameter): reported once to the user.
     QStringList duplicateNames;
 
     qint32 frequencyCount = 0;
@@ -228,6 +224,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_TEMPLATES_FORM_H
+#endif

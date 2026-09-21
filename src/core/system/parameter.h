@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief A plant parameter: a constant or an uncertain value with a range.
+ *
+ * Declares the parameter with its name, nominal value and range, and an
+ * optional reparametrisation expression that maps the raw values to the
+ * ones the design sees. The raw and the transformed readings are both
+ * available; inverted ranges are normalised on construction. Value
+ * equality compares the raw state in full, conservatively, so a dialog
+ * accepted without an edit can be told from a real change without ever
+ * keeping templates computed for another plant. The parsed
+ * reparametrisation is shared between the copies the searches make by the
+ * million.
+ */
+
 #ifndef QFTBX_PARAMETER_H
 #define QFTBX_PARAMETER_H
 
@@ -86,10 +101,10 @@ private:
     /// the raw values ARE the real ones and the parser has nothing to add.
     bool identityExpression() const;
 
-    //Initialised HERE and not constructor by constructor: the copy
-    //constructor reads m_hasExpression, so a constructor that left it
-    //indeterminate would turn a stack byte into the evaluation of an
-    //undefined variable.
+    /// Initialised HERE and not constructor by constructor: the copy
+    /// constructor reads m_hasExpression, so a constructor that left it
+    /// indeterminate would turn a stack byte into the evaluation of an
+    /// undefined variable.
     std::string m_name;
     Range m_range;
     double m_nominal = 0.0;
@@ -97,14 +112,13 @@ private:
     std::string m_expression;
     bool m_hasExpression = false;
 
-    //The reparametrisation parsed once, bound to the parameter's own name;
-    //shared by the copies, which the searches make by the million. Null
-    //when the raw values are the real ones.
+    /// The reparametrisation parsed once, bound to the parameter's own name;
+    /// shared by the copies, which the searches make by the million. Null
+    /// when the raw values are the real ones.
     std::shared_ptr<const class ExpressionTree> m_compiled;
 
 };
 
-} // namespace qftbx
+}
 
-
-#endif // QFTBX_PARAMETER_H
+#endif

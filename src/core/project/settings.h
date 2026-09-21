@@ -1,3 +1,18 @@
+/**
+ * @file
+ * @brief The values a user may change without recompiling.
+ *
+ * Declares the settings as plain fields with their compiled defaults,
+ * grouped as the settings file is: input ceilings that only refuse typos,
+ * the memory budget of the search, the resolution of the nominal stability
+ * check, the figures from the published algorithms that change what is
+ * computed, the values dialogs are prefilled with, the interface's language
+ * and look, and the record of stages. Not a map looked up by name, since
+ * some are read once per node of a search; loaded once and immutable after.
+ * Also declares the reader, the writer of one key, the search order of the
+ * files, and the opening of the record the settings describe.
+ */
+
 #ifndef QFTBX_SETTINGS_H
 #define QFTBX_SETTINGS_H
 
@@ -102,8 +117,7 @@ struct Settings {
      * everything above, these change WHAT THE ALGORITHM COMPUTES, not how
      * long it takes to compute it. Each one is a figure from a paper, and the
      * provenance is written next to it because a value changed here makes the
-     * golden tests and the article validations stop describing the program
-     * that is running.
+     * published references stop describing the program that is running.
      *
      * They are exposed anyway, deliberately: a doctoral toolbox whose
      * published parameters can only be explored by recompiling is a worse
@@ -143,18 +157,16 @@ struct Settings {
 
         /// Templates: extract the contour as the alpha-shape of the cloud
         /// (the epsilon-hull by its definition, edge by edge: always closes,
-        /// every component and hole) instead of by the historical walk of
-        /// Nordin. Off by default: the walk is the published algorithm and
-        /// the fixtures were computed with it. The templates dialog offers
-        /// the choice.
+        /// every component and hole) instead of by the walk of
+        /// Nordin. Off by default: the walk is the published algorithm. The
+        /// templates dialog offers the choice.
         bool alphaShapeContour = false;
 
         /// Templates: with exactly two uncertain parameters, sweep only the
         /// border of the parameter box, as densely as the interior grid
         /// would have cost, since the worst case over a template is attained
         /// on its border (TemplateEngine::setBorderSweep). Off by default:
-        /// it changes the template, so the fixtures computed with the
-        /// interior grid stay as they are. The templates dialog offers it.
+        /// it changes the template. The templates dialog offers it.
         bool borderSweep = false;
 
         /// Boundaries: read the columns of the five magnitude specifications
@@ -162,7 +174,7 @@ struct Settings {
         /// intersected exactly - instead of off the sampled sheet: exact in
         /// magnitude, no magnitude window (ClosedFormColumns). Tracking
         /// keeps its sheet. Off by default: the sheet is the published
-        /// method and the fixtures were computed with it.
+        /// method.
         bool closedFormColumns = false;
 
         /// MC (thesis) and MC2: the strategies of chapter 4, each one a
@@ -325,10 +337,9 @@ struct Settings {
      * One line per stage, written as the work goes, capped in size: past
      * the limit the file becomes the previous generation and a new one
      * starts, so the oldest lines fall off and it never grows without
-     * bound. What it is for is the question the engines used to answer by
-     * printing on standard output - how long did THIS take, with THIS
-     * algorithm, on THIS plant - now kept where it can be read after the
-     * fact, from the interface as much as from a script.
+     * bound. It answers how long THIS took, with THIS algorithm, on THIS
+     * plant, where it can be read after the fact, from the interface as much
+     * as from a script.
      */
     struct Log {
         /// Off by default: a program that writes files nobody asked for is
@@ -413,6 +424,6 @@ Settings loadSettings();
  */
 void openRecord(const Settings & settings);
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_SETTINGS_H
+#endif

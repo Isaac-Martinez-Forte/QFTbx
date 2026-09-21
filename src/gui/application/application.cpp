@@ -1,5 +1,15 @@
-#include "src/gui/application/application.h"
+/**
+ * @file
+ * @brief Event dispatch that turns an escaped exception into a message.
+ *
+ * The exception is reported through the GUI's own error reporter, so a
+ * headless run captures it instead of blocking on a dialog. A toolbox
+ * exception is translated first; any other standard exception is shown
+ * with the text it carries. The event counts as handled either way, since
+ * reporting it is the handling.
+ */
 
+#include "src/gui/application/application.h"
 
 #include "src/gui/application/error_message.h"
 #include "src/core/common/exception.h"
@@ -16,17 +26,12 @@ bool Application::notify(QObject * receiver, QEvent * event)
     try {
         return QApplication::notify(receiver, event);
     } catch (const qftbx::Exception & error) {
-        //Through the GUI's own reporter, like every dialog: a modal box for
-        //a user, and something a headless run can capture instead of
-        //blocking on it forever.
         qftbx::errorMessage(translated(error), tr("QFTbx"));
     } catch (const std::exception & error) {
-        //Anything else that can still say what happened.
         qftbx::errorMessage(translated(error), tr("QFTbx"));
     }
 
-    //The event is spent either way: reporting it is the handling.
     return true;
 }
 
-} // namespace qftbx
+}

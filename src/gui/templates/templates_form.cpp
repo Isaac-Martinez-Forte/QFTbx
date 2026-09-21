@@ -1,3 +1,19 @@
+/**
+ * @file
+ * @brief Reads the parameter grids and the epsilons from the form.
+ *
+ * A point count comes from an expression, so it is accepted only when
+ * finite, at least one and under the settings' ceiling, then truncated to
+ * a whole number; a manual grid value may be negative but must be finite,
+ * since a NaN would surface much later as an empty plot. A name entered in
+ * both polynomials gets the first grid entered and the user is told once;
+ * a certain gain or delay is a grid of its one nominal value. Fewer
+ * epsilons than frequencies repeat the last one, every one positive and
+ * finite, and the decibels-per-degree weight must be positive. The epsilon
+ * field is prefilled from the proposer over the grids as they open, and
+ * the border sweep needs exactly two distinct uncertain parameters.
+ */
+
 #include <algorithm>
 #include <cmath>
 #include "src/gui/common/number_text.h"
@@ -16,24 +32,10 @@
 
 #include <QMessageBox>
 
-
 namespace qftbx {
 
 namespace {
 
-//A point count is read from an expression the user typed, so it can be
-//anything an expression evaluates to: fractional, negative, enormous, or
-//not finite at all. Casting that straight to a size_t is what turned a
-//"-5" into a request for 1.8e19 doubles: reserve() threw a length_error,
-//which was not caught, so the application went down instead of
-//complaining. A non-finite value was worse - converting an infinity to an
-//integer type is undefined behaviour.
-//The ceiling comes from the settings, so it can be moved without a
-//rebuild; the default is generous, a template grid needing hundreds of
-//points and a million already multiplying out to more plants than a sweep
-//can hold. Truncation of a fractional count is what the implicit
-//conversion did before, and it is kept, so every input that worked before
-//still behaves the same - only the crashing ones changed.
 bool asPointCount(double value, double ceiling, std::size_t & count)
 {
     if (!std::isfinite(value) || value < 1.0 || value > ceiling) {
@@ -57,31 +59,22 @@ TemplatesForm::TemplatesForm(QWidget *parent) :
     ui->globalPointCount->setText(
         qftbx::numberText(qftbx::Settings().defaults.templatePointCount));
 
-
 #ifndef CUDA_AVAILABLE
     ui->cudaCheck->setVisible(false);
 #endif
 
-    //The defaults from the start, and not only when a plant arrives: a form
-    //whose radios are all unchecked says nothing about what it will do.
     selectDefaultsWhereEmpty();
 }
 
 TemplatesForm::~TemplatesForm()
 {
-    //The rows are Qt children of the form and die with it.
 }
 
-//Variable rows: each ParLineEdit and its tab page belong to the form, so
-//a clear() alone would leave the pages piling up.
 void TemplatesForm::clearTables(){
     if (!rowsBuilt){
         return;
     }
 
-    //Qt's own mechanism, and the only reason there is a delete here:
-    //destroying the tab page is how the three line edits of a row leave the
-    //form.
     for (const ParLineEdit & par : numeratorRows){
         delete par.getX()->parentWidget();
     }
@@ -98,8 +91,6 @@ void TemplatesForm::clearTables(){
     rowsBuilt = false;
 }
 
-//The grid map belongs to the form; the engine reads it without taking
-//ownership.
 std::vector<double> TemplatesForm::takeEpsilon(){
     return std::move(epsilonValues);
 }
@@ -131,10 +122,8 @@ void TemplatesForm::launch(LtiSystem *plant, qint32 frequencyCount){
     this->plant = plant;
     this->frequencyCount = frequencyCount;
 
-
     buildTables(plant->numerator(), plant->denominator());
 
-    //The border sweep needs exactly two uncertain parameters (distinct names).
     std::vector<std::string> uncertain;
     const auto count = [&uncertain](const Parameter & p) {
         if (p.isUncertain() && std::find(uncertain.begin(), uncertain.end(), p.name()) == uncertain.end()) {
@@ -147,8 +136,6 @@ void TemplatesForm::launch(LtiSystem *plant, qint32 frequencyCount){
     count(plant->delay());
     ui->borderSweepCheck->setEnabled(uncertain.size() == 2);
 
-    //The field opens with the epsilon the family asks for over the grids as
-    //they stand, so that OK is a complete answer and changing it a choice.
     selectDefaultsWhereEmpty();
     proposeEpsilon();
 }
@@ -202,11 +189,6 @@ void TemplatesForm::selectDefaultsWhereEmpty()
     }
 }
 
-//The least epsilon that keeps each template connected, one per frequency,
-//rounded up to three figures; the tooltip carries the exact figures and the
-//gap each leaves against its template. Nothing is reported when the grids
-//cannot be read or the sweep fails: OK will say what is wrong, with the
-//user's attention on it.
 void TemplatesForm::proposeEpsilon()
 {
     m_proposals.clear();
@@ -266,9 +248,7 @@ void TemplatesForm::buildTables(std::vector<Parameter> & numerator, std::vector<
 
     clearTables();
 
-
     rowsBuilt = true;
-
 
     qint32 tabIndex = 0;
     for (Parameter & variable : numerator){
@@ -329,7 +309,6 @@ void TemplatesForm::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
 
     horizontalLayout->addWidget(lin);
 
-
     verticalLayout->addLayout(horizontalLayout);
 
     horizontalLayout_2 = new QHBoxLayout();
@@ -345,7 +324,6 @@ void TemplatesForm::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
 
     horizontalLayout_2->addWidget(log);
 
-
     verticalLayout->addLayout(horizontalLayout_2);
 
     horizontalLayout_3 = new QHBoxLayout();
@@ -359,7 +337,6 @@ void TemplatesForm::buildRow(QWidget *widget, QVector <ParLineEdit> & par,
     manual->setObjectName(QString::fromUtf8("manual"));
 
     horizontalLayout_3->addWidget(manual);
-
 
     verticalLayout->addLayout(horizontalLayout_3);
 
@@ -423,8 +400,6 @@ void TemplatesForm::setDefaultPointCount(std::int32_t points)
 
 void TemplatesForm::on_okButton_clicked()
 {
-    //The grids describe the parameters of a plant the project owns, and it
-    //can replace or drop that plant while this panel is open.
     if (plant == nullptr) {
         errorMessage(tr("The plant must be entered before the templates."),
                      tr("Template computation"));
@@ -436,16 +411,13 @@ void TemplatesForm::on_okButton_clicked()
     else if (ui->nicholsRadio->isChecked())
         nicholsDiagram = true;
 
-    //Read directly, not latched, so unchecking it takes effect.
     cudaEnabled = ui->cudaCheck->isChecked();
 
-    //The previous grid map is still the form's and is freed here.
     gridMap.clear();
     duplicateNames.clear();
 
     epsilonValues.clear();
 
-    //The weighting of the Nichols plane has to be a positive number.
     if (ui->metricCombo->currentIndex() == 0 && !(ui->dbPerDegreeEdit->text().toDouble() > 0.0)){
         errorMessage(tr("The decibels per degree must be a positive number."), tr("Template computation"));
         markWrong(ui->dbPerDegreeEdit, true, tr("The decibels per degree must be a positive number."));
@@ -467,8 +439,6 @@ void TemplatesForm::on_okButton_clicked()
 
         qint32 counter = 0;
 
-        //User expressions: an invalid epsilon must not escape this slot,
-        //since an exception out of a Qt slot terminates the process.
         for (const std::string & s : v) {
             const std::optional<double> epsilonValue = evaluateNumber(QString::fromStdString(s));
             if (!epsilonValue.has_value()) {
@@ -478,9 +448,6 @@ void TemplatesForm::on_okButton_clicked()
                 return;
             }
             lastEpsilon = *epsilonValue;
-            //An epsilon that is not a positive finite number has no hull:
-            //the walk would fail much later, per frequency, naming no
-            //field ("0/0" evaluates to a NaN, not an error).
             if (!std::isfinite(lastEpsilon) || lastEpsilon <= 0.0) {
                 errorMessage(tr("Every epsilon must be a positive finite number."), tr("Template computation"));
                 markWrong(ui->epsilonEdit, true,
@@ -615,8 +582,6 @@ bool TemplatesForm::readGrids(QString & reason)
             return false;
         }
 
-        //The DELAY's key, not the gain's: under the gain's it clobbers the
-        //gain's grid and leaves the delay without an entry.
         if (useLinspace){
             gridMap[plant->delay().name()] = qftbx::math::linspace(start, end, pointCount);
         } else {
@@ -625,7 +590,6 @@ bool TemplatesForm::readGrids(QString & reason)
     }
 
     } catch (const std::invalid_argument &) {
-        //Invalid manual grid: caught here, for the same reason.
         reason = tr("Invalid grid expressions.");
         return false;
     }
@@ -638,10 +602,6 @@ bool TemplatesForm::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons
 
     m_readReason.clear();
 
-    //Policy for repeated names (e.g. the same 'a' in numerator and
-    //denominator): the FIRST entered grid wins and the user is told once
-    //which names were unified (with the name key, the last one would
-    //silently win otherwise).
     if (gridMap.count(parameter.name()) != 0){
         if (!duplicateNames.contains(QString::fromStdString(parameter.name()))){
             duplicateNames.push_back(QString::fromStdString(parameter.name()));
@@ -652,7 +612,6 @@ bool TemplatesForm::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons
     qreal start;
     qreal end;
     std::size_t pointCount = 0;
-
 
     if (rowRadios.linear->isChecked() && !rowEdits.getX()->text().isEmpty()){
 
@@ -690,10 +649,6 @@ bool TemplatesForm::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons
         values.reserve(static_cast<std::size_t>(vector.size()));
 
         for (const std::string & sSymbolCount : vector) {
-            //A manual grid value may be negative - a parameter range can be -
-            //but a text that is not an expression, an infinity or a NaN would
-            //spread through every template computed from it and only surface
-            //much later, as an empty plot.
             const double value = evaluateNumber(QString::fromStdString(sSymbolCount)).value_or(std::numeric_limits<double>::quiet_NaN());
             if (!std::isfinite(value)){
                 m_readReason = tr("one of its grid values is not a finite "
@@ -733,7 +688,6 @@ qftbx::ParameterGrids TemplatesForm::grids() const{
     return gridMap;
 }
 
-
 bool TemplatesForm::nicholsSelected(){
     return nicholsDiagram;
 }
@@ -742,4 +696,4 @@ bool TemplatesForm::cudaSelected(){
     return cudaEnabled;
 }
 
-} // namespace qftbx
+}

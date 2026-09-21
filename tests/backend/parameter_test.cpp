@@ -1,4 +1,16 @@
-// Tests for Parameter (src/core/system/parameter.h).
+/**
+ * @file
+ * @brief Tests of the parameter type and its reparametrisation.
+ *
+ * A constant takes its textual value as name and expression; an uncertain
+ * variable keeps a raw range and nominal, and an optional expression in its
+ * own name transforms the values it reports while the raw accessors stay
+ * untouched. An empty expression falls back to the name, an inverted range is
+ * normalised, and a copy carries every field, so a vector of parameters copies
+ * member by member and mutating the copy leaves the source alone. A failure
+ * here means a plant read from a file or handed to a sweep reports the wrong
+ * value or the wrong name.
+ */
 
 #include <gtest/gtest.h>
 
@@ -23,7 +35,6 @@ TEST(Parameter, UncertainVariableBasics)
     EXPECT_EQ(var.name(), std::string("a"));
     EXPECT_DOUBLE_EQ(var.rawNominal(), 2.0);
     EXPECT_EQ(var.rawRange(), Range(1.0, 5.0));
-    // Without an explicit reparametrisation, exp falls back to the name.
     EXPECT_EQ(var.expression(), std::string("a"));
     EXPECT_DOUBLE_EQ(var.nominal(), 2.0);
     EXPECT_EQ(var.range(), Range(1.0, 5.0));
@@ -42,7 +53,6 @@ TEST(Parameter, ConstantValue)
 
     EXPECT_FALSE(var.isUncertain());
     EXPECT_DOUBLE_EQ(var.nominal(), 3.5);
-    // Constants take their textual value as name and exp.
     EXPECT_EQ(var.name(), std::string("3.5"));
     EXPECT_EQ(var.expression(), std::string("3.5"));
 }
@@ -59,8 +69,6 @@ TEST(Parameter, NamedConstant)
 
 TEST(Parameter, ReparametrisationThroughExp)
 {
-    // exp is evaluated with the raw value of the variable bound to its
-    // name: nominal and range are transformed, raw accessors are not.
     Parameter var(std::string("a"), Range(1.0, 5.0), 3.0, std::string("a*2"));
 
     EXPECT_TRUE(var.isUncertain());
@@ -72,7 +80,6 @@ TEST(Parameter, ReparametrisationThroughExp)
 
 TEST(Parameter, IdentityExpBehavesAsNoReparametrisation)
 {
-    // The XML writer always stores exp == name; values must pass through.
     Parameter var(std::string("a"), Range(0.5, 2.0), 2.0, std::string("a"));
 
     EXPECT_DOUBLE_EQ(var.nominal(), 2.0);
@@ -81,9 +88,6 @@ TEST(Parameter, IdentityExpBehavesAsNoReparametrisation)
 
 TEST(Parameter, EmptyExpFallsBackToName)
 {
-    // Fixed: the 4-argument constructor with an empty exp now falls back to
-    // the name, like the 3-argument one (it used to leave exp empty, and
-    // FreeForm::expression() emitted "*(...)": a parse error).
     Parameter var(std::string("a"), Range(1.0, 5.0), 2.0, std::string());
 
     EXPECT_EQ(var.expression(), std::string("a"));
@@ -92,8 +96,6 @@ TEST(Parameter, EmptyExpFallsBackToName)
 
 TEST(Parameter, CopyConstructorCopiesEverything)
 {
-    // Fixed: the copy constructor used to copy only the range, leaving
-    // name, nominal and the `variable` flag uninitialised.
     Parameter original(std::string("a"), Range(1.0, 5.0), 2.0, std::string("a*2"));
     Parameter copia(original);
 
@@ -107,8 +109,6 @@ TEST(Parameter, CopyConstructorCopiesEverything)
 
 TEST(Parameter, CopyOfUncertainVariablePreservesContent)
 {
-    // Value semantics replaced clone(): the copy constructor carries the
-    // name, the raw range, the raw nominal and the reparametrisation.
     Parameter var(std::string("a"), Range(1.0, 5.0), 2.0, std::string("a"));
 
     Parameter copy = var;
@@ -122,9 +122,6 @@ TEST(Parameter, CopyOfUncertainVariablePreservesContent)
 
 TEST(Parameter, CopyOfConstantKeepsItsName)
 {
-    // The defect the old clone() had: it routed constants through
-    // Parameter(double), rewriting the name as the textual value ("kv"
-    // became "1"). A copy cannot lose the name.
     Parameter var(std::string("kv"), 1.0);
 
     Parameter copy = var;
@@ -135,7 +132,6 @@ TEST(Parameter, CopyOfConstantKeepsItsName)
 
 TEST(Parameter, VectorCopyIsIndependent)
 {
-    // What cloneVector() used to do by hand, std::vector does by itself.
     std::vector<Parameter> source;
     source.emplace_back(std::string("a"), Range(1.0, 5.0), 2.0);
     source.emplace_back(3.5);
@@ -147,11 +143,8 @@ TEST(Parameter, VectorCopyIsIndependent)
     EXPECT_EQ(copy[0].name(), std::string("a"));
     EXPECT_DOUBLE_EQ(copy[1].nominal(), 3.5);
 
-    //Mutating the copy leaves the source alone. Through setName(), which is
-    //the one mutator left: setNominal() went with the other setters that
-    //skipped the constructors' checks.
     copy[0].setName(std::string("b"));
     EXPECT_EQ(source[0].name(), std::string("a"));
 }
 
-} // namespace
+}

@@ -7,6 +7,7 @@
 #include "src/core/math/sequence_vectors.h"
 
 /**
+ * @file
  * @brief Result of classifying one projected Nichols box against the
  * boundary union at one design frequency (BoundaryViolationDetector).
  *
@@ -43,6 +44,6 @@ private:
     bool m_topRightForbidden = false;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_BOX_CLASSIFICATION_H
+#endif

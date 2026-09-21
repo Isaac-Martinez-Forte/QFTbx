@@ -1,11 +1,16 @@
-/*
-Roberto C. Cruz Rodríguez
-    rcruz@instec.cu
-*/
-
 /**
-*    @author Roberto C. Cruz Rodríguez <rcruz@instec.cu>
-*/
+ * @file
+ * @brief Interpreter of arithmetic expressions over named variables.
+ *
+ * A free-form plant, an uncertain parameter written as a formula of others
+ * and the constraints of algorithm MR are all text. The parser turns it into
+ * a binary tree whose leaves are values and variables and whose inner nodes
+ * are operations, and the tree evaluates over doubles, complex numbers or
+ * intervals. Bound to a constraint, it also narrows the domains of its
+ * variables by forward and backward propagation, the HC4 contractor of the
+ * constraint-programming literature. Derived from the interpreter by
+ * Roberto C. Cruz Rodríguez (rcruz@instec.cu).
+ */
 
 #ifndef QFTBX_MATH_EXPRESSION_TREE_H
 #define QFTBX_MATH_EXPRESSION_TREE_H
@@ -46,30 +51,30 @@ enum com { GREATER, LESS, GREATER_EQUAL, LESS_EQUAL, EQUAL};
 */
 struct exp_node
 {
-    //Initialised here: the construction sites each assign type, left and
-    //right by hand (verified), and the tree walkers dereference the children
-    //unconditionally - one forgotten assignment is an indeterminate pointer,
-    //not a null one.
+    /// Initialised here: the construction sites each assign type, left and
+    /// right by hand (verified), and the tree walkers dereference the children
+    /// unconditionally - one forgotten assignment is an indeterminate pointer,
+    /// not a null one.
     double c_const = 0.0;
 
     type_node type = {};
 
     std::string var;
 
-    //Position of the variable in the value vectors of the bound evaluation
-    //(see ExpressionTree::bind); -1 while unbound.
+    /// Position of the variable in the value vectors of the bound evaluation
+    /// (see ExpressionTree::bind); -1 while unbound.
     int index = -1;
 
     Interval enclosure;
 
-    //Where the variable of a VAR node lives in the map of the evaluation in
-    //progress: found once by the forward pass and written through by the
-    //backward pass of the same call, instead of looked up by name again.
-    //Valid only inside that call.
+    /// Where the variable of a VAR node lives in the map of the evaluation in
+    /// progress: found once by the forward pass and written through by the
+    /// backward pass of the same call, instead of looked up by name again.
+    /// Valid only inside that call.
     Interval * slot = nullptr;
 
-    //A node OWNS its branches, so a tree frees itself and no early return
-    //of the parser has to remember to walk it.
+    /// A node OWNS its branches, so a tree frees itself and no early return
+    /// of the parser has to remember to walk it.
     std::unique_ptr<exp_node> left;
     std::unique_ptr<exp_node> right;
 };
@@ -288,27 +293,27 @@ private :
 
     std::unique_ptr<exp_node> root;
 
-    //Set at the entry of eval()/propagate() so the recursion does not have
-    //to carry them; initialised because not every constructor passes
-    //through one of those.
+    /// Set at the entry of eval()/propagate() so the recursion does not have
+    /// to carry them; initialised because not every constructor passes
+    /// through one of those.
     std::map<std::string, double> * variables = nullptr;
     std::map<std::string, Interval> * variables_in = nullptr;
-    //The bound alternative to variables_in: exactly one of the two is set
-    //during an interval evaluation.
+    /// The bound alternative to variables_in: exactly one of the two is set
+    /// during an interval evaluation.
     std::vector<Interval> * values_in = nullptr;
 
     /// The HC4 pass over whichever domains are loaded.
     bool propagateLoaded();
 
-    //The constraint propagate() tests against. Two of the four constructors
-    //do not set them, and propagate() reads both.
+    /// The constraint propagate() tests against. Two of the four constructors
+    /// do not set them, and propagate() reads both.
     double comparisonValue = 0.0;
     com comparison = GREATER_EQUAL;
 
-    //The names bind() was given, in order; empty while unbound.
+    /// The names bind() was given, in order; empty while unbound.
     std::vector<std::string> m_boundNames;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_MATH_EXPRESSION_TREE_H
+#endif

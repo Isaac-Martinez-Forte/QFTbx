@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief The designed controller and the plot window it came with.
+ */
+
 #include "src/core/loopshaping/loop_shaping_result.h"
 
 namespace qftbx {
@@ -22,4 +27,4 @@ double LoopShapingResult::pointCount() const{
     return m_pointCount;
 }
 
-} // namespace qftbx
+}

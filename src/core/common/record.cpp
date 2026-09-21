@@ -1,3 +1,15 @@
+/**
+ * @file
+ * @brief File-backed implementation of the record of stages.
+ *
+ * One mutex guards the state and every write, so lines from parallel
+ * regions come out whole. Each line is appended by opening and closing the
+ * file, after checking whether it has passed its limit and rotating it.
+ * The directories of the path are created if missing, and a record nobody
+ * can write simply stays closed rather than failing a computation. Numbers
+ * are written in the classic locale so a record reads the same everywhere.
+ */
+
 #include "src/core/common/record.h"
 
 #include <cstdio>
@@ -48,8 +60,6 @@ std::string stamp()
     return full;
 }
 
-//The directories of the path, made if they are not there. A record nobody
-//can write is a record that stays closed, not a computation that fails.
 void makeDirectories(const std::string & path)
 {
     std::string::size_type at = path.find('/', 1);
@@ -92,7 +102,7 @@ std::ostringstream plainStream()
     return text;
 }
 
-} // namespace
+}
 
 void open(const std::string & path, std::size_t sizeLimitBytes)
 {
@@ -224,4 +234,4 @@ std::string number(const std::string & key, std::size_t value)
     return number(key, static_cast<long long>(value));
 }
 
-} // namespace qftbx::record
+}

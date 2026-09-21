@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief Construction and behaviour of the frequency legend.
+ *
+ * The filter sits over the two buttons rather than beside them, so it stays
+ * wide enough to read its placeholder once the buttons are translated. All
+ * and None act on what the filter is showing, asked of the filter and not
+ * of the widgets, since the rows of a legend not yet on screen report
+ * themselves invisible. Rows are given one width, the widest, when the box
+ * is shown, after callers have added their own controls. Setting a row from
+ * code does not emit the toggle signal, which is connected to the click and
+ * not to the state.
+ */
+
 #include "src/gui/common/frequency_legend.h"
 
 #include <algorithm>
@@ -23,10 +37,6 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
     QVBoxLayout * outer = new QVBoxLayout(this);
     outer->setSpacing(4);
 
-    //The filter over the two buttons, and not beside them: the legend is a
-    //column as wide as a number beside a diagram, and the three of them in
-    //one line left the filter too narrow to read its own placeholder once
-    //the buttons were translated.
     QGridLayout * controls = new QGridLayout();
     controls->setSpacing(4);
 
@@ -52,8 +62,6 @@ FrequencyLegend::FrequencyLegend(QWidget * parent)
 
     m_controls = controls;
 
-    //The rows scroll: there are as many as the problem has frequencies, and
-    //the box is as tall as the window leaves it.
     QScrollArea * scroll = new QScrollArea(this);
     scroll->setObjectName("legendScroll");
     scroll->setWidgetResizable(true);
@@ -72,8 +80,6 @@ void FrequencyLegend::setBare(bool bare)
 
     setTitle(bare ? QString() : tr("Frequencies"));
 
-    //What the sheet dresses: a box with no frame and no room reserved for
-    //a title it does not have.
     markAs(this, "bare", bare);
 
     for (int i = 0; i < m_controls->count(); ++i) {
@@ -103,9 +109,6 @@ FrequencyLegend::Row FrequencyLegend::addRow(const QString & text, const QColor 
     row.check->setText(text);
     row.check->setStyleSheet("color : " + color.name());
     row.check->setCheckState(Qt::Checked);
-    //Only where the box is a legend: where it is the question of which
-    //frequencies a specification applies at, the label beside it says so
-    //and a tooltip on every tick would be six copies of the same sentence.
     if (!m_bare) {
         row.check->setToolTip(tr("Shows or hides what belongs to this frequency, in rad/s."));
     }
@@ -122,8 +125,6 @@ FrequencyLegend::Row FrequencyLegend::addRow(const QString & text, const QColor 
 
 void FrequencyLegend::clear()
 {
-    //Qt's own mechanism: destroying the row widget is how it leaves the
-    //layout, and it takes its controls with it.
     for (QWidget * row : m_rows) {
         delete row;
     }
@@ -163,9 +164,6 @@ void FrequencyLegend::setAll(bool checked)
 {
     bool changed = false;
     for (int i = 0; i < m_checks.size(); ++i) {
-        //What the FILTER is showing, asked of the filter and not of the
-        //widget: a row of a legend that has not been shown yet answers that
-        //it is not visible, and All would then do nothing at all.
         if (passesFilter(i) && m_checks.at(i)->isChecked() != checked) {
             m_checks.at(i)->setChecked(checked);
             changed = true;
@@ -188,8 +186,6 @@ void FrequencyLegend::applyFilter(const QString & text)
 void FrequencyLegend::setRowChecked(int index, bool checked)
 {
     if (index >= 0 && index < m_checks.size()) {
-        //setChecked does not emit clicked(), which is what rowToggled is
-        //connected to: writing the legend does not look like using it.
         m_checks.at(index)->setChecked(checked);
     }
 }
@@ -200,4 +196,4 @@ bool FrequencyLegend::isRowChecked(int index) const
             m_checks.at(index)->checkState() != Qt::Unchecked;
 }
 
-} // namespace qftbx
+}

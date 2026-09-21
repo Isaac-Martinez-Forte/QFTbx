@@ -24,6 +24,7 @@
 #include "src/core/loopshaping/common/common_functions.h"
 
 /**
+ * @file
  * @brief Algorithm MR: QFT synthesis as an interval constraint
  * satisfaction problem, solved by branch & prune.
  *
@@ -41,7 +42,7 @@
  * Nichols boundaries are needed: the constraints come straight from the
  * specifications and the templates.
  *
- * QFTbx deviations, documented:
+ * Deviations from the paper:
  * - The live list is ordered by ascending gain infimum and the search
  *   stops at the first certainly feasible box (every constraint's
  *   interval evaluation non-negative) or at the epsilon-small leading box,
@@ -162,25 +163,24 @@ private:
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<OrderedList> liveList;
 
-    //The Nichols-box termination of the other algorithms, built only when
-    //the settings ask for it.
+    /// The Nichols-box termination of the other algorithms, built only when
+    /// the settings ask for it.
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    //Controller magnitude/phase expression strings, one per design
-    //frequency, and the parsed constraint trees (built once; each box
-    //only reloads the variable domains).
-    //The controller magnitude g and phase phi at every design frequency, as
-    //expressions over the uncertain parameter names.
+    /// Controller magnitude/phase expression strings, one per design
+    /// frequency, and the parsed constraint trees (built once; each box
+    /// only reloads the variable domains).
+    /// The controller magnitude g and phase phi at every design frequency, as
+    /// expressions over the uncertain parameter names.
     std::vector<Expression> magnitudeExpressions;
     std::vector<Expression> phaseExpressions;
     std::vector<std::unique_ptr<qftbx::ExpressionTree>> constraints;
 
-    //The uncertain parameter names in the order the domains are held in.
+    /// The uncertain parameter names in the order the domains are held in.
     std::vector<std::string> parameterNames;
 
     std::unique_ptr<LtiSystem> designedController;
-
 
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
@@ -190,6 +190,6 @@ private:
 
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_LOOPSHAPING_ALGORITHM_MR_H
+#endif

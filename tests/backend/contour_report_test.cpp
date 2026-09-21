@@ -1,23 +1,18 @@
-// What the epsilon-hull reports about itself, per design frequency.
-//
-// The walk has two ways of not being the canonical epsilon-hull. When the
-// faithful walk does not close it falls back to the relaxed historical walk,
-// and that walk can stop at its step limit with a PARTIAL contour. The
-// engine keeps both as data, one report per frequency, and this file pins
-// what they say on the fixtures.
-//
-// And what the button that proposes an epsilon proposes: not the least one
-// that closes - at that one the walk threads into every notch of the lattice
-// the cloud is sampled on and comes back out, and the contour ends up with
-// more points than the cloud - but the least one at or above it whose walk
-// goes over no point twice. Where there is no such epsilon, which is what a
-// template that is a curve looks like, the least one that closes stands.
-//
-// On the QFT toolbox example 2 with the epsilon its file carries (10 at
-// every frequency) the faithful walk closes at all six frequencies and none
-// of them truncates. planta1, planta2 and acc90 do not truncate either.
-// multivaluados.qft is left out of the second test: it stores an epsilon of
-// zero at one frequency, on which no walk is possible.
+/**
+ * @file
+ * @brief Tests of what the epsilon-hull reports per design frequency.
+ *
+ * The walk has two ways of not being the canonical epsilon-hull: when the
+ * faithful walk does not close it falls back to the relaxed walk, which can
+ * stop at its step limit with a partial contour. The engine keeps both as
+ * data, one report per frequency, and the cases pin what they say on the
+ * fixtures: at an epsilon of 10, QFT toolbox example 2, planta1, planta2
+ * and acc90 all close and none truncates. The proposed epsilon is not the
+ * least that closes, which threads into every notch of the sampling
+ * lattice, but the least at or above it whose walk goes over no point twice.
+ * A contour that does not close is the user's decision: by default the whole
+ * cloud stands in and the report says so; asked not to, the engine errors.
+ */
 
 #include <gtest/gtest.h>
 
@@ -160,10 +155,6 @@ TEST(ContourReport, WhichFixturesTruncateIsPinned)
     std::fflush(stdout);
 }
 
-//A contour that does not close is the user's decision, not the engine's: by
-//default the whole cloud stands in for it at that frequency and the report
-//says so; asked not to, the engine stops with an error naming the frequency.
-//The cloud is the one whose hull is null at this epsilon (EHull.TinyEpsilon).
 TEST(ContourReport, AContourThatDoesNotCloseIsTheWholeCloudOrAnError)
 {
     ComplexCloud square{{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {0.0, 1.0}};
@@ -180,7 +171,6 @@ TEST(ContourReport, AContourThatDoesNotCloseIsTheWholeCloudOrAnError)
     engine.setWholeCloudStandsIn(false);
     EXPECT_THROW(engine.computeContours(std::vector<double>(1, 0.1)), ComputationError);
 
-    //And with an epsilon that closes, neither path marks anything.
     engine.setWholeCloudStandsIn(true);
     ASSERT_TRUE(engine.computeContours(std::vector<double>(1, 2.5)));
     EXPECT_FALSE(engine.contourReports()[0].wholeCloud);

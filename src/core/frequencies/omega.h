@@ -6,14 +6,12 @@
 #include <vector>
 
 /**
- * @class Omega
+ * @file
  * @brief The set of design frequencies of a QFT problem.
  *
- * Holds the frequency values and how they were generated (the generation
- * parameters are kept so the GUI can re-open its dialog pre-filled and the
- * persistence can round-trip them).
- *
- * @author Isaac Martínez Forte
+ * Holds the frequency values and how they were generated: the generation
+ * parameters are kept so the dialog reopens filled in and the file can
+ * round-trip them.
  */
 namespace qftbx {
 
@@ -74,6 +72,6 @@ private:
     GenerationType m_type;
 };
 
-} // namespace qftbx
+}
 
-#endif // QFTBX_FREQUENCIES_OMEGA_H
+#endif
