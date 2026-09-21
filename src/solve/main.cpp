@@ -328,9 +328,12 @@ int main(int argc, char ** argv)
             return 3;
         }
 
-        const qftbx::SpecificationCheck check = qftbx::checkAgainstSpecifications(
-            *controller, *project.plant(), *project.omega()->values(),
-            project.templates(), qftbx::toSpecificationSet(*project.specifications()));
+        if (!project.loopShapingResult()->check().has_value()) {
+            project.loopShapingResult()->setCheck(qftbx::checkAgainstSpecifications(
+                *controller, *project.plant(), *project.omega()->values(),
+                project.templates(), qftbx::toSpecificationSet(*project.specifications())));
+        }
+        const qftbx::SpecificationCheck & check = *project.loopShapingResult()->check();
 
         project.save(options.output);
 

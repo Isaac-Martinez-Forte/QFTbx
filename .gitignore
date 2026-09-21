@@ -56,7 +56,7 @@ build/
 /.vs
 CMakeSettings.json
 
-documentos/
+documentos
 core.*
 
 # Generated API documentation (cmake --build build --target docs)

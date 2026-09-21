@@ -13,6 +13,7 @@ qftbx_interval_arithmetic(qftbx_tests)
 target_compile_definitions(qftbx_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data"
   PRIVATE QFTBX_EXAMPLE_CONFIG="${CMAKE_SOURCE_DIR}/qftbx.conf.example"
+  PRIVATE QFTBX_EXAMPLES_DIR="${CMAKE_SOURCE_DIR}/examples"
 )
 
 gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60)
