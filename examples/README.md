@@ -21,12 +21,14 @@ paper uses changes the templates - it is not a typo in one of them.
 | `acc90` | ACC'90 benchmark, spring-mass; QFT Toolbox manual example 5 (margin 2.25); Nataraj and Kubal, IJRNC 17 (2007), ex. 4.1 (p. 262-263) | `e/(s²(s²+0.02s+2e))`; `e ∈ [0.5,2]` — a double integrator | stability `1.75` and nothing else | 0.1 0.98 0.99 1 2 5 7 8.5 10 15 20 100 | Nataraj and Kubal, for their margin specifications: `1.139e7(s+0.0751)(s+0.3488)(s+0.3868)/((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))` | 1 zero, 1 pole, gain 1000 |
 | `dcm-k` | Tharewal 2005, ex. 3.1 (p. 37-38) = Nataraj and Tharewal, ASME 2007, ex. 5.1 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 0.6584(s+30)/(s²+4s+19.752)`, `T_L = 120/(s³+17s²+82s+120)` | 0.1 0.5 1 15 100 | `3462219(s+3.85)/((s+931.27)(s+946.83))` — 1 zero, 2 poles | 1 zero, 2 poles, gain 49419.2 |
 | `dcm-ka-w5` | Chait, Chen and Hollot, ASME JDSMC 121 (1999) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the same as `dcm-k` | 0.1 0.5 1 15 100 | three degrees of freedom by linear programming | 1 zero, 1 pole, gain 569.783 |
-| `dcm-ka-w8` | Purohit, Nataraj, Chabert and Goldsztejn, IJRNC 2016, exp. 4.1 (p. 10-12) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; the same corridor | 0.5 1 2 3 5 10 30 60 | PID `Kp 9.22, Td 0.41, Ti 12.21` and a prefilter; **the paper admits it violates the upper tracking bound over ω ∈ [11,29]** | 2 zeros, 1 pole, gain 0.333575 |
+| `dcm-ka-w8` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.1 (p. 10-12) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; the same corridor | 0.5 1 2 3 5 10 30 60 | PID `Kp 9.22, Td 0.41, Ti 12.21` and a prefilter; **the paper admits it violates the upper tracking bound over ω ∈ [11,29]** | 2 zeros, 1 pole, gain 0.333575 |
 | `dcm-AC` | IFAC DYCOPS 2013 (p. 431-432); Tharewal 2005, ex. 3.2 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking with the fourth-order lower bound `8400/((s+3)(s+4)(s+10)(s+70))` | 0.5 1 2 10 30 60 | PID `7.03 + 3.89s + 0.1/s` | 2 zeros, 1 pole, gain 0.311709 |
 | `dcm-T33` | Tharewal 2005, ex. 3.3 (p. 40-41) = ASME 2007, ex. 5.3 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 1.5/(s+1.5)`, `T_L = 1/(s+1)²` | 0.001 0.0157 0.2449 3.8337 60 | `10455(s+1.56)(s+1.29)/((s+0.54)(s²+149.4s+17260))` — **a complex pole pair** | 1 zero, 1 pole, gain 37.4566 |
 | `dcm-hs72` | Bryant and Halikias 1995, over Horowitz and Sidi 1972 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the corridor `1/(s+1)² ≤ T ≤ 1.5/(s+1.5)`; the paper states no margin, `1.2` added here as Tharewal 3.3 does | 23 logarithmic, 0.01 to 428.1 | by linear programming | 1 zero, 2 poles, gain 27395.5 |
 | `msf` | Tharewal 2005, ex. 4.4 (p. 68-72) | MSF desalination `K(1+T1 s)/((1+T2 s)(1+T3 s))`; `K ∈ [32,76]`, `T1 ∈ [12,28]`, `T2 ∈ [11,26]`, `T3 ∈ [4,10]` | stability `1.2`; tracking added by the authors ("Ismail does not use any tracking specifications") | 0.01 0.098 0.309 0.97 9.558 30 | `655.65(s+2.022)/(s(s+169.9))` — **an integrator** | 1 zero, 2 poles, gain 245.613 |
-| `maglev-upper` | the same, the unstable half | `k/(s²−a)`; `k ∈ [1021,1106]`, `a ∈ [382,478.5]` | the same | the same | PID with `ωn`, `ζ` | 1 zero, 1 pole, gain 715.092 |
+| `maglev-lower` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.2 (p. 12-13) | `k/(s²+a)`; `k ∈ [811,944]`, `a ∈ [382,478.5]` — poles on the imaginary axis | stability `1.2`; corridor `916.3/(s³+39.76s²+354.9s+916.3)` to `(1.722s+68.89)/(s²+16.6s+68.89)` | 11 from 0.1 to 30 | PID with `ωn`, `ζ` | 2 zeros, 1 pole, gain 0.01 |
+| `maglev-upper` | the same paper, the unstable half | `k/(s²−a)`; `k ∈ [1021,1106]`, `a ∈ [382,478.5]` | the same | the same | PID with `ωn`, `ζ` | 1 zero, 1 pole, gain 715.092 |
+| `fopdt` | the same paper, exp. 4.3 (p. 15-16) | first order plus delay, first-order Padé: `k(1−td s/2)/((s+a)(1+td s/2))`; `k ∈ [1,3]`, `a ∈ [1,2]`, `td ∈ [0.08,0.12]` | stability `1.2`; corridor `9/(s³+7s²+15s+9)` to `4/(s²+3.3s+4)` | 0.1 0.2 0.5 1 2 5 8 10 50 | PID `Kp 1.88, Td 0.05, Ti 0.72` | 2 zeros, 1 pole, gain 0.0781889 |
 | `unstable` | Tharewal 2005, ex. 3.6 (p. 47-48) | unstable `k(s+a)/(s²−2.5)`; `k ∈ [1,10]`, `a ∈ [0.1,1]` | stability `2.1` and nothing else ("the only design spec considered") | 0.1 1 2 6 50 | `5.18` — a static gain, searched in `(0,10⁸]`; Chen and Ballance's hand design, `6.582` | 1 zero, 1 pole, gain 0.0738173 |
 
 ## The problems, one by one
@@ -89,7 +91,7 @@ paper uses changes the templates - it is not a typo in one of them.
 
 ### dcm-ka-w8 — the QFT Toolbox motor at Purohit's eight frequencies
 
-**Source.** Purohit, Nataraj, Chabert and Goldsztejn, IJRNC 2016, experiment 4.1 (p. 10-12).
+**Source.** Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, experiment 4.1 (p. 10-12).
 
 **The problem.** `P(s) = k a / (s (s + a))`, `k, a ∈ [1, 10]`, which the paper samples at 5 × 5 = 25 plants; stability 1.2; tracking between `120/(s³+17s²+82s+120)` and `0.6585 (s+30)/(s²+4s+19.752)`; ω = 0.5, 1, 2, 3, 5, 10, 30, 60 rad/s.
 
@@ -157,9 +159,23 @@ paper uses changes the templates - it is not a typo in one of them.
 
 **How to read it.** With one more pole than zero the gain is a high-frequency gain, against the paper's 655.65 with its integrator. The integrator is what gives the published design zero steady-state error; the design here does not have it, and reads as a frequency-domain comparison only.
 
+### maglev-lower — Purohit's maglev on the stable side of its equilibrium
+
+**Source.** Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, experiment 4.2 (p. 12-13): a magnetic levitation system linearised on either side of its equilibrium. This is the half whose poles are on the imaginary axis; `maglev-upper` is the unstable one.
+
+**The problem.** `P(s) = k / (s² + a)`, `k ∈ [811, 944]`, `a ∈ [382, 478.5]`: a pair of poles on the imaginary axis at `±j√a ≈ ±20 rad/s` at every member, so no member is asymptotically stable on its own. Stability margin 1.2; tracking between `916.3/(s³ + 39.76 s² + 354.9 s + 916.3)` and `(1.722 s + 68.89)/(s² + 16.6 s + 68.89)`; eleven frequencies from 0.1 to 30 rad/s.
+
+**Published controller.** A PID with a second-order filter, the same family as for the unstable half.
+
+**Why this structure.** A PID with a filter has an integrator and a complex pole pair, and QFTbx's controllers hold neither; the file holds two zeros and one pole.
+
+**The controller in the file.** 2 zeros, 1 pole, gain **0.01**, worst excess over the specifications **-0.0009 dB**.
+
+**How to read it.** The gain is the floor of the search box, `[0.01, 10⁸]`: the specifications are met by any gain that small, so the number is the smallest the box allows and not the smallest the problem allows. The plant already carries a gain above 800, which is where the loop's magnitude comes from. As with `unstable`, the controller is also checked against the closed-loop poles of the family, since a margin sampled at the design frequencies does not see what a pole on the imaginary axis does: over an 11 × 11 grid of `k` and `a` the worst closed-loop pole is at **-0.649**, so every member is stable.
+
 ### maglev-upper — the unstable half of Purohit's maglev
 
-**Source.** Purohit, Nataraj, Chabert and Goldsztejn, IJRNC 2016, experiment 4.2 (p. 12-13): a magnetic levitation system linearised on either side of its equilibrium.
+**Source.** Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, experiment 4.2 (p. 12-13): a magnetic levitation system linearised on either side of its equilibrium.
 
 **The problem.** `P(s) = k / (s² − a)`, `k ∈ [1021, 1106]`, `a ∈ [382, 478.5]`: one real pole in the right half-plane at every member, at `√a ≈ 20 rad/s`. Stability margin 1.2; tracking between `916.3/(s³ + 39.76 s² + 354.9 s + 916.3)` and `(1.722 s + 68.89)/(s² + 16.6 s + 68.89)`; eleven frequencies from 0.1 to 30 rad/s.
 
@@ -170,6 +186,20 @@ paper uses changes the templates - it is not a typo in one of them.
 **The controller in the file.** 1 zero, 1 pole, gain **715.092**, worst excess over the specifications **-0.0000 dB**.
 
 **How to read it.** A gain of 715 with one zero and one pole is a lead: the zero below the pole, lifting the phase around the crossover the unstable pole forces above 20 rad/s.
+
+### fopdt — first order plus delay, Purohit 4.3
+
+**Source.** Purohit et al., IJRNC 2016, experiment 4.3 (p. 15-16).
+
+**The problem.** A first-order plant with a delay, the delay written as a first-order Padé: `P(s) = k (1 − td s/2) / ((s + a)(1 + td s/2))`, `k ∈ [1, 3]`, `a ∈ [1, 2]`, `td ∈ [0.08, 0.12]`. The Padé puts a zero in the right half-plane at `2/td`, between 16.7 and 25 rad/s, which is what limits the bandwidth. Stability margin 1.2; tracking between `9/(s³ + 7 s² + 15 s + 9)` and `4/(s² + 3.3 s + 4)`; ω = 0.1, 0.2, 0.5, 1, 2, 5, 8, 10 and 50 rad/s.
+
+**Published controller.** A PID, `Kp = 1.88`, `Td = 0.05`, `Ti = 0.72`.
+
+**Why this structure.** A PID has an integrator, which QFTbx's controllers do not hold; the file holds two zeros and one pole.
+
+**The controller in the file.** 2 zeros, 1 pole, gain **0.0781889**, worst excess over the specifications **-0.0024 dB**.
+
+**How to read it.** Three uncertain parameters, so the template is a volume sampled at nine points on each: the problem that costs the most template of the fourteen. The zero in the right half-plane cannot be cancelled, so the loop has to be shaped below it; the two zeros of the controller, at 2.33 and 25.03, sit on either side of it.
 
 ### unstable — Tharewal's unstable plant, stability alone
 
