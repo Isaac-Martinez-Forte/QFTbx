@@ -165,3 +165,21 @@ TEST(Polynomial, ADoubleRootAtTheOriginDoesNotBecomeAPairOffIt)
     }
     EXPECT_EQ(nearTheRay, 2);
 }
+
+TEST(Polynomial, ANonMonicPolynomialIsDividedThroughByItsLeadingCoefficient)
+{
+    const std::vector<std::complex<double>> roots = qftbx::math::polynomialRoots({0.5, 1.5, 1.0});
+    ASSERT_EQ(roots.size(), 2u);
+    std::vector<double> real{roots[0].real(), roots[1].real()};
+    std::sort(real.begin(), real.end());
+    EXPECT_NEAR(real[0], -2.0, 1e-12);
+    EXPECT_NEAR(real[1], -1.0, 1e-12);
+    EXPECT_NEAR(roots[0].imag(), 0.0, 1e-12);
+
+    const std::vector<std::complex<double>> cubic =
+            qftbx::math::polynomialRoots({0.04218110876, 1.01792955, 5.332893779, 9.151434189});
+    ASSERT_EQ(cubic.size(), 3u);
+    for (const std::complex<double> & root : cubic) {
+        EXPECT_LT(root.real(), -3.0) << "the closed loop of the FOPDT example is stable";
+    }
+}
