@@ -51,6 +51,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
     sweep.setAlphaShapeContour(m_alphaShape);
     sweep.setBorderSweep(m_borderSweep);
     sweep.setEpsilon(epsilon);
+    data.setSweepGrids(grids);
     sweep.setGrids(std::move(grids));
 
     sweep.compute(data.plant(), data.omega()->values(), cuda);
@@ -118,11 +119,12 @@ const std::vector<TemplateEngine::ContourReport> & TemplateStage::contourReports
 }
 
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,
-                          CloudSet contour, bool hasContour)
+                          CloudSet contour, bool hasContour, ParameterGrids grids)
 {
     engine().setClouds(clouds);
 
     data.setTemplates(std::move(clouds));
+    data.setSweepGrids(std::move(grids));
 
     if (hasContour) {
         data.setContour(std::move(contour));

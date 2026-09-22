@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -99,6 +100,28 @@ std::size_t uncertainCount(qftbx::LtiSystem & plant)
     count(plant.delay());
 
     return names.size();
+}
+
+std::string familyText(const qftbx::FamilyStability & family)
+{
+    if (!family.checked) {
+        switch (family.notChecked) {
+        case qftbx::FamilyStability::NotChecked::NoSweepRecord: return "closed-loop stability not checked: the project has no record of the sweep";
+        case qftbx::FamilyStability::NotChecked::Delay:         return "closed-loop stability not checked: the loop has a delay";
+        case qftbx::FamilyStability::NotChecked::NotRational:   return "closed-loop stability not checked: the loop is not a rational function";
+        case qftbx::FamilyStability::NotChecked::No:            break;
+        }
+        return "closed-loop stability not checked";
+    }
+    std::ostringstream text;
+    if (family.unstableMembers == 0) {
+        text << "every one of the " << family.members << " plants is closed-loop stable, worst real part "
+             << family.worstRealPart;
+    } else {
+        text << family.unstableMembers << " of the " << family.members
+             << " plants are CLOSED-LOOP UNSTABLE, worst real part " << family.worstRealPart;
+    }
+    return text.str();
 }
 
 qftbx::ParameterGrids gridsOf(qftbx::LtiSystem & plant, int points)
@@ -312,7 +335,8 @@ int main(int argc, char ** argv)
         if (!project.loopShapingResult()->check().has_value()) {
             project.loopShapingResult()->setCheck(qftbx::checkAgainstSpecifications(
                 *controller, *project.plant(), *project.omega()->values(),
-                project.templates(), qftbx::toSpecificationSet(*project.specifications())));
+                project.templates(), qftbx::toSpecificationSet(*project.specifications()),
+                &project.sweepGrids()));
         }
         const qftbx::SpecificationCheck & check = *project.loopShapingResult()->check();
 
@@ -323,8 +347,9 @@ int main(int argc, char ** argv)
                       << controller->gain().range().min << "\n"
                       << "verifier: worst excess " << check.worstExcessDb << " dB over "
                       << check.entries.size() << " checks, "
-                      << (check.satisfied() ? "every specification met" : "A SPECIFICATION IS EXCEEDED")
+                      << (check.worstExcessDb > 0.0 ? "A SPECIFICATION IS EXCEEDED" : "every specification met")
                       << "\n"
+                      << "family: " << familyText(check.family) << "\n"
                       << "written to " << options.output << "\n";
         }
 

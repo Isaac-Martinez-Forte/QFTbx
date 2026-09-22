@@ -20,6 +20,7 @@
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/hull_metric.h"
 #include <complex>
 
@@ -77,6 +78,12 @@ public:
     const CloudSet & contour() const;
     void setContour(CloudSet contour);
 
+    /// The grids the templates were swept over, by parameter name: what the
+    /// verifier walks to check the family member by member. Empty when the
+    /// templates came from a file that did not record them.
+    const ParameterGrids & sweepGrids() const { return m_sweepGrids; }
+    void setSweepGrids(ParameterGrids grids) { m_sweepGrids = std::move(grids); }
+
     /// Whether there is a contour to save or to walk: set when a non-empty
     /// one is published, cleared when the templates are dropped. (An earlier
     /// comment here claimed it meant "ever computed, even if empty"; the code
@@ -98,6 +105,8 @@ public:
     void setName(std::string name) { m_name = std::move(name); }
     const std::string & description() const { return m_description; }
     void setDescription(std::string description) { m_description = std::move(description); }
+    const std::string & doi() const { return m_doi; }
+    void setDoi(std::string doi) { m_doi = std::move(doi); }
 
     /// The boundaries, or nullptr when none have been computed. The store
     /// holds them BY VALUE in an optional; the pointer is only how callers
@@ -118,10 +127,12 @@ private:
     std::optional<SpecificationRecords> m_specifications;
     CloudSet m_templates;
     CloudSet m_contour;
+    ParameterGrids m_sweepGrids;
     bool m_hasContour = false;
     std::optional<std::vector<double>> m_epsilon;
     std::string m_name;
     std::string m_description;
+    std::string m_doi;
     EpsilonMetric m_epsilonMetric;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;

@@ -3,11 +3,14 @@
 
 #include <cstddef>
 #include <limits>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "src/core/specifications/specification.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
 
 /**
  * @file
@@ -31,6 +34,17 @@
  * is the excess over each active bound, in decibels, so that a positive
  * number is a violation and its size is the size of the violation.
  *
+ * The specifications are sampled in frequency, and a loop that meets a
+ * stability margin at every design frequency can still be closed-loop
+ * unstable for some member of the family: the crossing that decides it can
+ * fall between two design frequencies. So the checker also closes the loop
+ * with every plant of the sweep the templates came from and finds the roots
+ * of its characteristic polynomial, N_P N_C + D_P D_C, which is exact for
+ * the sampled family and costs milliseconds. A loop with a delay or a plant
+ * that is not a rational function has no such polynomial, and a project
+ * whose templates came from a file without the sweep has no members to
+ * walk: the check then says so instead of approving.
+ *
  * It exists so that "the returned controller satisfies its specifications"
  * can be a test in the suite instead of a claim.
  */
@@ -48,15 +62,34 @@ struct SpecificationExcess
     double excessDb = 0.0;
 };
 
+/// The closed loop with every member of the sampled family: how many were
+/// closed, how many are unstable, the largest real part of a closed-loop
+/// pole over all of them and the member it belongs to, as parameter names
+/// and values. When the check could not be made, why.
+struct FamilyStability
+{
+    enum class NotChecked { No, NoSweepRecord, Delay, NotRational };
+
+    bool checked = false;
+    NotChecked notChecked = NotChecked::NoSweepRecord;
+    std::size_t members = 0;
+    std::size_t unstableMembers = 0;
+    double worstRealPart = -std::numeric_limits<double>::infinity();
+    std::vector<std::pair<std::string, double>> worstMember;
+};
+
 /// The whole check: every active specification at every design frequency,
-/// and the largest excess among them.
+/// the largest excess among them, and the closed-loop stability of the
+/// family.
 struct SpecificationCheck
 {
     std::vector<SpecificationExcess> entries;
     double worstExcessDb = -std::numeric_limits<double>::infinity();
+    FamilyStability family;
 
-    /// No active specification is exceeded.
-    bool satisfied() const { return !(worstExcessDb > 0.0); }
+    /// No active specification is exceeded and no member of the family was
+    /// found closed-loop unstable.
+    bool satisfied() const { return !(worstExcessDb > 0.0) && family.unstableMembers == 0; }
 };
 
 /**
@@ -71,12 +104,17 @@ struct SpecificationCheck
  * @param specifications the seven slots; unused ones and frequencies outside
  *        a band are skipped, and a tracking band needs both T_L and T_U.
  *
+ * @param sweep the grids the templates were swept over, by parameter name,
+ *        or nothing: the family whose closed loops are checked for
+ *        stability. A parameter without a grid stays at its nominal value.
+ *
  * A frequency whose value set is empty contributes nothing.
  */
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,
                                               const CloudSet & templates,
-                                              const SpecificationSet & specifications);
+                                              const SpecificationSet & specifications,
+                                              const ParameterGrids * sweep = nullptr);
 
 }
 

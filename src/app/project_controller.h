@@ -73,6 +73,7 @@ public:
 
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
+    const qftbx::ParameterGrids & sweepGrids() const { return m_data.sweepGrids(); }
     std::vector<double> * epsilon();
 
     qftbx::EpsilonMetric epsilonMetric() const;
@@ -188,7 +189,8 @@ private:
 
     qftbx::ProjectData m_data;
 
-    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
+    void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour,
+                      qftbx::ParameterGrids sweepGrids = qftbx::ParameterGrids());
     void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 

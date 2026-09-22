@@ -4,7 +4,8 @@ Each file here is a published QFT design problem: the plant and its
 uncertainty, the specifications, the design frequencies and the structure of
 the controller are the paper's, and the file carries everything QFTbx computed
 from them - the templates and their contours, the boundaries, the controller
-found and the verifier's verdict on it.
+found and the verifier's verdict on it, the closed-loop stability of every plant
+of the sweep included.
 
 Open any of them with QFTbx to see every phase.
 

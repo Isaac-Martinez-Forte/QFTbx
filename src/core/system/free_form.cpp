@@ -205,4 +205,32 @@ const std::string & FreeForm::laplaceName()
     return name;
 }
 
+std::optional<LtiSystem::Polynomials> FreeForm::polynomialsAt(const std::vector<double> & numerator,
+                                                              const std::vector<double> & denominator,
+                                                              double gain)
+{
+    std::vector<std::complex<double>> values = boundValues(numerator, denominator);
+
+    const auto denominatorAt = [&](std::complex<double> s) {
+        values[0] = s;
+        return m_denominatorTree->evaluate(values);
+    };
+    const auto numeratorAt = [&](std::complex<double> s) {
+        values[0] = s;
+        return m_ratio->evaluate(values) * m_denominatorTree->evaluate(values);
+    };
+
+    const std::optional<std::vector<double>> den = math::polynomialCoefficients(denominatorAt);
+    const std::optional<std::vector<double>> num = math::polynomialCoefficients(numeratorAt);
+    if (!den.has_value() || !num.has_value()) {
+        return std::nullopt;
+    }
+
+    Polynomials polynomials{*num, *den};
+    for (double & coefficient : polynomials.numerator) {
+        coefficient *= gain;
+    }
+    return polynomials;
+}
+
 }

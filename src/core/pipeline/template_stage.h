@@ -115,7 +115,7 @@ public:
      * of the aliasing having gone away.
      */
     void adopt(ProjectData & data, CloudSet clouds, CloudSet contour,
-               bool hasContour);
+               bool hasContour, ParameterGrids grids = ParameterGrids());
 
 private:
     /// Created on first use and KEPT: it holds the clouds a recontour walks.

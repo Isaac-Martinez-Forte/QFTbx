@@ -18,6 +18,7 @@
 #include <optional>
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/hull_metric.h"
 #include <complex>
 
@@ -77,6 +78,7 @@ public:
     /// the file gives none.
     const std::string & name() const { return m_name; }
     const std::string & description() const { return m_description; }
+    const std::string & doi() const { return m_doi; }
     LtiSystem * plant() const { return m_plant.get(); }
     const qftbx::SpecificationRecords * specifications() const
     {
@@ -117,6 +119,7 @@ public:
     /// that could be freed twice.
     CloudSet takeTemplates() { return std::move(m_templates); }
     CloudSet takeContour() { return std::move(m_contour); }
+    ParameterGrids takeSweepGrids() { return std::move(m_sweepGrids); }
     std::optional<std::vector <double>> takeEpsilon()
     {
         std::optional<std::vector <double>> taken = std::move(m_epsilon);
@@ -142,9 +145,11 @@ private:
     std::unique_ptr<Omega> m_omega;
     CloudSet m_templates;
     CloudSet m_contour;
+    ParameterGrids m_sweepGrids;
     std::optional<std::vector <double>> m_epsilon;
     std::string m_name;
     std::string m_description;
+    std::string m_doi;
     EpsilonMetric m_epsilonMetric;
     std::optional<BoundaryData> m_boundaries;
     std::unique_ptr<LtiSystem> m_controller;

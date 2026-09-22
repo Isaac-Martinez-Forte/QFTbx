@@ -133,18 +133,21 @@ void LoopShapingViewer::showCheck(){
         return;
     }
 
+    const QString family = familyText(check->family);
+    const bool unstable = check->family.unstableMembers > 0;
+
     if (check->entries.empty()) {
         ui->checkLabel->setToolTip(QString());
         if (!std::isfinite(check->worstExcessDb)) {
-            ui->checkLabel->setText(tr("No specification was active at any design frequency."));
-            markAs(ui->checkLabel, "verdict", QString());
-        } else if (check->satisfied()) {
+            ui->checkLabel->setText(tr("No specification was active at any design frequency.") + " " + family);
+            markAs(ui->checkLabel, "verdict", unstable ? QStringLiteral("exceeded") : QString());
+        } else if (check->worstExcessDb <= 0.0) {
             ui->checkLabel->setText(tr("Satisfies every specification over the template, by %1 dB.")
-                                    .arg(qftbx::shownText(-check->worstExcessDb)));
-            markAs(ui->checkLabel, "verdict", QStringLiteral("met"));
+                                    .arg(qftbx::shownText(-check->worstExcessDb)) + " " + family);
+            markAs(ui->checkLabel, "verdict", unstable ? QStringLiteral("exceeded") : QStringLiteral("met"));
         } else {
             ui->checkLabel->setText(tr("EXCEEDS a specification over the template by %1 dB.")
-                                    .arg(qftbx::shownText(check->worstExcessDb)));
+                                    .arg(qftbx::shownText(check->worstExcessDb)) + " " + family);
             markAs(ui->checkLabel, "verdict", QStringLiteral("exceeded"));
         }
         return;
@@ -159,13 +162,13 @@ void LoopShapingViewer::showCheck(){
 
     const QString name = specificationTitle(worst->type);
 
-    if (check->satisfied()) {
+    if (worst->excessDb <= 0.0) {
         ui->checkLabel->setText(tr("Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.")
-                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(-worst->excessDb)));
-        markAs(ui->checkLabel, "verdict", QStringLiteral("met"));
+                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(-worst->excessDb)) + " " + family);
+        markAs(ui->checkLabel, "verdict", unstable ? QStringLiteral("exceeded") : QStringLiteral("met"));
     } else {
         ui->checkLabel->setText(tr("EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.")
-                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(worst->excessDb)));
+                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(worst->excessDb)) + " " + family);
         markAs(ui->checkLabel, "verdict", QStringLiteral("exceeded"));
     }
 
@@ -177,6 +180,28 @@ void LoopShapingViewer::showCheck(){
                       qftbx::shownText(e.excessDb));
     }
     ui->checkLabel->setToolTip(table.trimmed());
+}
+
+QString LoopShapingViewer::familyText(const qftbx::FamilyStability & family){
+    if (!family.checked) {
+        switch (family.notChecked) {
+        case qftbx::FamilyStability::NotChecked::NoSweepRecord:
+            return tr("Closed-loop stability of the family not checked: the project has no record of the sweep; recompute the templates.");
+        case qftbx::FamilyStability::NotChecked::Delay:
+            return tr("Closed-loop stability of the family not checked: the loop has a delay.");
+        case qftbx::FamilyStability::NotChecked::NotRational:
+            return tr("Closed-loop stability of the family not checked: the loop is not a rational function.");
+        case qftbx::FamilyStability::NotChecked::No:
+            break;
+        }
+        return tr("Closed-loop stability of the family not checked.");
+    }
+    if (family.unstableMembers == 0) {
+        return tr("Every one of the %1 plants is closed-loop stable (worst real part %2).")
+               .arg(family.members).arg(qftbx::shownText(family.worstRealPart));
+    }
+    return tr("%1 of the %2 plants are CLOSED-LOOP UNSTABLE (worst real part %3).")
+           .arg(family.unstableMembers).arg(family.members).arg(qftbx::shownText(family.worstRealPart));
 }
 
 QString LoopShapingViewer::specificationTitle(qftbx::SpecificationType type){

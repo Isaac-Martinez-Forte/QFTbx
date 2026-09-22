@@ -65,6 +65,12 @@ std::optional<std::vector<double>> polynomialCoefficients(
         const std::function<std::complex<double>(std::complex<double>)> & value,
         int maxDegree = 24);
 
+/// The product and the sum of two real polynomials, highest degree first. An
+/// empty operand is the constant 1 for the product and 0 for the sum; the sum
+/// keeps the length of the longer one.
+std::vector<double> polynomialProduct(const std::vector<double> & a, const std::vector<double> & b);
+std::vector<double> polynomialSum(const std::vector<double> & a, const std::vector<double> & b);
+
 /// How many roots lie strictly in the right half-plane. A root within 1e-7 of
 /// the imaginary axis, relative to the largest root, counts as ON the axis:
 /// that is beyond what the roots are computed to, and a pole that close to

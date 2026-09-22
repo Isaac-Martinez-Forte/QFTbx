@@ -74,7 +74,8 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
     if (data.templates().size() == data.frequencies()->size()) {
         result->setCheck(checkAgainstSpecifications(*result->controller(), *data.plant(),
                                                     *data.frequencies(), data.templates(),
-                                                    toSpecificationSet(*data.specifications())));
+                                                    toSpecificationSet(*data.specifications()),
+                                                    &data.sweepGrids()));
     }
 
     data.setLoopShapingResult(std::move(result));

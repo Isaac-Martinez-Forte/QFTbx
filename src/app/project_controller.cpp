@@ -65,6 +65,7 @@ void requireUsableNames(LtiSystem & system)
 void ProjectController::dropTemplatesAndBelow(){
     m_data.setTemplates({});
     m_data.setContour({});
+    m_data.setSweepGrids({});
     m_data.setEpsilon(std::nullopt);
 
     dropBoundariesAndBelow();
@@ -133,10 +134,10 @@ void ProjectController::setSpecifications(std::optional<qftbx::SpecificationReco
 }
 
 void ProjectController::setTemplates(qftbx::CloudSet clouds, qftbx::CloudSet contour,
-                                     bool hasContour){
+                                     bool hasContour, qftbx::ParameterGrids sweepGrids){
     const Announce announce(*this);
 
-    m_templates.adopt(m_data, std::move(clouds), std::move(contour), hasContour);
+    m_templates.adopt(m_data, std::move(clouds), std::move(contour), hasContour, std::move(sweepGrids));
 
     dropBoundariesAndBelow();
 }
@@ -449,10 +450,12 @@ void ProjectController::save(std::string path){
 
     content.name = m_data.name();
     content.description = m_data.description();
+    content.doi = m_data.doi();
     content.plant = m_data.plant();
     content.specifications = m_data.specifications();
     content.omega = m_data.omega();
     content.templates = &m_data.templates();
+    content.sweepGrids = &m_data.sweepGrids();
     content.epsilon = m_data.epsilon();
     content.epsilonMetric = m_data.epsilonMetric();
 
@@ -480,6 +483,7 @@ qftbx::StepSet ProjectController::load(std::string path){
     m_data = qftbx::ProjectData();
     m_data.setName(reader.name());
     m_data.setDescription(reader.description());
+    m_data.setDoi(reader.doi());
 
     if (loaded.steps.has(qftbx::Step::Plant)) {
         setPlant(reader.takePlant());
@@ -496,7 +500,7 @@ qftbx::StepSet ProjectController::load(std::string path){
     if (loaded.steps.has(qftbx::Step::Templates)) {
         setTemplates(reader.takeTemplates(),
                      loaded.hasContour ? reader.takeContour() : qftbx::CloudSet(),
-                     loaded.hasContour);
+                     loaded.hasContour, reader.takeSweepGrids());
         m_data.setEpsilon(reader.takeEpsilon());
         m_data.setEpsilonMetric(reader.epsilonMetric());
     }

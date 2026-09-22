@@ -71,6 +71,12 @@ struct Record
     /// template: the largest excess over any active bound, in dB, positive
     /// when it violates. NaN when the run made no check.
     double worstExcessDb = std::numeric_limits<double>::quiet_NaN();
+    /// The closed loop with every plant of the sweep: how many plants, how
+    /// many of them unstable, and the largest real part of a closed-loop
+    /// pole. Members is zero when the family was not checked.
+    std::size_t familyMembers = 0;
+    std::size_t familyUnstable = 0;
+    double familyWorstRealPart = std::numeric_limits<double>::quiet_NaN();
     /// A hash of the result's numbers: repetitions must agree on it.
     std::string digest;
 
