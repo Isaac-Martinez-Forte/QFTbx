@@ -3,15 +3,22 @@
  * @brief The facade of a QFT project over its data, engines and persistence.
  *
  * The interface never touches the core directly; every one of the seven
- * design steps is a method here, from entering the plant to running the loop
- * shaping, and a getter answers null while its step is not done. Publishing
- * an input drops whatever was computed from the old one, and which steps are
- * complete is derived from the data rather than stored. A computation may run
- * on a worker thread: while it does, every mutating entry point throws, the
- * worker writes only its own result, and the caller collects the run on its
- * own thread. One change announcement per operation reaches the interface,
- * fired by the outermost scope even when nested publishers or exceptions are
- * involved. The class carries no Qt.
+ * design steps maps onto a method here: enter the plant, the design
+ * frequencies and the specifications, compute the templates and the
+ * boundaries, enter the controller structure, run the loop shaping. A getter
+ * returns null while its step is not complete. Everything the engines compute
+ * is a function of the inputs above it, so publishing an input drops what
+ * was computed from the old one; that dependency graph lives in this one
+ * class and every publish and compute method applies it. A publish returns
+ * whether it dropped anything, which it decides by comparing the new input
+ * with the old by value, here and nowhere else. Publishing null is refused,
+ * since removing a step is not something the pipeline does. A computation in
+ * flight has the data to itself and anything that would change it throws
+ * meanwhile; the loop shaping runs on a worker and can be cancelled. The
+ * controller structure is the controller being designed, not
+ * this class. The templates, the contours and the boundaries take the
+ * choices of their dialogs, with the settings giving the defaults, and a
+ * project is read whole before the current one is replaced.
  */
 
 #ifndef QFTBX_PROJECT_CONTROLLER_H
@@ -39,32 +46,6 @@
 
 #include "src/core/project/project_data.h"
 
-/**
- * @class ProjectController
- * @brief The application's entry point to a QFT project: it owns the project
- * data and drives the computation engines and the persistence.
- *
- * The GUI never touches the core directly; it goes through here. The seven
- * design steps of the toolbox map onto the methods below: enter the plant,
- * the design frequencies and the specifications, compute the templates and
- * the boundaries, enter the controller structure, and run the loop shaping.
- * A getter returns nullptr while its step has not been completed.
- *
- * Things to keep in mind:
- * - Everything the engines COMPUTE is a function of the inputs above it, so
- *   publishing an input drops what was computed from the old one. That
- *   dependency graph lives here, in this one class, and every compute and
- *   publish method applies it explicitly; the stages do not.
- * - Publishing null is refused rather than taken as "remove this step":
- *   there is no such step in the pipeline.
- * - A computation in flight has the project data to itself, and anything
- *   that would change it throws while it runs.
- * - controllerStructure() is the CONTROLLER BEING DESIGNED (an LtiSystem),
- *   not this class.
- *
- * @author Isaac Martínez Forte
- */
-
 namespace qftbx {
 
 class ProjectController
@@ -75,124 +56,46 @@ public:
 
     ~ProjectController();
 
-    /// --- step 1: the plant -------------------------------------------------
-
     LtiSystem * plant();
 
-    /**
-     * @brief Publishes a new plant and drops what was computed from the old one.
-     * @return true when it DID drop something, i.e. when the new plant is not
-     * the same by value as the one it replaced.
-     *
-     * The comparison lives here and not in the interface: it is this class
-     * that decides whether the computed artefacts survive, so anywhere else
-     * would be a second opinion on the same question - and the window used
-     * to hold one, comparing the addresses of a fresh object and a stored
-     * one, which can never match. It always invalidated, and it agreed with
-     * this class only by accident.
-     */
     bool setPlant(std::unique_ptr<LtiSystem> plant);
-
-    /// --- step 2: the specifications ---------------------------------------
 
     qftbx::SpecificationRecords * specifications();
     void setSpecifications(std::optional<qftbx::SpecificationRecords> specifications);
 
-    /// --- step 3: the design frequencies -----------------------------------
-
     Omega * omega();
 
-    /**
-     * @brief Publishes a new frequency set and drops what was computed from the old one.
-     * @return true when it DID drop something, i.e. when the new set is not
-     * the same by value as the one it replaced.
-     *
-     * The comparison lives here and not in the interface: it is this class
-     * that decides whether the computed artefacts survive, so anywhere else
-     * would be a second opinion on the same question - and the window used
-     * to hold one, comparing the addresses of a fresh object and a stored
-     * one, which can never match. It always invalidated, and it agreed with
-     * this class only by accident.
-     */
     bool setOmega(std::unique_ptr<Omega> omega);
 
-    /// frequencies() lived here too, returning omega()->values() under another
-    /// name. Two ways to ask the same question is one too many, and this was
-    /// the one nobody used: ProjectData::frequencies() is what the stages read,
-    /// and the interface goes through omega()->values().
-
-    /// --- step 4: the templates --------------------------------------------
-
-    /**
-     * @brief Computes the plant value set at every design frequency and its
-     * contour.
-     *
-     * @param epsilon per-frequency epsilon of the contour walk.
-     * @param grids sweep grid of every uncertain parameter, keyed by NAME.
-     * @param cuda run the GPU path (requires a CUDA build).
-     * @return false when either the clouds or the contours came out empty.
-     */
     bool computeTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda);
 
-    /// Recomputes only the contours, with a new epsilon.
     const qftbx::CloudSet & recomputeContour(std::vector<double> epsilon);
 
     const qftbx::CloudSet & templates();
     const qftbx::CloudSet & contour();
     std::vector<double> * epsilon();
 
-    /// The plane the epsilon is measured in (HullMetric): a property of the
-    /// project, saved with it. Changing it does not recompute anything; the
-    /// next template or contour computation measures in the new plane.
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
 
-    /// The epsilon each template asks for, and how coarse the sweep is, in
-    /// the project's plane (TemplateEngine::EpsilonProposal).
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon();
 
-    /// What a contour that does not close becomes: the whole template at
-    /// that frequency (default) or an error naming it. Chosen in the
-    /// templates dialog; the setting gives the default.
     void setWholeCloudStandsIn(bool standsIn);
 
-    /// How the contour is extracted: the walk (default) or the alpha-shape.
-    /// Chosen in the templates dialog; the setting gives the default.
     void setAlphaShapeContour(bool alphaShape);
     bool alphaShapeContour() const;
 
-    /// Sweep only the border of a two-parameter box (see TemplateEngine).
     void setBorderSweep(bool border);
     bool borderSweep() const;
 
-    /// Columns of the magnitude specifications in closed form (see
-    /// ClosedFormColumns); the setting gives the default.
     void setClosedFormColumns(bool on);
     bool closedFormColumns() const;
 
-    /// What the last contour computation reported, per frequency
-    /// (TemplateEngine::ContourReport); empty when nothing was computed.
     const std::vector<TemplateEngine::ContourReport> & contourReports() const;
 
-    /// The same, for templates NOT computed yet: what the family swept over
-    /// these grids would ask for in this plane. Publishes nothing; it is the
-    /// figure the templates dialog offers before the user presses OK.
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
                                                                 qftbx::EpsilonMetric metric);
 
-    /// --- step 5: the boundaries -------------------------------------------
-
-    /**
-     * @brief Computes the QFT boundaries over the Nichols grid.
-     *
-     * @param phaseRange, phaseCount phase axis of the grid (degrees).
-     * @param magnitudeRange, magnitudeCount magnitude axis (dB).
-     * @param exportInfinity finite stand-in for infinity when the results are
-     * exported; < 0 means none (it takes no part in the computation).
-     * @param useContour feed the engine the template contours instead of the
-     * full value sets.
-     * @param cuda run the GPU path.
-     */
     bool computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
                            std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
 
@@ -201,229 +104,63 @@ public:
     const qftbx::UnionTraces & unionBoundaries();
     const qftbx::UnionBuckets & unionBuckets();
 
-    /// --- step 6: the controller structure ---------------------------------
-
-    /// The controller BEING DESIGNED: its structure and the search box of
-    /// its parameters.
     LtiSystem * controllerStructure();
 
-    /**
-     * @brief Publishes a new controller structure and drops what was computed from the old one.
-     * @return true when it DID drop something, i.e. when the new structure is not
-     * the same by value as the one it replaced.
-     *
-     * The comparison lives here and not in the interface: it is this class
-     * that decides whether the computed artefacts survive, so anywhere else
-     * would be a second opinion on the same question - and the window used
-     * to hold one, comparing the addresses of a fresh object and a stored
-     * one, which can never match. It always invalidated, and it agreed with
-     * this class only by accident.
-     */
     bool setControllerStructure(std::unique_ptr<LtiSystem> controller);
 
-    /// --- step 7: the loop shaping -----------------------------------------
-
-    /**
-     * @brief Runs the selected loop-shaping algorithm over the current
-     * problem.
-     *
-     * @param epsilon termination size of the interval search. WHAT it
-     * measures depends on the algorithm, because each one follows the
-     * criterion of its own paper: NT, NK, MC1 and MC stop on the diameter
-     * of the Nichols box (they work on that projection), MR on the width of
-     * the controller parameter box (its paper solves an ICSP over the
-     * parameters). The same number is therefore not comparable across
-     * algorithms - on a plant whose |P| reaches 1e4, the Nichols reading is
-     * four decades tighter than the parameter one.
-     * @param algorithm which algorithm to run.
-     * @param plotRange, pointCount frequency window the result is plotted
-     * over (stored with the result, not used by the search).
-     * @param initialisation starting point of NK's local search.
-     * @return false when the algorithm found no solution; it throws
-     * qftbx::InvalidInput when the problem itself is invalid or infeasible.
-     */
     bool computeLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
 
-    /**
-     * @brief Applies the settings the application read.
-     *
-     * Only what the CORE needs: the search's memory budget.
-     * The interface keeps its own copy for its dialogs' ceilings. Called once
-     * after construction; the compiled defaults stand until it is.
-     */
     void applySettings(const qftbx::Settings & settings);
 
-    /**
-     * @brief Called after anything the project holds has changed.
-     *
-     * The interface derives everything it shows from completed() and from
-     * what the getters answer, so it has to be told when those answers move.
-     * Asking it to remember at every way out of every handler is how an
-     * interface comes to say something the project does not hold: there were
-     * twenty-five such places here, and one forgotten is a wrong answer on
-     * screen.
-     *
-     * A std::function and not a signal because the core carries no Qt. It is
-     * called ONCE per operation, after it: loading a file publishes seven
-     * sections and announces one change.
-     */
     using ChangeHandler = std::function<void ()>;
     void setChangeHandler(ChangeHandler handler) { m_onChanged = std::move(handler); }
 
-    /// --- the pipeline as data ----------------------------------------------
-
-    /**
-     * @brief Which steps are done, DERIVED from what the project holds.
-     *
-     * Nothing stores this. Every one of the seven is a question the data
-     * already answer - the templates are done exactly when templates() is not
-     * empty - rather than a flag per step kept by hand. Duplicate state is state that can go out of sync.
-     */
     qftbx::StepSet completed() const;
 
-    /**
-     * @brief Drops everything computed from the given step downwards.
-     *
-     * The cascade in one place. The dependency order lives in this class and
-     * nowhere else, and this is what the window asks instead of mirroring
-     * the order by hand.
-     */
     void invalidateFrom(qftbx::Step step);
 
-    /// --- the search, off the calling thread --------------------------------
-    /// 
-    /// The same computation as above, started on a worker and left to run. It
-    /// lives HERE and not in the interface because this class owns the project
-    /// data: while a search is in flight nothing may touch them, and the only
-    /// place that can actually enforce that is the one holding them. Every
-    /// mutating entry point refuses while a run is in flight, which is the
-    /// whole reason the threading is in the core rather than in the window.
-    /// 
-    /// WHAT THE WORKER TOUCHES, exactly, because "do not touch the project" is
-    /// too vague to build an interface on:
-    ///  - it READS the plant, the controller structure, the frequencies, the
-    ///    boundaries, the contour and the specifications. Reading those from
-    ///    another thread at the same time is a read against a read, so a
-    ///    viewer may refresh from them while the search runs.
-    ///  - it WRITES exactly one thing, once, at the very end: the
-    ///    loop-shaping result. So loopShapingResult() is the one getter that
-    ///    must not be read until the run is over - isComputing() says when,
-    ///    and waitForComputation() waits.
-    ///  - and it MUTATES nothing else, which is what the guard enforces
-    ///    rather than asks for.
-    /// 
-    /// start() is not safe against itself: one caller starts runs. It is safe
-    /// against everything else, which is what matters here.
-
-    /**
-     * @brief Starts the search on a worker thread.
-     * @param finished called when it ends, however it ends - ON THE WORKER
-     *        THREAD. In a Qt application that means a queued invocation, and
-     *        that is the interface's business; a caller who would rather not
-     *        deal with it can leave it empty and poll isComputing().
-     * @return false when a computation is already in flight, in which case
-     *         nothing is started.
-     *
-     * It throws the preconditions BEFORE starting - a search with no
-     * boundaries is refused on the caller's thread, where the caller can see
-     * it, not two lines into a worker.
-     */
     bool startLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm,
                           qftbx::Range plotRange, double pointCount,
                           std::int32_t initialisation = 0,
                           std::function<void ()> finished = std::function<void ()>());
 
-    /**
-     * @brief The sweep of the templates, on a worker thread.
-     *
-     * Same contract as startLoopShaping: the prerequisites are checked on
-     * the caller's thread, @p finished runs on the WORKER, and how it went
-     * is read afterwards through lastComputation*(). Returns false when a
-     * run is already in flight.
-     */
     bool startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda,
                         std::function<void ()> finished = std::function<void ()>());
 
-    /// The boundaries, on a worker thread. Same contract.
     bool startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
                          qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
                          double exportInfinity, bool contour, bool cuda,
                          std::function<void ()> finished = std::function<void ()>());
 
-    /// Which computation the last run was.
     enum class Computation { None, Templates, Boundaries, LoopShaping };
 
-    /**
-     * @brief Applies what the finished run means for the rest of the
-     * project, and announces the change.
-     *
-     * Called by the interface ON ITS OWN THREAD once the run has finished:
-     * new templates invalidate the boundaries under them, and dropping
-     * those from the worker would free, in the middle of a repaint, the
-     * data a viewer is drawing. Throws when the run has not finished.
-     */
     void collectComputation();
 
-    /// Asks the search in flight to stop. Safe at any time, from any thread;
-    /// does nothing when there is no run.
     void cancelComputation();
 
-    /// Whether a computation started here is in flight.
     bool isComputing() const;
 
-    /// Blocks until the run in flight finishes. For tests and for shutdown.
     void waitForComputation();
 
-    /// The three below describe the last FINISHED run, and they are only
-    /// meaningful once it has finished: ask isComputing() first, or call
-    /// waitForComputation(). What publishes them is the release of the running
-    /// flag and the join, so reading them mid-run is reading a value that is
-    /// being written.
-
-    /// Whether the last finished run published a design.
     bool lastComputationProduced() const;
 
-    /// Whether the last finished run ended by being cancelled.
     bool lastComputationCancelled() const;
 
-    /// What the last finished run threw, or empty when it threw nothing.
     const std::string & lastComputationError() const;
 
     LoopShapingResult * loopShapingResult();
 
-    /// --- persistence ------------------------------------------------------
-
-    /// Writes the whole project to a .qft file.
     void save(std::string path);
 
-    /**
-     * @brief Reads a .qft file into the project.
-     *
-     * @return per-section presence flags, in this order: plant,
-     * specifications, omega, templates, boundaries, controller, loop
-     * shaping, template contour. The caller owns the returned vector.
-     */
-    /// Which sections the file carried, in the order above.
     qftbx::StepSet load(std::string path);
 
 private:
-    /// Publishing an input drops whatever was computed from the old one: see
-    /// the note in the implementation.
     void dropTemplatesAndBelow();
     void dropBoundariesAndBelow();
     void dropLoopShaping();
 
-    /**
-     * @brief Announces a change on the way out of the scope it is built in.
-     *
-     * One line at the top of every method that publishes or computes, rather
-     * than a call before each return: a method with four ways out is four
-     * chances to forget, which is exactly the shape of the defect this
-     * replaces in the interface. It fires on the exception paths too, and
-     * deliberately - a run that threw may have dropped what depended on it.
-     */
     class Announce
     {
     public:
@@ -449,36 +186,21 @@ private:
     ChangeHandler m_onChanged;
     int m_announcing = 0;
 
-    /// The project contents, owned.
     qftbx::ProjectData m_data;
 
-    /// The publishers load() uses to put a file's artefacts in place. Private:
-    /// publishing a computed artefact from outside would bypass the dependency
-    /// graph, and nothing outside ever did.
     void setTemplates(qftbx::CloudSet templates, qftbx::CloudSet contour, bool hasContour);
     void setBoundaries(std::optional<qftbx::BoundaryData> boundaries);
     void setLoopShapingResult(std::unique_ptr<LoopShapingResult> result);
 
-    /// The three computation engines, created on first use.
-    /// Built on first use and kept: the template engine holds the clouds a
-    /// recontour works from.
     qftbx::BoundaryStage m_boundaries;
-    /// One stage per phase of the pipeline: each owns its preconditions, its
-    /// engine, its parameters and the publishing of its outputs. This class
-    /// keeps the data and the dependency graph, and delegates the rest.
     qftbx::TemplateStage m_templates;
-    /// Throws InvalidInput when a computation is in flight.
     void requireNotComputing() const;
 
     qftbx::LoopShapingStage m_loopShaping;
 
-    /// The worker and the flag it reads. Both live as long as this class, so a
-    /// token cannot outlive the search that reads it.
     qftbx::BackgroundRun m_background;
     qftbx::CancellationToken m_cancellation;
 
-    /// What the run in flight - or the last one - computes: what it
-    /// invalidates depends on it, and that is applied when it is collected.
     Computation m_lastComputation = Computation::None;
 };
 

@@ -2,15 +2,25 @@
  * @file
  * @brief The values a user may change without recompiling.
  *
- * Declares the settings as plain fields with their compiled defaults,
- * grouped as the settings file is: input ceilings that only refuse typos,
- * the memory budget of the search, the resolution of the nominal stability
- * check, the figures from the published algorithms that change what is
- * computed, the values dialogs are prefilled with, the interface's language
- * and look, and the record of stages. Not a map looked up by name, since
- * some are read once per node of a search; loaded once and immutable after.
- * Also declares the reader, the writer of one key, the search order of the
- * files, and the opening of the record the settings describe.
+ * Plain fields with the compiled defaults, grouped the way the file is, and
+ * not a map looked up by name: some are read once per node of an interval
+ * search, where a string lookup would cost a hundred times the value. Whoever
+ * needs one copies it when constructed, so the hot path reads a member. The
+ * settings are loaded once at startup and immutable afterwards, which is
+ * what makes them safe next to OpenMP and the search's worker thread. A
+ * setting is a value with a defensible range; the mathematical and
+ * structural constants of the method are not here, since writing them down
+ * would configure nothing and break the program.
+ *
+ * The groups: the limits, which only refuse input and so change no result;
+ * what the interval search may spend; the resolution of the nominal stability check, which trades
+ * time against how often the check can decide and never touches the
+ * criterion; the figures that come from the published algorithms, the group
+ * to be careful with because a value changed there changes what the program
+ * computes; the interface; the defaults of the dialogs; and the record. Each
+ * key, its default and its range is described in docs/CONFIGURATION.md. No
+ * test reads the settings file: every one builds its own, so a value here
+ * can never change what a test means.
  */
 
 #ifndef QFTBX_SETTINGS_H
@@ -23,221 +33,67 @@
 
 namespace qftbx {
 
-/**
- * @brief The values a user may change without recompiling.
- *
- * Plain fields with the compiled defaults, grouped the way the file is. NOT a
- * map looked up by name: some of these are read once per node of an interval
- * search, where a string lookup would cost a hundred times what the value is
- * worth. Whoever needs one COPIES it when it is constructed, so the hot path
- * reads a member.
- *
- * Loaded once at startup and immutable afterwards, which is also what makes
- * it safe next to OpenMP and the search's worker thread: there is nothing to
- * synchronise on something nobody writes.
- *
- * What is deliberately NOT here: the mathematical and structural constants.
- * 2*pi, the two layers of the boundary union, the seven specification slots
- * and the 0 dB ray of the stability criterion can all be written down in a
- * file, and writing them down would not configure anything - it would break
- * the program. A setting is a value that has a defensible range.
- */
 struct Settings {
 
-    /**
-     * @brief Ceilings that exist to stop a typo, not to express a limit of
-     * the method.
-     *
-     * Every one of these only ever REFUSES input, so moving them changes no
-     * computed result - which is why they are the safest thing in the file.
-     */
     struct Limits {
-        /// Cells of the Nichols grid for the boundaries, phase x magnitude.
-        /// A one-degree grid over 360 degrees is 361 points per axis, so ten
-        /// million cells is far past anything sensible.
         std::int64_t maxGridCells = 10000000;
 
-        /// Points per parameter grid in the template sweep. The count comes
-        /// from an expression the user types, so a negative one would ask
-        /// for 1.8e19 doubles.
         double maxTemplatePoints = 1.0e6;
 
-        /// Design frequencies in one set.
         std::int32_t maxFrequencyCount = 1000000;
 
-        /// Largest magnitude accepted in the loop-shaping dialog's fields,
-        /// which is what keeps an infinity out of an integer conversion.
         double maxMagnitude = 1.0e12;
     } limits;
 
-    /**
-     * @brief What the interval search is allowed to spend.
-     */
     struct Search {
-        /// Live nodes the branch & bound list may hold before it refuses to
-        /// grow. It is a MEMORY budget: a node measures 528 bytes with two
-        /// parameters and 1056 with eight, so the default is of the order of
-        /// 17 to 34 GB. Every run reports its peak next to the elapsed time,
-        /// and those peaks are what this should be set from.
         std::size_t maxLiveNodes = 32000000;
     } search;
 
-    /**
-     * @brief The resolution of the nominal stability check.
-     *
-     * These trade TIME against how reliably the check decides, and they do
-     * not touch the criterion itself: the Cohen-Chait-Yaniv count and its
-     * 0 dB ray are not settings, they are the method.
-     *
-     * What they govern is the frequency grid the nominal loop is sampled on
-     * before the crossings are counted. Too coarse and a fast phase turn is
-     * missed, and the checker answers "cannot decide", which conservatively
-     * discards a candidate that may have been fine.
-     */
     struct Stability {
-        /// Points of the base logarithmic grid.
         std::int32_t baseGridPoints = 3000;
 
-        /// Decades sampled beyond the design frequencies, on both sides.
         double decadesBeyond = 3.0;
 
-        /// Phase step, in degrees, above which the grid is refined. It is the
-        /// unwrapping tolerance: a turn faster than this between two samples
-        /// cannot be unwrapped safely.
         double maxPhaseStepDegrees = 30.0;
 
-        /// Refinements one verdict may spend before giving up.
         std::int32_t refinementBudget = 200000;
     } stability;
 
-    /**
-     * @brief Numbers that come from the published algorithms.
-     *
-     * THE GROUP TO BE CAREFUL WITH, and the reason it says so here: unlike
-     * everything above, these change WHAT THE ALGORITHM COMPUTES, not how
-     * long it takes to compute it. Each one is a figure from a paper, and the
-     * provenance is written next to it because a value changed here makes the
-     * published references stop describing the program that is running.
-     *
-     * They are exposed anyway, deliberately: a doctoral toolbox whose
-     * published parameters can only be explored by recompiling is a worse
-     * tool. What makes it safe is the rule that no test reads the settings
-     * file - every one of them builds its own, so a value here can never
-     * change what a test means.
-     */
     struct Algorithms {
-        /// MR (Rambabu & Nataraj, FDA-10): template points entering the
-        /// constraint set per frequency, paired quadratically for the
-        /// tracking constraint. The paper uses 9.
-        /// KNOWN LIMIT, measured on Example 5.1: the certified design exceeds
-        /// the true tracking bound by 12 to 19 per cent at two of the five
-        /// frequencies. Raising this to 25 shrinks the excess from 0.456 to
-        /// 0.431 dB at twelve times the cost, without removing it - the way
-        /// out is to bound the spread by intervals instead of sampling it,
-        /// which is a modelling decision and not a setting.
         std::int32_t templateRepresentatives = 9;
 
-        /// MR: passes of the HC4 narrowing before a box is accepted as
-        /// narrowed no further.
         std::int32_t maxNarrowingPasses = 8;
 
-        /// MR: measure the termination epsilon on the NICHOLS box of the
-        /// leading node, as every other algorithm here does, instead of on
-        /// the width of the controller parameter box, as the paper does. Off
-        /// by default; on, they all share one meaning of epsilon and their
-        /// running times can be compared.
         bool mrNicholsEpsilon = false;
 
-        /// Templates: when the contour walk does not close at a frequency,
-        /// let the WHOLE template stand in for its contour there (the
-        /// boundaries then read every point, which is always safe and only
-        /// slower), instead of stopping with an error that names the
-        /// frequency. On by default; the templates dialog offers the choice.
         bool wholeTemplateIfNoContour = true;
 
-        /// Templates: extract the contour as the alpha-shape of the cloud
-        /// (the epsilon-hull by its definition, edge by edge: always closes,
-        /// every component and hole) instead of by the walk of
-        /// Nordin. Off by default: the walk is the published algorithm. The
-        /// templates dialog offers the choice.
         bool alphaShapeContour = false;
 
-        /// Templates: with exactly two uncertain parameters, sweep only the
-        /// border of the parameter box, as densely as the interior grid
-        /// would have cost, since the worst case over a template is attained
-        /// on its border (TemplateEngine::setBorderSweep). Off by default:
-        /// it changes the template. The templates dialog offers it.
         bool borderSweep = false;
 
-        /// Boundaries: read the columns of the five magnitude specifications
-        /// in closed form - a quadratic in the gain per plant and phase,
-        /// intersected exactly - instead of off the sampled sheet: exact in
-        /// magnitude, no magnitude window (ClosedFormColumns). Tracking
-        /// keeps its sheet. Off by default: the sheet is the published
-        /// method.
         bool closedFormColumns = false;
 
-        /// MC (thesis) and MC2: the strategies of chapter 4, each one a
-        /// switch. All on is the algorithm as published; none of them changes
-        /// the answer, each only discards boxes it has certified cannot hold
-        /// a better one. Here so that a benchmark plan can measure what each
-        /// one buys (the thesis' chapter 6 does that with sixteen
-        /// combinations); the interface does not expose them.
         struct McStrategies {
-            bool infeasibleMagnitude = true;  ///< QSInv, magnitude cuts (NK's QS)
-            bool infeasiblePhase = true;      ///< QSInv, phase cuts (thesis 4.1.2)
-            bool feasibleMagnitude = true;    ///< QSFact, magnitude (thesis 4.1.1)
-            bool feasiblePhase = true;        ///< QSFact, phase
-            bool bestGain = true;             ///< MG (thesis 4.3)
-            bool treeBisection = true;        ///< thesis 4.2.4
-            bool stages = true;               ///< thesis 4.4 (MC of the thesis only; MC2 has no stages)
+            bool infeasibleMagnitude = true;
+            bool infeasiblePhase = true;
+            bool feasibleMagnitude = true;
+            bool feasiblePhase = true;
+            bool bestGain = true;
+            bool treeBisection = true;
+            bool stages = true;
         } mc;
 
-        /// NT, NK, MC1, MC (thesis), MC2: read the boundary columns
-        /// CONSERVATIVELY - a point or a box is judged by both column nodes
-        /// that bracket its phase, not by the nearest one. On by default.
-        /// The nearest node is the published algorithms' reading, and it
-        /// admits, up to half a step away, what the boundary at the point's
-        /// own phase forbids: on example 2 with the 1-degree grid every
-        /// algorithm then returns a controller that exceeds a specification
-        /// by 0.05 dB, and over twelve problems most answers exceed one.
-        /// The conservative reading removes that, at the cost of the strip
-        /// cuts, which need every column of a span to agree and so apply far
-        /// less often: what that costs depends on the algorithm, and only on
-        /// the algorithm. The searches by contraction alone slow down by two
-        /// to three orders of magnitude, where MC2 answers in about the time
-        /// it did (0.15 s against 0.01 s on example 2 with the 1-degree
-        /// grid, 0.012 s with a 0.125-degree one). Set it off to reproduce a
-        /// published algorithm as published. The direct check of the
-        /// returned controller against the specifications is the other way
-        /// to know.
         bool conservativeBoundaryColumns = true;
 
-        /// NK (Nataraj & Kubal 2007): iterations the local refinement of a
-        /// candidate point may spend.
         std::int32_t localSearchBudget = 400;
 
-        /// NK: the ratio at which the gain bisection stops, so 1.01 is one
-        /// per cent. It is a PRUNING bound, not the answer's accuracy.
         double gainTolerance = 1.01;
 
-        /// MC1 (Martinez-Forte & Cervera, IJRNC 2021): the same ratio for the
-        /// certified gain search.
         double certifiedGainTolerance = 1.01;
     } algorithms;
 
-    /**
-     * @brief What the dialogs start with.
-     *
-     * The zero-risk group: these are what a field is PREFILLED with, so
-     * nothing here can change a computed result - the user sees the value and
-     * can still type over it. It is also the group that shows most in daily
-     * use: whoever always works with the same Nichols grid should not have to
-     * type it again every time.
-     */
     struct Defaults {
-        /// The Nichols grid of the boundary computation: the phase axis in
-        /// degrees, the magnitude axis in decibels, and the points on each.
         double phaseStart = -360.0;
         double phaseEnd = 0.0;
         std::int32_t phasePoints = 361;
@@ -245,183 +101,52 @@ struct Settings {
         double magnitudeEnd = 60.0;
         std::int32_t magnitudePoints = 121;
 
-        /**
-         * @brief Whether the boundaries read the template CONTOUR (the
-         * default, and what the literature does) or the whole cloud.
-         *
-         * The contour is an approximation: it assumes the worst case of
-         * every specification over a template lies on its border. That
-         * holds on eleven of the twelve problems of the battery and saves
-         * the boundary computation most of its work; on the twelfth
-         * (Horowitz and Sidi's motor, twenty-three design frequencies) it
-         * does not, and the controller comes out 0.0012 dB permissive even
-         * under the conservative column reading - refining the phase grid
-         * does not help, and neither does taking the contour as the
-         * alpha-shape. Reading the whole cloud is always safe, and there it
-         * was also the faster of the two, since that contour held more than
-         * half of the cloud's points. It is not free: the cloud's guard of
-         * the singular locus is a first-order bound per sample where the
-         * contour's is exact over its polygon, so the boundaries come out
-         * more conservative and the gain with them, by two to eleven per
-         * cent over the battery and by more where the optimum sits against
-         * a closed boundary.
-         *
-         * So: leave it alone for a design, and turn it on when the answer
-         * has to be certified, or when the contour of a template comes out
-         * wrong. The boundary dialog offers the same choice per run.
-         */
         bool boundariesFromCloud = false;
 
-        /// Points per parameter grid in the template sweep. Twenty-five keeps
-        /// the largest gap in a two-parameter template under a few per cent
-        /// of its size, where ten leaves gaps of a fifth; with many
-        /// parameters the user has to lower it, since it multiplies.
         std::int32_t templatePointCount = 25;
 
-        /// The plane a NEW project measures its contour epsilon in (see
-        /// HullMetric), and the weighting of the Nichols plane. The Nichols
-        /// plane, at one decibel per degree, is what a new project starts
-        /// with: there one epsilon serves every template, where in the
-        /// complex plane the epsilon a template needs changes by orders of
-        /// magnitude from one frequency to the next. A loaded project keeps
-        /// the plane its file says.
         bool epsilonInNichols = true;
         double dbPerDegree = 1.0;
 
-        /// The frequency range the loop-shaping plot starts with, in rad/s,
-        /// and how many points over it.
-        ///
-        /// ONE range, not one per plot mode: a set per mode overwrites
-        /// whatever is in the fields the moment a mode is picked, and a
-        /// configured default with it.
         double loopStart = 1.0e-9;
         double loopEnd = 10.0;
         std::int32_t loopPointCount = 100;
     } defaults;
 
-    /**
-     * @brief The interface: the one section whose value is a text.
-     *
-     * The language the interface starts in: "system" for the machine's, or
-     * the code of a translation compiled into the application ("en", "es",
-     * ...). The interface writes the choice made in its View menu back
-     * here, into the settings file in use, so the next start reads it.
-     */
     struct Interface {
         std::string language = "system";
-        /// How the canvas of the interface was left: the phases in the
-        /// order the user put them, each with the size he gave it, as
-        /// "plantCard:1 templatesCard:2". Written by the window when it
-        /// closes and read back when it opens; empty means the order of
-        /// the design and one square each.
         std::string canvas;
 
-        /// And how big the window was: "1280 860", or "maximized". Written
-        /// by the window on the way out, like the canvas.
         std::string window;
 
-        /// The look: "system", "light" or "dark". Chosen from the View
-        /// menu, which writes it here.
         std::string theme = "system";
 
-        /// How many significant digits the forms SHOW. The file keeps every
-        /// digit a double has, always: this is about reading a gain of
-        /// 567.3175312139062 off a screen, where four digits are the answer
-        /// and thirteen are noise.
         std::int32_t digits = 4;
     } interface;
 
-    /**
-     * @brief The record of what the engines did and how long it took.
-     *
-     * One line per stage, written as the work goes, capped in size: past
-     * the limit the file becomes the previous generation and a new one
-     * starts, so the oldest lines fall off and it never grows without
-     * bound. It answers how long THIS took, with THIS algorithm, on THIS
-     * plant, where it can be read after the fact, from the interface as much
-     * as from a script.
-     */
     struct Log {
-        /// Off by default: a program that writes files nobody asked for is
-        /// a program that surprises somebody.
         bool enabled = false;
 
-        /// Empty means the usual place, $HOME/.local/state/qftbx/qftbx.log.
         std::string path;
 
-        /// Where it rotates. Two generations are kept, so the space taken
-        /// is twice this.
         std::int32_t sizeLimitKilobytes = 1024;
     } log;
 
-    /// The path this was read from, empty when nothing was read and the
-    /// compiled defaults stand. Reported rather than guessed at: on a shared
-    /// machine the interesting question is usually WHICH file is in effect.
     std::string source;
 
-    /// Keys the file carried that this build does not know. A warning and
-    /// not an error, so a file written by a later version still starts.
     std::vector<std::string> unknownKeys;
 };
 
-/**
- * @brief Reads the settings from an explicit path.
- *
- * Throws qftbx::InvalidInput naming the key, the line and the range when a
- * value cannot be used, and qftbx::FileError when the path cannot be read.
- * A value that is not a number does NOT become zero: silently turning bad
- * input into a plausible number is the defect this project has spent the most
- * time removing.
- */
 Settings readSettings(const std::string & path);
 
-/// Every key the settings file knows, as "section.key", in the order the
-/// reader lists them.
 std::vector<std::string> settingKeys();
 
-/// The user's own settings file, $HOME/.config/qftbx/qftbx.conf, whether or
-/// not it exists: where a choice made in the interface is written when no
-/// other file is in use.
 std::string userSettingsPath();
 
-/**
- * @brief Writes one setting into a settings file, leaving everything else
- * in it as it was.
- *
- * The file is text a person edits, so it is not regenerated: the key's line
- * is replaced when it exists, added at the end of its section when the
- * section exists, and the section is appended otherwise. A missing file, or
- * a missing directory above it, is created. Throws qftbx::FileError when the
- * file cannot be written.
- */
 void writeSetting(const std::string & path, const std::string & key, const std::string & value);
 
-/**
- * @brief Reads the settings from the first file that exists, in order:
- *
- *   1. the path in the QFTBX_CONFIG environment variable, when set - which
- *      is how a variant gets tried on a shared machine without touching
- *      anyone's home directory;
- *   2. ./qftbx.conf, next to wherever the program was started;
- *   3. $HOME/.config/qftbx/qftbx.conf.
- *
- * WITH NO FILE AT ALL IT SUCCEEDS, returning the compiled defaults with an
- * empty source. That is not a convenience: it is what makes adding this
- * unable to break an installation that never had one.
- *
- * A file named by QFTBX_CONFIG that cannot be read IS an error, because
- * naming it says it is meant to be used.
- */
 Settings loadSettings();
 
-/**
- * @brief Opens the record of stages where these settings say, or leaves it
- * closed when they say not to.
- *
- * Called by an application once, on the way up. The engines write to it if
- * it is open and are silent if it is not, which is what keeps the tests and
- * anything embedding the core from leaving files behind.
- */
 void openRecord(const Settings & settings);
 
 }
