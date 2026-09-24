@@ -39,9 +39,11 @@
  *
  * Before a run the caller may install a cancellation token, read once per
  * node, which must outlive run(); the settings, of which each algorithm
- * copies what it needs; and the grids the plant family was swept over, which
- * the searches close the loop with before they return a design. statistics()
- * is what the last run cost.
+ * copies what it needs; the grids the plant family was swept over, which
+ * the searches close the loop with before they return a design; and the
+ * templates, which must outlive run() too and which, with the
+ * specifications, the exact point reading evaluates a candidate against
+ * (algorithms.point-reading). statistics() is what the last run cost.
  */
 namespace qftbx {
 
@@ -64,11 +66,14 @@ public:
 
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
+    void setTemplates(const qftbx::CloudSet * templates) { m_templates = templates; }
+
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
     qftbx::Settings m_settings;
     qftbx::ParameterGrids m_sweep;
+    const qftbx::CloudSet * m_templates = nullptr;
 
     std::unique_ptr<LtiSystem> m_controller;
     LoopShapingStatistics m_statistics;

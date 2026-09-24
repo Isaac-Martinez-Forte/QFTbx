@@ -237,6 +237,7 @@ void writeLoopShapingSettings(pugi::xml_node settings, const LoopShapingResult::
     section.append_attribute("algorithm") = algorithmName(run.algorithm);
     section.append_attribute("tolerance") = number(run.epsilon).c_str();
     section.append_attribute("columns") = run.conservativeColumns ? "conservative" : "nearest";
+    section.append_attribute("point-reading") = pointReadingName(run.pointReading);
 }
 
 void writeTemplates(pugi::xml_node root, const ProjectContent & content)

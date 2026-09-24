@@ -322,7 +322,7 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_NE(original.loopShaping(), nullptr);
 
-    original.loopShaping()->setRun({qftbx::mc2, 0.05, true});
+    original.loopShaping()->setRun({qftbx::mc2, 0.05, true, Settings::Algorithms::PointReading::ExactExits});
     SpecificationCheck check;
     check.worstExcessDb = -1.25;
     original.loopShaping()->setCheck(check);
@@ -345,6 +345,7 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     EXPECT_EQ(reloaded.loopShaping()->run().algorithm, qftbx::mc2);
     EXPECT_DOUBLE_EQ(reloaded.loopShaping()->run().epsilon, 0.05);
     EXPECT_TRUE(reloaded.loopShaping()->run().conservativeColumns);
+    EXPECT_EQ(reloaded.loopShaping()->run().pointReading, Settings::Algorithms::PointReading::ExactExits);
 
     ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
     EXPECT_TRUE(reloaded.loopShaping()->check()->satisfied());

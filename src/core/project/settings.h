@@ -28,6 +28,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -88,6 +89,10 @@ struct Settings {
 
         bool familyStabilityGate = true;
 
+        enum class PointReading { Columns, ExactExits, Exact };
+
+        PointReading pointReading = PointReading::Columns;
+
         std::int32_t localSearchBudget = 400;
 
         double gainTolerance = 1.01;
@@ -138,6 +143,10 @@ struct Settings {
 
     std::vector<std::string> unknownKeys;
 };
+
+const char * pointReadingName(Settings::Algorithms::PointReading reading);
+
+std::optional<Settings::Algorithms::PointReading> pointReadingFromName(const std::string & name);
 
 Settings readSettings(const std::string & path);
 

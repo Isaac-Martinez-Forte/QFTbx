@@ -140,6 +140,15 @@ bool AlgorithmMc2::solve()
     family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
                                                      m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
 
+    exact.reset();
+    if (m_settings.algorithms.pointReading != Settings::Algorithms::PointReading::Columns
+            && m_templates != nullptr && m_specifications != nullptr) {
+        exact = std::make_unique<ExactPointCheck>(*plant, controller.get(), *omega, *m_templates, *m_specifications);
+        if (!exact->usable()) {
+            exact.reset();
+        }
+    }
+
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();
 

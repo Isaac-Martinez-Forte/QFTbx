@@ -19,6 +19,7 @@
 #include "src/core/loopshaping/common/mc_search_node.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/loopshaping/common/family_stability_checker.h"
+#include "src/core/loopshaping/common/exact_point_check.h"
 #include "src/core/math/range_union.h"
 #include "src/core/math/sequence_vectors.h"
 
@@ -154,6 +155,18 @@ public:
      */
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
+    /**
+     * @brief The templates and the specifications the exact point reading
+     * evaluates a candidate against (algorithms.point-reading), in the
+     * pattern of setPlantFamily.
+     *
+     * Both have to outlive solve(). Either absent, or a template set that
+     * does not cover every design frequency, leaves the search on the
+     * columns, as does the reading 'columns' itself.
+     */
+    void setSpecifications(const qftbx::CloudSet * templates, const qftbx::SpecificationSet * specifications)
+    { m_templates = templates; m_specifications = specifications; }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -269,6 +282,9 @@ private:
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<FamilyStabilityChecker> family;
     qftbx::ParameterGrids m_sweep;
+    std::unique_ptr<ExactPointCheck> exact;
+    const qftbx::CloudSet * m_templates = nullptr;
+    const qftbx::SpecificationSet * m_specifications = nullptr;
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 

@@ -656,6 +656,13 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
                 }
                 run.epsilon = runNode.attribute("tolerance").as_double(0.0);
                 run.conservativeColumns = std::string(runNode.attribute("columns").value()) == "conservative";
+                if (const pugi::xml_attribute reading = runNode.attribute("point-reading")) {
+                    const std::optional<Settings::Algorithms::PointReading> known = pointReadingFromName(reading.value());
+                    if (!known.has_value()) {
+                        throw ParseError(QFTBX_TR("Core", "unknown point reading '%1' (columns, exact-exits or exact)").arg(reading.value()), 1, filePath);
+                    }
+                    run.pointReading = *known;
+                }
                 m_loopShaping->setRun(run);
             }
         }
