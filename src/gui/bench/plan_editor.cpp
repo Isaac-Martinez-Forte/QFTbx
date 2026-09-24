@@ -164,7 +164,7 @@ void PlanEditor::build()
     auto * runsBox = new QGroupBox(tr("Runs"), page);
     auto * runsForm = new QFormLayout(runsBox);
     auto * algorithmsRow = new QHBoxLayout();
-    for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis}) {
+    for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis, mc2, mc3}) {
         auto * box = new QCheckBox(QString::fromLatin1(algorithmName(algorithm)), runsBox);
         box->setObjectName(QStringLiteral("algorithm_%1").arg(algorithmName(algorithm)));
         algorithmsRow->addWidget(box);

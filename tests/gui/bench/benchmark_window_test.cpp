@@ -19,6 +19,7 @@
 
 #include <QAction>
 #include <QLabel>
+#include <QCheckBox>
 #include <QTableWidget>
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -57,6 +58,17 @@ bench::Plan aPlan()
     return plan;
 }
 
+}
+
+TEST(BenchmarkPlanner, TheEditorOffersEveryAlgorithm)
+{
+    BenchmarkWindow window;
+    for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis, mc2, mc3}) {
+        const QString name = QStringLiteral("algorithm_%1").arg(algorithmName(algorithm));
+        EXPECT_NE(window.editor()->findChild<QCheckBox *>(name), nullptr)
+            << "the planner cannot select " << algorithmName(algorithm)
+            << ", so a plan that asks for it silently loses it";
+    }
 }
 
 TEST(BenchmarkPlanner, TheEditorGivesBackThePlanItWasGiven)
@@ -179,7 +191,7 @@ TEST(BenchmarkPlanner, ARunFromTheWindowFillsTheQueueAndTheResults)
     window.setFileChooser([&](bool, const QString &) { return path; });
     window.setConfirmer([](const QString &) { return true; });
     bench::Plan plan = aPlan();
-    plan.algorithms = {nt, mc_thesis};
+    plan.algorithms = {mc2, mc_thesis};
     plan.epsilons = {0.5};
     plan.repetitions = 2;
     plan.warmUp = false;
