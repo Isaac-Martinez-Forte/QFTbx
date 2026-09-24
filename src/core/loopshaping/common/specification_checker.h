@@ -55,9 +55,10 @@
  * whose value set is not empty, the nominal plant value, the quotients
  * P_0 / P of the value set, and the bounds in force there in decibels, in
  * the order the entries are recorded. recordExcesses then takes one loop
- * value and appends the entries of that frequency, and it is the one place
- * the comparison is written, compiled once, so that a search asking about
- * a candidate and the verifier judging the returned design cannot disagree
+ * value and appends the entries of that frequency, worstExcessAt gives the
+ * largest of them without recording, and they are the one place the
+ * comparison is written, compiled once, so that a search asking about a
+ * candidate and the verifier judging the returned design cannot disagree
  * by an inlined copy. The reference keeps pointers into the value sets it
  * was built from and must not outlive them. familyStabilityAt is the
  * family criterion on the same terms: given the swept family and the loop's
@@ -135,6 +136,8 @@ public:
 
     void recordExcesses(const FrequencyReference & at, std::complex<double> loop,
                         SpecificationCheck & check) const;
+
+    double worstExcessAt(const FrequencyReference & at, std::complex<double> loop) const;
 
 private:
     std::vector<FrequencyReference> m_frequencies;

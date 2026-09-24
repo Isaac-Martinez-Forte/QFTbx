@@ -150,6 +150,17 @@ void SpecificationReference::recordExcesses(const FrequencyReference & at, std::
     }
 }
 
+double SpecificationReference::worstExcessAt(const FrequencyReference & at, std::complex<double> loop) const
+{
+    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet);
+
+    double worstExcess = -std::numeric_limits<double>::infinity();
+    for (const FrequencyReference::Bound & bound : at.bounds) {
+        worstExcess = std::max(worstExcess, excessOf(valueOf(worst, bound.type), bound.boundDb));
+    }
+    return worstExcess;
+}
+
 FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::Polynomials & loop)
 {
     FamilyStability result;
