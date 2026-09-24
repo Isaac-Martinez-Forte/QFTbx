@@ -5,7 +5,9 @@
  * The four plant forms give the same polynomials their evaluation does; the
  * magnetic levitation benchmark tells apart the design that stabilises the
  * whole family from the one the specifications alone let through (42 of the
- * 121 plants unstable, the case that made the check necessary); a project
+ * 121 plants unstable, the case that made the check necessary); the ACC'90
+ * benchmark, where the minimum-gain answer is the floor of the gain box,
+ * shows that a pole on the imaginary axis is not stability; a project
  * without a sweep record, a loop with a delay and a plant that is not
  * rational are reported as not checked and never approved as stable.
  */
@@ -179,4 +181,32 @@ TEST(FamilyStability, ADelayLeavesTheFamilyUnchecked)
                                                                 project.templates(), toSpecificationSet(*project.specifications()), &sweep);
     EXPECT_FALSE(check.family.checked);
     EXPECT_EQ(check.family.notChecked, FamilyStability::NotChecked::Delay);
+}
+
+TEST(FamilyStability, APoleOnTheAxisIsNotStability)
+{
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+    const ParameterGrids sweep = gridsOf(*project.plant(), 25);
+    const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+
+    std::unique_ptr<LtiSystem> atTheFloor = project.controllerStructure()->create(
+                "floor", {Parameter(0.01)}, {Parameter(921.87578125)}, Parameter(0.001), Parameter(0.0));
+    const SpecificationCheck floor = checkAgainstSpecifications(*atTheFloor, *project.plant(),
+                                                                *project.omega()->values(), project.templates(),
+                                                                specifications, &sweep);
+    EXPECT_LT(floor.worstExcessDb, -90.0) << "the smaller the loop the wider the margin";
+    EXPECT_TRUE(floor.family.checked);
+    EXPECT_EQ(floor.family.unstableMembers, floor.family.members)
+        << "the double integrator leaves a pair of poles on the axis when the gain goes to zero";
+    EXPECT_LT(floor.family.worstRealPart, 0.0) << "negative, and a millionth of the largest pole";
+    EXPECT_FALSE(floor.satisfied());
+
+    std::unique_ptr<LtiSystem> lead = project.controllerStructure()->create(
+                "lead", {Parameter(0.1)}, {Parameter(1.0)}, Parameter(0.03), Parameter(0.0));
+    const SpecificationCheck stabilising = checkAgainstSpecifications(*lead, *project.plant(),
+                                                                      *project.omega()->values(), project.templates(),
+                                                                      specifications, &sweep);
+    EXPECT_EQ(stabilising.family.unstableMembers, 0u) << "a lead below the resonance does stabilise the family";
+    EXPECT_LT(stabilising.family.worstRealPart, -1e-3);
 }

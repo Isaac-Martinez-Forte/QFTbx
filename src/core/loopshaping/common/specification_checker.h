@@ -47,11 +47,22 @@
  *
  * It exists so that "the returned controller satisfies its specifications"
  * can be a test in the suite instead of a claim.
+ *
+ * The result lists every active specification at every design frequency with
+ * the value achieved, the bound and the excess, and the largest excess. The
+ * family part says how many plants were closed, how many are not
+ * asymptotically stable - a closed-loop pole in the right half-plane, or on
+ * the imaginary axis within 1e-7 of the largest pole, the tolerance the roots
+ * are computed to - the largest real part over all of them and the plant it
+ * belongs to, or why it could not be checked: no record of the sweep, a delay,
+ * a plant that is not rational. A pole on the axis is not stability, and at
+ * the floor of a gain box over a plant with poles of its own on the axis it is
+ * what a minimum-gain search converges to. satisfied() asks for no excess and
+ * no unstable plant. A parameter the sweep has no grid for stays at its
+ * nominal value, and a frequency whose value set is empty contributes nothing.
  */
 namespace qftbx {
 
-/// One active specification at one design frequency: the value the
-/// controller achieves, the bound, and the difference (positive violates).
 struct SpecificationExcess
 {
     std::size_t frequencyIndex = 0;
@@ -62,10 +73,6 @@ struct SpecificationExcess
     double excessDb = 0.0;
 };
 
-/// The closed loop with every member of the sampled family: how many were
-/// closed, how many are unstable, the largest real part of a closed-loop
-/// pole over all of them and the member it belongs to, as parameter names
-/// and values. When the check could not be made, why.
 struct FamilyStability
 {
     enum class NotChecked { No, NoSweepRecord, Delay, NotRational };
@@ -78,38 +85,15 @@ struct FamilyStability
     std::vector<std::pair<std::string, double>> worstMember;
 };
 
-/// The whole check: every active specification at every design frequency,
-/// the largest excess among them, and the closed-loop stability of the
-/// family.
 struct SpecificationCheck
 {
     std::vector<SpecificationExcess> entries;
     double worstExcessDb = -std::numeric_limits<double>::infinity();
     FamilyStability family;
 
-    /// No active specification is exceeded and no member of the family was
-    /// found closed-loop unstable.
     bool satisfied() const { return !(worstExcessDb > 0.0) && family.unstableMembers == 0; }
 };
 
-/**
- * @brief Check a controller against the specifications over a value set.
- *
- * @param controller the controller to verify; evaluated at its nominal values.
- * @param plant the plant; its nominal value at each frequency is \f$ P_0 \f$.
- * @param omega the design frequencies.
- * @param templates the value set of the plant family at each frequency, in
- *        the order of omega. Pass the full clouds: the contour is enough for
- *        the boundaries only under conditions this checker does not assume.
- * @param specifications the seven slots; unused ones and frequencies outside
- *        a band are skipped, and a tracking band needs both T_L and T_U.
- *
- * @param sweep the grids the templates were swept over, by parameter name,
- *        or nothing: the family whose closed loops are checked for
- *        stability. A parameter without a grid stays at its nominal value.
- *
- * A frequency whose value set is empty contributes nothing.
- */
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,
                                               const CloudSet & templates,

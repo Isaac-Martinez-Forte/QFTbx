@@ -11,7 +11,9 @@
  * the sweep grids of the plant's uncertain parameters, by name, so a name
  * the plant uses twice takes one value; every member's characteristic
  * polynomial is built from the plant's and the controller's numerator and
- * denominator and its roots counted in the right half-plane.
+ * denominator, and a member is stable only when every root of it is
+ * strictly in the left half-plane, the tolerance of the axis being the one
+ * the roots are computed to.
  */
 
 #include "src/core/loopshaping/common/specification_checker.h"
@@ -146,10 +148,12 @@ FamilyStability familyStability(LtiSystem & controller, LtiSystem & plant, const
         const std::vector<std::complex<double>> roots = math::polynomialRoots(characteristic);
 
         double realPart = -std::numeric_limits<double>::infinity();
+        double largest = 0.0;
         for (const std::complex<double> & root : roots) {
             realPart = std::max(realPart, root.real());
+            largest = std::max(largest, std::abs(root));
         }
-        if (math::rightHalfPlaneCount(roots) > 0) {
+        if (roots.empty() || realPart > -1e-7 * largest) {
             ++family.unstableMembers;
         }
         if (realPart > family.worstRealPart) {
