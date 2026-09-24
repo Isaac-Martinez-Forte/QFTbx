@@ -5,7 +5,8 @@ uncertainty, the specifications, the design frequencies and the structure of
 the controller are the paper's, and the file carries everything QFTbx computed
 from them - the templates and their contours, the boundaries, the controller
 found and the verifier's verdict on it, the closed-loop stability of every plant
-of the sweep included.
+of the sweep included. Each file records the sweep its templates came from, so
+the verdict can be recomputed from the file alone.
 
 Open any of them with QFTbx to see every phase.
 
@@ -17,14 +18,14 @@ paper uses changes the templates - it is not a typo in one of them.
 
 | Problem | Source | Plant and uncertainty | Specifications | Design frequencies | Published controller | Controller in the file |
 |---|---|---|---|---|---|---|
-| `toolbox-1` | QFT Toolbox manual (Borghesani, Chait and Yaniv), example 1 | `k/((s+a)(s+b))`; `k ∈ [1,10]`, `a ∈ [1,5]`, `b ∈ [20,30]` | stability `1.2`; output disturbance `0.02(s³+64s²+748s+2400)/(s²+14.4s+169)` over [0,10]; input disturbance `0.01` over [0,50] | 0.1 5 10 100 | designed by hand in the manual | 1 zero, 1 pole, gain 20.6304 |
+| `toolbox-1` | QFT Toolbox manual (Borghesani, Chait and Yaniv), example 1 | `k/((s+a)(s+b))`; `k ∈ [1,10]`, `a ∈ [1,5]`, `b ∈ [20,30]` | stability `1.2`; output disturbance `0.02(s³+64s²+748s+2400)/(s²+14.4s+169)` over [0,10]; input disturbance `0.01` over [0,50] | 0.1 5 10 100 | designed by hand in the manual | 1 zero, 1 pole, gain 67.6961 |
 | `toolbox-2` | QFT Toolbox manual, example 2 - the problem most of the rest descend from | `k a/(s(s+a))`; `k,a ∈ [1,10]` | stability `1.2`; corridor `120/(s³+17s²+82s+120)` to `0.6584(s+30)/(s²+4s+19.752)` | 0.1 0.5 1 2 15 100 | designed by hand in the manual; second order by genetic algorithm in Chen, Ballance and Gawthrop 1998 (`k_hf` 136.76 dB); CRONE-2 in Cervera and Baños 2008 (`K_hf` 129.75 dB) | 1 zero, 1 pole, gain 567.318 |
 | `acc90` | ACC'90 benchmark, spring-mass; QFT Toolbox manual example 5 (margin 2.25); Nataraj and Kubal, IJRNC 17 (2007), ex. 4.1 (p. 262-263) | `e/(s²(s²+0.02s+2e))`; `e ∈ [0.5,2]` — a double integrator | stability `1.75` and nothing else | 0.1 0.98 0.99 1 2 5 7 8.5 10 15 20 100 | Nataraj and Kubal, for their margin specifications: `1.139e7(s+0.0751)(s+0.3488)(s+0.3868)/((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))` | 1 zero, 1 pole, gain 1000 |
 | `dcm-k` | Tharewal 2005, ex. 3.1 (p. 37-38) = Nataraj and Tharewal, ASME 2007, ex. 5.1 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 0.6584(s+30)/(s²+4s+19.752)`, `T_L = 120/(s³+17s²+82s+120)` | 0.1 0.5 1 15 100 | `3462219(s+3.85)/((s+931.27)(s+946.83))` — 1 zero, 2 poles | 1 zero, 2 poles, gain 49419.2 |
 | `dcm-ka-w5` | Chait, Chen and Hollot, ASME JDSMC 121 (1999) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the same as `dcm-k` | 0.1 0.5 1 15 100 | three degrees of freedom by linear programming | 1 zero, 1 pole, gain 569.783 |
 | `dcm-ka-w8` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.1 (p. 10-12) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; the same corridor | 0.5 1 2 3 5 10 30 60 | PID `Kp 9.22, Td 0.41, Ti 12.21` and a prefilter; **the paper admits it violates the upper tracking bound over ω ∈ [11,29]** | 2 zeros, 1 pole, gain 0.333575 |
 | `dcm-AC` | IFAC DYCOPS 2013 (p. 431-432); Tharewal 2005, ex. 3.2 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking with the fourth-order lower bound `8400/((s+3)(s+4)(s+10)(s+70))` | 0.5 1 2 10 30 60 | PID `7.03 + 3.89s + 0.1/s` | 2 zeros, 1 pole, gain 0.311709 |
-| `dcm-T33` | Tharewal 2005, ex. 3.3 (p. 40-41) = ASME 2007, ex. 5.3 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 1.5/(s+1.5)`, `T_L = 1/(s+1)²` | 0.001 0.0157 0.2449 3.8337 60 | `10455(s+1.56)(s+1.29)/((s+0.54)(s²+149.4s+17260))` — **a complex pole pair** | 1 zero, 1 pole, gain 37.4566 |
+| `dcm-T33` | Tharewal 2005, ex. 3.3 (p. 40-41) = ASME 2007, ex. 5.3 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 1.5/(s+1.5)`, `T_L = 1/(s+1)²` | 0.001 0.0157 0.2449 3.8337 60 | `10455(s+1.56)(s+1.29)/((s+0.54)(s²+149.4s+17260))` — **a complex pole pair** | 1 zero, 1 pole, gain 89.3251 |
 | `dcm-hs72` | Bryant and Halikias 1995, over Horowitz and Sidi 1972 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the corridor `1/(s+1)² ≤ T ≤ 1.5/(s+1.5)`; the paper states no margin, `1.2` added here as Tharewal 3.3 does | 23 logarithmic, 0.01 to 428.1 | by linear programming | 1 zero, 2 poles, gain 27395.5 |
 | `msf` | Tharewal 2005, ex. 4.4 (p. 68-72) | MSF desalination `K(1+T1 s)/((1+T2 s)(1+T3 s))`; `K ∈ [32,76]`, `T1 ∈ [12,28]`, `T2 ∈ [11,26]`, `T3 ∈ [4,10]` | stability `1.2`; tracking added by the authors ("Ismail does not use any tracking specifications") | 0.01 0.098 0.309 0.97 9.558 30 | `655.65(s+2.022)/(s(s+169.9))` — **an integrator** | 1 zero, 2 poles, gain 245.613 |
 | `maglev-lower` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.2 (p. 12-13) | `k/(s²+a)`; `k ∈ [811,944]`, `a ∈ [382,478.5]` — poles on the imaginary axis | stability `1.2`; corridor `916.3/(s³+39.76s²+354.9s+916.3)` to `(1.722s+68.89)/(s²+16.6s+68.89)` | 11 from 0.1 to 30 | PID with `ωn`, `ζ` | 2 zeros, 1 pole, gain 0.01 |
@@ -42,7 +43,9 @@ paper uses changes the templates - it is not a typo in one of them.
 
 **Published controller.** Designed by hand in the manual's loop-shaping environment.
 
-**The controller in the file.** 1 zero, 1 pole, gain **20.6304**, worst excess over the specifications **-0.0392 dB**.
+**The controller in the file.** 1 zero, 1 pole, gain **67.6961**, worst excess over the specifications **-0.8504 dB**, and every one of the 729 plants of the sweep closed-loop stable.
+
+**Why the gain is not the smallest that meets the bounds.** A gain of 20.6304 meets every bound at the four design frequencies and leaves **435 of the 729 plants closed-loop unstable**: the crossing that decides stability falls between two design frequencies. The search now closes the loop with every plant of the sweep before it returns a design, so it climbs to 67.6961, which is what stabilising the whole family costs here.
 
 ### toolbox-2 — example 2 of the QFT Toolbox manual
 
@@ -128,7 +131,9 @@ paper uses changes the templates - it is not a typo in one of them.
 
 **Why this structure.** The published controller has a complex pole pair, which QFTbx's controllers - real zeros, real poles and a gain - cannot hold, so it cannot be posed as published; the file holds one zero and one pole.
 
-**The controller in the file.** 1 zero, 1 pole, gain **37.4566**, worst excess over the specifications **-0.0000 dB**.
+**The controller in the file.** 1 zero, 1 pole, gain **89.3251**, worst excess over the specifications **-5.5762 dB**, and every one of the 625 plants of the sweep closed-loop stable.
+
+**Why the gain is not the smallest that meets the bounds.** A gain of 37.4566 meets every bound at the five design frequencies and leaves **286 of the 625 plants closed-loop unstable**. As in `toolbox-1`, the design that stabilises the whole family costs more gain.
 
 **How to read it.** The gain is a high-frequency gain, against the paper's 10 455 - a different structure, so a comparison of kind and not of merit.
 
