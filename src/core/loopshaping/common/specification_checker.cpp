@@ -136,6 +136,31 @@ SpecificationReference::SpecificationReference(LtiSystem & plant, const std::vec
             at.bounds.push_back({SpecificationType::ControlEffort, controlEffort.boundDb(w)});
         }
 
+        at.mask.stabilityNoiseTracking = false;
+        at.mask.outputDisturbance = false;
+        at.mask.inputDisturbance = false;
+        at.mask.controlEffort = false;
+        for (const FrequencyReference::Bound & bound : at.bounds) {
+            switch (bound.type) {
+            case SpecificationType::TrackingLower:
+            case SpecificationType::Stability:
+            case SpecificationType::SensorNoise:
+                at.mask.stabilityNoiseTracking = true;
+                break;
+            case SpecificationType::OutputDisturbance:
+                at.mask.outputDisturbance = true;
+                break;
+            case SpecificationType::InputDisturbance:
+                at.mask.inputDisturbance = true;
+                break;
+            case SpecificationType::ControlEffort:
+                at.mask.controlEffort = true;
+                break;
+            case SpecificationType::TrackingUpper:
+                break;
+            }
+        }
+
         m_frequencies.push_back(std::move(at));
     }
 }
@@ -143,7 +168,7 @@ SpecificationReference::SpecificationReference(LtiSystem & plant, const std::vec
 void SpecificationReference::recordExcesses(const FrequencyReference & at, std::complex<double> loop,
                                             SpecificationCheck & check) const
 {
-    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet);
+    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet, at.mask);
 
     for (const FrequencyReference::Bound & bound : at.bounds) {
         record(check, at.index, at.omega, bound.type, valueOf(worst, bound.type), bound.boundDb);
@@ -152,7 +177,7 @@ void SpecificationReference::recordExcesses(const FrequencyReference & at, std::
 
 double SpecificationReference::worstExcessAt(const FrequencyReference & at, std::complex<double> loop) const
 {
-    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet);
+    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet, at.mask);
 
     double worstExcess = -std::numeric_limits<double>::infinity();
     for (const FrequencyReference::Bound & bound : at.bounds) {

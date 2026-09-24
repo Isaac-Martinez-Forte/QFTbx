@@ -27,9 +27,11 @@
  *
  * So whatever comes out of certify the verifier accepts, on the
  * specifications and on the family, by construction; and nothing the search
- * prunes with can be refused afterwards. The counts say how many candidates
- * were asked and where each refusal fell, which is what the cost of the
- * exact reading is measured by.
+ * prunes with can be refused afterwards. A point the exact gain search
+ * produced was admitted by the specifications on its way out, and the
+ * caller says so to spare the pass over the value sets. The counts say how
+ * many candidates were asked and where each refusal fell, which is what the
+ * cost of the exact reading is measured by.
  */
 namespace qftbx {
 
@@ -38,7 +40,7 @@ class Certifier
 public:
     Certifier(ExactPointCheck & exact, NominalStabilityChecker & stability, FamilyStabilityChecker & family);
 
-    bool certify(const PointController & point);
+    bool certify(const PointController & point, bool specificationsAdmitted = false);
 
     struct Statistics {
         std::size_t certifications = 0;

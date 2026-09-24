@@ -30,7 +30,9 @@
  *
  * The plants' polynomials are the SweptFamily's, built once, when the
  * checker is. isStable is the Routh table per member, tens of microseconds
- * for a family of hundreds, stopping at the first member that fails.
+ * for a family of hundreds, stopping at the first member that fails; the
+ * member that failed last is asked first, since the candidates of a search
+ * resemble one another and a refusal then costs one table.
  * isStableByRoots is the verifier's own criterion on the same members, the
  * roots of every characteristic polynomial with the tolerance the verifier
  * applies to the axis, milliseconds rather than microseconds: the two agree
@@ -68,6 +70,7 @@ private:
     std::unique_ptr<LtiSystem> m_controller;
     SweptFamily m_family;
     bool m_usable = false;
+    std::size_t m_lastUnstable = 0;
     Statistics m_statistics;
 };
 

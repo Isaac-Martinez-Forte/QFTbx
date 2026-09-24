@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "src/core/boundaries/closed_loop_worst_case.h"
 #include "src/core/loopshaping/common/swept_family.h"
 #include "src/core/specifications/specification.h"
 #include "src/core/system/lti_system.h"
@@ -53,8 +54,10 @@
  * Everything about the problem that does not depend on the controller is
  * gathered once into a SpecificationReference: for each design frequency
  * whose value set is not empty, the nominal plant value, the quotients
- * P_0 / P of the value set, and the bounds in force there in decibels, in
- * the order the entries are recorded. recordExcesses then takes one loop
+ * P_0 / P of the value set, the bounds in force there in decibels, in the
+ * order the entries are recorded, and the mask of the closed-loop
+ * magnitudes those bounds need, so that the value set is walked for those
+ * alone. recordExcesses then takes one loop
  * value and appends the entries of that frequency, worstExcessAt gives the
  * largest of them without recording, and they are the one place the
  * comparison is written, compiled once, so that a search asking about a
@@ -124,6 +127,7 @@ struct FrequencyReference
     const ComplexCloud * valueSet = nullptr;
     std::vector<std::complex<double>> nominalOverValueSet;
     std::vector<Bound> bounds;
+    WorstCaseMask mask;
 };
 
 class SpecificationReference

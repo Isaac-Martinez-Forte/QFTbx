@@ -44,12 +44,15 @@ bool FamilyStabilityChecker::isStable(const PointController & point)
         return true;
     }
 
-    for (std::size_t member = 0; member < m_family.size(); ++member) {
+    const std::size_t count = m_family.size();
+    for (std::size_t step = 0; step < count; ++step) {
+        const std::size_t member = (m_lastUnstable + step) % count;
         const LtiSystem::Polynomials & plant = m_family.member(member);
         const std::vector<double> characteristic =
                 math::polynomialSum(math::polynomialProduct(plant.numerator, loop->numerator),
                                     math::polynomialProduct(plant.denominator, loop->denominator));
         if (!math::isHurwitz(characteristic)) {
+            m_lastUnstable = member;
             return false;
         }
     }

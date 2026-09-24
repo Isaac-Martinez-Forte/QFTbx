@@ -142,6 +142,7 @@ QJsonObject toJson(const Record & r)
             certificate["lower_bound_strict"] = c.lowerBoundStrict;
         }
         certificate["residue_nodes"] = static_cast<qint64>(c.residueNodes);
+        certificate["epsilon_resolved"] = static_cast<qint64>(c.epsilonResolved);
         certificate["unproven_discards"] = static_cast<qint64>(c.unprovenDiscards);
         certificate["grid_backed_prunes"] = static_cast<qint64>(c.gridBackedPrunes);
         certificate["certifications"] = static_cast<qint64>(c.certifications);
@@ -151,6 +152,10 @@ QJsonObject toJson(const Record & r)
         certificate["refused_by_roots"] = static_cast<qint64>(c.refusedByRoots);
         certificate["incumbent_updates"] = static_cast<qint64>(c.incumbentUpdates);
         certificate["kernel_passes"] = static_cast<qint64>(c.kernelPasses);
+        certificate["gain_searches"] = static_cast<qint64>(c.gainSearches);
+        certificate["exchange_rounds"] = static_cast<qint64>(c.exchangeRounds);
+        certificate["ladder_steps"] = static_cast<qint64>(c.ladderSteps);
+        certificate["largest_working_set"] = static_cast<qint64>(c.largestWorkingSet);
         s["certificate"] = certificate;
     }
     if (!r.statistics.byDepth.empty()) {
@@ -243,6 +248,7 @@ Record recordFromJson(const QJsonObject & o)
         c.lowerBoundStrict = certificate.contains("lower_bound_strict") ? certificate["lower_bound_strict"].toDouble()
                                                                         : std::numeric_limits<double>::infinity();
         c.residueNodes = static_cast<std::size_t>(certificate["residue_nodes"].toInteger());
+        c.epsilonResolved = static_cast<std::size_t>(certificate["epsilon_resolved"].toInteger());
         c.unprovenDiscards = static_cast<std::size_t>(certificate["unproven_discards"].toInteger());
         c.gridBackedPrunes = static_cast<std::size_t>(certificate["grid_backed_prunes"].toInteger());
         c.certifications = static_cast<std::size_t>(certificate["certifications"].toInteger());
@@ -252,6 +258,10 @@ Record recordFromJson(const QJsonObject & o)
         c.refusedByRoots = static_cast<std::size_t>(certificate["refused_by_roots"].toInteger());
         c.incumbentUpdates = static_cast<std::size_t>(certificate["incumbent_updates"].toInteger());
         c.kernelPasses = static_cast<std::size_t>(certificate["kernel_passes"].toInteger());
+        c.gainSearches = static_cast<std::size_t>(certificate["gain_searches"].toInteger());
+        c.exchangeRounds = static_cast<std::size_t>(certificate["exchange_rounds"].toInteger());
+        c.ladderSteps = static_cast<std::size_t>(certificate["ladder_steps"].toInteger());
+        c.largestWorkingSet = static_cast<std::size_t>(certificate["largest_working_set"].toInteger());
     }
     for (const QJsonValue & v : s["by_depth"].toArray()) {
         const QJsonObject entry = v.toObject();

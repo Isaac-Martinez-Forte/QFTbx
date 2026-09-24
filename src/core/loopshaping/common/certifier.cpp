@@ -12,11 +12,11 @@ Certifier::Certifier(ExactPointCheck & exact, NominalStabilityChecker & stabilit
 {
 }
 
-bool Certifier::certify(const PointController & point)
+bool Certifier::certify(const PointController & point, bool specificationsAdmitted)
 {
     ++m_statistics.certifications;
 
-    if (!m_exact.admits(point)) {
+    if (!specificationsAdmitted && !m_exact.admits(point)) {
         ++m_statistics.refusedBySpecifications;
         return false;
     }

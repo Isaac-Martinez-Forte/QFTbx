@@ -30,7 +30,10 @@
  * unproven. Under the exact point reading the candidates asked of the
  * certification funnel, where each refusal fell, how often the best design
  * improved and how many passes over a value set the exact check made say
- * what the reading costs.
+ * what the reading costs; under the exact gain the searches for the best
+ * gain at fixed zeros and poles, the rounds in which a working set of
+ * plants had to grow, the ladder steps a rounding cost and the largest
+ * working set say what that costs.
  */
 
 #ifndef QFTBX_LOOPSHAPING_STATISTICS_H
@@ -68,6 +71,7 @@ struct LoopShapingStatistics
         double lowerBound = std::numeric_limits<double>::infinity();
         double lowerBoundStrict = std::numeric_limits<double>::infinity();
         std::size_t residueNodes = 0;
+        std::size_t epsilonResolved = 0;
         std::size_t unprovenDiscards = 0;
         std::size_t gridBackedPrunes = 0;
         std::size_t certifications = 0;
@@ -77,6 +81,10 @@ struct LoopShapingStatistics
         std::size_t refusedByRoots = 0;
         std::size_t incumbentUpdates = 0;
         std::size_t kernelPasses = 0;
+        std::size_t gainSearches = 0;
+        std::size_t exchangeRounds = 0;
+        std::size_t ladderSteps = 0;
+        std::size_t largestWorkingSet = 0;
     };
     Certificate certificate;
 };
