@@ -1,12 +1,14 @@
 #ifndef QFTBX_SPECIFICATION_CHECKER_H
 #define QFTBX_SPECIFICATION_CHECKER_H
 
+#include <complex>
 #include <cstddef>
 #include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "src/core/loopshaping/common/swept_family.h"
 #include "src/core/specifications/specification.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/cloud_set.h"
@@ -47,6 +49,19 @@
  *
  * It exists so that "the returned controller satisfies its specifications"
  * can be a test in the suite instead of a claim.
+ *
+ * Everything about the problem that does not depend on the controller is
+ * gathered once into a SpecificationReference: for each design frequency
+ * whose value set is not empty, the nominal plant value, the quotients
+ * P_0 / P of the value set, and the bounds in force there in decibels, in
+ * the order the entries are recorded. recordExcesses then takes one loop
+ * value and appends the entries of that frequency, and it is the one place
+ * the comparison is written, compiled once, so that a search asking about
+ * a candidate and the verifier judging the returned design cannot disagree
+ * by an inlined copy. The reference keeps pointers into the value sets it
+ * was built from and must not outlive them. familyStabilityAt is the
+ * family criterion on the same terms: given the swept family and the loop's
+ * polynomials, one call per point.
  *
  * The result lists every active specification at every design frequency with
  * the value achieved, the bound and the excess, and the largest excess. The
@@ -93,6 +108,41 @@ struct SpecificationCheck
 
     bool satisfied() const { return !(worstExcessDb > 0.0) && family.unstableMembers == 0; }
 };
+
+struct FrequencyReference
+{
+    struct Bound
+    {
+        SpecificationType type;
+        double boundDb;
+    };
+
+    std::size_t index = 0;
+    double omega = 0.0;
+    std::complex<double> nominalPlant;
+    const ComplexCloud * valueSet = nullptr;
+    std::vector<std::complex<double>> nominalOverValueSet;
+    std::vector<Bound> bounds;
+};
+
+class SpecificationReference
+{
+public:
+    SpecificationReference(LtiSystem & plant, const std::vector<double> & omega,
+                           const CloudSet & templates, const SpecificationSet & specifications);
+
+    const std::vector<FrequencyReference> & frequencies() const { return m_frequencies; }
+
+    void recordExcesses(const FrequencyReference & at, std::complex<double> loop,
+                        SpecificationCheck & check) const;
+
+private:
+    std::vector<FrequencyReference> m_frequencies;
+};
+
+FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::Polynomials & loop);
+
+FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & controller);
 
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,

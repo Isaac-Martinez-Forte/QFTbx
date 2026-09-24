@@ -3,6 +3,9 @@
  * @brief The verifier closes the loop with every plant of the sweep.
  *
  * The four plant forms give the same polynomials their evaluation does; the
+ * swept family walks the sweep in the order of the templates, first grid
+ * fastest, names each member by its values, and says why it cannot be
+ * walked; the
  * magnetic levitation benchmark tells apart the design that stabilises the
  * whole family from the one the specifications alone let through (42 of the
  * 121 plants unstable, the case that made the check necessary); the ACC'90
@@ -19,11 +22,13 @@
 
 #include <complex>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/loopshaping/common/specification_checker.h"
+#include "src/core/loopshaping/common/swept_family.h"
 #include "src/core/math/polynomial.h"
 #include "src/core/math/sequences.h"
 #include "src/core/specifications/specification_record.h"
@@ -120,6 +125,67 @@ TEST(PlantPolynomials, EveryFormAgreesWithItsEvaluation)
 
     FreeForm delayed("delayed", none, none, Parameter(1.0), Parameter(0.0), std::string("1"), std::string("s+exp(-s)"));
     EXPECT_FALSE(delayed.polynomialsAt({}, {}, 1.0).has_value());
+}
+
+TEST(SweptFamily, MembersWalkTheSweepFirstGridFastest)
+{
+    const std::string file = example("maglev-lower.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    const ParameterGrids sweep = gridsOf(*project.plant(), 11);
+    const std::vector<double> & a = sweep.at("a");
+    const std::vector<double> & k = sweep.at("k");
+
+    const SweptFamily family(*project.plant(), sweep);
+    ASSERT_TRUE(family.usable());
+    ASSERT_EQ(family.size(), 121u);
+
+    for (std::size_t i = 0; i < family.size(); ++i) {
+        const std::vector<std::pair<std::string, double>> values = family.valuesOf(i);
+        ASSERT_EQ(values.size(), 2u) << "member " << i;
+        EXPECT_EQ(values[0].first, "a");
+        EXPECT_EQ(values[0].second, a[i % 11]) << "member " << i;
+        EXPECT_EQ(values[1].first, "k");
+        EXPECT_EQ(values[1].second, k[i / 11]) << "member " << i;
+
+        const std::optional<LtiSystem::Polynomials> direct = project.plant()->polynomialsAt({}, {a[i % 11]}, k[i / 11]);
+        ASSERT_TRUE(direct.has_value());
+        EXPECT_EQ(family.member(i).numerator, direct->numerator) << "member " << i;
+        EXPECT_EQ(family.member(i).denominator, direct->denominator) << "member " << i;
+    }
+}
+
+TEST(SweptFamily, WhyItCannotBeWalked)
+{
+    const std::string file = example("maglev-lower.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem & plant = *project.plant();
+    const ParameterGrids sweep = gridsOf(plant, 3);
+
+    EXPECT_EQ(SweptFamily(plant, ParameterGrids()).state(), SweptFamily::State::NoSweepRecord);
+    EXPECT_EQ(SweptFamily().state(), SweptFamily::State::NoSweepRecord);
+
+    std::vector<Parameter> none;
+    ZeroPoleGain delayed("delayed", none, none, Parameter(1.0), Parameter(0.2));
+    EXPECT_EQ(SweptFamily(delayed, sweep).state(), SweptFamily::State::Delay);
+
+    FreeForm transcendental("transcendental", none, none, Parameter(1.0), Parameter(0.0),
+                            std::string("1"), std::string("s+exp(-s)"));
+    EXPECT_EQ(SweptFamily(transcendental, sweep).state(), SweptFamily::State::NotRational);
+
+    ParameterGrids unrelated;
+    unrelated["x"] = {1.0, 2.0};
+    const SweptFamily nominalOnly(plant, unrelated);
+    EXPECT_TRUE(nominalOnly.usable()) << "a sweep that names none of the plant's parameters walks the nominal plant";
+    EXPECT_EQ(nominalOnly.size(), 1u);
+    EXPECT_TRUE(nominalOnly.valuesOf(0).empty());
 }
 
 TEST(FamilyStability, TheMaglevDesignsAreToldApart)

@@ -3,10 +3,9 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
-#include <vector>
 
 #include "src/core/loopshaping/common/point_controller.h"
+#include "src/core/loopshaping/common/swept_family.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
 
@@ -29,12 +28,12 @@
  * before it is returned. Validating a design against a denser set of
  * requirements is a different job and a later step.
  *
- * The plants' polynomials are built once, when the checker is; a verdict is
- * then a polynomial product and a Routh table per member, tens of
- * microseconds for a family of hundreds, and it stops at the first member
- * that fails. A plant or controller with a delay, one that is not a
- * rational function, or a project with no record of its sweep leaves the
- * checker unusable, and the caller then goes on as it did before: the
+ * The plants' polynomials are the SweptFamily's, built once, when the
+ * checker is; a verdict is then a polynomial product and a Routh table per
+ * member, tens of microseconds for a family of hundreds, and it stops at the
+ * first member that fails. A plant or controller with a delay, one that is
+ * not a rational function, or a project with no record of its sweep leaves
+ * the checker unusable, and the caller then goes on as it did before: the
  * checker never approves what it cannot decide.
  *
  * It keeps a clone of the controller structure, since the search gives its
@@ -48,7 +47,7 @@ public:
     FamilyStabilityChecker(LtiSystem * plant, LtiSystem * controller, const ParameterGrids & sweep);
 
     bool usable() const { return m_usable; }
-    std::size_t members() const { return m_members.size(); }
+    std::size_t members() const { return m_family.size(); }
 
     bool isStable(const PointController & point);
 
@@ -59,7 +58,7 @@ public:
 
 private:
     std::unique_ptr<LtiSystem> m_controller;
-    std::vector<LtiSystem::Polynomials> m_members;
+    SweptFamily m_family;
     bool m_usable = false;
     Statistics m_statistics;
 };
