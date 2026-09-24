@@ -29,12 +29,17 @@
  * requirements is a different job and a later step.
  *
  * The plants' polynomials are the SweptFamily's, built once, when the
- * checker is; a verdict is then a polynomial product and a Routh table per
- * member, tens of microseconds for a family of hundreds, and it stops at the
- * first member that fails. A plant or controller with a delay, one that is
- * not a rational function, or a project with no record of its sweep leaves
- * the checker unusable, and the caller then goes on as it did before: the
- * checker never approves what it cannot decide.
+ * checker is. isStable is the Routh table per member, tens of microseconds
+ * for a family of hundreds, stopping at the first member that fails.
+ * isStableByRoots is the verifier's own criterion on the same members, the
+ * roots of every characteristic polynomial with the tolerance the verifier
+ * applies to the axis, milliseconds rather than microseconds: the two agree
+ * except in that tolerance band, and a candidate that is to be returned
+ * under the exact reading is confirmed by the second so that the verifier
+ * cannot refuse afterwards what the search accepted. A plant or controller
+ * with a delay, one that is not a rational function, or a project with no
+ * record of its sweep leaves the checker unusable, and the caller then goes
+ * on as it did before: the checker never approves what it cannot decide.
  *
  * It keeps a clone of the controller structure, since the search gives its
  * own away to the first box of the list.
@@ -51,8 +56,11 @@ public:
 
     bool isStable(const PointController & point);
 
+    bool isStableByRoots(const PointController & point);
+
     struct Statistics {
         std::size_t verdicts = 0;
+        std::size_t rootVerdicts = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 

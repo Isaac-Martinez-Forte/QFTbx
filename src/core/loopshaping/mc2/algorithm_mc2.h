@@ -20,6 +20,7 @@
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/loopshaping/common/family_stability_checker.h"
 #include "src/core/loopshaping/common/exact_point_check.h"
+#include "src/core/loopshaping/common/certifier.h"
 #include "src/core/math/range_union.h"
 #include "src/core/math/sequence_vectors.h"
 
@@ -91,6 +92,23 @@
  * nominal stability of every certified point and the box-level instability
  * prune - MC2 keeps as MC of the thesis has it, and the two share their
  * search node (common/mc_search_node.h).
+ *
+ * Under algorithms.point-reading = exact-exits or exact, the point a
+ * feasible box or an epsilon-small box yields, the contraction of its gain
+ * and the best gain of a box become the design, or the best design so far
+ * that prunes the tree, only through the certification funnel
+ * (common/certifier.h): the specifications themselves over the whole
+ * template at the point's own loop value, the nominal criterion, the family
+ * by the Routh table and then by the roots. A box the columns call feasible
+ * whose corner the funnel refuses is not dropped: it goes on to the
+ * epsilon test and the bisection like an ambiguous one. Boxes are still
+ * classified and cut against the columns, so a verdict of infeasible is not
+ * a proof; every such discard, every box the nominal criterion pruned whole
+ * and every box dropped with no certified point is counted with the
+ * smallest gain it could hold (LoopShapingStatistics::Certificate), and
+ * "no feasible solution" is claimed only when nothing was discarded without
+ * proof. Under the default reading the search is what it was, bit for bit,
+ * and the certificate is bookkeeping alone.
  */
 namespace qftbx {
 
@@ -266,6 +284,18 @@ private:
     bool pointIsFeasible(const PointController & point);
     void insertFeasibleBox(std::unique_ptr<LtiSystem> box);
 
+    /// The certification funnel of the exact point reading (common/certifier.h).
+    bool certify(const PointController & point);
+
+    /// The bookkeeping of the certificate: a box discarded on the columns
+    /// alone, a box the nominal criterion pruned whole, a box dropped with
+    /// no certified point, and the bounds closed when the search stops.
+    void discardUnproven(double gainInf);
+    void discardGridBacked(double gainInf);
+    void dropToResidue(double gainInf);
+    void closeCertificate();
+    bool finish();
+
     inline std::int32_t parameterCount(LtiSystem * box) const;
     Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
     std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter,
@@ -283,8 +313,13 @@ private:
     std::unique_ptr<FamilyStabilityChecker> family;
     qftbx::ParameterGrids m_sweep;
     std::unique_ptr<ExactPointCheck> exact;
+    std::unique_ptr<Certifier> certifier;
     const qftbx::CloudSet * m_templates = nullptr;
     const qftbx::SpecificationSet * m_specifications = nullptr;
+    LoopShapingStatistics::Certificate certificate;
+    double residueGainInf = 0;
+    double unprovenGainInf = 0;
+    double gridBackedGainInf = 0;
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 

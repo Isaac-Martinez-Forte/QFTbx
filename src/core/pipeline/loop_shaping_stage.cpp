@@ -9,12 +9,16 @@
  * over the full templates at its own loop value, because the boundaries are
  * a discretisation and do not all err on the safe side. That check says
  * whether the answer meets what was asked and by how much it misses when it
- * does not; a project whose templates are absent gets no check.
+ * does not; a project whose templates are absent gets no check. A design
+ * returned under the exact point reading passed that very check inside the
+ * search, so its failing here would be a fault in the program, and is
+ * raised as one.
  */
 
 #include "src/core/pipeline/loop_shaping_stage.h"
 
 #include "src/core/common/exception.h"
+#include "src/core/loopshaping/common/exact_point_check.h"
 #include "src/core/specifications/specification_record.h"
 
 namespace qftbx {
@@ -79,6 +83,16 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
                                                     *data.frequencies(), data.templates(),
                                                     toSpecificationSet(*data.specifications()),
                                                     &data.sweepGrids()));
+
+        if (result->statistics().certificate.exactPoints) {
+            const SpecificationCheck & check = *result->check();
+            const bool familyRefused = m_settings.algorithms.familyStabilityGate && check.family.checked
+                                       && check.family.unstableMembers > 0;
+            if (!(check.worstExcessDb <= -ExactPointCheck::kToleranceDb) || familyRefused) {
+                throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).")
+                                       .arg(check.worstExcessDb).arg(check.family.unstableMembers));
+            }
+        }
     }
 
     data.setLoopShapingResult(std::move(result));

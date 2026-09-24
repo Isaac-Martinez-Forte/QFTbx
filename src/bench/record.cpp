@@ -131,6 +131,28 @@ QJsonObject toJson(const Record & r)
     s["boxes_ambiguous"] = static_cast<qint64>(r.statistics.boxesAmbiguous);
     s["stability_verdicts"] = static_cast<qint64>(r.statistics.stabilityVerdicts);
     s["stability_profiles"] = static_cast<qint64>(r.statistics.stabilityProfiles);
+    {
+        const LoopShapingStatistics::Certificate & c = r.statistics.certificate;
+        QJsonObject certificate;
+        certificate["exact_points"] = c.exactPoints;
+        if (std::isfinite(c.lowerBound)) {
+            certificate["lower_bound"] = c.lowerBound;
+        }
+        if (std::isfinite(c.lowerBoundStrict)) {
+            certificate["lower_bound_strict"] = c.lowerBoundStrict;
+        }
+        certificate["residue_nodes"] = static_cast<qint64>(c.residueNodes);
+        certificate["unproven_discards"] = static_cast<qint64>(c.unprovenDiscards);
+        certificate["grid_backed_prunes"] = static_cast<qint64>(c.gridBackedPrunes);
+        certificate["certifications"] = static_cast<qint64>(c.certifications);
+        certificate["refused_by_specifications"] = static_cast<qint64>(c.refusedBySpecifications);
+        certificate["refused_by_nominal_stability"] = static_cast<qint64>(c.refusedByNominalStability);
+        certificate["refused_by_routh"] = static_cast<qint64>(c.refusedByRouth);
+        certificate["refused_by_roots"] = static_cast<qint64>(c.refusedByRoots);
+        certificate["incumbent_updates"] = static_cast<qint64>(c.incumbentUpdates);
+        certificate["kernel_passes"] = static_cast<qint64>(c.kernelPasses);
+        s["certificate"] = certificate;
+    }
     if (!r.statistics.byDepth.empty()) {
         QJsonArray depth;
         for (std::size_t d = 0; d < r.statistics.byDepth.size(); ++d) {
@@ -212,6 +234,25 @@ Record recordFromJson(const QJsonObject & o)
     r.statistics.boxesAmbiguous = static_cast<std::size_t>(s["boxes_ambiguous"].toInteger());
     r.statistics.stabilityVerdicts = static_cast<std::size_t>(s["stability_verdicts"].toInteger());
     r.statistics.stabilityProfiles = static_cast<std::size_t>(s["stability_profiles"].toInteger());
+    if (s.contains("certificate")) {
+        const QJsonObject certificate = s["certificate"].toObject();
+        LoopShapingStatistics::Certificate & c = r.statistics.certificate;
+        c.exactPoints = certificate["exact_points"].toBool();
+        c.lowerBound = certificate.contains("lower_bound") ? certificate["lower_bound"].toDouble()
+                                                           : std::numeric_limits<double>::infinity();
+        c.lowerBoundStrict = certificate.contains("lower_bound_strict") ? certificate["lower_bound_strict"].toDouble()
+                                                                        : std::numeric_limits<double>::infinity();
+        c.residueNodes = static_cast<std::size_t>(certificate["residue_nodes"].toInteger());
+        c.unprovenDiscards = static_cast<std::size_t>(certificate["unproven_discards"].toInteger());
+        c.gridBackedPrunes = static_cast<std::size_t>(certificate["grid_backed_prunes"].toInteger());
+        c.certifications = static_cast<std::size_t>(certificate["certifications"].toInteger());
+        c.refusedBySpecifications = static_cast<std::size_t>(certificate["refused_by_specifications"].toInteger());
+        c.refusedByNominalStability = static_cast<std::size_t>(certificate["refused_by_nominal_stability"].toInteger());
+        c.refusedByRouth = static_cast<std::size_t>(certificate["refused_by_routh"].toInteger());
+        c.refusedByRoots = static_cast<std::size_t>(certificate["refused_by_roots"].toInteger());
+        c.incumbentUpdates = static_cast<std::size_t>(certificate["incumbent_updates"].toInteger());
+        c.kernelPasses = static_cast<std::size_t>(certificate["kernel_passes"].toInteger());
+    }
     for (const QJsonValue & v : s["by_depth"].toArray()) {
         const QJsonObject entry = v.toObject();
         LoopShapingStatistics::DepthRow row;

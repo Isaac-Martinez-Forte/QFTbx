@@ -11,6 +11,7 @@
  * Termination, the verified corner and cancellation are as in NT.
  */
 
+#include <algorithm>
 #include <vector>
 #include "src/core/math/constants.h"
 #include <cstdint>
@@ -141,13 +142,22 @@ bool AlgorithmMc2::solve()
                                                      m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
 
     exact.reset();
+    certifier.reset();
     if (m_settings.algorithms.pointReading != Settings::Algorithms::PointReading::Columns
             && m_templates != nullptr && m_specifications != nullptr) {
         exact = std::make_unique<ExactPointCheck>(*plant, controller.get(), *omega, *m_templates, *m_specifications);
-        if (!exact->usable()) {
+        if (exact->usable()) {
+            certifier = std::make_unique<Certifier>(*exact, *stability, *family);
+        } else {
             exact.reset();
         }
     }
+
+    certificate = LoopShapingStatistics::Certificate();
+    certificate.exactPoints = certifier != nullptr;
+    residueGainInf = std::numeric_limits<double>::infinity();
+    unprovenGainInf = std::numeric_limits<double>::infinity();
+    gridBackedGainInf = std::numeric_limits<double>::infinity();
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();
@@ -178,12 +188,21 @@ bool AlgorithmMc2::solve()
         }
 
         if (liveList->isEmpty()) {
+            closeCertificate();
+
             if (bestCertifiedController != nullptr) {
                 designedController = std::move(bestCertifiedController);
                 return true;
             }
 
-            throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
+            if (certificate.residueNodes == 0 && certificate.unprovenDiscards == 0 && certificate.gridBackedPrunes == 0) {
+                throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
+            }
+
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "The search found no design and cannot prove that none exists: %1 boxes were discarded on the boundary columns or on the nominal stability of their enclosure alone, and %2 were left without a certified point. A design, if there is one, needs a gain of at least %3.")
+                                      .arg(certificate.unprovenDiscards + certificate.gridBackedPrunes)
+                                      .arg(certificate.residueNodes)
+                                      .arg(certificate.lowerBoundStrict));
         }
 
         std::unique_ptr<McSearchNode> node = liveList->takeFirstAs<McSearchNode>();
@@ -193,15 +212,21 @@ bool AlgorithmMc2::solve()
         }
 
         node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
+        const double gainInf = node->system()->gain().range().min;
 
-        if (node->flag() == feasible && family->isStable(cornerOf(node->system(), true))) {
-            designedController = pointFromBox(node->system(), true);
-            return true;
+        if (node->flag() == feasible) {
+            const PointController corner = cornerOf(node->system(), true);
+
+            if (certifier != nullptr ? certify(corner) : family->isStable(corner)) {
+                designedController = pointFromBox(node->system(), true);
+                return finish();
+            }
         }
 
         NodeAnalysis analysis;
         if (!analyse(node.get(), analysis)) {
             depthAccounting.record(*node->system(), infeasible);
+            discardUnproven(gainInf);
             continue;
         }
         depthAccounting.record(*node->system(), analysis.flag == feasible ? feasible : ambiguous);
@@ -214,21 +239,39 @@ bool AlgorithmMc2::solve()
         if (analysis.flag == feasible) {
             const PointController corner = cornerOf(node->system(), true);
 
-            if (!stability->isNominallyStable(corner)) {
-                continue;
-            }
+            if (certifier != nullptr) {
+                if (certify(corner)) {
+                    designedController = systemFromPoint(node->system(), corner);
+                    return finish();
+                }
+            } else {
+                if (!stability->isNominallyStable(corner)) {
+                    dropToResidue(gainInf);
+                    continue;
+                }
 
-            if (family->isStable(corner)) {
-                designedController = systemFromPoint(node->system(), corner);
-                return true;
+                if (family->isStable(corner)) {
+                    designedController = systemFromPoint(node->system(), corner);
+                    return finish();
+                }
             }
         }
 
         if (isEpsilonSmall(node.get(), analysis)) {
-            const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
-                    conversion.get(), detector.get(), boundaries, nominalPlantValues);
+            std::optional<PointController> corner;
 
-            if (!corner || !stability->isNominallyStable(*corner) || !family->isStable(*corner)) {
+            if (certifier != nullptr) {
+                corner = verifiedCornerBy(node->system(), [this](const PointController & point) { return certify(point); });
+            } else {
+                corner = verifiedCorner(node->system(), omega, conversion.get(), detector.get(), boundaries,
+                                        nominalPlantValues);
+                if (corner && (!stability->isNominallyStable(*corner) || !family->isStable(*corner))) {
+                    corner.reset();
+                }
+            }
+
+            if (!corner) {
+                dropToResidue(gainInf);
                 continue;
             }
 
@@ -242,18 +285,20 @@ bool AlgorithmMc2::solve()
                 if (contracted < best.gain) {
                     PointController candidate{contracted, best.zeros, best.poles};
 
-                    if (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)
-                            && family->isStable(candidate)) {
+                    if (certifier != nullptr ? certify(candidate)
+                                             : (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)
+                                                && family->isStable(candidate))) {
                         best = std::move(candidate);
                     }
                 }
             }
 
             designedController = systemFromPoint(node->system(), best);
-            return true;
+            return finish();
         }
 
         if (stability->isBoxUnstable(node->system(), *conversion)) {
+            discardGridBacked(gainInf);
             continue;
         }
 
@@ -305,6 +350,18 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
     if (stability != nullptr) {
         statistics.stabilityVerdicts = stability->statistics().verdicts;
         statistics.stabilityProfiles = stability->statistics().profilesComputed;
+    }
+    statistics.certificate = certificate;
+    if (certifier != nullptr) {
+        const Certifier::Statistics & funnel = certifier->statistics();
+        statistics.certificate.certifications = funnel.certifications;
+        statistics.certificate.refusedBySpecifications = funnel.refusedBySpecifications;
+        statistics.certificate.refusedByNominalStability = funnel.refusedByNominalStability;
+        statistics.certificate.refusedByRouth = funnel.refusedByRouth;
+        statistics.certificate.refusedByRoots = funnel.refusedByRoots;
+    }
+    if (exact != nullptr) {
+        statistics.certificate.kernelPasses = exact->statistics().kernelPasses;
     }
     return statistics;
 }
@@ -484,12 +541,15 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
 
     const PointController point{gain, std::move(zeroSups), std::move(poleInfs)};
 
-    if (!pointIsFeasible(point) || !stability->isNominallyStable(point) || !family->isStable(point)) {
+    if (certifier != nullptr ? !certify(point)
+                             : (!pointIsFeasible(point) || !stability->isNominallyStable(point)
+                                || !family->isStable(point))) {
         return false;
     }
 
     bestCertifiedGain = gain;
     bestCertifiedController = systemFromPoint(box, point);
+    ++certificate.incumbentUpdates;
 
     return true;
 }
@@ -504,18 +564,65 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
 
     const PointController point = cornerOf(box.get(), true);
 
-    if (!stability->isNominallyStable(point)) {
-        return;
-    }
+    if (certifier != nullptr) {
+        if (gainInf < bestCertifiedGain && certify(point)) {
+            bestCertifiedGain = gainInf;
+            bestCertifiedController = systemFromPoint(box.get(), point);
+            ++certificate.incumbentUpdates;
+        }
+    } else {
+        if (!stability->isNominallyStable(point)) {
+            dropToResidue(gainInf);
+            return;
+        }
 
-    if (gainInf < bestCertifiedGain && family->isStable(point)) {
-        bestCertifiedGain = gainInf;
-        bestCertifiedController = systemFromPoint(box.get(), point);
+        if (gainInf < bestCertifiedGain && family->isStable(point)) {
+            bestCertifiedGain = gainInf;
+            bestCertifiedController = systemFromPoint(box.get(), point);
+            ++certificate.incumbentUpdates;
+        }
     }
 
     auto t = std::make_unique<McSearchNode>(gainInf, std::move(box), feasible);
     t->setCutsEnabled(false);
     liveList->insert(std::move(t));
+}
+
+bool AlgorithmMc2::certify(const PointController & point)
+{
+    return certifier->certify(point);
+}
+
+void AlgorithmMc2::discardUnproven(double gainInf)
+{
+    ++certificate.unprovenDiscards;
+    unprovenGainInf = std::min(unprovenGainInf, gainInf);
+}
+
+void AlgorithmMc2::discardGridBacked(double gainInf)
+{
+    ++certificate.gridBackedPrunes;
+    gridBackedGainInf = std::min(gridBackedGainInf, gainInf);
+}
+
+void AlgorithmMc2::dropToResidue(double gainInf)
+{
+    ++certificate.residueNodes;
+    residueGainInf = std::min(residueGainInf, gainInf);
+}
+
+void AlgorithmMc2::closeCertificate()
+{
+    const double head = liveList->isEmpty() ? std::numeric_limits<double>::infinity()
+                                            : liveList->first()->getIndex();
+    certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf});
+    certificate.lowerBoundStrict = std::min(certificate.lowerBound, gridBackedGainInf);
+}
+
+bool AlgorithmMc2::finish()
+{
+    closeCertificate();
+    return true;
 }
 
 void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
@@ -754,6 +861,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
         return;
     }
 
+    discardUnproven(v->gain().range().min);
     node->setSystem(boxFromBounds(v, bounds));
     improved = true;
 }

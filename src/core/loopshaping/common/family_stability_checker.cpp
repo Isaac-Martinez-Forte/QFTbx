@@ -1,9 +1,11 @@
 /**
  * @file
- * @brief Closing the loop with every plant of the sweep, by the Routh table.
+ * @brief Closing the loop with every plant of the sweep, by the Routh table
+ * and, to confirm, by the roots.
  *
  * A verdict multiplies every member's numerator and denominator by the
- * candidate's and asks whether the sum is Hurwitz.
+ * candidate's and asks whether the sum is Hurwitz; the confirmation asks
+ * the verifier's family criterion the same question.
  */
 
 #include "src/core/loopshaping/common/family_stability_checker.h"
@@ -11,6 +13,7 @@
 #include <optional>
 #include <vector>
 
+#include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/math/polynomial.h"
 
 namespace qftbx {
@@ -52,6 +55,23 @@ bool FamilyStabilityChecker::isStable(const PointController & point)
     }
 
     return true;
+}
+
+bool FamilyStabilityChecker::isStableByRoots(const PointController & point)
+{
+    if (!m_usable) {
+        return true;
+    }
+
+    ++m_statistics.rootVerdicts;
+
+    const std::optional<LtiSystem::Polynomials> loop =
+            m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
+    if (!loop.has_value()) {
+        return true;
+    }
+
+    return familyStabilityAt(m_family, *loop).unstableMembers == 0;
 }
 
 }

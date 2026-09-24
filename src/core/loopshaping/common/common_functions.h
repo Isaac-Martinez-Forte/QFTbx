@@ -124,26 +124,22 @@ inline bool satisfiesBoundaries(const PointController & point, std::vector<doubl
  * corner lands inside the forbidden region. On the QFT toolbox example 2
  * every algorithm returned such a point at some frequency.
  *
- * So the candidates are classified against every boundary before one
- * leaves the search: the anti-blocking corner first, then the lower corner,
- * then the centre of the box, then the remaining corners (up to 64 of
- * them; beyond six uncertain parameters the rest are left out). The first
- * to pass is returned, at the lowest gain among the candidates tried in
- * that order. When none passes the box has no certified point at this
- * size and the caller bisects it on. The nominal-stability check stays
- * with the caller, which owns the checker.
+ * So the candidates are tested before one leaves the search: the
+ * anti-blocking corner first, then the lower corner, then the centre of the
+ * box, then the remaining corners (up to 64 of them; beyond six uncertain
+ * parameters the rest are left out). The first to pass is returned, at the
+ * lowest gain among the candidates tried in that order. When none passes
+ * the box has no certified point at this size and the caller bisects it
+ * on. verifiedCornerBy takes the test as a predicate: the classification
+ * against every boundary for the published reading, with the
+ * nominal-stability check left to the caller, which owns the checker; the
+ * whole certification funnel under the exact point reading.
+ * verifiedCorner is the first of those.
  *
  * @return the verified point, or nothing when the box has none.
  */
-inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vector<double> * omega,
-                                                     NaturalIntervalExtension * conversion,
-                                                     BoundaryViolationDetector * detector,
-                                                     const BoundaryData * boundaries,
-                                                     const std::vector<std::complex<double>> & nominalPlantValues) {
-
-    const auto passes = [&](const PointController & point) {
-        return satisfiesBoundaries(point, omega, conversion, detector, boundaries, nominalPlantValues);
-    };
+template <class Passes>
+inline std::optional<PointController> verifiedCornerBy(LtiSystem * box, Passes && passes) {
 
     for (const bool lower : {false, true}) {
         PointController corner = cornerOf(box, lower);
@@ -198,6 +194,17 @@ inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vecto
     }
 
     return std::nullopt;
+}
+
+inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vector<double> * omega,
+                                                     NaturalIntervalExtension * conversion,
+                                                     BoundaryViolationDetector * detector,
+                                                     const BoundaryData * boundaries,
+                                                     const std::vector<std::complex<double>> & nominalPlantValues) {
+
+    return verifiedCornerBy(box, [&](const PointController & point) {
+        return satisfiesBoundaries(point, omega, conversion, detector, boundaries, nominalPlantValues);
+    });
 }
 
 /**
