@@ -47,6 +47,18 @@ std::optional<Settings::Algorithms::PointReading> pointReadingFromName(const std
     return std::nullopt;
 }
 
+const char * boundaryGuideName(Settings::Algorithms::BoundaryGuide guide)
+{
+    return guide == Settings::Algorithms::BoundaryGuide::Conservative ? "conservative" : "published";
+}
+
+std::optional<Settings::Algorithms::BoundaryGuide> boundaryGuideFromName(const std::string & name)
+{
+    if (name == "published")    return Settings::Algorithms::BoundaryGuide::Published;
+    if (name == "conservative") return Settings::Algorithms::BoundaryGuide::Conservative;
+    return std::nullopt;
+}
+
 namespace {
 
 std::string trimmed(const std::string & text)
@@ -261,6 +273,14 @@ const std::vector<Binding> & bindings()
                  refuse("algorithms.point-reading", line, "columns, exact-exits or exact, not \"" + text + "\"");
              }
              into.algorithms.pointReading = *reading;
+         }},
+        {"algorithms.exact-boundary-guide",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             const std::optional<Settings::Algorithms::BoundaryGuide> guide = boundaryGuideFromName(text);
+             if (!guide.has_value()) {
+                 refuse("algorithms.exact-boundary-guide", line, "published or conservative, not \"" + text + "\"");
+             }
+             into.algorithms.exactBoundaryGuide = *guide;
          }},
         {"algorithms.whole-template-if-no-contour",
          [](const std::string & text, std::int64_t line, Settings & into) {

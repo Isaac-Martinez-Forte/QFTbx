@@ -107,8 +107,19 @@
  * and every box dropped with no certified point is counted with the
  * smallest gain it could hold (LoopShapingStatistics::Certificate), and
  * "no feasible solution" is claimed only when nothing was discarded without
- * proof. Under the default reading the search is what it was, bit for bit,
- * and the certificate is bookkeeping alone.
+ * proof. Under exact, the gain of every point that leaves or prunes the
+ * search is the smallest the specifications themselves admit at its zeros
+ * and poles (ExactPointCheck::lowestAdmissibleGain, the exact T3): the best
+ * gain of a box, the candidates an epsilon-small box yields at each of its
+ * vertices and its centre, and the corner of a feasible box lowered along
+ * its own ray before it is returned or made the best design so far. Under
+ * exact the search also ends as a branch and bound ends: a certified point
+ * does not return, it becomes the best design so far and prunes every box
+ * whose gain cannot beat it, and the search goes on until the live list is
+ * empty; the boxes resolved at the epsilon size are counted, with the
+ * smallest gain they could hold, since a point at their vertices is not a
+ * proof about their inside. Under the default reading the search is what
+ * it was, bit for bit, and the certificate is bookkeeping alone.
  */
 namespace qftbx {
 
@@ -287,12 +298,21 @@ private:
     /// The certification funnel of the exact point reading (common/certifier.h).
     bool certify(const PointController & point);
 
+    /// Under the exact gain: the lowest certified gain among the vertices
+    /// and the centre of an epsilon-small box, each at its exact best gain;
+    /// and a point lowered along its own ray to the smallest gain the
+    /// specifications admit there, when that gain certifies too.
+    std::optional<PointController> exactCorner(LtiSystem * box);
+    PointController loweredAtVertex(const PointController & point);
+
     /// The bookkeeping of the certificate: a box discarded on the columns
     /// alone, a box the nominal criterion pruned whole, a box dropped with
     /// no certified point, and the bounds closed when the search stops.
     void discardUnproven(double gainInf);
     void discardGridBacked(double gainInf);
     void dropToResidue(double gainInf);
+    void resolvedAtEpsilon(double gainInf);
+    void adoptIncumbent(const PointController & design, LtiSystem * box);
     void closeCertificate();
     bool finish();
 
@@ -314,12 +334,15 @@ private:
     qftbx::ParameterGrids m_sweep;
     std::unique_ptr<ExactPointCheck> exact;
     std::unique_ptr<Certifier> certifier;
+    bool exactGains = false;
+    Range initialGainRange;
     const qftbx::CloudSet * m_templates = nullptr;
     const qftbx::SpecificationSet * m_specifications = nullptr;
     LoopShapingStatistics::Certificate certificate;
     double residueGainInf = 0;
     double unprovenGainInf = 0;
     double gridBackedGainInf = 0;
+    double resolvedGainInf = 0;
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 

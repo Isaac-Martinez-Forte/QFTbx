@@ -155,6 +155,19 @@ TEST_F(SettingsFile, ThePointReadingIsOneOfThreeWords)
     for (const PointReading reading : {PointReading::Columns, PointReading::ExactExits, PointReading::Exact}) {
         EXPECT_EQ(qftbx::pointReadingFromName(qftbx::pointReadingName(reading)), reading);
     }
+
+    using BoundaryGuide = qftbx::Settings::Algorithms::BoundaryGuide;
+    EXPECT_EQ(qftbx::Settings().algorithms.exactBoundaryGuide, BoundaryGuide::Published);
+    EXPECT_EQ(qftbx::readSettings(written("[algorithms]\nexact-boundary-guide = conservative\n")).algorithms.exactBoundaryGuide,
+              BoundaryGuide::Conservative);
+    EXPECT_THROW(qftbx::readSettings(written("[algorithms]\nexact-boundary-guide = nearest\n")), qftbx::InvalidInput);
+
+    qftbx::Settings inForce;
+    EXPECT_TRUE(inForce.algorithms.conservativeColumnsInForce()) << "the columns readings keep the conservative default";
+    inForce.algorithms.pointReading = PointReading::Exact;
+    EXPECT_FALSE(inForce.algorithms.conservativeColumnsInForce()) << "exact points are guided by the published columns";
+    inForce.algorithms.exactBoundaryGuide = BoundaryGuide::Conservative;
+    EXPECT_TRUE(inForce.algorithms.conservativeColumnsInForce());
 }
 
 TEST_F(SettingsFile, WritingASettingLeavesTheRestOfTheFileAlone)
@@ -369,6 +382,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.conservativeBoundaryColumns,
               defaults.algorithms.conservativeBoundaryColumns);
     EXPECT_EQ(fromExample.algorithms.pointReading, defaults.algorithms.pointReading);
+    EXPECT_EQ(fromExample.algorithms.exactBoundaryGuide, defaults.algorithms.exactBoundaryGuide);
     EXPECT_EQ(fromExample.algorithms.wholeTemplateIfNoContour,
               defaults.algorithms.wholeTemplateIfNoContour);
     EXPECT_EQ(fromExample.algorithms.alphaShapeContour,
@@ -392,7 +406,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.log.enabled, defaults.log.enabled);
     EXPECT_EQ(fromExample.log.sizeLimitKilobytes, defaults.log.sizeLimitKilobytes);
 
-    EXPECT_EQ(settingsFound, 46)
+    EXPECT_EQ(settingsFound, 47)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

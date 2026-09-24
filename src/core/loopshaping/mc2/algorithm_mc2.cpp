@@ -12,6 +12,7 @@
  */
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 #include "src/core/math/constants.h"
 #include <cstdint>
@@ -136,7 +137,7 @@ bool AlgorithmMc2::solve()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeColumnsInForce());
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
     family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
                                                      m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
@@ -153,11 +154,15 @@ bool AlgorithmMc2::solve()
         }
     }
 
+    exactGains = certifier != nullptr
+                 && m_settings.algorithms.pointReading == Settings::Algorithms::PointReading::Exact;
+
     certificate = LoopShapingStatistics::Certificate();
     certificate.exactPoints = certifier != nullptr;
     residueGainInf = std::numeric_limits<double>::infinity();
     unprovenGainInf = std::numeric_limits<double>::infinity();
     gridBackedGainInf = std::numeric_limits<double>::infinity();
+    resolvedGainInf = std::numeric_limits<double>::infinity();
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();
@@ -175,6 +180,7 @@ bool AlgorithmMc2::solve()
     }
 
     const double initialGainInf = controller->gain().range().min;
+    initialGainRange = controller->gain().range();
 
     auto initial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
                                                  ambiguous);
@@ -218,6 +224,10 @@ bool AlgorithmMc2::solve()
             const PointController corner = cornerOf(node->system(), true);
 
             if (certifier != nullptr ? certify(corner) : family->isStable(corner)) {
+                if (exactGains) {
+                    adoptIncumbent(loweredAtVertex(corner), node->system());
+                    continue;
+                }
                 designedController = pointFromBox(node->system(), true);
                 return finish();
             }
@@ -241,6 +251,10 @@ bool AlgorithmMc2::solve()
 
             if (certifier != nullptr) {
                 if (certify(corner)) {
+                    if (exactGains) {
+                        adoptIncumbent(loweredAtVertex(corner), node->system());
+                        continue;
+                    }
                     designedController = systemFromPoint(node->system(), corner);
                     return finish();
                 }
@@ -261,7 +275,9 @@ bool AlgorithmMc2::solve()
             std::optional<PointController> corner;
 
             if (certifier != nullptr) {
-                corner = verifiedCornerBy(node->system(), [this](const PointController & point) { return certify(point); });
+                corner = exactGains ? exactCorner(node->system())
+                                    : verifiedCornerBy(node->system(),
+                                                       [this](const PointController & point) { return certify(point); });
             } else {
                 corner = verifiedCorner(node->system(), omega, conversion.get(), detector.get(), boundaries,
                                         nominalPlantValues);
@@ -276,21 +292,30 @@ bool AlgorithmMc2::solve()
             }
 
             PointController best = *corner;
-            const RangeUnion gains = admissibleGains(best.zeros, best.poles,
-                                                     node->system()->gain().range());
 
-            if (!gains.isEmpty()) {
-                const double contracted = std::pow(10.0, gains.minimum() / 20.0);
+            if (!exactGains) {
+                const RangeUnion gains = admissibleGains(best.zeros, best.poles,
+                                                         node->system()->gain().range());
 
-                if (contracted < best.gain) {
-                    PointController candidate{contracted, best.zeros, best.poles};
+                if (!gains.isEmpty()) {
+                    const double contracted = std::pow(10.0, gains.minimum() / 20.0);
 
-                    if (certifier != nullptr ? certify(candidate)
-                                             : (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)
-                                                && family->isStable(candidate))) {
-                        best = std::move(candidate);
+                    if (contracted < best.gain) {
+                        PointController candidate{contracted, best.zeros, best.poles};
+
+                        if (certifier != nullptr ? certify(candidate)
+                                                 : (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)
+                                                    && family->isStable(candidate))) {
+                            best = std::move(candidate);
+                        }
                     }
                 }
+            }
+
+            if (exactGains) {
+                adoptIncumbent(best, node->system());
+                resolvedAtEpsilon(gainInf);
+                continue;
             }
 
             designedController = systemFromPoint(node->system(), best);
@@ -361,7 +386,12 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.certificate.refusedByRoots = funnel.refusedByRoots;
     }
     if (exact != nullptr) {
-        statistics.certificate.kernelPasses = exact->statistics().kernelPasses;
+        const ExactPointCheck::Statistics & reading = exact->statistics();
+        statistics.certificate.kernelPasses = reading.kernelPasses;
+        statistics.certificate.gainSearches = reading.gainSearches;
+        statistics.certificate.exchangeRounds = reading.exchangeRounds;
+        statistics.certificate.ladderSteps = reading.ladderSteps;
+        statistics.certificate.largestWorkingSet = reading.largestWorkingSet;
     }
     return statistics;
 }
@@ -527,6 +557,24 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
+    if (exactGains) {
+        const ExactPointCheck::GainSearch search =
+                exact->lowestAdmissibleGain(zeroSups, poleInfs, box->gain().range());
+        if (!search.gain.has_value() || *search.gain >= bestCertifiedGain) {
+            return false;
+        }
+
+        const PointController point{*search.gain, std::move(zeroSups), std::move(poleInfs)};
+        if (!certifier->certify(point, true)) {
+            return false;
+        }
+
+        bestCertifiedGain = point.gain;
+        bestCertifiedController = systemFromPoint(box, point);
+        ++certificate.incumbentUpdates;
+        return true;
+    }
+
     const RangeUnion gains = admissibleGains(zeroSups, poleInfs, box->gain().range());
 
     if (gains.isEmpty()) {
@@ -566,8 +614,9 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
 
     if (certifier != nullptr) {
         if (gainInf < bestCertifiedGain && certify(point)) {
-            bestCertifiedGain = gainInf;
-            bestCertifiedController = systemFromPoint(box.get(), point);
+            const PointController design = exactGains ? loweredAtVertex(point) : point;
+            bestCertifiedGain = design.gain;
+            bestCertifiedController = systemFromPoint(box.get(), design);
             ++certificate.incumbentUpdates;
         }
     } else {
@@ -593,6 +642,47 @@ bool AlgorithmMc2::certify(const PointController & point)
     return certifier->certify(point);
 }
 
+PointController AlgorithmMc2::loweredAtVertex(const PointController & point)
+{
+    const ExactPointCheck::GainSearch search =
+            exact->lowestAdmissibleGain(point.zeros, point.poles, Range(initialGainRange.min, point.gain));
+    if (search.gain.has_value() && *search.gain < point.gain) {
+        const PointController lowered{*search.gain, point.zeros, point.poles};
+        if (certifier->certify(lowered, true)) {
+            return lowered;
+        }
+    }
+    return point;
+}
+
+std::optional<PointController> AlgorithmMc2::exactCorner(LtiSystem * box)
+{
+    std::optional<PointController> best;
+    std::vector<std::pair<std::vector<double>, std::vector<double>>> tried;
+
+    verifiedCornerBy(box, [&](const PointController & vertex) {
+        for (const auto & seen : tried) {
+            if (seen.first == vertex.zeros && seen.second == vertex.poles) {
+                return false;
+            }
+        }
+        tried.emplace_back(vertex.zeros, vertex.poles);
+
+        const double ceiling = std::min(best.has_value() ? best->gain : bestCertifiedGain, initialGainRange.max);
+        const ExactPointCheck::GainSearch search =
+                exact->lowestAdmissibleGain(vertex.zeros, vertex.poles, Range(initialGainRange.min, ceiling));
+        if (search.gain.has_value() && (!best.has_value() || *search.gain < best->gain)) {
+            const PointController candidate{*search.gain, vertex.zeros, vertex.poles};
+            if (certifier->certify(candidate, true)) {
+                best = candidate;
+            }
+        }
+        return false;
+    });
+
+    return best;
+}
+
 void AlgorithmMc2::discardUnproven(double gainInf)
 {
     ++certificate.unprovenDiscards;
@@ -611,11 +701,26 @@ void AlgorithmMc2::dropToResidue(double gainInf)
     residueGainInf = std::min(residueGainInf, gainInf);
 }
 
+void AlgorithmMc2::resolvedAtEpsilon(double gainInf)
+{
+    ++certificate.epsilonResolved;
+    resolvedGainInf = std::min(resolvedGainInf, gainInf);
+}
+
+void AlgorithmMc2::adoptIncumbent(const PointController & design, LtiSystem * box)
+{
+    if (design.gain < bestCertifiedGain) {
+        bestCertifiedGain = design.gain;
+        bestCertifiedController = systemFromPoint(box, design);
+        ++certificate.incumbentUpdates;
+    }
+}
+
 void AlgorithmMc2::closeCertificate()
 {
     const double head = liveList->isEmpty() ? std::numeric_limits<double>::infinity()
                                             : liveList->first()->getIndex();
-    certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf});
+    certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf, resolvedGainInf});
     certificate.lowerBoundStrict = std::min(certificate.lowerBound, gridBackedGainInf);
 }
 

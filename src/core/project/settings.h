@@ -93,6 +93,16 @@ struct Settings {
 
         PointReading pointReading = PointReading::Columns;
 
+        enum class BoundaryGuide { Published, Conservative };
+
+        BoundaryGuide exactBoundaryGuide = BoundaryGuide::Published;
+
+        bool conservativeColumnsInForce() const
+        {
+            return pointReading == PointReading::Exact ? exactBoundaryGuide == BoundaryGuide::Conservative
+                                                       : conservativeBoundaryColumns;
+        }
+
         std::int32_t localSearchBudget = 400;
 
         double gainTolerance = 1.01;
@@ -147,6 +157,10 @@ struct Settings {
 const char * pointReadingName(Settings::Algorithms::PointReading reading);
 
 std::optional<Settings::Algorithms::PointReading> pointReadingFromName(const std::string & name);
+
+const char * boundaryGuideName(Settings::Algorithms::BoundaryGuide guide);
+
+std::optional<Settings::Algorithms::BoundaryGuide> boundaryGuideFromName(const std::string & name);
 
 Settings readSettings(const std::string & path);
 

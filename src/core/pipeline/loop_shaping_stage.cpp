@@ -75,7 +75,9 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
     auto result = std::make_unique<LoopShapingResult>(search.controllerStructure(), plotRange, pointCount);
     result->setStatistics(search.statistics());
-    result->setRun({algorithm, epsilon, m_settings.algorithms.conservativeBoundaryColumns,
+    result->setRun({algorithm, epsilon,
+                    algorithm == qftbx::mc2 ? m_settings.algorithms.conservativeColumnsInForce()
+                                            : m_settings.algorithms.conservativeBoundaryColumns,
                     m_settings.algorithms.pointReading});
 
     if (data.templates().size() == data.frequencies()->size()) {

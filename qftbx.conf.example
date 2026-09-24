@@ -306,9 +306,21 @@ family-stability-gate = 1
 # template at its own loop value, the verifier's criterion; the columns keep
 # guiding the search. exact: the best gain at fixed zeros and poles is read
 # from the specifications at the loop's exact phase as well, instead of from
-# the column of a grid node. Both need a template at every design frequency.
+# the column of a grid node, and the search ends as a branch and bound ends:
+# a certified point becomes the best design so far and prunes the tree, and
+# the search goes on until nothing is left. Both need a template at every
+# design frequency.
 # Range: columns, exact-exits or exact.
 # point-reading = columns
+
+# Under point-reading = exact, how the boundary columns guide the search,
+# since with exact points they decide nothing about what is returned.
+# published, the default: the nearest node, cheaper and, on three of four
+# measured problems, reaching a lower gain than the conservative reading,
+# which discards boxes that hold the optimum. conservative: the reading of
+# conservative-boundary-columns, which the other point readings keep anyway.
+# Range: published or conservative.
+# exact-boundary-guide = published
 
 # Templates: what to do when the contour walk does not close at a design
 # frequency with the epsilon given. 1: the WHOLE template stands in for its
