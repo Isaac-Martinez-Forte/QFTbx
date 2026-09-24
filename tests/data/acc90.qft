@@ -108,7 +108,7 @@
                     <name>kc</name>
                     <expr>kc</expr>
                     <range>
-                        <min>1000</min>
+                        <min>0.001</min>
                         <max>1e+08</max>
                     </range>
                 </parameter>

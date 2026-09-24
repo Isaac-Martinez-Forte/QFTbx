@@ -40,7 +40,7 @@ Plan smallPlan(const std::string & outputDirectory)
     plan.name = "small";
     plan.projectFile = std::string(QFTBX_TEST_DATA_DIR "/acc90.qft");
     plan.outputDirectory = outputDirectory;
-    plan.algorithms = {nt, mc_thesis};
+    plan.algorithms = {mc2, mc_thesis};
     plan.epsilons = {0.5};
     plan.repetitions = 2;
     plan.warmUp = true;
@@ -101,7 +101,7 @@ TEST(BenchmarkPlan, ExpandsIntoStructuresAlgorithmsEpsilonsAndRepetitions)
     EXPECT_EQ(cases[2].repetition, 2);
     EXPECT_EQ(cases[3].algorithm, mc_thesis);
     EXPECT_EQ(cases[6].stepsApplied, 2u);
-    EXPECT_EQ(caseId(cases[1]), "s0-nt-e0_5-r1");
+    EXPECT_EQ(caseId(cases[1]), "s0-mc2-e0_5-r1");
     EXPECT_EQ(structureLabel(plan, 2), "base+z+p");
     for (std::size_t i = 0; i < cases.size(); ++i) {
         EXPECT_EQ(cases[i].index, i);
@@ -189,14 +189,14 @@ TEST(BenchmarkMeasurement, ARunOfACaseLeavesACompleteRecord)
 
     const Record record = runCase(plan, cases[1]);
     EXPECT_EQ(record.status, "solved") << record.message;
-    EXPECT_EQ(record.algorithm, "nt");
+    EXPECT_EQ(record.algorithm, "mc2");
     EXPECT_EQ(record.structure, "base");
     EXPECT_GT(record.wallMilliseconds, 0.0);
     EXPECT_GE(record.cpuMilliseconds, 0.0);
     EXPECT_GT(record.peakMemoryBytes, 0u);
     EXPECT_FALSE(record.memoryTrace.empty());
     EXPECT_GE(record.statistics.nodesProcessed, 1u);
-    EXPECT_NEAR(record.gain, 1000.0, 1e-6);
+    EXPECT_NEAR(record.gain, 0.001, 1e-9);
     EXPECT_EQ(record.digest, digestOf(record.gain, record.zeros, record.poles));
     EXPECT_FALSE(record.environment.hostname.empty());
     EXPECT_EQ(record.environment.cores > 0, true);

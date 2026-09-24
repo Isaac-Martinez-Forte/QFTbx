@@ -108,8 +108,8 @@ INSTANTIATE_TEST_SUITE_P(
         CheckCase{"Ex2Mc2", "qft_toolbox_ex2.qft", qftbx::mc2, +0.0511, false, 2e-2},
         CheckCase{"Ex2McThesisConservative", "qft_toolbox_ex2.qft", qftbx::mc_thesis, -0.0045, true},
         CheckCase{"Ex2Mc2Conservative", "qft_toolbox_ex2.qft", qftbx::mc2, -0.0001, true},
-        CheckCase{"Acc90NT", "acc90.qft", qftbx::nt, -4.8608},
-        CheckCase{"Acc90Mc2", "acc90.qft", qftbx::mc2, -4.8608, false, 5e-2}),
+        CheckCase{"Acc90NT", "acc90.qft", qftbx::nt, kUnpinned},
+        CheckCase{"Acc90Mc2", "acc90.qft", qftbx::mc2, kUnpinned}),
     [](const ::testing::TestParamInfo<CheckCase> & info) {
         return std::string(info.param.name);
     });

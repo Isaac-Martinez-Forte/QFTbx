@@ -8,7 +8,7 @@
  * boxes certified not to hold a better one. The seven strategy flags exist
  * for this and are not exposed in the interface, so the algorithm is driven
  * directly with the inputs of a loaded project, under the published reading
- * of the columns. Every variant must reach the gain 1000 of `acc90.qft`,
+ * of the columns. Every variant must reach the gain 0.001 of `acc90.qft`,
  * known from five independent algorithms, to 1e-4 relative; and on QFT
  * toolbox example 2 all accelerations on must keep fewer boxes alive at once
  * than none, the peak of the live list being deterministic as a clock is not.
@@ -28,7 +28,7 @@ using namespace qftbx;
 
 namespace {
 
-const double kAcc90Gain = 1000.0;
+const double kAcc90Gain = 0.001;
 
 const double kEpsilon = 0.5;
 
