@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -124,6 +125,30 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
     m_axisPoles = math::imaginaryAxisFrequencies(*poles);
 
     m_plantAtZero = m_plant->evaluate(0.0);
+
+    std::vector<double> numerator, denominator;
+    for (Parameter & parameter : m_plant->numerator()) numerator.push_back(parameter.nominal());
+    for (Parameter & parameter : m_plant->denominator()) denominator.push_back(parameter.nominal());
+    const std::optional<LtiSystem::Polynomials> polynomials =
+            m_plant->polynomialsAt(numerator, denominator, m_plant->gain().nominal());
+    if (polynomials.has_value() && m_plant->delay().nominal() == 0.0 && !m_plant->delay().isUncertain()) {
+        const auto lowest = [](const std::vector<double> & p, int & zerosAtOrigin) {
+            zerosAtOrigin = 0;
+            for (auto it = p.rbegin(); it != p.rend(); ++it) {
+                if (*it != 0.0) return *it;
+                ++zerosAtOrigin;
+            }
+            return 0.0;
+        };
+        int numeratorZeros = 0, denominatorZeros = 0;
+        const double n = lowest(polynomials->numerator, numeratorZeros);
+        const double d = lowest(polynomials->denominator, denominatorZeros);
+        if (n != 0.0 && d != 0.0) {
+            m_asymptoteKnown = true;
+            m_plantOrderAtZero = numeratorZeros - denominatorZeros;
+            m_plantCoefficientAtZero = n / d;
+        }
+    }
 }
 
 std::size_t NominalStabilityChecker::axisPolesBetween(double lo, double hi) const
@@ -248,25 +273,46 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
     profile.lastMagnitudeAtUnitGain = std::hypot(m_re[count - 1], m_im[count - 1]);
 
     double atZeroFactor = sign;
+    int order = m_plantOrderAtZero;
     for (const double zero : shape.zeros) {
-        atZeroFactor *= zero;
+        if (zero == 0.0) ++order; else atZeroFactor *= zero;
     }
     for (const double pole : shape.poles) {
-        atZeroFactor /= pole;
+        if (pole == 0.0) --order; else atZeroFactor /= pole;
     }
-    const std::complex<double> atZero = atZeroFactor * m_plantAtZero;
-    const bool finiteAtZero = std::isfinite(atZero.real()) && std::isfinite(atZero.imag())
-            && (atZero.real() != 0.0 || atZero.imag() != 0.0);
-    const double startPhase = finiteAtZero ? phaseDegrees(atZero.real(), atZero.imag())
-                                           : phaseDegrees(m_re[0], m_im[0]);
+
+    bool startKnown = false;
+    double startPhase = 0.0;
+    double startMagnitude = 0.0;
+    if (m_asymptoteKnown) {
+        const double coefficient = atZeroFactor * m_plantCoefficientAtZero;
+        if (order <= 0) {
+            startKnown = true;
+            startPhase = (coefficient < 0.0 ? 180.0 : 0.0) + 90.0 * order;
+            startPhase -= 360.0 * std::floor((startPhase + 180.0) / 360.0);
+            startMagnitude = order < 0 ? std::numeric_limits<double>::infinity() : std::abs(coefficient);
+        }
+    } else {
+        const std::complex<double> atZero = atZeroFactor * m_plantAtZero;
+        if (std::isfinite(atZero.real()) && std::isfinite(atZero.imag())
+                && (atZero.real() != 0.0 || atZero.imag() != 0.0)) {
+            startKnown = true;
+            startPhase = phaseDegrees(atZero.real(), atZero.imag());
+            startMagnitude = std::abs(atZero);
+        }
+    }
+    if (!startKnown) {
+        startPhase = phaseDegrees(m_re[0], m_im[0]);
+        startMagnitude = std::hypot(m_re[0], m_im[0]);
+    }
     const double startRay = rayBelow(startPhase + 1e-6);
     if (std::abs(startPhase - startRay) < 1e-3) {
         profile.startsOnRay = true;
-        profile.startMagnitudeAtUnitGain = finiteAtZero ? std::abs(atZero) : std::hypot(m_re[0], m_im[0]);
+        profile.startMagnitudeAtUnitGain = startMagnitude;
 
         double accumulated = 0.0;
         double previous = startPhase;
-        for (std::size_t next = finiteAtZero ? 0 : 1; next + 1 < count; ++next) {
+        for (std::size_t next = startKnown ? 0 : 1; next + 1 < count; ++next) {
             const double phase = phaseDegrees(m_re[next], m_im[next]);
             accumulated += wrappedDelta(previous, phase);
             previous = phase;
@@ -274,7 +320,11 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
                 break;
             }
         }
-        profile.startDirection = accumulated > 0.0 ? 0.5 : -0.5;
+        if (std::isinf(startMagnitude)) {
+            profile.startDirection = accumulated > 0.0 ? 0.0 : -1.0;
+        } else {
+            profile.startDirection = accumulated > 0.0 ? 0.5 : -0.5;
+        }
     }
 
     const bool anyAxisPole = !m_axisPoles.empty();

@@ -133,4 +133,16 @@ std::optional<std::vector<std::complex<double>>> PolynomialForm::polesAt(const s
     return qftbx::math::polynomialRoots(denominator);
 }
 
+std::optional<LtiSystem::Polynomials> PolynomialForm::polynomialsAt(const std::vector<double> & numerator,
+                                                                    const std::vector<double> & denominator,
+                                                                    double gain)
+{
+    Polynomials polynomials{numerator.empty() ? std::vector<double>{1.0} : numerator,
+                            denominator.empty() ? std::vector<double>{1.0} : denominator};
+    for (double & coefficient : polynomials.numerator) {
+        coefficient *= gain;
+    }
+    return polynomials;
+}
+
 }

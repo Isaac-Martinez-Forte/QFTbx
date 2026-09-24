@@ -70,8 +70,9 @@ std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & co
         return roots;
     }
 
+    const double leading = a.front();
     for (double & c : a) {
-        c /= coefficients.front() == 0.0 ? a.front() : a.front();
+        c /= leading;
     }
     a.front() = 1.0;
 
@@ -271,5 +272,80 @@ std::vector<double> imaginaryAxisFrequencies(const std::vector<std::complex<doub
     return frequencies;
 }
 
+bool isHurwitz(const std::vector<double> & coefficients)
+{
+    std::vector<double> a = coefficients;
+    while (!a.empty() && a.front() == 0.0) {
+        a.erase(a.begin());
+    }
+    if (a.size() < 2) {
+        return !a.empty();
+    }
+
+    const double sign = a.front() < 0.0 ? -1.0 : 1.0;
+    for (double & c : a) {
+        c *= sign;
+        if (c <= 0.0) {
+            return false;
+        }
+    }
+
+    const std::size_t degree = a.size() - 1;
+    std::vector<double> previous((degree + 2) / 2, 0.0);
+    std::vector<double> current((degree + 2) / 2, 0.0);
+    for (std::size_t i = 0; i * 2 < a.size(); ++i) {
+        previous[i] = a[i * 2];
+    }
+    for (std::size_t i = 0; i * 2 + 1 < a.size(); ++i) {
+        current[i] = a[i * 2 + 1];
+    }
+
+    std::vector<double> next(previous.size(), 0.0);
+    for (std::size_t row = 2; row <= degree; ++row) {
+        if (current.front() <= 0.0) {
+            return false;
+        }
+        for (std::size_t i = 0; i + 1 < previous.size(); ++i) {
+            next[i] = current[0] * previous[i + 1] - previous[0] * current[i + 1];
+            next[i] /= current[0];
+        }
+        next.back() = 0.0;
+        previous.swap(current);
+        current.swap(next);
+    }
+
+    return current.front() > 0.0;
 }
+
+std::vector<double> polynomialProduct(const std::vector<double> & a, const std::vector<double> & b)
+{
+    if (a.empty()) {
+        return b.empty() ? std::vector<double>{1.0} : b;
+    }
+    if (b.empty()) {
+        return a;
+    }
+    std::vector<double> product(a.size() + b.size() - 1, 0.0);
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        for (std::size_t j = 0; j < b.size(); ++j) {
+            product[i + j] += a[i] * b[j];
+        }
+    }
+    return product;
+}
+
+std::vector<double> polynomialSum(const std::vector<double> & a, const std::vector<double> & b)
+{
+    const std::vector<double> & longer = a.size() >= b.size() ? a : b;
+    const std::vector<double> & shorter = a.size() >= b.size() ? b : a;
+    std::vector<double> sum = longer;
+    const std::size_t offset = longer.size() - shorter.size();
+    for (std::size_t i = 0; i < shorter.size(); ++i) {
+        sum[offset + i] += shorter[i];
+    }
+    return sum;
+}
+
+}
+
 }

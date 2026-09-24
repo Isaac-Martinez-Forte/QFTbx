@@ -155,6 +155,11 @@ QJsonObject toJson(const Record & r)
     if (std::isfinite(r.worstExcessDb)) {
         result["worst_excess_db"] = r.worstExcessDb;
     }
+    if (r.familyMembers > 0) {
+        result["family_members"] = static_cast<qint64>(r.familyMembers);
+        result["family_unstable"] = static_cast<qint64>(r.familyUnstable);
+        result["family_worst_real_part"] = r.familyWorstRealPart;
+    }
     result["zeros"] = toArray(r.zeros);
     result["poles"] = toArray(r.poles);
     result["digest"] = QString::fromStdString(r.digest);
@@ -223,6 +228,10 @@ Record recordFromJson(const QJsonObject & o)
     r.gain = result["gain"].toDouble();
     r.worstExcessDb = result.contains("worst_excess_db") ? result["worst_excess_db"].toDouble()
                                                          : std::numeric_limits<double>::quiet_NaN();
+    r.familyMembers = static_cast<std::size_t>(result["family_members"].toInteger());
+    r.familyUnstable = static_cast<std::size_t>(result["family_unstable"].toInteger());
+    r.familyWorstRealPart = result.contains("family_worst_real_part") ? result["family_worst_real_part"].toDouble()
+                                                                      : std::numeric_limits<double>::quiet_NaN();
     r.zeros = fromArray(result["zeros"].toArray());
     r.poles = fromArray(result["poles"].toArray());
     r.digest = result["digest"].toString().toStdString();

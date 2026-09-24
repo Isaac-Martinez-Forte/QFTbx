@@ -18,89 +18,57 @@
 #include "src/core/loopshaping/loop_shaping_statistics.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/boundaries/boundary_data.h"
+#include "src/core/templates/parameter_grids.h"
 
 /**
  * @file
  * @brief Facade over the loop-shaping algorithms: picks one, runs it over
  * the current problem, and hands back the controller it designed.
  *
- * The single point where the ownership of a designed system leaves the
- * engine, and the only thing above it that knows how many algorithms there
- * are (LoopShapingAlgorithm lists them). What their shared epsilon argument measures is NOT
- * shared - see run().
+ * The only thing above the algorithms that knows how many there are
+ * (LoopShapingAlgorithm lists them), and the single point where the ownership
+ * of a designed system leaves the engine: controllerStructure() hands it over.
+ * run() takes the nominal plant, the controller's search box, the design
+ * frequencies, the boundaries (MR is the one algorithm that does not read
+ * them), the contours and specifications MR needs, and NK's starting point.
+ * Its epsilon is in the units of the algorithm picked - the diameter of the
+ * Nichols box for NT, NK, MC1 and the MC family, the width of the parameter
+ * box for MR - so it does not mean the same across algorithms. run() returns
+ * false when no solution was found and throws qftbx::InvalidInput when the
+ * problem itself is invalid.
+ *
+ * Before a run the caller may install a cancellation token, read once per
+ * node, which must outlive run(); the settings, of which each algorithm
+ * copies what it needs; and the grids the plant family was swept over, which
+ * the searches close the loop with before they return a design. statistics()
+ * is what the last run cost.
  */
 namespace qftbx {
 
 class LoopShaping
 {
 public:
-    /**
-     * @brief Runs one algorithm over the problem.
-     *
-     * @param plant the nominal plant.
-     * @param controller the initial search box of the controller
-     * parameters.
-     * @param omega the design frequencies.
-     * @param boundaries the QFT boundaries; MR is the one algorithm that
-     * does not use them.
-     * @param epsilon termination size, in the units of the algorithm
-     * picked: the Nichols box diameter for NT/NK/MC1/MC, the controller
-     * parameter width for MR. See
-     * ProjectController::computeLoopShaping.
-     * @param algorithm which one to run.
-     * @param contour the plant template contours.
-     * @param specifications the design specifications.
-     * @param initialisation starting point of NK's local search.
-     * @return false when the algorithm found no solution; it throws
-     * qftbx::InvalidInput when the problem itself is invalid.
-     */
     bool run(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                  double epsilon, LoopShapingAlgorithm algorithm,
                  const qftbx::CloudSet & contour, const qftbx::SpecificationRecords * specifications,
                  std::int32_t initialisation);
 
-    /**
-     * @brief The designed controller, handed over to the caller.
-     *
-     * This is the single point where the ownership of a system leaves the
-     * loop shaping: the facade beyond holds it as a raw pointer.
-     */
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    /// What the last run cost; zero before any run.
     LoopShapingStatistics statistics() const { return m_statistics; }
 
-    /**
-     * @brief Installs the flag every algorithm reads once per node, so a run
-     * can be given up on.
-     *
-     * Null by default, which is what it stays for every caller that does not
-     * want to cancel. The token has to outlive run(), and run() throws
-     * qftbx::Cancelled when it is raised.
-     *
-     * No thread is started here: the facade runs the search on its worker
-     * (qftbx::BackgroundRun) and holds the token. What this class owes is a
-     * search that can be interrupted.
-     */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
-    /**
-     * @brief The values the user may have changed, handed to whichever
-     * algorithm run() builds.
-     *
-     * The whole struct rather than a setter per value, of which there would
-     * be ten by now: the memory budget of the live-node list, the resolution
-     * of the nominal stability check, and the figures the published
-     * algorithms take. Each algorithm copies what it needs.
-     */
     void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
 
+    void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
+
 private:
-    /// Not owned; handed to whichever algorithm run() builds.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
     qftbx::Settings m_settings;
+    qftbx::ParameterGrids m_sweep;
 
     std::unique_ptr<LtiSystem> m_controller;
     LoopShapingStatistics m_statistics;

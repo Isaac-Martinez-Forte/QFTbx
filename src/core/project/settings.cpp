@@ -231,6 +231,11 @@ const std::vector<Binding> & bindings()
              into.algorithms.conservativeBoundaryColumns =
                  wholeIn(text, "algorithms.conservative-boundary-columns", line, 0.0, 1.0) != 0.0;
          }},
+        {"algorithms.family-stability-gate",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.algorithms.familyStabilityGate =
+                 wholeIn(text, "algorithms.family-stability-gate", line, 0.0, 1.0) != 0.0;
+         }},
         {"algorithms.whole-template-if-no-contour",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.wholeTemplateIfNoContour =

@@ -49,6 +49,9 @@ public:
                                  double gain, double delay) override;
     std::optional<std::vector<std::complex<double>>> polesAt(const std::vector<double> & numerator,
                                                              const std::vector<double> & denominator) override;
+    std::optional<Polynomials> polynomialsAt(const std::vector<double> & numerator,
+                                             const std::vector<double> & denominator,
+                                             double gain) override;
 
 };
 

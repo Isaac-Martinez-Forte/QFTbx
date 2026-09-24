@@ -471,6 +471,18 @@ public:
             if (checkNode.attribute("worst-excess-db")) {
                 check.worstExcessDb = realAttribute(checkNode, "worst-excess-db");
             }
+            if (checkNode.attribute("family-members")) {
+                check.family.checked = true;
+                check.family.members = static_cast<std::size_t>(checkNode.attribute("family-members").as_llong());
+                check.family.unstableMembers = static_cast<std::size_t>(checkNode.attribute("family-unstable").as_llong());
+                check.family.worstRealPart = realAttribute(checkNode, "family-worst-real-part");
+            } else if (const pugi::xml_attribute why = checkNode.attribute("family-not-checked")) {
+                const std::optional<FamilyStability::NotChecked> known = familyNotCheckedFromName(why.value());
+                if (!known.has_value()) {
+                    throw ParseError(QFTBX_TR("Core", "unknown reason '%1' for the family not being checked").arg(why.value()), lineOf(checkNode), m_filePath);
+                }
+                check.family.notChecked = *known;
+            }
             result->setCheck(std::move(check));
         }
 
@@ -490,11 +502,13 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 {
     m_name.clear();
     m_description.clear();
+    m_doi.clear();
     m_plant.reset();
     m_specifications.reset();
     m_omega.reset();
     m_templates.clear();
     m_contour.clear();
+    m_sweepGrids.clear();
     m_epsilon.reset();
     m_epsilonMetric = EpsilonMetric{};
     m_boundaries.reset();
@@ -543,6 +557,7 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
 
     m_name = std::string(root.attribute(t.nameAttribute).value());
     m_description = std::string(root.attribute(t.descriptionAttribute).value());
+    m_doi = std::string(root.attribute(t.doiAttribute).value());
 
     const pugi::xml_node inputs = root.child(t.inputs);
     const pugi::xml_node settings = root.child(t.settings);
@@ -605,6 +620,15 @@ ProjectReader::Loaded ProjectReader::load(const std::string & filePath)
             if (const pugi::xml_node contourNode = section.child(t.templateContour)) {
                 m_contour = parser.readComplexVectors(contourNode);
                 hasContour = true;
+            }
+            if (const pugi::xml_node sweepNode = section.child(t.sweep)) {
+                for (pugi::xml_node parameter : sweepNode.children(t.sweepParameter)) {
+                    const std::string name = parameter.attribute(t.parameterName).value();
+                    if (name.empty()) {
+                        parser.fail(parameter, QFTBX_TR("Core", "a swept parameter needs its name"));
+                    }
+                    m_sweepGrids[name] = parser.realVector(parameter);
+                }
             }
         }
     });

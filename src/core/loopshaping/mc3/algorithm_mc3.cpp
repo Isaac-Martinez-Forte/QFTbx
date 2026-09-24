@@ -216,7 +216,7 @@ void AlgorithmMc3::certify(LtiSystem * box, double gainDb)
         return;
     }
     const PointController point = centreOf(box, gainDb);
-    if (!stability->isNominallyStable(point)) {
+    if (!stability->isNominallyStable(point) || !family->isStable(point)) {
         return;
     }
     bestGainDb = gainDb;
@@ -230,6 +230,8 @@ bool AlgorithmMc3::solve()
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
+    family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
+                                                     m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
 
     bestGainDb = kInfinity;
     bestController.reset();
@@ -349,7 +351,7 @@ bool AlgorithmMc3::solve()
                 PointController candidate = q;
                 candidate.gain = fromDb(g);
                 if (satisfiesBoundaries(candidate, omega, conversion.get(), detector.get(), boundaries, nominalPlantValues)
-                        && stability->isNominallyStable(candidate)) {
+                        && stability->isNominallyStable(candidate) && family->isStable(candidate)) {
                     bestCandidate = g;
                     bestPoint = candidate;
                 }

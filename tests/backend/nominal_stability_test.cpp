@@ -7,11 +7,16 @@
  * the unwrapped phase. Classical loops with known verdicts are checked, among
  * them the conditionally stable loop whose two crossings cancel, where a
  * never-cross rule gets both verdicts wrong; random controllers over three
- * plants must agree with a transcription of the criterion through arc
- * tangents; one phase profile serves every gain of a shape; a box is rejected
+ * plants, a double integrator among them, must agree with the roots of the
+ * closed-loop characteristic polynomial wherever the loop is strictly proper
+ * (a loop that does not roll off is refused by the checker whatever its
+ * roots); one phase profile serves every gain
+ * of a shape; a box is rejected
  * whole only when its corner is unstable and its enclosure excludes the
  * critical point at every frequency; plants with right-half-plane poles have
- * verdicts fixed by Routh; and a delay in the denominator gets no verdict.
+ * verdicts fixed by Routh; a delay in the denominator gets no verdict; and
+ * the ACC'90 double integrator, whose loop starts on the ray at infinite
+ * magnitude, rejects the designs the search had returned and accepts a lead.
  */
 
 #include <gtest/gtest.h>
@@ -25,6 +30,9 @@
 #include "src/core/math/constants.h"
 
 #include "src/core/math/point.h"
+#include "src/core/math/polynomial.h"
+#include <limits>
+#include <optional>
 
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
 #include "src/core/system/zero_pole_gain.h"
@@ -107,86 +115,29 @@ TEST(NominalStability, ConditionallyStableLoopNeedsTheNetCount)
     delete lowGain;
 }
 
-bool referenceVerdict(LtiSystem * plant, const PointController & controller,
-                      const std::vector<double> & grid, const Settings::Stability & tolerances)
+double lastWorstRealPart = 0.0;
+
+std::optional<bool> rootsVerdict(LtiSystem * plant, const PointController & controller)
 {
-    struct Sample { double w; std::complex<double> loop; double phase; };
-    const auto loopAt = [&](double w) {
-        const std::complex<double> jw(0.0, w);
-        std::complex<double> value(controller.gain, 0.0);
-        for (double z : controller.zeros) value *= jw + std::complex<double>(z, 0.0);
-        for (double p : controller.poles) value /= jw + std::complex<double>(p, 0.0);
-        return value * plant->evaluate(w);
-    };
-    const auto phaseOf = [](std::complex<double> v) { return std::arg(v) * 180.0 / qftbx::math::kPi; };
-
-    std::vector<Sample> curve;
-    for (double w : grid) {
-        const std::complex<double> loop = loopAt(w);
-        curve.push_back({w, loop, phaseOf(loop)});
-    }
-    int budget = tolerances.refinementBudget;
-    for (std::size_t i = 0; i + 1 < curve.size() && budget > 0;) {
-        double step = std::abs(curve[i + 1].phase - curve[i].phase);
-        if (step > 180.0) step = 360.0 - step;
-        if (step > tolerances.maxPhaseStepDegrees && curve[i + 1].w - curve[i].w > 1e-12 * curve[i].w) {
-            const double w = std::sqrt(curve[i].w * curve[i + 1].w);
-            const std::complex<double> loop = loopAt(w);
-            curve.insert(curve.begin() + static_cast<std::ptrdiff_t>(i) + 1, {w, loop, phaseOf(loop)});
-            --budget;
-        } else {
-            ++i;
-        }
-    }
-    if (budget <= 0) return false;
-    if (std::abs(curve.back().loop) >= 1.0) return false;
-
-    std::vector<double> unwrapped(curve.size(), 0.0);
-    unwrapped[0] = curve[0].phase;
-    for (std::size_t i = 1; i < curve.size(); ++i) {
-        double delta = curve[i].phase - curve[i - 1].phase;
-        if (delta > 180.0) delta -= 360.0; else if (delta < -180.0) delta += 360.0;
-        unwrapped[i] = unwrapped[i - 1] + delta;
-    }
-    const auto rayBelow = [](double phase) { return std::floor((phase + 180.0) / 360.0) * 360.0 - 180.0; };
-    double crossings = 0.0;
-    const double startRay = rayBelow(unwrapped[0] + 1e-6);
-    if (std::abs(unwrapped[0] - startRay) < 1e-3 && std::abs(curve[0].loop) > 1.0) {
-        std::size_t next = 1;
-        while (next + 1 < curve.size() && std::abs(unwrapped[next] - unwrapped[0]) < 1e-9) ++next;
-        crossings += (unwrapped[next] > unwrapped[0]) ? 0.5 : -0.5;
-    }
-    for (std::size_t i = 0; i + 1 < curve.size(); ++i) {
-        const double a = unwrapped[i], b = unwrapped[i + 1];
-        if (a == b) continue;
-        const double low = std::min(a, b), high = std::max(a, b), sign = (b > a) ? 1.0 : -1.0;
-        for (double level = rayBelow(high); level > low; level -= 360.0) {
-            if (level >= high) continue;
-            const double t = (level - a) / (b - a);
-            const double from = std::abs(curve[i].loop), to = std::abs(curve[i + 1].loop);
-            if (from * std::pow(to / from, t) > 1.0) crossings += sign;
-        }
-    }
-    return std::abs(crossings) < 0.25;
+    std::vector<double> numerator, denominator;
+    for (Parameter & p : plant->numerator()) numerator.push_back(p.nominal());
+    for (Parameter & p : plant->denominator()) denominator.push_back(p.nominal());
+    const std::optional<LtiSystem::Polynomials> P = plant->polynomialsAt(numerator, denominator, plant->gain().nominal());
+    std::vector<double> C_num{controller.gain}, C_den{1.0};
+    for (double z : controller.zeros) C_num = qftbx::math::polynomialProduct(C_num, {1.0, z});
+    for (double p : controller.poles) C_den = qftbx::math::polynomialProduct(C_den, {1.0, p});
+    const std::vector<double> characteristic = qftbx::math::polynomialSum(
+                qftbx::math::polynomialProduct(P->numerator, C_num), qftbx::math::polynomialProduct(P->denominator, C_den));
+    double worst = -std::numeric_limits<double>::infinity();
+    for (const std::complex<double> & root : qftbx::math::polynomialRoots(characteristic)) worst = std::max(worst, root.real());
+    lastWorstRealPart = worst;
+    if (std::abs(worst) < 1e-6) return std::nullopt;
+    return worst < 0.0;
 }
 
-std::vector<double> gridOf(const std::vector<double> & omega, const Settings::Stability & tolerances)
-{
-    double minOmega = omega.front(), maxOmega = omega.front();
-    for (double o : omega) { minOmega = std::min(minOmega, o); maxOmega = std::max(maxOmega, o); }
-    const double logFrom = std::log10(minOmega) - tolerances.decadesBeyond;
-    const double logTo = std::log10(maxOmega) + tolerances.decadesBeyond;
-    std::vector<double> grid;
-    for (int i = 0; i < tolerances.baseGridPoints; ++i) {
-        grid.push_back(std::pow(10.0, logFrom + (logTo - logFrom) * i / (tolerances.baseGridPoints - 1)));
-    }
-    return grid;
-}
-
-TEST(NominalStability, TheArrayVerdictAgreesWithTheTranscribedCriterion)
+TEST(NominalStability, TheVerdictAgreesWithTheClosedLoopRoots)
 {
     const Settings::Stability tolerances;
-    const std::vector<double> grid = gridOf(designFrequencies, tolerances);
     std::vector<LtiSystem *> plants{
         makeZpk(1.0, {}, {0.0, 1.0, 3.0}),
         makeZpk(1.0, {1.0, 1.0}, {0.01, 0.01, 0.01}),
@@ -208,10 +159,17 @@ TEST(NominalStability, TheArrayVerdictAgreesWithTheTranscribedCriterion)
             point.gain = gain(generator);
             for (int z = count(generator); z > 0; --z) point.zeros.push_back(zero(generator));
             for (int p = count(generator); p > 0; --p) point.poles.push_back(pole(generator));
-            const bool expected = referenceVerdict(plant, point, grid, tolerances);
-            EXPECT_EQ(checker.isNominallyStable(point), expected)
-                << "plant " << plant->expression() << " k=" << point.gain;
-            stable += expected;
+            const std::ptrdiff_t relativeDegree =
+                    static_cast<std::ptrdiff_t>(plant->denominator().size() + point.poles.size())
+                    - static_cast<std::ptrdiff_t>(plant->numerator().size() + point.zeros.size());
+            if (relativeDegree <= 0) continue;
+            const std::optional<bool> expected = rootsVerdict(plant, point);
+            if (!expected.has_value()) continue;
+            EXPECT_EQ(checker.isNominallyStable(point), *expected)
+                << "plant " << plant->expression() << " k=" << point.gain
+                << " zeros " << ::testing::PrintToString(point.zeros) << " poles " << ::testing::PrintToString(point.poles)
+                << " worst real part of the closed loop " << lastWorstRealPart;
+            stable += *expected;
             ++total;
         }
         delete plant;
@@ -343,4 +301,28 @@ TEST(NominalStability, ADenominatorThatIsNotAPolynomialGetsNoVerdict)
     FreeForm plant(std::string("P"), none, none, Parameter(1.0), Parameter(0.0),
                    std::string("1"), std::string("s+exp(-s)"));
     EXPECT_THROW(NominalStabilityChecker checker(&plant, &designFrequencies), qftbx::InvalidInput);
+}
+
+TEST(NominalStability, ADoubleIntegratorStartsOnTheRayAtInfiniteMagnitude)
+{
+    std::vector<Parameter> ev{Parameter(std::string("ev"), 0.5)};
+    FreeForm plant(std::string("ACC90"), ev, ev, Parameter(1.0), Parameter(0.0),
+                   std::string("ev"), std::string("s^2*(s^2+0.02*s+2*ev)"));
+    std::vector<double> frequencies{0.1, 0.98, 1.02, 1.1, 1.2, 1.5, 2.0, 3.0, 5.0, 8.0, 12.0, 30.0};
+    NominalStabilityChecker checker(&plant, &frequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 0);
+
+    LtiSystem* gainOnly = makeZpk(1000.0, {0.01}, {0.01});
+    LtiSystem* returnedOnce = makeZpk(1000.0, {28.00666428}, {0.01});
+    LtiSystem* returnedTwice = makeZpk(1000.0, {500.005}, {0.01});
+    LtiSystem* stabilising = makeZpk(0.03, {0.1}, {1.0});
+    EXPECT_FALSE(checker.isNominallyStable(gainOnly)) << "every closed-loop pole of k/(s^2 ...) with k = 1000 is in the right half-plane";
+    EXPECT_FALSE(checker.isNominallyStable(returnedOnce));
+    EXPECT_FALSE(checker.isNominallyStable(returnedTwice));
+    EXPECT_TRUE(checker.isNominallyStable(stabilising)) << "a lead below the resonance stabilises the whole family";
+
+    delete gainOnly;
+    delete returnedOnce;
+    delete returnedTwice;
+    delete stabilising;
 }

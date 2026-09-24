@@ -52,6 +52,9 @@ protected:
         originalSections = original.load(fixture(GetParam()));
 
         ProjectContent content;
+        content.name = original.name();
+        content.description = original.description();
+        content.doi = original.doi();
         content.plant = original.plant();
         content.specifications = original.specifications();
         content.omega = original.omega();
@@ -118,6 +121,7 @@ TEST_P(RoundTrip, TheNameAndTheDescriptionSurvive)
 {
     EXPECT_EQ(original.name(), reloaded.name());
     EXPECT_EQ(original.description(), reloaded.description());
+    EXPECT_EQ(original.doi(), reloaded.doi());
 }
 
 TEST_P(RoundTrip, EverySectionSurvivesBitExact)

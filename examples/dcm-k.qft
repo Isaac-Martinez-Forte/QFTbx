@@ -231,6 +231,11 @@
                 <re>-9.900990099009902e-05 -9.90820972583674e-05 -9.915163383301625e-05 -9.921849928919247e-05 -9.928268261808433e-05 -9.934417323140207e-05 -9.940296096569976e-05 -9.945903608653557e-05 -9.95123892924669e-05 -9.956301171887761e-05 -9.961089494163424e-05 -9.965603098056862e-05 -9.969841230278408e-05 -9.97380318257826e-05 -9.977488292041083e-05 -9.980895941362236e-05 -9.984025559105431e-05 -9.986876619941607e-05 -9.989448644868857e-05 -9.991741201413207e-05 -9.993753903810119e-05 -9.995486413166554e-05 -9.996938437603484e-05 -9.998109732378722e-05 -9.999000099990002e-05 -0.00013748625137486253 -0.00017498250174982502 -0.00021247875212478752 -0.00024997500249975 -0.00028747125287471257 -0.00032496750324967507 -0.00036246375362463756 -0.00039996000399960006 -0.00043745625437456256 -0.00047495250474952506 -0.0005124487551244876 -0.0005499450054994501 -0.0005874412558744125 -0.0006249375062493751 -0.0006624337566243377 -0.0006999300069993001 -0.0007374262573742626 -0.0007749225077492251 -0.0008124187581241876 -0.0008499150084991501 -0.0008874112588741126 -0.0009249075092490752 -0.0009624037596240376 -0.000999900009999 -0.000999810973237872 -0.0009996938437603483 -0.0009995486413166554 -0.0009993753903810119 -0.0009991741201413207 -0.0009989448644868856 -0.0009986876619941607 -0.000998402555910543 -0.0009980895941362237 -0.0009977488292041083 -0.0009973803182578259 -0.0009969841230278408 -0.0009965603098056862 -0.0009961089494163425 -0.0009956301171887762 -0.000995123892924669 -0.0009945903608653557 -0.0009940296096569976 -0.0009934417323140207 -0.0009928268261808434 -0.0009921849928919246 -0.0009915163383301625 -0.000990820972583674 -0.0009900990099009901 -0.0009529702970297031 -0.0009158415841584159 -0.0008787128712871287 -0.0008415841584158417 -0.0008044554455445545 -0.0007673267326732674 -0.0007301980198019802 -0.0006930693069306931 -0.000655940594059406 -0.0006188118811881188 -0.0005816831683168318 -0.0005445544554455446 -0.0005074257425742574 -0.00047029702970297034 -0.0004331683168316832 -0.00039603960396039607 -0.00035891089108910896 -0.0003217821782178218 -0.0002846534653465347 -0.00024752475247524753 -0.00021039603960396042 -0.00017326732673267329 -0.00013613861386138615 -9.900990099009902e-05 </re>
                 <im>-9.900990099009901e-06 -9.536651861117862e-06 -9.171526129554004e-06 -8.805641811915832e-06 -8.43902802253717e-06 -8.071714075051418e-06 -7.703729474841732e-06 -7.335103911381998e-06 -6.965867250472684e-06 -6.5960495263756425e-06 -6.22568093385214e-06 -5.8547918201084065e-06 -5.483412676653124e-06 -5.111574131071357e-06 -4.739306938719514e-06 -4.366641974345978e-06 -3.993610223642173e-06 -3.6202427747288325e-06 -3.2465708095823786e-06 -2.872625595406297e-06 -2.4984384759525296e-06 -2.124040862797893e-06 -1.74946422658061e-06 -1.3747400882020742e-06 -9.99900009999e-07 -1.3748625137486251e-06 -1.7498250174982502e-06 -2.124787521247875e-06 -2.4997500249975e-06 -2.8747125287471253e-06 -3.24967503249675e-06 -3.6246375362463754e-06 -3.999600039996e-06 -4.374562543745625e-06 -4.74952504749525e-06 -5.124487551244876e-06 -5.4994500549945004e-06 -5.874412558744125e-06 -6.24937506249375e-06 -6.624337566243376e-06 -6.999300069993001e-06 -7.3742625737426255e-06 -7.749225077492251e-06 -8.124187581241876e-06 -8.4991500849915e-06 -8.874112588741126e-06 -9.24907509249075e-06 -9.624037596240375e-06 -9.99900009999e-06 -1.3747400882020742e-05 -1.74946422658061e-05 -2.1240408627978927e-05 -2.4984384759525296e-05 -2.8726255954062973e-05 -3.2465708095823785e-05 -3.6202427747288324e-05 -3.9936102236421726e-05 -4.366641974345978e-05 -4.739306938719514e-05 -5.1115741310713574e-05 -5.483412676653124e-05 -5.854791820108406e-05 -6.225680933852141e-05 -6.596049526375642e-05 -6.965867250472685e-05 -7.335103911381998e-05 -7.703729474841731e-05 -8.071714075051418e-05 -8.43902802253717e-05 -8.805641811915831e-05 -9.171526129554004e-05 -9.536651861117863e-05 -9.900990099009902e-05 -9.52970297029703e-05 -9.158415841584158e-05 -8.787128712871287e-05 -8.415841584158417e-05 -8.044554455445545e-05 -7.673267326732673e-05 -7.301980198019802e-05 -6.930693069306931e-05 -6.55940594059406e-05 -6.188118811881188e-05 -5.816831683168317e-05 -5.4455445544554456e-05 -5.074257425742575e-05 -4.702970297029703e-05 -4.331683168316832e-05 -3.9603960396039605e-05 -3.589108910891089e-05 -3.217821782178218e-05 -2.8465346534653467e-05 -2.4752475247524754e-05 -2.103960396039604e-05 -1.732673267326733e-05 -1.3613861386138614e-05 -9.900990099009901e-06 </im>
             </contour>
+            <sweep>
+                <parameter name="0">0 </parameter>
+                <parameter name="a">1 1.375 1.75 2.125 2.5 2.875 3.25 3.625 4 4.375 4.75 5.125 5.5 5.875 6.25 6.625 7 7.375 7.75 8.125 8.5 8.875 9.25 9.625 10 </parameter>
+                <parameter name="k">1 1.375 1.75 2.125 2.5 2.875 3.25 3.625 4 4.375 4.75 5.125 5.5 5.875 6.25 6.625 7 7.375 7.75 8.125 8.5 8.875 9.25 9.625 10 </parameter>
+            </sweep>
         </templates>
         <boundaries>
             <data>
@@ -1773,130 +1778,130 @@
                         <trace>-360 -11 </trace>
                     </frequency>
                     <frequency size="361">
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
                         <trace>-124 -16 -124 -15.5 -124 -15 -124 -14.5 -124 -14 -124 -13.5 -124 -13 -124 -12.5 -124 -12 -124 -11.5 -124 -11 -124 -10.5 -124 -10 -124 -9.5 -124 -9 -124 -8.5 -124 -8 -124 -7.5 -124 -7 -124 -6.5 -124 -6 -124 -5.5 -124 -5 -124 -4.5 -124 -4 -124 -3.5 -124 -3 -124 -2.5 -124 -2 -124 -1.5 -124 -1 -124 -0.5 -124 0 -124 0.5 -124 1 -124 1.5 -124 2 -124 2.5 -124 3 -124 3.5 -124 4 -124 4.5 -124 5 -124 5.5 -124 6 </trace>
                         <trace>-125 -17 -125 -16.5 -125 6.5 -125 7 -125 7.5 </trace>
                         <trace>-126 -17.5 -126 8 </trace>
@@ -2016,124 +2021,124 @@
                         <trace>-240 -17 -240 -16.5 -240 7 -240 7.5 </trace>
                         <trace>-241 -16 -241 -15.5 -241 -15 -241 -14.5 -241 -14 -241 -13.5 -241 -13 -241 -12.5 -241 -12 -241 -11.5 -241 -11 -241 -10.5 -241 -10 -241 -9.5 -241 -9 -241 -8.5 -241 -8 -241 -7.5 -241 -7 -241 -6.5 -241 -6 -241 -5.5 -241 -5 -241 -4.5 -241 -4 -241 -3.5 -241 -3 -241 -2.5 -241 -2 -241 -1.5 -241 -1 -241 -0.5 -241 0 -241 0.5 -241 1 -241 1.5 -241 2 -241 2.5 -241 3 -241 3.5 -241 4 -241 4.5 -241 5 -241 5.5 -241 6 -241 6.5 </trace>
                         <trace>-242 -16 </trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
-                        <trace></trace>
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
+                        <trace />
                     </frequency>
                 </union-buckets>
             </data>
@@ -2172,7 +2177,7 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-0.0004725878995822403" />
+            <check satisfied="true" worst-excess-db="-0.0004725878995822403" family-members="625" family-unstable="0" family-worst-real-part="-1.8685755031056541" />
         </loop-shaping>
     </results>
 </QFT>

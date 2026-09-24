@@ -2014,6 +2014,30 @@ del controlador</translation>
         <source>all</source>
         <translation>todas</translation>
     </message>
+    <message>
+        <source>Closed-loop stability of the family not checked: the project has no record of the sweep; recompute the templates.</source>
+        <translation>Estabilidad en lazo cerrado de la familia sin comprobar: el proyecto no guarda el barrido; recalcule las plantillas.</translation>
+    </message>
+    <message>
+        <source>Closed-loop stability of the family not checked: the loop has a delay.</source>
+        <translation>Estabilidad en lazo cerrado de la familia sin comprobar: el lazo tiene un retardo.</translation>
+    </message>
+    <message>
+        <source>Closed-loop stability of the family not checked: the loop is not a rational function.</source>
+        <translation>Estabilidad en lazo cerrado de la familia sin comprobar: el lazo no es una función racional.</translation>
+    </message>
+    <message>
+        <source>Closed-loop stability of the family not checked.</source>
+        <translation>Estabilidad en lazo cerrado de la familia sin comprobar.</translation>
+    </message>
+    <message>
+        <source>Every one of the %1 plants is closed-loop stable (worst real part %2).</source>
+        <translation>Las %1 plantas son estables en lazo cerrado (peor parte real %2).</translation>
+    </message>
+    <message>
+        <source>%1 of the %2 plants are CLOSED-LOOP UNSTABLE (worst real part %3).</source>
+        <translation>%1 de las %2 plantas son INESTABLES en lazo cerrado (peor parte real %3).</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::MainWindow</name>

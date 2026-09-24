@@ -115,6 +115,17 @@ public:
     /// polesAt() at the nominal values of the parameters.
     virtual std::optional<std::vector<std::complex<double>>> nominalPoles() = 0;
 
+    /// The numerator and the denominator as real polynomials in s, highest
+    /// degree first, the gain folded into the numerator and the delay left
+    /// out; nothing when either is not a polynomial.
+    struct Polynomials {
+        std::vector<double> numerator;
+        std::vector<double> denominator;
+    };
+    virtual std::optional<Polynomials> polynomialsAt(const std::vector<double> & numerator,
+                                                     const std::vector<double> & denominator,
+                                                     double gain) = 0;
+
     /// The system's own parameters, by reference (it holds them by value).
     virtual std::vector <Parameter> & denominator() = 0;
 

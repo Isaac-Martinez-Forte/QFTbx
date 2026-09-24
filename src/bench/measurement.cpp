@@ -278,6 +278,11 @@ Record runCase(const Plan & plan, const Case & c)
         record.digest = digestOf(record.gain, record.zeros, record.poles);
         if (result->check().has_value()) {
             record.worstExcessDb = result->check()->worstExcessDb;
+            if (result->check()->family.checked) {
+                record.familyMembers = result->check()->family.members;
+                record.familyUnstable = result->check()->family.unstableMembers;
+                record.familyWorstRealPart = result->check()->family.worstRealPart;
+            }
         }
         record.status = "solved";
     } catch (const std::exception & failure) {

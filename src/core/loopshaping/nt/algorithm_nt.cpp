@@ -37,6 +37,8 @@ bool AlgorithmNt::solve() {
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
+    family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
+                                                     m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
 
     nominalPlantValues.clear();
 
@@ -64,16 +66,25 @@ bool AlgorithmNt::solve() {
         }
 
         if (node->flag() == feasible) {
-            designedController = pointFromBox(node->system(), true);
+            if (family->isStable(cornerOf(node->system(), true))) {
+                designedController = pointFromBox(node->system(), true);
 
-            return true;
+                return true;
+            }
+            if (isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
+                continue;
+            }
+            BisectionResult halves = bisectWidestParameter(node->system());
+            check_box_feasibility(std::move(halves.v1));
+            check_box_feasibility(std::move(halves.v2));
+            continue;
         }
 
         if (isEpsilonSmall(node->system(), this->epsilon, omega, conversion.get(), nominalPlantValues)) {
             const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
                     conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
-            if (!corner || !stability->isNominallyStable(*corner)) {
+            if (!corner || !stability->isNominallyStable(*corner) || !family->isStable(*corner)) {
                 continue;
             }
 

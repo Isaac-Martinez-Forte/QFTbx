@@ -252,6 +252,15 @@ void writeTemplates(pugi::xml_node root, const ProjectContent & content)
         contour.append_attribute("size") = static_cast<std::int64_t>(content.contour->size());
         writeComplexVectors(contour, *content.contour, t.templateContour);
     }
+
+    if (content.sweepGrids != nullptr && !content.sweepGrids->empty()) {
+        pugi::xml_node sweep = section.append_child(t.sweep);
+        for (const auto & [name, values] : *content.sweepGrids) {
+            pugi::xml_node parameter = sweep.append_child(t.sweepParameter);
+            parameter.append_attribute(t.parameterName) = name.c_str();
+            parameter.text().set(realVectorText(values, t.sweep).c_str());
+        }
+    }
 }
 
 void writeTraces(pugi::xml_node parent, const qftbx::TraceSet & traces, const char * what)
@@ -331,6 +340,14 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
         if (std::isfinite(loopShaping->check()->worstExcessDb)) {
             check.append_attribute("worst-excess-db") = number(loopShaping->check()->worstExcessDb).c_str();
         }
+        const FamilyStability & family = loopShaping->check()->family;
+        if (family.checked) {
+            check.append_attribute("family-members") = static_cast<std::int64_t>(family.members);
+            check.append_attribute("family-unstable") = static_cast<std::int64_t>(family.unstableMembers);
+            check.append_attribute("family-worst-real-part") = number(family.worstRealPart).c_str();
+        } else {
+            check.append_attribute("family-not-checked") = familyNotCheckedName(family.notChecked);
+        }
     }
 }
 
@@ -351,6 +368,9 @@ void ProjectWriter::save(const std::string & filePath, const ProjectContent & co
     }
     if (!content.description.empty()) {
         root.append_attribute(t.descriptionAttribute) = content.description.c_str();
+    }
+    if (!content.doi.empty()) {
+        root.append_attribute(t.doiAttribute) = content.doi.c_str();
     }
 
     pugi::xml_node inputs = root.append_child(t.inputs);

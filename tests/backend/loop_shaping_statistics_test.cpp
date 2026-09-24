@@ -29,7 +29,7 @@ TEST(LoopShapingStatistics, ARunReportsWhatItCost)
         published.algorithms.conservativeBoundaryColumns = false;
         controller.applySettings(published);
     }
-    controller.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt, qftbx::Range(1e-9, 10.0), 100));
 
     const LoopShapingStatistics & statistics = controller.loopShapingResult()->statistics();
@@ -70,7 +70,7 @@ TEST(LoopShapingStatistics, MrCountsNoBoxClassification)
         published.algorithms.conservativeBoundaryColumns = false;
         controller.applySettings(published);
     }
-    controller.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mr, qftbx::Range(1e-9, 10.0), 100));
 
     const LoopShapingStatistics & statistics = controller.loopShapingResult()->statistics();

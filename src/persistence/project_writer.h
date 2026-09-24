@@ -14,6 +14,7 @@
 #define QFTBX_PROJECT_WRITER_H
 
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/hull_metric.h"
 #include <complex>
 
@@ -36,11 +37,13 @@ namespace qftbx {
 struct ProjectContent {
     std::string name;
     std::string description;
+    std::string doi;
     LtiSystem * plant = nullptr;
     const qftbx::SpecificationRecords * specifications = nullptr;
     const Omega * omega = nullptr;
     const CloudSet * templates = nullptr;
     const CloudSet * contour = nullptr;
+    const ParameterGrids * sweepGrids = nullptr;
     const std::vector <double> * epsilon = nullptr;
     EpsilonMetric epsilonMetric;
     const BoundaryData * boundaries = nullptr;

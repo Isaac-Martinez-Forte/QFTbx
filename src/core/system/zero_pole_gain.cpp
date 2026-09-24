@@ -16,6 +16,8 @@
 #include "src/core/common/text_tokens.h"
 #include "src/core/system/zero_pole_gain.h"
 
+#include "src/core/math/polynomial.h"
+
 namespace qftbx {
 
 ZeroPoleGain::ZeroPoleGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay):
@@ -120,6 +122,20 @@ std::optional<std::vector<std::complex<double>>> ZeroPoleGain::polesAt(const std
         poles.emplace_back(-p, 0.0);
     }
     return poles;
+}
+
+std::optional<LtiSystem::Polynomials> ZeroPoleGain::polynomialsAt(const std::vector<double> & numerator,
+                                                                  const std::vector<double> & denominator,
+                                                                  double gain)
+{
+    Polynomials polynomials{{gain}, {1.0}};
+    for (const double zero : numerator) {
+        polynomials.numerator = math::polynomialProduct(polynomials.numerator, {1.0, zero});
+    }
+    for (const double pole : denominator) {
+        polynomials.denominator = math::polynomialProduct(polynomials.denominator, {1.0, pole});
+    }
+    return polynomials;
 }
 
 }

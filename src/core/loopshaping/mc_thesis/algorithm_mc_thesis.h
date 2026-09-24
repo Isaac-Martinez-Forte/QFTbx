@@ -19,6 +19,7 @@
 #include "src/core/loopshaping/common/mc_search_node.h"
 #include "src/core/loopshaping/common/stages.h"
 #include "src/core/loopshaping/common/nominal_stability_checker.h"
+#include "src/core/loopshaping/common/family_stability_checker.h"
 #include "src/core/math/sequence_vectors.h"
 
 #include "src/core/loopshaping/common/common_functions.h"
@@ -131,6 +132,15 @@ public:
     /// (Settings::Algorithms::mc); a later setStrategies() overrides.
     void setSettings(const qftbx::Settings & settings);
 
+    /**
+     * @brief The grids the plant family was swept over, by parameter name:
+     * what the search closes the loop with before it returns a design.
+     *
+     * Empty leaves the check out, which is what a project with no record of
+     * its sweep gets.
+     */
+    void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
+
     bool solve();
 
     /// The designed controller, handed over to the caller.
@@ -201,6 +211,8 @@ private:
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
+    std::unique_ptr<FamilyStabilityChecker> family;
+    qftbx::ParameterGrids m_sweep;
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 

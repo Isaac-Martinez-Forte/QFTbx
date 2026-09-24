@@ -121,7 +121,11 @@ three cannot be reproduced or compared.
 ### The results
 
 **`<templates>`**: the `<full>` value sets and the `<contour>` of each
-frequency.
+frequency, and the `<sweep>` they came from: one `<parameter name="a">` per
+uncertain parameter with the grid of values it was swept over. The sweep is
+what the verifier walks to close the loop with every member of the family;
+a file without it still opens, and the verifier then says the family was
+not checked.
 
 **`<boundaries>`**: `<data>` with the Nichols grid (`<phases>` and
 `<magnitudes>` with their `count`, `<min>` and `<max>`), the sheets as
@@ -135,14 +139,22 @@ cell coarser.
 **`<loop-shaping>`**: the shaped controller and the plotted loop, with its
 `point-count`, and the verifier's verdict on the design:
 
-    <check satisfied="true" worst-excess-db="-1.25"/>
+    <check satisfied="true" worst-excess-db="-1.25"
+           family-members="625" family-unstable="0" family-worst-real-part="-0.65"/>
 
 The worst excess over any active specification, in decibels, measured over
 the full value sets and not over the boundaries the search worked against;
 negative means satisfied and says by how much. The itemised table behind it
 is not stored - it is derivable from what the file already carries - and
 `worst-excess-db` is absent when no specification was active at any design
-frequency.
+frequency. The three `family-*` attributes are the closed loop with every
+plant of the sweep: how many plants, how many of them are closed-loop
+unstable, and the largest real part of a closed-loop pole over all of them.
+`satisfied` is true only when no specification is exceeded and no plant is
+unstable. When the family could not be checked they are replaced by
+`family-not-checked`, one of `no-sweep-record` (the templates came from a
+file without `<sweep>`), `delay` (the loop has a delay, so its
+characteristic equation is not a polynomial) or `not-rational`.
 
 ## Reading a file by hand
 

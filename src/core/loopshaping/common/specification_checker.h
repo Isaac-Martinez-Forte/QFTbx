@@ -3,11 +3,14 @@
 
 #include <cstddef>
 #include <limits>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "src/core/specifications/specification.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
 
 /**
  * @file
@@ -31,13 +34,35 @@
  * is the excess over each active bound, in decibels, so that a positive
  * number is a violation and its size is the size of the violation.
  *
+ * The specifications are sampled in frequency, and a loop that meets a
+ * stability margin at every design frequency can still be closed-loop
+ * unstable for some member of the family: the crossing that decides it can
+ * fall between two design frequencies. So the checker also closes the loop
+ * with every plant of the sweep the templates came from and finds the roots
+ * of its characteristic polynomial, N_P N_C + D_P D_C, which is exact for
+ * the sampled family and costs milliseconds. A loop with a delay or a plant
+ * that is not a rational function has no such polynomial, and a project
+ * whose templates came from a file without the sweep has no members to
+ * walk: the check then says so instead of approving.
+ *
  * It exists so that "the returned controller satisfies its specifications"
  * can be a test in the suite instead of a claim.
+ *
+ * The result lists every active specification at every design frequency with
+ * the value achieved, the bound and the excess, and the largest excess. The
+ * family part says how many plants were closed, how many are not
+ * asymptotically stable - a closed-loop pole in the right half-plane, or on
+ * the imaginary axis within 1e-7 of the largest pole, the tolerance the roots
+ * are computed to - the largest real part over all of them and the plant it
+ * belongs to, or why it could not be checked: no record of the sweep, a delay,
+ * a plant that is not rational. A pole on the axis is not stability, and at
+ * the floor of a gain box over a plant with poles of its own on the axis it is
+ * what a minimum-gain search converges to. satisfied() asks for no excess and
+ * no unstable plant. A parameter the sweep has no grid for stays at its
+ * nominal value, and a frequency whose value set is empty contributes nothing.
  */
 namespace qftbx {
 
-/// One active specification at one design frequency: the value the
-/// controller achieves, the bound, and the difference (positive violates).
 struct SpecificationExcess
 {
     std::size_t frequencyIndex = 0;
@@ -48,35 +73,32 @@ struct SpecificationExcess
     double excessDb = 0.0;
 };
 
-/// The whole check: every active specification at every design frequency,
-/// and the largest excess among them.
+struct FamilyStability
+{
+    enum class NotChecked { No, NoSweepRecord, Delay, NotRational };
+
+    bool checked = false;
+    NotChecked notChecked = NotChecked::NoSweepRecord;
+    std::size_t members = 0;
+    std::size_t unstableMembers = 0;
+    double worstRealPart = -std::numeric_limits<double>::infinity();
+    std::vector<std::pair<std::string, double>> worstMember;
+};
+
 struct SpecificationCheck
 {
     std::vector<SpecificationExcess> entries;
     double worstExcessDb = -std::numeric_limits<double>::infinity();
+    FamilyStability family;
 
-    /// No active specification is exceeded.
-    bool satisfied() const { return !(worstExcessDb > 0.0); }
+    bool satisfied() const { return !(worstExcessDb > 0.0) && family.unstableMembers == 0; }
 };
 
-/**
- * @brief Check a controller against the specifications over a value set.
- *
- * @param controller the controller to verify; evaluated at its nominal values.
- * @param plant the plant; its nominal value at each frequency is \f$ P_0 \f$.
- * @param omega the design frequencies.
- * @param templates the value set of the plant family at each frequency, in
- *        the order of omega. Pass the full clouds: the contour is enough for
- *        the boundaries only under conditions this checker does not assume.
- * @param specifications the seven slots; unused ones and frequencies outside
- *        a band are skipped, and a tracking band needs both T_L and T_U.
- *
- * A frequency whose value set is empty contributes nothing.
- */
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,
                                               const CloudSet & templates,
-                                              const SpecificationSet & specifications);
+                                              const SpecificationSet & specifications,
+                                              const ParameterGrids * sweep = nullptr);
 
 }
 

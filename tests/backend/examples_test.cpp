@@ -12,6 +12,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdio>
+
 #include <algorithm>
 #include <filesystem>
 #include <string>
@@ -91,10 +93,18 @@ TEST(PublishedProblems, EveryOneOpensWholeAndMeetsItsSpecifications)
 
         const qftbx::SpecificationCheck check = qftbx::checkAgainstSpecifications(
             *controller, *project.plant(), *project.omega()->values(),
-            project.templates(), qftbx::toSpecificationSet(*project.specifications()));
+            project.templates(), qftbx::toSpecificationSet(*project.specifications()),
+            &project.sweepGrids());
 
         EXPECT_TRUE(check.satisfied())
             << name << " exceeds a specification by " << check.worstExcessDb << " dB";
+        if (project.sweepGrids().empty()) {
+            std::printf("%s carries no record of its sweep: the family was not checked\n", name.c_str());
+        } else {
+            EXPECT_TRUE(check.family.checked) << name << ": the family was not checked";
+            EXPECT_EQ(check.family.unstableMembers, 0u)
+                << name << " leaves " << check.family.unstableMembers << " of " << check.family.members << " plants unstable";
+        }
         if (project.loopShapingResult()->check().has_value()) {
             EXPECT_NEAR(check.worstExcessDb, project.loopShapingResult()->check()->worstExcessDb, 1e-6)
                 << name << ": the verdict in the file is not the verdict of the file";

@@ -138,6 +138,8 @@ bool AlgorithmMcThesis::solve()
     conversion = std::make_unique<NaturalIntervalExtension>();
     detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
+    family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
+                                                     m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();
@@ -185,7 +187,7 @@ bool AlgorithmMcThesis::solve()
 
         node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
 
-        if (node->flag() == feasible) {
+        if (node->flag() == feasible && family->isStable(cornerOf(node->system(), true))) {
             designedController = pointFromBox(node->system(), true);
             return true;
         }
@@ -209,15 +211,17 @@ bool AlgorithmMcThesis::solve()
                 continue;
             }
 
-            designedController = systemFromPoint(node->system(), corner);
-            return true;
+            if (family->isStable(corner)) {
+                designedController = systemFromPoint(node->system(), corner);
+                return true;
+            }
         }
 
         if (isEpsilonSmall(node.get(), analysis)) {
             const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
                     conversion.get(), detector.get(), boundaries, nominalPlantValues);
 
-            if (!corner || !stability->isNominallyStable(*corner)) {
+            if (!corner || !stability->isNominallyStable(*corner) || !family->isStable(*corner)) {
                 continue;
             }
 
@@ -479,7 +483,7 @@ bool AlgorithmMcThesis::bestGainSearch(McSearchNode * node, const NodeAnalysis &
 
     const PointController point{lowNeeded, std::move(zeroSups), std::move(poleInfs)};
 
-    if (!pointIsFeasible(point) || !stability->isNominallyStable(point)) {
+    if (!pointIsFeasible(point) || !stability->isNominallyStable(point) || !family->isStable(point)) {
         return false;
     }
 
@@ -504,7 +508,7 @@ void AlgorithmMcThesis::insertFeasibleBox(std::unique_ptr<LtiSystem> box,
         return;
     }
 
-    if (gainInf < bestCertifiedGain) {
+    if (gainInf < bestCertifiedGain && family->isStable(point)) {
         bestCertifiedGain = gainInf;
         bestCertifiedController = systemFromPoint(box.get(), point);
     }

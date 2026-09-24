@@ -1,11 +1,49 @@
 /**
  * @file
- * @brief Nominal closed-loop stability of loop-shaping candidates on the Nichols chart.
+ * @brief Nominal closed-loop stability of loop-shaping candidates, by the
+ * Nyquist criterion on the Nichols chart.
  *
- * Declares the checker that completes the feasibility test of the interval
- * algorithms: the boundaries alone do not exclude loops that encircle the
- * critical point. The criterion, its sampling of the nominal loop and the
- * test of a whole box are documented with the class.
+ * The criterion is Cohen, Chait and Yaniv's (Int. J. Robust and Nonlinear
+ * Control, 1994), the one the Matlab QFT Toolbox applies. For a nominal loop
+ * \f$ L_0 = C P_0 \f$ the closed loop is stable if and only if the net number
+ * of signed crossings of the rays \f$ \angle L_0 \equiv -180^\circ,\ |L_0| > 0\ dB \f$
+ * over positive frequencies is \f$ P/2 \f$, half the right half-plane poles of
+ * the nominal plant: Nyquist's \f$ N = -P \f$ read on the Nichols chart. The
+ * boundaries alone do not exclude loops that encircle the critical point, so
+ * the interval algorithms complete their feasibility test with this check on
+ * one point of each bounds-feasible box (the boundary crossing principle,
+ * Tharewal 2005 sec. 3.3.5).
+ *
+ * \f$ P \f$ is asked of the plant once, and a plant that cannot place its
+ * poles is refused rather than assumed stable. The nominal verdict carries to
+ * the family only while every member has the same \f$ P \f$, which the template
+ * sweep checks. Poles of the plant on the imaginary axis are an input: there
+ * the loop passes through infinity and its phase falls by 180 degrees per pole,
+ * the indentation of the Nyquist contour, and the frequencies where that
+ * happens come from the plant's own poles, not from the samples. A loop that
+ * starts on a ray at a finite magnitude (an odd number of real unstable poles,
+ * a negative static gain) counts half a crossing towards its departure side.
+ * Two integrators put it on the ray at infinite magnitude, where the
+ * indentation around the origin reaches the ray from the higher phase: a loop
+ * leaving towards the higher phase does not cross it, one leaving towards the
+ * lower phase crosses it whole. The start is read off the low-frequency
+ * asymptote \f$ A (j\omega)^m \f$ from the polynomials of the plant and the
+ * controller, not off the first sample, which sits a fraction of a degree off
+ * the ray: read that way, the ACC'90 double integrator was approved with every
+ * closed-loop pole in the right half-plane.
+ *
+ * The nominal plant is sampled once on a logarithmic grid three decades beyond
+ * the design frequencies, refined wherever the loop phase turns faster than
+ * the unwrapping tolerance; a verdict that cannot be decided counts as
+ * unstable. The phase does not depend on the gain and the gain scales every
+ * magnitude alike, so everything gain-independent - the refinement, the ray
+ * crossings with their magnitude at unit gain, the start, the last sample - is
+ * computed once per set of zeros and poles into a cached Profile, and a verdict
+ * for a gain is a pass over its few crossings. A profile needs no arc tangent
+ * per sample: the phase step is a dot product and a crossing a change of sign.
+ * isBoxUnstable rejects a whole box when one member is unstable and the box's
+ * interval enclosure keeps the critical point out at one sample in eight of
+ * the base grid, since the crossing count then cannot change inside it.
  */
 
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H
@@ -24,166 +62,38 @@
 
 namespace qftbx {
 
-/**
- * @brief Nominal closed-loop stability test for loop-shaping candidates,
- * by the Nyquist criterion on the Nichols chart (Cohen, Chait and Yaniv,
- * "Stability analysis using Nichols charts", Int. J. Robust and Nonlinear
- * Control, 1994 - the criterion the Matlab QFT Toolbox applies).
- *
- * For a nominal open loop \f$ L_0(j\omega) = C(j\omega) P_0(j\omega) \f$
- * the closed loop is stable if and only if the net number of signed
- * crossings of the rays
- * \f$ \{\angle L_0 \equiv -180^\circ \ (mod\ 360^\circ),\ |L_0| > 0\ dB\} \f$
- * over positive frequencies is \f$ P/2 \f$, half the number of poles the
- * NOMINAL PLANT has in the open right half-plane. That is Nyquist's
- * \f$ N = -P \f$ read on the Nichols chart, where the whole contour's count
- * is twice the one over positive frequencies.
- *
- * The QFT bound constraints alone do not exclude loops that encircle the
- * critical point: a loop with \f$ |L_0| \gg 1 \f$ beyond \f$ -180^\circ \f$
- * satisfies every magnitude bound and is still closed-loop unstable. The
- * interval algorithms therefore complete their feasibility test with this
- * check on one point controller of each bounds-feasible box: by the
- * boundary crossing principle (Tharewal 2005, sec. 3.3.5), satisfied
- * stability bounds plus one nominally stable point make the whole box, and
- * the whole plant family, robustly stable.
- *
- * Things to keep in mind:
- *
- * - \f$ P \f$ is asked of the plant once, when the checker is built, and a
- *   plant that cannot place its poles is REFUSED. Assuming \f$ P = 0 \f$ for
- *   it is the one thing a test that certifies must not do: a plant with one
- *   unstable pole then gets the verdict of a stable one, in both
- *   directions.
- * - The robust stability argument above carries the nominal verdict to the
- *   family only while every member has the same \f$ P \f$. That is not
- *   checked here - the family is not in hand here - but at the template
- *   sweep, which refuses a family whose uncertainty crosses the axis.
- * - Poles of the plant ON the imaginary axis are not a precondition any
- *   more, they are an input: at one the loop passes through infinity and
- *   its phase falls by 180 degrees per pole, the indentation of the Nyquist
- *   contour, where a sampled curve unwrapped between neighbours would take
- *   the short way round and count the crossing wrong. Their frequencies
- *   come from the plant's own poles, and the refinement leaves those
- *   intervals alone, since the step there is not a sampling artefact.
- * - A loop that starts on a ray at \f$ \omega = 0 \f$ counts half a crossing
- *   towards its departure side. Two or more integrators put it there, and
- *   so does an odd number of real unstable poles, which is why the value at
- *   zero is read and not the first sample of the grid.
- *
- * The nominal plant response is sampled once on a logarithmic frequency
- * grid three decades beyond the design frequencies on both sides, refined
- * adaptively wherever the loop phase turns faster than the unwrapping
- * tolerance. The controller is evaluated in zero-pole-gain semantics,
- * matching the projection the optimiser used.
- *
- * How the verdict is computed. The searches ask for hundreds of thousands
- * of verdicts, each over thousands of samples, and this check was most of
- * their running time. Two facts keep it cheap without touching the
- * criterion:
- *
- * - The phase of the loop does not depend on the gain, and the gain scales
- *   every magnitude by the same factor. Everything the criterion reads
- *   that does not depend on the gain - the refinement of the grid, where
- *   the curve crosses the rays and with what magnitude at unit gain,
- *   whether it starts on a ray, the magnitude of its last sample - is
- *   computed once per set of zeros and poles into a Profile, and a verdict
- *   for a gain is a pass over the few crossings of the profile. The
- *   profiles are cached, since the searches ask about the same corner
- *   again and again with other gains.
- * - A profile is computed without an arc tangent per sample. The samples
- *   are kept as arrays of real and imaginary parts, the phase-step test of
- *   the refinement compares the dot product of two consecutive samples
- *   with their magnitudes, and a ray crossing is a change of sign of the
- *   imaginary part on the negative half-plane; the arc tangent is taken
- *   only at the crossings themselves, where the criterion interpolates the
- *   phase, and at the first sample.
- */
 class NominalStabilityChecker
 {
 public:
-    /**
-     * @brief Builds the checker and samples the nominal loop.
-     * @param tolerances the resolution of the sampling, from the settings.
-     *        They trade time against how reliably a verdict is reached; the
-     *        criterion itself is not among them.
-     */
     NominalStabilityChecker(LtiSystem * nominalPlant, std::vector<double> * omega,
                             Settings::Stability tolerances = Settings::Stability());
 
-    /// Nyquist-on-Nichols verdict for a POINT controller (every parameter
-    /// at its nominal value). Returns false when the criterion cannot be
-    /// decided (a crossing budget exhausted or the loop not proper), which
-    /// conservatively discards the candidate.
     bool isNominallyStable(LtiSystem * pointController);
 
-    /// The same verdict for a point given as its values, which is how the
-    /// searches hold their candidates before one becomes a result.
     bool isNominallyStable(const PointController & point);
 
-    /// One signed crossing of a -180 degree ray, with the loop magnitude at
-    /// the crossing for a gain of one.
     struct Crossing {
         double magnitudeAtUnitGain;
         double sign;
     };
 
-    /// What the criterion reads of a loop that does not depend on the
-    /// gain: see the class description.
     struct Profile {
-        /// False when the refinement budget ran out: the verdict is then
-        /// "not decided", which the searches treat as unstable.
         bool decided = false;
-        /// |L| of the last sample at unit gain; the loop is not proper
-        /// when the gain brings it to 0 dB or above.
         double lastMagnitudeAtUnitGain = 0.0;
-        /// The curve starts on a ray - the loop at w = 0 is real and
-        /// negative (an odd number of real unstable poles, a negative
-        /// static gain), or the first sample sits on one (two or more
-        /// integrators): a half crossing towards the departure side when
-        /// its magnitude exceeds 0 dB.
         bool startsOnRay = false;
         double startMagnitudeAtUnitGain = 0.0;
         double startDirection = 0.0;
         std::vector<Crossing> crossings;
     };
 
-    /// The profile of a controller shape: its zeros and poles, and the sign
-    /// of its gain (a negative gain turns the phase by 180 degrees). The
-    /// magnitude of the gain plays no part. Cached.
     const Profile & profileOf(const PointController & shape);
 
-    /// The verdict for a profile and a gain magnitude.
-    /// The verdict for one gain from a profile: the signed crossings of the
-    /// rays at magnitudes the gain lifts above 0 dB must add up to P/2, half
-    /// the number of right half-plane poles of the nominal plant (Cohen,
-    /// Chait and Yaniv 1994: the count on positive frequencies is half of
-    /// the whole contour's). For the usual plant, P = 0, that is no net
-    /// crossing.
     bool isStable(const Profile & profile, double gainMagnitude) const;
 
-    /// The P the verdicts use: right half-plane poles of the nominal plant.
     int rightHalfPlanePoles() const { return m_rhpPoles; }
 
-    /**
-     * @brief Whether the whole box, as a family of nominal loops, is
-     * closed-loop unstable: one member is, and no member can pass through
-     * the critical point.
-     *
-     * The crossing count of a member changes only where its loop passes
-     * through (-180 degrees, 0 dB), so it is one and the same over a box
-     * whose Nichols enclosure excludes the critical point at every
-     * frequency (the boundary crossing principle of Tharewal 2005,
-     * sec. 3.3.5, which the searches otherwise apply at the design
-     * frequencies only). The enclosure is the natural interval extension of
-     * the box over the checker's base frequency grid, one sample in eight
-     * (some forty per decade; the box's own width covers the gaps). A box
-     * whose corner verdict cannot be decided is never called unstable.
-     */
     bool isBoxUnstable(LtiSystem * box, NaturalIntervalExtension & extension);
 
-    /// How many verdicts were asked and how many profiles had to be
-    /// computed for them, for the benchmarks.
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t profilesComputed = 0;
@@ -197,64 +107,33 @@ private:
 
     Profile computeProfile(const PointController & shape);
 
-    /// The loop at one frequency for the shape at unit gain magnitude: the
-    /// same operations, in the same order, as the array pass over the grid.
     std::complex<double> loopAt(const PointController & shape, double sign, double w);
 
     std::complex<double> plantAt(double w);
 
-    /// Whether the phase turns by more than the unwrapping tolerance between
-    /// two consecutive samples.
     bool phaseStepExceeded(std::size_t i) const;
 
-    /**
-     * @brief How many plant poles on the imaginary axis lie inside (lo, hi).
-     *
-     * The criterion counts the crossings of the rays along the finite curve,
-     * which is the whole story only while the loop is continuous. A plant
-     * pole on the axis breaks that: at it the loop passes through infinity
-     * and its phase falls by 180 degrees per pole - the indentation of the
-     * Nyquist contour - and a sampled curve unwrapped between neighbours
-     * takes the short way round instead, +180. Half the time that changes
-     * the crossing count and the verdict comes out STABLE for a loop that
-     * is not (a maglev plant k/(s^2+a) gets controllers approved with two
-     * closed-loop poles in the right half-plane).
-     * The callers test m_axisPoles.empty() first, once per profile, so a
-     * plant without such poles pays nothing.
-     */
     std::size_t axisPolesBetween(double lo, double hi) const;
 
     LtiSystem * m_plant;
 
-    /// Grid resolution, from the settings.
     Settings::Stability m_tolerances;
 
-    /// The cosine of the unwrapping tolerance, what the phase-step test
-    /// compares against.
     double m_cosMaxPhaseStep = 0.0;
 
-    /// Frequencies of the nominal plant's poles on the imaginary axis,
-    /// ascending; empty for the usual plant. From the plant's own poles, once.
     std::vector<double> m_axisPoles;
 
-    /// Poles of the nominal plant in the open right half-plane: the P of
-    /// Nyquist's N = -P. Zero for the usual plant.
     int m_rhpPoles = 0;
 
-    /// The nominal plant at w = 0, sampled once: the loop's own value there
-    /// is this times the controller's static gain, and no profile needs to
-    /// evaluate the plant again to know whether it starts on a ray. Not
-    /// finite for a plant with integrators, which is the usual case.
     std::complex<double> m_plantAtZero;
+    bool m_asymptoteKnown = false;
+    int m_plantOrderAtZero = 0;
+    double m_plantCoefficientAtZero = 1.0;
 
-    /// Cached nominal plant samples over the base grid.
     std::vector<double> m_frequencies;
     std::vector<double> m_plantRe;
     std::vector<double> m_plantIm;
 
-    /// The working curve of one profile, as arrays: frequency, real and
-    /// imaginary part of the loop at unit gain. Kept between calls so a
-    /// profile does not allocate.
     std::vector<double> m_w;
     std::vector<double> m_re;
     std::vector<double> m_im;

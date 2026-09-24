@@ -22,6 +22,8 @@
 #include <optional>
 #include <string>
 
+#include "src/core/loopshaping/common/specification_checker.h"
+
 namespace qftbx {
 
 /**
@@ -92,6 +94,9 @@ struct Tags {
     const char * unionBuckets;
     const char * loopShapingPointCountAttribute;
     const char * boundaryColumns;
+    const char * sweep;
+    const char * sweepParameter;
+    const char * doiAttribute;
 };
 
 /// The version this build writes. A file that says anything else is refused:
@@ -113,7 +118,30 @@ inline const Tags kV4 = {
     "union", "union-buckets",
     "point-count",
     "columns",
+    "sweep", "parameter",
+    "doi",
 };
+
+/// Why the verifier left the family's closed-loop stability unchecked, as the
+/// file says it.
+inline const char * familyNotCheckedName(FamilyStability::NotChecked why)
+{
+    switch (why) {
+    case FamilyStability::NotChecked::No:            return "";
+    case FamilyStability::NotChecked::NoSweepRecord: return "no-sweep-record";
+    case FamilyStability::NotChecked::Delay:         return "delay";
+    case FamilyStability::NotChecked::NotRational:   return "not-rational";
+    }
+    return "";
+}
+
+inline std::optional<FamilyStability::NotChecked> familyNotCheckedFromName(const std::string & name)
+{
+    if (name == "no-sweep-record") return FamilyStability::NotChecked::NoSweepRecord;
+    if (name == "delay")           return FamilyStability::NotChecked::Delay;
+    if (name == "not-rational")    return FamilyStability::NotChecked::NotRational;
+    return std::nullopt;
+}
 
 /// The name the file gives each algorithm. The enum is positional and a
 /// name is not: a project written today still says which algorithm produced

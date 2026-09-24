@@ -19,6 +19,8 @@
 #include "src/core/common/text_tokens.h"
 #include "src/core/system/time_constant_gain.h"
 
+#include "src/core/math/polynomial.h"
+
 #include "src/core/common/exception.h"
 
 namespace qftbx {
@@ -149,6 +151,26 @@ std::optional<std::vector<std::complex<double>>> TimeConstantGain::polesAt(const
         poles.emplace_back(-constant, 0.0);
     }
     return poles;
+}
+
+std::optional<LtiSystem::Polynomials> TimeConstantGain::polynomialsAt(const std::vector<double> & numerator,
+                                                                      const std::vector<double> & denominator,
+                                                                      double gain)
+{
+    Polynomials polynomials{{gain}, {1.0}};
+    for (const double constant : numerator) {
+        if (constant == 0.0) {
+            return std::nullopt;
+        }
+        polynomials.numerator = math::polynomialProduct(polynomials.numerator, {1.0 / constant, 1.0});
+    }
+    for (const double constant : denominator) {
+        if (constant == 0.0) {
+            return std::nullopt;
+        }
+        polynomials.denominator = math::polynomialProduct(polynomials.denominator, {1.0 / constant, 1.0});
+    }
+    return polynomials;
 }
 
 }
