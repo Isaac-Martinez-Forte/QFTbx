@@ -86,6 +86,8 @@ struct Settings {
 
         bool conservativeBoundaryColumns = true;
 
+        bool familyStabilityGate = true;
+
         std::int32_t localSearchBudget = 400;
 
         double gainTolerance = 1.01;

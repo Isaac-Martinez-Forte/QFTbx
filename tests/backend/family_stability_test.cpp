@@ -9,7 +9,10 @@
  * benchmark, where the minimum-gain answer is the floor of the gain box,
  * shows that a pole on the imaginary axis is not stability; a project
  * without a sweep record, a loop with a delay and a plant that is not
- * rational are reported as not checked and never approved as stable.
+ * rational are reported as not checked and never approved as stable. And
+ * the gate itself: on the magnetic levitation problem the search returns a
+ * design the family does not accept until it is given the sweep, and then
+ * only designs every plant is stable under.
  */
 
 #include <gtest/gtest.h>
@@ -28,6 +31,7 @@
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/zero_pole_gain.h"
+#include "src/core/loopshaping/mc3/algorithm_mc3.h"
 
 using namespace qftbx;
 
@@ -209,4 +213,51 @@ TEST(FamilyStability, APoleOnTheAxisIsNotStability)
                                                                       specifications, &sweep);
     EXPECT_EQ(stabilising.family.unstableMembers, 0u) << "a lead below the resonance does stabilise the family";
     EXPECT_LT(stabilising.family.worstRealPart, -1e-3);
+}
+
+TEST(FamilyStabilityGate, TheSearchNoLongerReturnsTheUnstableMaglevDesign)
+{
+    const std::string file = example("maglev-lower.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    ASSERT_NE(project.boundaries(), nullptr);
+
+    const ParameterGrids sweep = gridsOf(*project.plant(), 11);
+    const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+
+    const auto designWith = [&](bool gated) {
+        AlgorithmMc3 search;
+        search.setProblem(project.plant(), project.controllerStructure(),
+                          project.omega()->values(), project.boundaries(), 0.5);
+        if (gated) {
+            search.setPlantFamily(sweep);
+        }
+        std::unique_ptr<LtiSystem> designed;
+        if (search.solve()) {
+            designed = search.controllerStructure();
+        }
+        return designed;
+    };
+
+    const auto familyOf = [&](LtiSystem * designed) {
+        return checkAgainstSpecifications(*designed, *project.plant(), *project.omega()->values(),
+                                          project.templates(), specifications, &sweep).family;
+    };
+
+    std::unique_ptr<LtiSystem> ungated = designWith(false);
+    ASSERT_NE(ungated, nullptr);
+    const FamilyStability before = familyOf(ungated.get());
+    EXPECT_GT(before.unstableMembers, 0u)
+        << "without the gate the search returns a design the bounds accept and the family does not";
+
+    std::unique_ptr<LtiSystem> gated = designWith(true);
+    if (gated != nullptr) {
+        EXPECT_EQ(familyOf(gated.get()).unstableMembers, 0u)
+            << "what the gate lets through leaves every plant of the sweep stable";
+        EXPECT_GE(gated->gain().range().min, ungated->gain().range().min)
+            << "a design that stabilises the family costs at least as much gain";
+    }
 }

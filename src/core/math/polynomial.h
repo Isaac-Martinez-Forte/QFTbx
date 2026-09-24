@@ -8,79 +8,59 @@
 
 /**
  * @file
- * @brief Roots of a real polynomial, and the polynomial behind a function that
- * can only be evaluated.
+ * @brief Roots of a real polynomial, the polynomial behind a function that can
+ * only be evaluated, and whether a polynomial is Hurwitz.
  *
  * What the stability criterion needs from a plant is where its poles are, and
  * a plant is given in one of four forms; only two of them name their poles.
  * The polynomial form names its denominator coefficients, and a free-form
  * plant names nothing: its denominator is an expression in s. Both reduce to
- * this file. It is used once per plant, never per node, so the choice here is
- * robustness over speed.
+ * this file. Coefficients are always highest degree first.
+ *
+ * polynomialRoots drops leading zeros, takes the roots at the origin out
+ * exactly and refines the rest with Aberth's iteration from a circle that
+ * bounds them all: the repulsion term keeps two roots apart, so there is no
+ * deflation and the last root is as accurate as the first. An imaginary part
+ * below the rounding of the real one is set to zero.
+ *
+ * polynomialCoefficients recovers the coefficients of a polynomial known only
+ * through its values: the discrete Fourier transform of samples on a circle
+ * is the coefficient vector, exactly and perfectly conditioned. The circle is
+ * walked at unit radius and at four times the largest root: a polynomial gives
+ * the same coefficients on both, an entire function (a delay, a sine) does not,
+ * and then nothing is returned. The wider circle's coefficients are kept, and
+ * one below the rounding of the transform is zero, not the noise it came back
+ * as, since that noise would be a root at the origin solved off the axis.
+ *
+ * isHurwitz decides whether every root lies strictly in the left half-plane
+ * without finding them, by the Routh table: every entry of the first column
+ * must have the sign of the leading coefficient, and a zero there, a root on
+ * the axis, is not Hurwitz. It costs a division per entry, two orders of
+ * magnitude less than the roots, which is what makes it affordable for every
+ * plant of a family and every candidate a search is about to return.
+ *
+ * polynomialProduct and polynomialSum take an empty operand as 1 and 0.
+ * rightHalfPlaneCount and imaginaryAxisFrequencies count a root within 1e-7
+ * of the axis, relative to the largest, as ON it, which is what the roots are
+ * computed to; the second leaves the origin out, where a loop does not fall
+ * by 180 degrees.
  */
 namespace qftbx {
 namespace math {
 
-/**
- * @brief The roots of a real polynomial given by its coefficients, highest
- * degree first.
- *
- * Leading zeros are dropped and a constant has no roots. Roots at the origin
- * are taken out exactly before the iteration, which is Aberth's: every root is
- * refined at once from starting points on a circle that bounds them all, and
- * the mutual repulsion term keeps two roots from converging to the same place,
- * so no deflation is needed and the accuracy of the last root is that of the
- * first. Complex roots come in conjugate pairs up to rounding; an imaginary
- * part below the rounding of the real one is set to zero.
- */
 std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & coefficients);
 
-/**
- * @brief The coefficients, highest degree first, of a polynomial that is only
- * known through its values, or nothing when the function is not one.
- *
- * The function is sampled on a circle, and the discrete Fourier transform of
- * the samples IS the coefficient vector when the function is a polynomial of
- * degree below the number of samples: the sampling is exact and perfectly
- * conditioned, which a Vandermonde fit on the imaginary axis is not. The
- * degree is read off the last coefficient that is not rounding noise. A
- * function that is not a polynomial of degree up to maxDegree (a delay, a
- * rational function that did not cancel, a transcendental) shows up as power
- * beyond maxDegree or as imaginary parts in what must be real coefficients,
- * and then nothing is returned rather than a polynomial nobody wrote.
- *
- * The circle is walked twice, at unit radius and four times farther than the
- * largest root found: a polynomial gives the same coefficients on both, and
- * an entire function - a delay, a sine, which the first circle alone would
- * pass as its truncated Taylor series - does not. The wider circle's
- * coefficients are the ones returned, since that is where a polynomial with
- * roots far from one keeps its precision. A coefficient below the rounding
- * of the transform - the same threshold the degree is read at - is zero and
- * not the noise it came back as: the noise of a coefficient recovered on a
- * circle of radius r is that of the largest term divided by r^k, and left in
- * place it is a root at the origin that solves a few parts in ten million
- * off it, in the right half-plane as often as not.
- */
 std::optional<std::vector<double>> polynomialCoefficients(
         const std::function<std::complex<double>(std::complex<double>)> & value,
         int maxDegree = 24);
 
-/// The product and the sum of two real polynomials, highest degree first. An
-/// empty operand is the constant 1 for the product and 0 for the sum; the sum
-/// keeps the length of the longer one.
+bool isHurwitz(const std::vector<double> & coefficients);
+
 std::vector<double> polynomialProduct(const std::vector<double> & a, const std::vector<double> & b);
 std::vector<double> polynomialSum(const std::vector<double> & a, const std::vector<double> & b);
 
-/// How many roots lie strictly in the right half-plane. A root within 1e-7 of
-/// the imaginary axis, relative to the largest root, counts as ON the axis:
-/// that is beyond what the roots are computed to, and a pole that close to
-/// the axis is undecidable numerically either way.
 int rightHalfPlaneCount(const std::vector<std::complex<double>> & roots);
 
-/// The positive frequencies of the roots on the imaginary axis (the same
-/// tolerance), ascending, the origin excluded - a root negligible beside the
-/// largest counts as the origin: where a loop passes through infinity with a
-/// 180 degree fall, which poles at the origin do not.
 std::vector<double> imaginaryAxisFrequencies(const std::vector<std::complex<double>> & roots);
 
 }

@@ -294,6 +294,10 @@
 # Range: 0 or 1.
 # conservative-boundary-columns = 1
 
+# Whether a search closes the loop with every plant of the sweep before it
+# returns a design (1, the default), or returns what the boundaries accept (0).
+family-stability-gate = 1
+
 # Templates: what to do when the contour walk does not close at a design
 # frequency with the epsilon given. 1: the WHOLE template stands in for its
 # contour there, which is always safe (the boundaries read every point) and

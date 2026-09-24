@@ -57,6 +57,7 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
     search.setCancellation(cancellation);
     search.setSettings(m_settings);
+    search.setPlantFamily(data.sweepGrids());
 
     const bool succeeded = search.run(data.plant(), data.controller(),
                                       data.frequencies(), data.boundaries(),

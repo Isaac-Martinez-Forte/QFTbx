@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <limits>
+#include <random>
 #include <vector>
 
 #include "src/core/math/polynomial.h"
@@ -182,4 +184,36 @@ TEST(Polynomial, ANonMonicPolynomialIsDividedThroughByItsLeadingCoefficient)
     for (const std::complex<double> & root : cubic) {
         EXPECT_LT(root.real(), -3.0) << "the closed loop of the FOPDT example is stable";
     }
+}
+
+TEST(Polynomial, HurwitzAgreesWithTheRootsAndRejectsTheAxis)
+{
+    std::mt19937 generator(7);
+    std::uniform_real_distribution<double> coefficient(-3.0, 3.0);
+    int hurwitz = 0;
+    for (int degree = 1; degree <= 7; ++degree) {
+        for (int trial = 0; trial < 400; ++trial) {
+            std::vector<double> poly(std::size_t(degree) + 1);
+            for (double & c : poly) c = coefficient(generator);
+            if (poly.front() == 0.0) continue;
+            const std::vector<std::complex<double>> roots = qftbx::math::polynomialRoots(poly);
+            double worst = -std::numeric_limits<double>::infinity();
+            double largest = 0.0;
+            for (const std::complex<double> & r : roots) {
+                worst = std::max(worst, r.real());
+                largest = std::max(largest, std::abs(r));
+            }
+            const bool byRoots = worst < -1e-9 * std::max(largest, 1.0);
+            EXPECT_EQ(qftbx::math::isHurwitz(poly), byRoots)
+                << "degree " << degree << " worst real part " << worst;
+            hurwitz += byRoots;
+        }
+    }
+    EXPECT_GT(hurwitz, 50) << "the sample must exercise both verdicts";
+
+    EXPECT_FALSE(qftbx::math::isHurwitz({1.0, 0.0, 1.0})) << "s^2 + 1: a pair on the axis";
+    EXPECT_FALSE(qftbx::math::isHurwitz({1.0, 0.0})) << "a pole at the origin";
+    EXPECT_TRUE(qftbx::math::isHurwitz({1.0, 2.0, 1.0}));
+    EXPECT_TRUE(qftbx::math::isHurwitz({-1.0, -2.0, -1.0})) << "the sign of the leading coefficient does not matter";
+    EXPECT_FALSE(qftbx::math::isHurwitz({1.0, 1.0, 1.0, 100.0})) << "the Routh table catches what the signs do not";
 }

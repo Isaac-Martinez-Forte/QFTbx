@@ -54,6 +54,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         nt->setProblem(plant, controller, omega, boundaries, epsilon);
         nt->setCancellation(m_cancellation);
         nt->setSettings(m_settings);
+        nt->setPlantFamily(m_sweep);
         timer = std::chrono::steady_clock::now();
         solved = nt->solve();
         if (solved) {
@@ -64,6 +65,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         nk->setProblem(plant, controller, omega, boundaries, epsilon, initialisation);
         nk->setCancellation(m_cancellation);
         nk->setSettings(m_settings);
+        nk->setPlantFamily(m_sweep);
         timer = std::chrono::steady_clock::now();
         solved = nk->solve();
         if (solved) {
@@ -84,6 +86,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc1->setProblem(plant, controller, omega, boundaries, epsilon);
         mc1->setCancellation(m_cancellation);
         mc1->setSettings(m_settings);
+        mc1->setPlantFamily(m_sweep);
         timer = std::chrono::steady_clock::now();
         solved = mc1->solve();
         if (solved) {
@@ -94,6 +97,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc_thesis->setProblem(plant, controller, omega, boundaries, epsilon);
         mc_thesis->setCancellation(m_cancellation);
         mc_thesis->setSettings(m_settings);
+        mc_thesis->setPlantFamily(m_sweep);
         timer = std::chrono::steady_clock::now();
         solved = mc_thesis->solve();
         if (solved) {
@@ -104,6 +108,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc2->setProblem(plant, controller, omega, boundaries, epsilon);
         mc2->setCancellation(m_cancellation);
         mc2->setSettings(m_settings);
+        mc2->setPlantFamily(m_sweep);
         timer = std::chrono::steady_clock::now();
         solved = mc2->solve();
         if (solved) {
@@ -114,6 +119,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc3->setProblem(plant, controller, omega, boundaries, epsilon);
         mc3->setCancellation(m_cancellation);
         mc3->setSettings(m_settings);
+        mc3->setPlantFamily(m_sweep);
         timer = std::chrono::steady_clock::now();
         solved = mc3->solve();
         if (solved) {
