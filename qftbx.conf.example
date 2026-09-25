@@ -308,8 +308,12 @@ family-stability-gate = 1
 # from the specifications at the loop's exact phase as well, instead of from
 # the column of a grid node, and the search ends as a branch and bound ends:
 # a certified point becomes the best design so far and prunes the tree, and
-# the search goes on until nothing is left. Both need a template at every
-# design frequency.
+# the search goes on until nothing is left. A box all of whose controllers
+# destabilise a plant of the sweep is discarded with a proof (the Routh
+# table in interval arithmetic), and a box the columns call infeasible only
+# when the specifications, evaluated over the box's own phase span, prove
+# it so: nothing is discarded without a proof. Both need a template at
+# every design frequency.
 # Range: columns, exact-exits or exact.
 # point-reading = columns
 

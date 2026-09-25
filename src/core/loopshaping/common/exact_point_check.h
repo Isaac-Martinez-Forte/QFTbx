@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -91,6 +92,25 @@
  * quadratics. admissibleGainsDb is the same set over the whole cloud, for
  * the tests and for reference.
  *
+ * sectorVerdict is the same geometry asked of a whole box of controllers,
+ * given the enclosure of its loop at one frequency, a phase interval and a
+ * magnitude interval, that is an annular sector of the complex plane. Each
+ * plant's violating set is a disc, and the quadratic F(g, c) of a plant is
+ * increasing in the cosine term c, so its largest value over the phase
+ * interval is at the largest cosine, which is at an end of the interval or
+ * at the plant's own direction when that lies inside; F below zero there
+ * for every magnitude of the sector puts the whole sector inside that
+ * plant's disc, and the box is infeasible with a proof. The magnitudes that
+ * F at the largest cosine forbids are forbidden at every phase of the
+ * interval, so their union over the plants, where it covers a strip from
+ * zero upwards or up to infinity, is a strip the search may cut off the box
+ * with a proof; the pairs of the tracking spread enter the same way, the
+ * farther plant among the vertices of the hull and the nearer among the
+ * working set, a subset of the discs, which proves less but never wrongly. These are exact with
+ * respect to the value set, and conservative with respect to the box only
+ * through its enclosure. The bound is not lowered by the tolerance here:
+ * what is discarded is proven to violate the specification itself.
+ *
  * A project whose templates do not cover every design frequency has no
  * reference: the check is then unusable and the caller keeps to the
  * columns, as the verifier reports such a design unverified. checkOf gives
@@ -126,6 +146,14 @@ public:
     RangeUnion admissibleGainsDb(const std::vector<double> & zeros, const std::vector<double> & poles,
                                  Range gainRange) const;
 
+    struct SectorVerdict {
+        bool provablyInfeasible = false;
+        double forbiddenBelowDb = -std::numeric_limits<double>::infinity();
+        double forbiddenAboveDb = std::numeric_limits<double>::infinity();
+    };
+
+    SectorVerdict sectorVerdict(std::size_t frequency, Range phaseDegrees, Range magnitudeDb);
+
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t rejections = 0;
@@ -134,6 +162,7 @@ public:
         std::size_t exchangeRounds = 0;
         std::size_t ladderSteps = 0;
         std::size_t largestWorkingSet = 0;
+        std::size_t sectorVerdicts = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 
@@ -154,6 +183,10 @@ private:
     std::unique_ptr<LtiSystem> m_controller;
     std::optional<SpecificationReference> m_reference;
     std::vector<std::vector<std::size_t>> m_working;
+    std::vector<std::vector<std::size_t>> m_hull;
+    std::vector<std::size_t> m_byOmega;
+    std::vector<double> m_forbiddenLower;
+    std::vector<double> m_forbiddenUpper;
     std::size_t m_firstToAsk = 0;
     Statistics m_statistics;
 };

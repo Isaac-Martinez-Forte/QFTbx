@@ -145,6 +145,11 @@ QJsonObject toJson(const Record & r)
         certificate["epsilon_resolved"] = static_cast<qint64>(c.epsilonResolved);
         certificate["unproven_discards"] = static_cast<qint64>(c.unprovenDiscards);
         certificate["grid_backed_prunes"] = static_cast<qint64>(c.gridBackedPrunes);
+        certificate["family_prunes"] = static_cast<qint64>(c.familyPrunes);
+        certificate["proven_infeasible"] = static_cast<qint64>(c.provenInfeasible);
+        certificate["columns_overruled"] = static_cast<qint64>(c.columnsOverruled);
+        certificate["certified_cuts"] = static_cast<qint64>(c.certifiedCuts);
+        certificate["sector_verdicts"] = static_cast<qint64>(c.sectorVerdicts);
         certificate["certifications"] = static_cast<qint64>(c.certifications);
         certificate["refused_by_specifications"] = static_cast<qint64>(c.refusedBySpecifications);
         certificate["refused_by_nominal_stability"] = static_cast<qint64>(c.refusedByNominalStability);
@@ -251,6 +256,11 @@ Record recordFromJson(const QJsonObject & o)
         c.epsilonResolved = static_cast<std::size_t>(certificate["epsilon_resolved"].toInteger());
         c.unprovenDiscards = static_cast<std::size_t>(certificate["unproven_discards"].toInteger());
         c.gridBackedPrunes = static_cast<std::size_t>(certificate["grid_backed_prunes"].toInteger());
+        c.familyPrunes = static_cast<std::size_t>(certificate["family_prunes"].toInteger());
+        c.provenInfeasible = static_cast<std::size_t>(certificate["proven_infeasible"].toInteger());
+        c.columnsOverruled = static_cast<std::size_t>(certificate["columns_overruled"].toInteger());
+        c.certifiedCuts = static_cast<std::size_t>(certificate["certified_cuts"].toInteger());
+        c.sectorVerdicts = static_cast<std::size_t>(certificate["sector_verdicts"].toInteger());
         c.certifications = static_cast<std::size_t>(certificate["certifications"].toInteger());
         c.refusedBySpecifications = static_cast<std::size_t>(certificate["refused_by_specifications"].toInteger());
         c.refusedByNominalStability = static_cast<std::size_t>(certificate["refused_by_nominal_stability"].toInteger());

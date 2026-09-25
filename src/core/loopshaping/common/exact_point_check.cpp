@@ -22,6 +22,7 @@ namespace {
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
 constexpr double kLn10 = 2.302585092994045684;
+constexpr double kPi = 3.14159265358979323846;
 constexpr std::size_t kMaxRounds = 64;
 constexpr double kLadder[] = {0.0, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7};
 
@@ -53,16 +54,223 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
     m_controller = controller->clone();
     m_reference.emplace(plant, omega, templates, specifications);
 
-    for (const FrequencyReference & at : m_reference->frequencies()) {
+    m_byOmega.assign(omega.size(), std::numeric_limits<std::size_t>::max());
+    for (std::size_t f = 0; f < m_reference->frequencies().size(); ++f) {
+        const FrequencyReference & at = m_reference->frequencies()[f];
+        m_byOmega[at.index] = f;
         std::vector<std::size_t> seed = math::convexHullVertices(at.nominalOverValueSet);
         if (seed.empty()) {
             seed.resize(at.nominalOverValueSet.size());
             std::iota(seed.begin(), seed.end(), std::size_t(0));
         }
         std::sort(seed.begin(), seed.end());
+        m_hull.push_back(seed);
         m_statistics.largestWorkingSet = std::max(m_statistics.largestWorkingSet, seed.size());
         m_working.push_back(std::move(seed));
     }
+}
+
+namespace {
+
+double largestCosineOver(double theta, double from, double to)
+{
+    const double twoPi = 2.0 * kPi;
+    if (to - from >= twoPi) {
+        return 1.0;
+    }
+    double shifted = std::fmod(theta - from, twoPi);
+    if (shifted < 0.0) {
+        shifted += twoPi;
+    }
+    if (shifted <= to - from) {
+        return 1.0;
+    }
+    return std::max(std::cos(from - theta), std::cos(to - theta));
+}
+
+double largestOver(double a, double b, double c, double g1, double g2)
+{
+    double largest = std::max(a * g1 * g1 + b * g1 + c, a * g2 * g2 + b * g2 + c);
+    if (a < 0.0) {
+        const double vertex = -b / (2.0 * a);
+        if (vertex > g1 && vertex < g2) {
+            largest = std::max(largest, a * vertex * vertex + b * vertex + c);
+        }
+    }
+    return largest;
+}
+
+void forbiddenOf(double a, double b, double c, std::vector<double> & lower, std::vector<double> & upper)
+{
+    if (a == 0.0) {
+        if (b == 0.0) {
+            if (c < 0.0) {
+                lower.push_back(0.0);
+                upper.push_back(kInfinity);
+            }
+            return;
+        }
+        const double root = -c / b;
+        if (b > 0.0) {
+            if (root > 0.0) {
+                lower.push_back(0.0);
+                upper.push_back(root);
+            }
+        } else {
+            lower.push_back(std::max(0.0, root));
+            upper.push_back(kInfinity);
+        }
+        return;
+    }
+
+    const double discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) {
+        if (a < 0.0) {
+            lower.push_back(0.0);
+            upper.push_back(kInfinity);
+        }
+        return;
+    }
+    const double s = std::sqrt(discriminant);
+    const double qv = -0.5 * (b + (b >= 0.0 ? s : -s));
+    double r1 = 0.0, r2 = 0.0;
+    if (qv != 0.0) {
+        r1 = qv / a;
+        r2 = c / qv;
+    }
+    if (r1 > r2) {
+        std::swap(r1, r2);
+    }
+    if (a > 0.0) {
+        if (r2 > 0.0) {
+            lower.push_back(std::max(0.0, r1));
+            upper.push_back(r2);
+        }
+    } else {
+        if (r1 > 0.0) {
+            lower.push_back(0.0);
+            upper.push_back(r1);
+        }
+        lower.push_back(std::max(0.0, r2));
+        upper.push_back(kInfinity);
+    }
+}
+
+}
+
+ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t frequency, Range phaseDegrees,
+                                                              Range magnitudeDb)
+{
+    requireUsable();
+
+    SectorVerdict verdict;
+    if (frequency >= m_byOmega.size() || m_byOmega[frequency] == std::numeric_limits<std::size_t>::max()) {
+        return verdict;
+    }
+    ++m_statistics.sectorVerdicts;
+
+    const std::size_t f = m_byOmega[frequency];
+    const FrequencyReference & at = m_reference->frequencies()[f];
+    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
+    const double from = phaseDegrees.min * kPi / 180.0;
+    const double to = phaseDegrees.max * kPi / 180.0;
+    const double g1 = std::pow(10.0, magnitudeDb.min / 20.0);
+    const double g2 = std::pow(10.0, magnitudeDb.max / 20.0);
+
+    std::vector<double> & lower = m_forbiddenLower;
+    std::vector<double> & upper = m_forbiddenUpper;
+    lower.clear();
+    upper.clear();
+
+    for (const FrequencyReference::Bound & bound : at.bounds) {
+        if (bound.type == SpecificationType::TrackingLower) {
+            const double dm1 = std::expm1(bound.boundDb * kLn10 / 10.0);
+            const double d2 = dm1 + 1.0;
+            for (const std::size_t n : m_hull[f]) {
+                for (const std::size_t j : m_working[f]) {
+                    const std::complex<double> w = d2 * q[j] - q[n];
+                    const double rho = std::abs(w) * largestCosineOver(std::arg(w), from, to);
+                    const double a = dm1, b = 2.0 * rho, c = d2 * std::norm(q[j]) - std::norm(q[n]);
+                    if (largestOver(a, b, c, g1, g2) < 0.0) {
+                        verdict.provablyInfeasible = true;
+                    }
+                    forbiddenOf(a, b, c, lower, upper);
+                }
+            }
+            continue;
+        }
+
+        const double W = std::pow(10.0, bound.boundDb / 20.0);
+        for (std::size_t n = 0; n < q.size(); ++n) {
+            double s = 0.0, t = 0.0;
+            switch (bound.type) {
+            case SpecificationType::Stability:
+            case SpecificationType::SensorNoise:
+                s = 1.0 / W;
+                break;
+            case SpecificationType::OutputDisturbance:
+                t = std::abs(q[n]) / W;
+                break;
+            case SpecificationType::InputDisturbance:
+                t = std::abs(at.nominalPlant) / W;
+                break;
+            case SpecificationType::ControlEffort: {
+                const double plant = std::abs((*at.valueSet)[n]);
+                if (!(plant > 0.0)) {
+                    continue;
+                }
+                s = 1.0 / (W * plant);
+                break;
+            }
+            case SpecificationType::TrackingLower:
+            case SpecificationType::TrackingUpper:
+                continue;
+            }
+            const double cmax = std::abs(q[n]) * largestCosineOver(std::arg(q[n]), from, to);
+            const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = std::norm(q[n]) - t * t;
+            if (largestOver(a, b, c, g1, g2) < 0.0) {
+                verdict.provablyInfeasible = true;
+            }
+            forbiddenOf(a, b, c, lower, upper);
+        }
+    }
+
+    if (!lower.empty()) {
+        double covered = 0.0;
+        bool grew = true;
+        while (grew) {
+            grew = false;
+            for (std::size_t k = 0; k < lower.size(); ++k) {
+                if (lower[k] <= covered && upper[k] > covered) {
+                    covered = upper[k];
+                    grew = true;
+                }
+            }
+        }
+        if (covered > 0.0) {
+            verdict.forbiddenBelowDb = covered < kInfinity ? 20.0 * std::log10(covered) : kInfinity;
+        }
+        double reached = kInfinity;
+        grew = true;
+        while (grew) {
+            grew = false;
+            for (std::size_t k = 0; k < lower.size(); ++k) {
+                if (upper[k] >= reached && lower[k] < reached) {
+                    reached = lower[k];
+                    grew = true;
+                }
+            }
+        }
+        if (reached < kInfinity) {
+            verdict.forbiddenAboveDb = reached > 0.0 ? 20.0 * std::log10(reached) : -kInfinity;
+        }
+    }
+
+    if (verdict.forbiddenBelowDb >= magnitudeDb.max || verdict.forbiddenAboveDb <= magnitudeDb.min) {
+        verdict.provablyInfeasible = true;
+    }
+
+    return verdict;
 }
 
 void ExactPointCheck::requireUsable() const

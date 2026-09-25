@@ -118,8 +118,23 @@
  * whose gain cannot beat it, and the search goes on until the live list is
  * empty; the boxes resolved at the epsilon size are counted, with the
  * smallest gain they could hold, since a point at their vertices is not a
- * proof about their inside. Under the default reading the search is what
- * it was, bit for bit, and the certificate is bookkeeping alone.
+ * proof about their inside. And every box taken from the list is first
+ * asked of the family gate whether all its controllers destabilise the
+ * plant that refused last (the Routh table in interval arithmetic,
+ * FamilyStabilityChecker::isBoxUnstable): where the gain the specifications
+ * need lies beyond the family's stability limit, the search would otherwise
+ * bisect such boxes to its resolution and try every vertex, which is what
+ * made the DC motor cost minutes; a box so proven is discarded whole, and
+ * the discard is a proof. With the tree that small, the columns can be
+ * checked too: a box the columns call infeasible is discarded only when the
+ * exact sector verdict (ExactPointCheck::sectorVerdict) proves the whole
+ * enclosure inside some plant's disc, and stays ambiguous otherwise; and the
+ * magnitude cuts take the strips the same verdict certifies forbidden over
+ * the box's own phase span instead of the extremes of the columns, which on
+ * the toolbox example cut off a valid design. The phase cuts, which never
+ * fire, are left out of the exact reading. Under the default reading the
+ * search is what it was, bit for bit, and the certificate is bookkeeping
+ * alone.
  */
 namespace qftbx {
 
@@ -335,6 +350,7 @@ private:
     std::unique_ptr<ExactPointCheck> exact;
     std::unique_ptr<Certifier> certifier;
     bool exactGains = false;
+    bool lastDiscardProven = false;
     Range initialGainRange;
     const qftbx::CloudSet * m_templates = nullptr;
     const qftbx::SpecificationSet * m_specifications = nullptr;

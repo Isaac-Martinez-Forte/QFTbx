@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 #include "src/core/loopshaping/common/point_controller.h"
 #include "src/core/loopshaping/common/swept_family.h"
@@ -43,6 +44,26 @@
  * record of its sweep leaves the checker unusable, and the caller then goes
  * on as it did before: the checker never approves what it cannot decide.
  *
+ * isBoxUnstable asks the opposite question of a whole box of controllers:
+ * whether every one of them destabilises some plant of the family. The
+ * box's zeros and poles become interval coefficients of the controller's
+ * polynomials, the plants that refused most recently (four are kept, the
+ * first plant that refuses a point is rarely the one that refuses it most)
+ * are closed with them one by one, and the Routh table in interval
+ * arithmetic (math/interval_polynomial.h) either proves every member
+ * non-Hurwitz or says nothing. The gain enters the characteristic polynomial
+ * affinely, A(s) + k B(s), and appears in several coefficients at once, so
+ * a single interval for it makes the enclosure of a Routh entry straddle
+ * zero long before the box does; the gain interval is therefore bisected
+ * until every piece is proven or a piece becomes negligible. Before any of
+ * that, the lower corner of the box is closed with the same plant by the
+ * real Routh table: a plant that leaves that corner stable proves nothing
+ * about the box, and that answer costs a table. A search that reaches the gain the specifications need only
+ * beyond the family's stability limit bisects such boxes down to its
+ * resolution and tries their vertices one by one; this discards them whole,
+ * with a proof. Only structures whose polynomials are products of linear
+ * factors are asked (zero-pole-gain and time-constant forms).
+ *
  * It keeps a clone of the controller structure, since the search gives its
  * own away to the first box of the list.
  */
@@ -60,17 +81,24 @@ public:
 
     bool isStableByRoots(const PointController & point);
 
+    bool isBoxUnstable(LtiSystem * box);
+
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t rootVerdicts = 0;
+        std::size_t boxVerdicts = 0;
+        std::size_t boxPrunes = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 
 private:
+    void rememberRefuser(std::size_t member);
+
     std::unique_ptr<LtiSystem> m_controller;
     SweptFamily m_family;
     bool m_usable = false;
     std::size_t m_lastUnstable = 0;
+    std::vector<std::size_t> m_recentRefusers;
     Statistics m_statistics;
 };
 

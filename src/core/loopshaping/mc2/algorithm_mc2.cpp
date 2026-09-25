@@ -220,6 +220,11 @@ bool AlgorithmMc2::solve()
         node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
         const double gainInf = node->system()->gain().range().min;
 
+        if (exactGains && family->isBoxUnstable(node->system())) {
+            ++certificate.familyPrunes;
+            continue;
+        }
+
         if (node->flag() == feasible) {
             const PointController corner = cornerOf(node->system(), true);
 
@@ -236,7 +241,11 @@ bool AlgorithmMc2::solve()
         NodeAnalysis analysis;
         if (!analyse(node.get(), analysis)) {
             depthAccounting.record(*node->system(), infeasible);
-            discardUnproven(gainInf);
+            if (lastDiscardProven) {
+                ++certificate.provenInfeasible;
+            } else {
+                discardUnproven(gainInf);
+            }
             continue;
         }
         depthAccounting.record(*node->system(), analysis.flag == feasible ? feasible : ambiguous);
@@ -387,6 +396,7 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
     }
     if (exact != nullptr) {
         const ExactPointCheck::Statistics & reading = exact->statistics();
+        statistics.certificate.sectorVerdicts = reading.sectorVerdicts;
         statistics.certificate.kernelPasses = reading.kernelPasses;
         statistics.certificate.gainSearches = reading.gainSearches;
         statistics.certificate.exchangeRounds = reading.exchangeRounds;
@@ -423,11 +433,23 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 
         BoxClassification classification = detector->classifyBox(projection, boundaries, i);
 
-        const BoxFlag verdict = classification.flag();
-
-        if (verdict == infeasible) {
-            return false;
+        if (classification.flag() == infeasible) {
+            if (!exactGains) {
+                lastDiscardProven = false;
+                return false;
+            }
+            const ExactPointCheck::SectorVerdict sector = exact->sectorVerdict(
+                        i, Range(projection.phaseDegrees.lower(), projection.phaseDegrees.upper()),
+                        Range(projection.magnitudeDb.lower(), projection.magnitudeDb.upper()));
+            if (sector.provablyInfeasible) {
+                lastDiscardProven = true;
+                return false;
+            }
+            ++certificate.columnsOverruled;
+            classification.setFlag(ambiguous);
         }
+
+        const BoxFlag verdict = classification.flag();
 
         out.classification.push_back(std::move(classification));
         out.projection.push_back(projection);
@@ -934,6 +956,22 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
 
         const double w = omega->at(i);
         const std::complex<double> p0 = nominalPlantValues.at(i);
+
+        if (exactGains) {
+            if (!strategies.infeasibleMagnitude) {
+                continue;
+            }
+            const Range boxMag = analysis.boxMag.at(i);
+            const ExactPointCheck::SectorVerdict sector = exact->sectorVerdict(i, analysis.boxPhase.at(i), boxMag);
+            if (sector.forbiddenBelowDb > boxMag.min && std::isfinite(sector.forbiddenBelowDb)) {
+                cut = cutBelowBoundary(bounds, std::pow(10.0, sector.forbiddenBelowDb / 20.0), w, p0) || cut;
+            }
+            if (sector.forbiddenAboveDb < boxMag.max && std::isfinite(sector.forbiddenAboveDb)) {
+                cut = cutAboveBoundary(bounds, std::pow(10.0, sector.forbiddenAboveDb / 20.0), w, p0) || cut;
+            }
+            continue;
+        }
+
         const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
         const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
@@ -966,7 +1004,11 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
         return;
     }
 
-    discardUnproven(v->gain().range().min);
+    if (exactGains) {
+        ++certificate.certifiedCuts;
+    } else {
+        discardUnproven(v->gain().range().min);
+    }
     node->setSystem(boxFromBounds(v, bounds));
     improved = true;
 }

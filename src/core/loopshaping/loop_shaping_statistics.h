@@ -21,7 +21,11 @@
  * interval enclosure. So each such removal is counted and the smallest gain
  * it could have held is kept: the unproven discards are the infeasible
  * verdicts and cuts read off the columns, the grid-backed prunes the boxes
- * the nominal criterion rejected whole, and the residue the boxes dropped
+ * the nominal criterion rejected whole, the family prunes the boxes the
+ * interval Routh table proved to destabilise a plant of the sweep for every
+ * controller in them, which is a proof and enters no bound, as are the
+ * boxes the exact sector verdict proved infeasible and the cuts it
+ * certified (the columns' verdicts it overruled are counted too), and the residue the boxes dropped
  * with no certified point at the size the search stops at, or with a corner
  * the nominal criterion refused. lowerBound is the smallest gain any of them
  * or any box still alive could hold, lowerBoundStrict counts the grid-backed
@@ -74,6 +78,11 @@ struct LoopShapingStatistics
         std::size_t epsilonResolved = 0;
         std::size_t unprovenDiscards = 0;
         std::size_t gridBackedPrunes = 0;
+        std::size_t familyPrunes = 0;
+        std::size_t provenInfeasible = 0;
+        std::size_t columnsOverruled = 0;
+        std::size_t certifiedCuts = 0;
+        std::size_t sectorVerdicts = 0;
         std::size_t certifications = 0;
         std::size_t refusedBySpecifications = 0;
         std::size_t refusedByNominalStability = 0;

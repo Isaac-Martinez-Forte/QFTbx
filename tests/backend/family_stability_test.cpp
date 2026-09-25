@@ -12,23 +12,32 @@
  * benchmark, where the minimum-gain answer is the floor of the gain box,
  * shows that a pole on the imaginary axis is not stability; a project
  * without a sweep record, a loop with a delay and a plant that is not
- * rational are reported as not checked and never approved as stable. And
- * the gate itself: on the magnetic levitation problem the search returns a
- * design the family does not accept until it is given the sweep, and then
- * only designs every plant is stable under.
+ * rational are reported as not checked and never approved as stable. A box
+ * of controllers wholly beyond the Routh limit of the DC motor's worst plant
+ * is proven unstable by the interval Routh table, one that straddles the
+ * limit, or lies below it, is not, and no controller sampled inside a box the
+ * table proves unstable is stable. And the gate itself: on the magnetic
+ * levitation problem the search returns a design the family does not accept
+ * until it is given the sweep, and then only designs every plant is stable
+ * under.
  */
 
 #include <gtest/gtest.h>
 
 #include <complex>
 #include <filesystem>
+#include <cmath>
+#include <cstdio>
 #include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/core/loopshaping/common/family_stability_checker.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/loopshaping/common/swept_family.h"
+#include "src/core/math/range.h"
 #include "src/core/math/polynomial.h"
 #include "src/core/math/sequences.h"
 #include "src/core/specifications/specification_record.h"
@@ -279,6 +288,116 @@ TEST(FamilyStability, APoleOnTheAxisIsNotStability)
                                                                       specifications, &sweep);
     EXPECT_EQ(stabilising.family.unstableMembers, 0u) << "a lead below the resonance does stabilise the family";
     EXPECT_LT(stabilising.family.worstRealPart, -1e-3);
+}
+
+TEST(FamilyStabilityGate, ABoxBeyondTheRouthLimitIsProvenUnstable)
+{
+    const std::string file = example("dcm-T33.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * structure = project.controllerStructure();
+    ASSERT_NE(structure, nullptr);
+    FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+    ASSERT_TRUE(family.usable());
+
+    const auto box = [&](Range gain, Range zero, Range pole) {
+        return structure->create("box", {Parameter(std::string("z1"), zero, zero.min)},
+                                 {Parameter(std::string("p1"), pole, pole.min)},
+                                 Parameter(std::string("k"), gain, gain.min), Parameter(0.0));
+    };
+
+    EXPECT_FALSE(family.isStable({45.0, {1000.0}, {466.5}})) << "a gain above the Routh limit of a = 1, k = 10";
+    EXPECT_TRUE(family.isStable({40.0, {1000.0}, {466.5}}));
+
+    std::unique_ptr<LtiSystem> beyond = box(Range(45.0, 50.0), Range(999.0, 1000.0), Range(466.0, 467.0));
+    EXPECT_TRUE(family.isBoxUnstable(beyond.get())) << "every controller of the box destabilises the worst plant";
+
+    std::unique_ptr<LtiSystem> crossing = box(Range(40.5, 41.5), Range(999.0, 1000.0), Range(466.0, 467.0));
+    EXPECT_FALSE(family.isBoxUnstable(crossing.get())) << "the box straddles the limit: nothing is proven";
+
+    std::unique_ptr<LtiSystem> below = box(Range(1.0, 2.0), Range(999.0, 1000.0), Range(466.0, 467.0));
+    EXPECT_FALSE(family.isBoxUnstable(below.get())) << "every controller of the box is stable";
+
+    std::unique_ptr<LtiSystem> wide = box(Range(0.01, 1000.0), Range(0.01, 1000.0), Range(0.01, 1000.0));
+    EXPECT_FALSE(family.isBoxUnstable(wide.get())) << "the initial box holds stable controllers";
+
+    EXPECT_EQ(family.statistics().boxVerdicts, 4u);
+    EXPECT_EQ(family.statistics().boxPrunes, 1u);
+}
+
+TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
+{
+    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        ASSERT_NE(structure, nullptr);
+        FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+        ASSERT_TRUE(family.usable());
+
+        std::mt19937 generator(17);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        const auto logDraw = [&](const Parameter & parameter) {
+            const Range r = parameter.range();
+            return std::exp(std::log(r.min) + unit(generator) * (std::log(r.max) - std::log(r.min)));
+        };
+        const auto around = [&](double centre, double relativeWidth, const Range & within) {
+            const double lo = std::max(within.min, centre / (1.0 + relativeWidth));
+            const double hi = std::min(within.max, centre * (1.0 + relativeWidth));
+            return Range(lo, hi);
+        };
+
+        std::size_t proven = 0, sampled = 0;
+        for (int trial = 0; trial < 400; ++trial) {
+            const double width = std::pow(10.0, -3.0 + 3.0 * unit(generator));
+            std::vector<Parameter> zeros, poles;
+            for (const Parameter & z : structure->numerator()) {
+                zeros.emplace_back(z.name(), around(logDraw(z), width, z.range()), z.range().min);
+            }
+            for (const Parameter & q : structure->denominator()) {
+                poles.emplace_back(q.name(), around(logDraw(q), width, q.range()), q.range().min);
+            }
+            const Range gain = around(logDraw(structure->gain()), width, structure->gain().range());
+            std::unique_ptr<LtiSystem> box = structure->create("box", zeros, poles,
+                                                               Parameter(std::string("k"), gain, gain.min), Parameter(0.0));
+            family.isStable(cornerOf(box.get(), true));
+            if (!family.isBoxUnstable(box.get())) {
+                continue;
+            }
+            ++proven;
+            for (int point = 0; point < 50; ++point) {
+                PointController inside;
+                for (const Parameter & z : box->numerator()) inside.zeros.push_back(z.range().min + unit(generator) * (z.range().max - z.range().min));
+                for (const Parameter & q : box->denominator()) inside.poles.push_back(q.range().min + unit(generator) * (q.range().max - q.range().min));
+                inside.gain = gain.min + unit(generator) * (gain.max - gain.min);
+                EXPECT_FALSE(family.isStable(inside)) << name << " trial " << trial << ": a controller inside a proven box is stable";
+                EXPECT_FALSE(family.isStableByRoots(inside)) << name << " trial " << trial;
+                ++sampled;
+            }
+        }
+        std::printf("FAMILY-BOX %-13s %zu of 400 random boxes proven unstable, %zu controllers sampled inside\n", name, proven, sampled);
+        EXPECT_GT(proven, 0u) << name;
+    }
+
+    ProjectController project;
+    project.load(example("toolbox-1.qft"));
+    LtiSystem * structure = project.controllerStructure();
+    FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+    family.isStable({70.0, {1000.0}, {154.4}});
+    const PointController returned{50.76606550592597, {974.9780649705508}, {130.90456263300797}};
+    std::unique_ptr<LtiSystem> design = structure->create("design", {Parameter(std::string("z1"), Range(974.9, 975.1), 974.9)},
+                                                          {Parameter(std::string("p1"), Range(130.9, 130.91), 130.9)},
+                                                          Parameter(std::string("k"), Range(50.766, 50.77), 50.766), Parameter(0.0));
+    EXPECT_TRUE(family.isStable(returned)) << "the design the battery returned stabilises the family by Routh";
+    EXPECT_TRUE(family.isStableByRoots(returned)) << "and by the roots";
+    EXPECT_FALSE(family.isBoxUnstable(design.get())) << "a box holding that design cannot be proven unstable";
 }
 
 TEST(FamilyStabilityGate, TheSearchNoLongerReturnsTheUnstableMaglevDesign)
