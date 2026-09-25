@@ -1,90 +1,49 @@
-# QFTbx settings.
+# QFTbx settings. Every key has a compiled default and this file only says
+# what to change: a key left out keeps its default. Copy it as qftbx.conf and
+# uncomment what you change. The reference is docs/CONFIGURATION.md.
 #
-# Every value here has a compiled default, and this file only says what to
-# CHANGE: a key you leave out keeps its default, and with no settings file at
-# all the program runs exactly as it does today. Nothing in here is required.
+# Read from the first of these that exists: the file named by QFTBX_CONFIG
+# (naming a file that cannot be read is an error), ./qftbx.conf, and
+# $HOME/.config/qftbx/qftbx.conf.
 #
-# Where it is looked for, first one that exists wins:
-#
-#   1. the path in the QFTBX_CONFIG environment variable  (naming a file that
-#      cannot be read IS an error - naming it says you meant it)
-#   2. ./qftbx.conf, next to wherever the program was started
-#   3. $HOME/.config/qftbx/qftbx.conf
-#
-# Comments start with # or ; and run to the end of the line. Sections group
-# the keys, and a key is its whole path: max-grid-cells under [limits] is
-# limits.max-grid-cells, and the same name under another section is a
-# different setting.
-#
-# A value that is not a number is REFUSED, naming the key and the line. It
-# does not quietly become zero: every setting below states its range, and a
-# value outside it stops the program with a message rather than running with
-# something you did not intend.
-#
-# What is NOT here, and will not be: 2*pi, the two layers of the boundary
-# union, the seven specification slots, the 0 dB ray of the stability
-# criterion. Those can be written in a file, and writing them would not
-# configure anything - it would break the program. A setting is a value with
-# a defensible range.
+# Comments start with # or ; and run to the end of the line. A key is its
+# section and its name: max-grid-cells under [limits] is limits.max-grid-cells.
+# A value that is not a number, or lies outside the range stated below, stops
+# the program with a message naming the key and the line.
 
 
-# ---------------------------------------------------------------------------
-# [interface] - the interface, and the one setting here that is a text.
-# ---------------------------------------------------------------------------
+# [interface] - the interface. The window writes canvas and window itself,
+# and the View menu writes language.
 [interface]
 
-# The language the interface starts in: "system" for the machine's language,
-# or the code of a translation compiled into the application ("en", "es"; the
-# View menu lists them). Choosing a language in the View menu writes it here,
-# into the settings file in use, so the next start comes up in it.
-# Values: "system" or a language code.
+# The language the interface starts in: "system", or a compiled translation
+# ("en", "es"; the View menu lists them).
 # language = system
 
-# How the canvas was left the last time the application closed: the phases in
-# the order they were put in, each with the size it was given. The window
-# writes this one itself when it closes; nothing is lost by deleting the line,
-# and the canvas comes up in the order of the design.
-# Values: a list of "phase:size", or empty.
+# The canvas as it was left when the application closed: a "phase:size" list.
 # canvas =
 
-# The look of the interface: "system" takes the machine's colours, "light"
-# and "dark" the toolbox's own. The shapes are the same in the three - flat,
-# square, one-pixel borders - and the accent is the blue of the icon.
-# Values: "system", "light" or "dark".
+# "system" takes the machine's colours, "light" and "dark" the toolbox's own.
 # theme = system
 
-# How many significant digits the forms show. The project file always keeps
-# every digit of every number: this only says how many of them are worth
-# reading on screen, where a gain of 567.3175312139062 is better read as
-# 567.3. Significant digits and not decimals, so that the small numbers
-# survive: four decimals of 6.988e-05 would be a zero.
-# Values: 1 to 17.
+# Significant digits the forms show. The project file keeps every digit.
+# Range: 1 to 17.
 # digits = 4
 
-# And how big the window was when it closed, so it comes up the same size.
-# Written by the window itself, like the canvas above.
-# Values: "width height", "maximized", or empty.
+# The window size when it closed: "width height", "maximized", or empty.
 # window =
 
 
-# ---------------------------------------------------------------------------
-# [limits] - ceilings that exist to stop a typo, not to express a limit of the
-# method. Every one of these only ever REFUSES input, so moving them changes
-# no computed result. They are the safest thing in this file.
-# ---------------------------------------------------------------------------
+# [limits] - ceilings against typos. They only refuse input; none changes a
+# computed result.
 [limits]
 
-# Cells of the Nichols grid for the boundaries: phase points x magnitude
-# points. For scale, a one-degree grid over 360 degrees is 361 points per
-# axis, so 130321 cells. The default is far past anything sensible, and it is
-# here because two extra zeros in a dialog used to reach an allocation of that
-# many doubles and take the application down.
+# Cells of the Nichols grid of the boundaries, phase points x magnitude
+# points (the one-degree grid is 130321).
 # Range: 4 to 1e15.
 # max-grid-cells = 10000000
 
-# Points per parameter grid in the template sweep. The count comes from an
-# expression you type, so it can be anything the parser accepts - a negative
-# one used to ask for 1.8e19 doubles.
+# Points per parameter grid in the template sweep.
 # Range: 1 to 1e12.
 # max-template-points = 1000000
 
@@ -92,48 +51,28 @@
 # Range: 1 to 2147483647.
 # max-frequency-count = 1000000
 
-# Largest magnitude accepted in the loop-shaping dialog's fields, which is
-# what keeps an infinity out of an integer conversion.
+# Largest magnitude the loop-shaping dialog accepts.
 # Range: 1 to 1e300.
 # max-magnitude = 1e12
 
 
-# ---------------------------------------------------------------------------
-# [search] - what the interval search is allowed to spend.
-# ---------------------------------------------------------------------------
+# [search] - what the interval search may spend.
 [search]
 
-# Live nodes the branch & bound list may hold before it refuses to grow.
-# It is a MEMORY budget, not a time one: a node measures 528 bytes with two
-# uncertain parameters and 1056 with eight, so the default is of the order of
-# 17 to 34 GB.
-#
-# How to set it from your own runs: every loop-shaping run prints "peak live
-# nodes" next to its elapsed time. The peaks of the long benchmarks are the
-# number to size this from - the small fixtures all resolve early, with peaks
-# between 1 and 281 nodes whatever the epsilon, so they say nothing useful
-# about it.
+# Live nodes the branch and bound list may hold before it refuses to grow. A
+# memory budget: 528 bytes per node with two uncertain parameters, 1056 with
+# eight, so the default is 17 to 34 GB. Every run prints its peak live nodes.
 # Range: 1 to 1e15.
 # max-live-nodes = 32000000
 
 
-# ---------------------------------------------------------------------------
-# [defaults.*] - what the dialogs start with.
-#
-# The zero-risk group: these are what a field is PREFILLED with, so nothing
-# here can change a computed result - you see the value and can type over it.
-# It is also the group that shows most in daily use: if you always work with
-# the same Nichols grid, this is where you stop typing it.
-# ---------------------------------------------------------------------------
+# [defaults.*] - what the dialogs are prefilled with. Nothing here changes a
+# result: the value is on screen and can be typed over.
 
-# The Nichols grid of the boundary computation. Phase in degrees, magnitude
-# in decibels, and the number of points on each axis.
-#
-# The phase axis has to span at least 360 degrees or the boundary union
-# cannot close, which the computation checks for itself and refuses. The
-# default 361 points over -360..0 is the classic one-degree grid.
-# Ranges: the ends -3600 to 3600 (phase) and -1000 to 1000 (magnitude);
-# the point counts 2 to 1e6.
+# The Nichols grid of the boundary computation: phase in degrees, magnitude
+# in decibels, points per axis. The phase axis must span at least 360 degrees.
+# Ranges: phase ends -3600 to 3600, magnitude ends -1000 to 1000, points 2
+# to 1e6.
 [defaults.boundary-grid]
 # phase-start = -360
 # phase-end = 0
@@ -142,73 +81,37 @@
 # magnitude-end = 60
 # magnitude-points = 121
 
-# Boundaries: read the whole template cloud instead of its contour. The contour
-# assumes the worst case of every specification over a template lies on its
-# border: true on eleven of the twelve problems of our battery, and it saves the
-# boundary computation most of its work. On the twelfth (the motor of Horowitz
-# and Sidi, twenty-three design frequencies) it is not, and the controller comes
-# out 0.0012 dB permissive even under the conservative column reading; reading
-# the whole cloud is always safe, and there it was the faster of the two. It is
-# not free: the cloud's guard of the singular locus is a bound per sample where
-# the contour's is exact over its polygon, so the boundaries and the gain with
-# them come out more conservative. Turn it on to certify an answer, or when the
-# contour of a template comes out wrong.
+# Read the whole template cloud for the boundaries instead of its contour:
+# always safe, more conservative, and the cure when a contour comes out wrong.
 # Range: 0 or 1.
 # from-cloud = 0
 
-# Points per parameter grid in the template sweep. With ten points the
-# largest gap in a template can reach a fifth of its size, and the contour
-# then follows the sweep rather than the template; twenty-five keeps it
-# under a few per cent. Remember this multiplies: with n uncertain
-# parameters the sweep evaluates this many to the power of n plants, so 25
-# with five parameters is already 1e7 and with eight it is out of reach.
-# Range: 1 to 1e6.
 [defaults.templates]
+# Points per parameter grid in the template sweep. With n uncertain
+# parameters the sweep evaluates this many to the power of n plants.
+# Range: 1 to 1e6.
 # point-count = 25
 
-# The plane a NEW project measures its contour epsilon in. 1, the Nichols
-# plane: distances in degrees and decibels, one decibel weighing as much as
-# db-per-degree degrees; there one epsilon serves every template of a
-# project. 0, the complex plane: the historical reading, a distance in the
-# units of the plant's response, which on the toolbox example 2 needs an
-# epsilon ten thousand times smaller at 100 rad/s than at 0.1. A loaded
-# project keeps the plane its file says.
+# The plane a new project measures its contour epsilon in: 1 the Nichols
+# plane (degrees and decibels), 0 the complex plane (the historical reading).
 # Range: 0 or 1.
 # epsilon-in-nichols = 1
 
-# How many decibels weigh as much as one degree in the Nichols plane.
+# Decibels that weigh as much as one degree in the Nichols plane.
 # Range: 1e-6 to 1e6.
 # db-per-degree = 1
 
-# The frequency range the loop-shaping plot starts with, in rad/s, and how
-# many points over it.
-#
-# ONE range, used on opening and on picking either mode. The dialog carried
-# three hardcoded sets before - one per place - and the two mode ones differed
-# from each other and from the opening one with no reason recorded anywhere;
-# worse, picking a mode overwrote whatever the fields held, so a configured
-# default would have been thrown away.
-# Ranges: the ends 1e-300 to 1e300, the point count 2 to 1e6.
+# The frequency range the loop-shaping plot starts with, in rad/s, and the
+# points over it.
+# Ranges: ends 1e-300 to 1e300, points 2 to 1e6.
 [defaults.loop-shaping]
 # start = 1e-09
 # end = 10
 # point-count = 100
 
 
-# ---------------------------------------------------------------------------
-# [stability] - the resolution of the nominal stability check.
-#
-# These trade TIME against how reliably the check decides, and they do not
-# touch the criterion: the Cohen-Chait-Yaniv crossing count and its 0 dB ray
-# are the method, not settings.
-#
-# What they govern is the frequency grid the nominal loop is sampled on before
-# the crossings are counted. Too coarse and a fast phase turn is missed, the
-# checker answers "cannot decide", and a candidate that may have been perfectly
-# good is discarded - conservatively, but discarded. Too fine and every
-# candidate costs more, which in a search of millions of candidates is the
-# whole run.
-# ---------------------------------------------------------------------------
+# [stability] - the frequency grid of the nominal stability check. Coarser
+# is faster and may answer "cannot decide"; the criterion is not a setting.
 [stability]
 
 # Points of the base logarithmic grid.
@@ -219,177 +122,108 @@
 # Range: 0 to 20.
 # decades-beyond = 3
 
-# Phase step, in degrees, above which the grid is refined. It is the
-# unwrapping tolerance: a turn faster than this between two samples cannot be
-# unwrapped safely, so the interval between them is split.
+# Phase step, in degrees, above which the grid is refined: the unwrapping
+# tolerance.
 # Range: 0.1 to 180.
 # max-phase-step-degrees = 30
 
-# Refinements one verdict may spend before giving up and answering "cannot
-# decide".
+# Refinements one verdict may spend before answering "cannot decide".
 # Range: 1 to 1e9.
 # refinement-budget = 200000
 
 
-# ---------------------------------------------------------------------------
-# [algorithms] - figures from the published algorithms.
-#
-# THE GROUP TO BE CAREFUL WITH, and the only one where that is true. Unlike
-# everything above, these change WHAT THE ALGORITHM COMPUTES - not how long it
-# takes to compute it. Every one is a number from a paper, and the provenance
-# is written next to it, because a value changed here makes the golden tests
-# and the article validations stop describing the program that is running.
-#
-# They are here anyway, deliberately: a doctoral toolbox whose published
-# parameters can only be explored by recompiling is a worse tool. What makes
-# it safe is that no test reads this file - the test suite builds its own
-# settings, and only the application itself ever loads one - so a value here
-# can never change what a test means.
-# ---------------------------------------------------------------------------
+# [algorithms] - figures from the published algorithms. These change what an
+# algorithm computes, not how long it takes: a value changed here makes the
+# golden tests and the article validations describe another program. No test
+# reads this file.
 [algorithms]
 
-# MR (Rambabu & Nataraj, FDA-10): template points entering the constraint set
-# per design frequency, paired quadratically for the tracking constraint. The
-# paper uses 9.
-#
-# KNOWN LIMIT, measured on the article's Example 5.1 over a 51x51 sweep of the
-# uncertainty: the design MR certifies exceeds the true tracking bound by 12
-# to 19 per cent at two of the five design frequencies. Raising this to 25
-# shrinks the excess from 0.456 to 0.431 dB at twelve times the cost, without
-# removing it. The way out is to BOUND the spread of |T| by intervals over the
-# template instead of sampling it, which would remove the gap entirely - and
-# that is a modelling decision for the thesis, not a setting.
+# MR (Rambabu and Nataraj, FDA-10): template points entering the constraint
+# set per design frequency. The paper uses 9; raising it does not close the
+# tracking gap the sampling leaves.
 # Range: 2 to 1000.
 # template-representatives = 9
 
-# MR: passes of the HC4 narrowing before a box is accepted as narrowed no
-# further.
+# MR: passes of the HC4 narrowing before a box is accepted as narrowed.
 # Range: 1 to 1000.
 # max-narrowing-passes = 8
 
-# MR: what the termination epsilon measures. 0, the paper's criterion: the
-# width of the CONTROLLER PARAMETER box. 1, the criterion of the other four
-# algorithms: the diameter of the NICHOLS box of the leading node, in dB and
-# degrees. The two numbers are not comparable (see docs/algorithms), so
-# with 0 the running time of MR cannot be set against the others'; with 1
-# the five algorithms stop on the same measure. Needs a zero-pole-gain
-# controller structure, as the other four do.
+# MR: what the termination epsilon measures. 0, the paper's: the width of
+# the controller parameter box. 1: the Nichols box of the leading node, as
+# the other four algorithms do (needs a zero-pole-gain controller).
 # Range: 0 or 1.
 # mr-nichols-epsilon = 0
 
-# How a phase between two nodes of the boundary grid is read. 1, the default:
-# both bracketing nodes must allow the point or box (the conservative
-# reading), so the answer respects the boundary at the point's own phase. 0:
-# the nearest node, which is how the published algorithms read it and which
-# admits, up to half a grid step away, what the boundary at the point's own
-# phase forbids - 0.05 dB on the toolbox example 2 with a 1-degree grid, and
-# over our twelve-problem battery most answers exceed some specification.
-# What 1 costs depends on the algorithm, and only on the algorithm: the strip
-# cuts need every column of a span to agree, so NT, NK and MC1 take about a
-# thousand times longer on that example with the 1-degree grid (seconds with
-# 0.25 degrees, under a second with 0.125), where MC2 answers in about the
-# time it did either way. Set 0 to reproduce a published algorithm as
-# published. The returned controller is checked against the specifications
-# either way (see the loop-shaping result).
+# How a phase between two nodes of the boundary grid is read. 1: both
+# bracketing nodes must allow the point, the conservative reading. 0: the
+# nearest node, as published, which admits up to half a grid step of
+# violation. NT, NK and MC1 are far slower with 1 on a one-degree grid.
 # Range: 0 or 1.
 # conservative-boundary-columns = 1
 
 # Whether a search closes the loop with every plant of the sweep before it
-# returns a design (1, the default), or returns what the boundaries accept (0).
-family-stability-gate = 1
+# returns a design (1), or returns what the boundaries accept (0).
+# Range: 0 or 1.
+# family-stability-gate = 1
 
-# How MC2 decides about a single controller: the point a feasible box or an
-# epsilon-small box yields, and the gain of the best-gain search. columns, the
-# default: against the boundary columns of the phase grid, as published.
-# exact-exits: a candidate leaves the search, or prunes it as the best design
-# so far, only if it meets the specifications themselves over the whole
-# template at its own loop value, the verifier's criterion; the columns keep
-# guiding the search. exact: the best gain at fixed zeros and poles is read
-# from the specifications at the loop's exact phase as well, instead of from
-# the column of a grid node, and the search ends as a branch and bound ends:
-# a certified point becomes the best design so far and prunes the tree, and
-# the search goes on until nothing is left. A box all of whose controllers
-# destabilise a plant of the sweep is discarded with a proof (the Routh
-# table in interval arithmetic), and a box the columns call infeasible only
-# when the specifications, evaluated over the box's own phase span, prove
-# it so: nothing is discarded without a proof. Both need a template at
-# every design frequency.
-# Range: columns, exact-exits or exact.
+# MC2: how the search decides about a single controller. columns: against
+# the boundary columns, as published. exact-exits: a candidate leaves the
+# search only if it meets the specifications themselves over the whole
+# template. exact: the best gain is read from the specifications too, the
+# search runs on as a branch and bound until nothing is left, and every box
+# discarded carries a proof, by the Routh table in interval arithmetic on the
+# family or by the specifications over the box's own phase span. Both need a
+# template at every design frequency.
+# Values: columns, exact-exits or exact.
 # point-reading = columns
 
-# Under point-reading = exact, how the boundary columns guide the search,
-# since with exact points they decide nothing about what is returned.
-# published, the default: the nearest node, cheaper and, on three of four
-# measured problems, reaching a lower gain than the conservative reading,
-# which discards boxes that hold the optimum. conservative: the reading of
-# conservative-boundary-columns, which the other point readings keep anyway.
-# Range: published or conservative.
+# Under point-reading = exact, the reading of the columns that guide the
+# search: published (the nearest node) or conservative.
+# Values: published or conservative.
 # exact-boundary-guide = published
 
-# Templates: what to do when the contour walk does not close at a design
-# frequency with the epsilon given. 1: the WHOLE template stands in for its
-# contour there, which is always safe (the boundaries read every point) and
-# only slower, and the viewer marks the frequency. 0: stop with an error
-# naming the frequency, for the user to change the epsilon or the sweep.
-# The templates dialog offers the same choice per computation.
+# Templates: when the contour walk does not close at a frequency, 1 lets the
+# whole template stand in for its contour there; 0 stops with an error.
 # Range: 0 or 1.
 # whole-template-if-no-contour = 1
 
-# Templates: how the contour of a template is extracted. 0, the walk of
-# Nordin (the historical epsilon-hull, the published algorithm), which can
-# fail to close and then falls back as the setting above says. 1, the
-# alpha-shape: the same boundary by its definition, edge by edge - an edge is
-# on the contour when a disc of diameter epsilon through its ends holds no
-# other point - which always closes and returns every component and hole.
-# The proposed epsilon is then the least that keeps the template connected.
+# Templates: 0 extracts the contour by Nordin's walk, the published
+# epsilon-hull; 1 by the alpha-shape, which always closes and returns every
+# component and hole.
 # Range: 0 or 1.
 # alpha-shape-contour = 0
 
-# Templates: with exactly TWO uncertain parameters, 1 sweeps only the border
-# of the parameter box - as many evaluations as the interior grid would have
-# cost, spent on the four edges, each along the user's own grid - because
-# the worst case of every specification over a template lies on its border
-# (the closed-loop magnitudes are Mobius functions of the plant). The
-# template is then a closed curve, its contour is taken by the alpha-shape,
-# and the gap between neighbouring points shrinks by the grid size. With one
-# or with three or more uncertain parameters the interior is swept as usual.
+# Templates: with exactly two uncertain parameters, 1 sweeps only the border
+# of the parameter box, where the worst case of every specification lies.
 # Range: 0 or 1.
 # border-sweep = 0
 
-# Boundaries: how the columns of the five magnitude specifications
-# (stability, sensor noise, the two disturbance rejections, control effort)
-# are read. 0, off the sampled sheet, cut at the bound with linear
-# interpolation between magnitude nodes. 1, in closed form: at each phase the
-# specification is a quadratic in the gain for every plant of the template
-# (Chait and Yaniv 1993), the allowed gains are intersected exactly over the
-# template, and the column comes out exact in magnitude, multivalued where
-# it is, and unbounded by the magnitude window. Tracking keeps its sheet.
+# Boundaries: 1 reads the columns of the five magnitude specifications in
+# closed form (Chait and Yaniv 1993), exact in magnitude and multivalued
+# where they are; 0 reads them off the sampled sheet. Tracking keeps its
+# sheet.
 # Range: 0 or 1.
 # closed-form-columns = 0
 
-# NK (Nataraj & Kubal 2007): iterations the local refinement of a candidate
-# point may spend.
+# NK (Nataraj and Kubal 2007): iterations the local refinement of a
+# candidate may spend.
 # Range: 1 to 1e7.
 # local-search-budget = 400
 
-# NK: the ratio at which the gain bisection stops, so 1.01 is one per cent.
-# It is a PRUNING bound and not the accuracy of the answer.
-# Range: strictly above 1, up to 10. Exactly 1 would be a bisection that never
-# ends, which is a hang rather than a tighter result, so it is refused.
+# NK: the ratio at which the gain bisection stops, 1.01 being one per cent.
+# A pruning bound, not the accuracy of the answer.
+# Range: above 1, up to 10.
 # gain-tolerance = 1.01
 
-# MC1 (Martinez-Forte & Cervera, IJRNC 2021): the same ratio for the certified
-# gain search.
-# Range: strictly above 1, up to 10.
+# MC1 (Martinez-Forte and Cervera, IJRNC 2021): the same ratio for the
+# certified gain search.
+# Range: above 1, up to 10.
 # certified-gain-tolerance = 1.01
 
 # MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch
-# each, all on by default (the algorithm as published). They are here for
-# measuring what each one buys, as chapter 6 does with sixteen combinations,
-# not for tuning a design. Each only discards boxes it has certified cannot
-# hold a better one, but they do move the answer: the search stops at the
-# first box small enough, and which box that is depends on how the tree was
-# cut and split. Range: 0 or 1 each.
+# each, all on as published. Each discards only boxes proven not to hold a
+# better design, but which box the search stops at depends on them.
+# Range: 0 or 1 each.
 [algorithms.mc]
 # infeasible-magnitude = 1
 # infeasible-phase = 1
@@ -397,35 +231,23 @@ family-stability-gate = 1
 # feasible-phase = 1
 # best-gain = 1
 # tree-bisection = 1
-# The execution stages of sec. 4.4 belong to MC of the thesis alone: they
-# switch the cuts off for a node and all its children the first time a full
-# pass improves nothing. MC2 does not have them; what they were contributing
-# is their bisection rule, which MC2 applies everywhere.
+# The execution stages of sec. 4.4, MC of the thesis only.
 # stages = 1
 
-# ---------------------------------------------------------------------------
+
+# [log] - the record of what the engines did and how long it took, one line
+# per stage.
 [log]
-# The record of what the engines did and how long it took: one line per
-# stage, written as the work goes. It says which algorithm ran on which
-# problem and what it cost, which is the question the engines used to answer
-# by printing on standard output - where the interface never showed it and
-# nothing could turn it off.
-#
-# Off by default: a program that writes files nobody asked for is a program
-# that surprises somebody.
-#
+
+# Off by default.
 # enabled = 0
-#
-# Where it goes. Empty means $XDG_STATE_HOME/qftbx/qftbx.log, or
-# $HOME/.local/state/qftbx/qftbx.log when that is not set. The directories
-# are made if they are not there, and a path that cannot be written leaves
+
+# Empty means $XDG_STATE_HOME/qftbx/qftbx.log, or
+# $HOME/.local/state/qftbx/qftbx.log. A path that cannot be written leaves
 # the record closed rather than stopping a computation.
-#
 # path =
-#
-# Where it rotates: past this the file becomes the previous generation and a
-# new one starts, so the oldest lines fall off the end. Two generations are
-# kept, so the space taken is twice this and never more. Between 16 and
-# 1048576 kilobytes.
-#
+
+# Past this size the file becomes the previous generation and a new one
+# starts; two generations are kept.
+# Range: 16 to 1048576.
 # size-limit-kilobytes = 1024

@@ -5,9 +5,10 @@ a compiled default, and the file only says what to change: a key left out
 keeps its default, and with no file at all the program runs exactly as
 shipped. Nothing in it is required.
 
-The complete, commented reference is [`qftbx.conf.example`](../qftbx.conf.example)
-at the root of the repository; copy it, uncomment what you want to change,
-and put it in one of the places below.
+This document is the reference. [`qftbx.conf.example`](../qftbx.conf.example),
+at the root of the repository, lists every key with its default, its range
+and a line on what it does; copy it, uncomment what you want to change, and
+put it in one of the places below.
 
 ## Where it is read from
 

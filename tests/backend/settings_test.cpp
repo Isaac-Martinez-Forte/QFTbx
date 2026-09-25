@@ -381,6 +381,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.mrNicholsEpsilon, defaults.algorithms.mrNicholsEpsilon);
     EXPECT_EQ(fromExample.algorithms.conservativeBoundaryColumns,
               defaults.algorithms.conservativeBoundaryColumns);
+    EXPECT_EQ(fromExample.algorithms.familyStabilityGate, defaults.algorithms.familyStabilityGate);
     EXPECT_EQ(fromExample.algorithms.pointReading, defaults.algorithms.pointReading);
     EXPECT_EQ(fromExample.algorithms.exactBoundaryGuide, defaults.algorithms.exactBoundaryGuide);
     EXPECT_EQ(fromExample.algorithms.wholeTemplateIfNoContour,
@@ -406,7 +407,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.log.enabled, defaults.log.enabled);
     EXPECT_EQ(fromExample.log.sizeLimitKilobytes, defaults.log.sizeLimitKilobytes);
 
-    EXPECT_EQ(settingsFound, 47)
+    EXPECT_EQ(settingsFound, 48)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())
