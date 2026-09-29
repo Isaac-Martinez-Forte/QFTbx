@@ -147,29 +147,6 @@ class AlgorithmMc2
 {
 public:
 
-    /**
-     * @brief Runtime switches for the thesis strategies, one each.
-     *
-     * The chapter-6 case studies exercise every improvement alone and in
-     * combination, so each one can be disabled independently without
-     * rebuilding. All enabled is the thesis MC; everything disabled is the
-     * bare branch & bound with area bisection. None of them changes the
-     * answer - each only discards boxes it has certified cannot hold a
-     * better one - which is what the strategies test asserts. By
-     * decision they are not exposed in the interface: a user has no reason
-     * to disable a proof.
-     */
-    struct Strategies {
-        bool infeasibleMagnitude = true;   ///< QSInv, magnitude cuts (NK's QS)
-        bool infeasiblePhase = true;   ///< QSInv, phase cuts (thesis 4.1.2)
-        bool feasibleMagnitude = true;   ///< QSFact, magnitude (thesis 4.1.1)
-        bool feasiblePhase = true;   ///< QSFact, phase
-        bool bestGain = true;   ///< MG (thesis 4.3)
-        bool treeBisection = true;   ///< thesis 4.2.4
-    };
-
-    void setStrategies(const Strategies & s);
-
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
@@ -191,8 +168,6 @@ public:
      * reads a member and never a configuration lookup. Not calling it leaves
      * the compiled defaults, which is what every existing caller does.
      */
-    /// Keeps the settings and takes the strategy switches from them
-    /// (Settings::Algorithms::mc); a later setStrategies() overrides.
     void setSettings(const qftbx::Settings & settings);
 
     /**
@@ -367,7 +342,7 @@ private:
 
     std::unique_ptr<LtiSystem> designedController;
 
-    Strategies strategies;
+    Settings::Algorithms::McStrategies strategies;
     DepthAccounting depthAccounting;
 
     double phaseGridStep = 0;
