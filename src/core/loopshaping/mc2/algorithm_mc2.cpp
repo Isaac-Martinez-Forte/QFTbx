@@ -21,11 +21,11 @@
 
 #include "src/core/math/range_union.h"
 
-namespace quick_solution = qftbx::quick_solution;
-
 namespace qftbx {
 
 namespace {
+
+enum class CutKind { Magnitude, Phase };
 
 Range magnitudeRangeOf(const NicholsBox & projection)
 {
@@ -71,18 +71,7 @@ void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::ve
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
-    phaseSpanWidth = boundaries->phaseRange().width();
-    phaseGridStep = phaseSpanWidth / (boundaries->phaseCount() - 1);
-
-    hasUncertainZeros = false;
-    for (Parameter & var : this->controller->numerator()) {
-        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
-    }
-
-    hasUncertainPoles = false;
-    for (Parameter & var : this->controller->denominator()) {
-        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
-    }
+    phaseGridStep = boundaries->phaseRange().width() / (boundaries->phaseCount() - 1);
 }
 
 inline std::int32_t AlgorithmMc2::parameterCount(LtiSystem * box) const
@@ -172,17 +161,22 @@ bool AlgorithmMc2::solve()
         nominalPlantValues.push_back(c);
     }
 
-    if (!hasUncertainZeros && !hasUncertainPoles && !controller->gain().isUncertain()) {
+    bool uncertain = controller->gain().isUncertain();
+    for (Parameter & z : controller->numerator()) {
+        uncertain = uncertain || z.isUncertain();
+    }
+    for (Parameter & p : controller->denominator()) {
+        uncertain = uncertain || p.isUncertain();
+    }
+    if (!uncertain) {
         designedController = pointFromBox(controller.get(), true);
         return false;
     }
 
-    const double initialGainInf = controller->gain().range().min;
     initialGainRange = controller->gain().range();
 
-    auto initial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
+    auto initial = std::make_unique<McSearchNode>(initialGainRange.min, std::move(controller),
                                                  ambiguous);
-    initial->setCutsEnabled(true);
     liveList->insert(std::move(initial));
 
     while (true) {
@@ -305,8 +299,9 @@ bool AlgorithmMc2::solve()
                 if (contracted < best.gain) {
                     PointController candidate{contracted, best.zeros, best.poles};
 
-                    if (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)
-                            && family->isStable(candidate)) {
+                    if (satisfiesBoundaries(candidate, omega, conversion.get(), detector.get(), boundaries,
+                                            nominalPlantValues)
+                            && stability->isNominallyStable(candidate) && family->isStable(candidate)) {
                         best = std::move(candidate);
                     }
                 }
@@ -337,15 +332,10 @@ bool AlgorithmMc2::solve()
         for (std::unique_ptr<McSearchNode> * slot : {&children.t1, &children.t2}) {
             std::unique_ptr<McSearchNode> child = std::move(*slot);
 
-            if (child == nullptr) {
-                continue;
-            }
-
             if (cannotImprove(child->system()->gain().range().min)) {
                 continue;
             }
 
-            child->setIndex(child->system()->gain().range().min);
             liveList->insert(std::move(child));
         }
     }
@@ -504,20 +494,6 @@ bool AlgorithmMc2::boxIsFeasible(LtiSystem * box)
     return true;
 }
 
-bool AlgorithmMc2::pointIsFeasible(const PointController & point)
-{
-    for (std::size_t i = 0; i < omega->size(); ++i) {
-        const NicholsBox projection = conversion->nicholsPoint(point, omega->at(i),
-                                                              nominalPlantValues.at(i));
-
-        if (detector->classifyBox(projection, boundaries, i).flag() != feasible) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
                                         const std::vector<double> & poles, Range gainRange)
 {
@@ -588,7 +564,8 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
 
     const PointController point{gain, std::move(zeroSups), std::move(poleInfs)};
 
-    if (!pointIsFeasible(point) || !stability->isNominallyStable(point) || !family->isStable(point)) {
+    if (!satisfiesBoundaries(point, omega, conversion.get(), detector.get(), boundaries, nominalPlantValues)
+            || !stability->isNominallyStable(point) || !family->isStable(point)) {
         return false;
     }
 
@@ -748,13 +725,13 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
             : (isZero ? parameter - 1
                       : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
 
-        for (std::int32_t family = 0; family < 2; ++family) {
+        for (const CutKind kind : {CutKind::Magnitude, CutKind::Phase}) {
 
-            if (family == 0 && !strategies.feasibleMagnitude) {
+            if (kind == CutKind::Magnitude && !strategies.feasibleMagnitude) {
                 continue;
             }
 
-            if (family == 1 && (isGain || !strategies.feasiblePhase)) {
+            if (kind == CutKind::Phase && (isGain || !strategies.feasiblePhase)) {
                 continue;
             }
 
@@ -771,7 +748,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                         : std::numeric_limits<double>::max();
                 bool allCertified = true;
 
-                for (std::size_t i = 0; i < omega->size() && allCertified; ++i) {
+                for (std::size_t i = 0; i < omega->size(); ++i) {
 
                     const std::optional<BoxClassification> & classification =
                 analysis.classification.at(i);
@@ -785,7 +762,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
 
                     double t = -1.0;
 
-                    if (family == 0) {
+                    if (kind == CutKind::Magnitude) {
                         const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
                         const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 

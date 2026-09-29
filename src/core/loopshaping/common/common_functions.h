@@ -25,6 +25,7 @@
 #include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
 #include "src/core/loopshaping/common/ordered_list.h"
+#include "src/core/loopshaping/common/point_controller.h"
 #include "src/core/loopshaping/common/mc_search_node.h"
 #include "src/core/loopshaping/common/quick_solution.h"
 
@@ -53,7 +54,7 @@ struct McBisectionResult {
  * @brief Extracts a point controller from a box.
  *
  * @param controller the box to take a corner of.
- * @param x true takes the lower corner of every parameter, which is where
+ * @param lower true takes the lower corner of every parameter, which is where
  * a feasible box realises its optimum gain. false takes the corner that
  * the monotonicity of the Nichols projection makes feasible for an
  * epsilon-small ambiguous box sitting on a boundary whose allowed side is
@@ -62,32 +63,9 @@ struct McBisectionResult {
  * minimum: taking every maximum steps AWAY from the allowed side in the
  * pole directions.
  */
-inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
-
-    std::vector <Parameter> numerator;
-    numerator.reserve(controller->numerator().size());
-
-    for (Parameter & v : controller->numerator()) {
-        if (!v.isUncertain()){
-            numerator.emplace_back(v.nominal());
-        } else {
-            numerator.emplace_back(x ? v.range().min : v.range().max);
-        }
-    }
-
-    std::vector <Parameter> denominator;
-    denominator.reserve(controller->denominator().size());
-
-    for (Parameter & v : controller->denominator()) {
-        denominator.emplace_back(v.isUncertain() ? v.range().min : v.nominal());
-    }
-
-    const double k = x ? controller->gain().range().min
-                      : controller->gain().range().max;
-
-    return controller->create(controller->name(), std::move(numerator),
-                               std::move(denominator), Parameter(k),
-                               controller->delay());
+inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool lower)
+{
+    return systemFromPoint(controller, cornerOf(controller, lower));
 }
 
 /**

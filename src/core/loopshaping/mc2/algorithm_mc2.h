@@ -283,7 +283,6 @@ private:
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
-    bool pointIsFeasible(const PointController & point);
     void insertFeasibleBox(std::unique_ptr<LtiSystem> box);
 
     /// Under the exact reading: the lowest certified gain among the vertices
@@ -346,10 +345,7 @@ private:
     DepthAccounting depthAccounting;
 
     double phaseGridStep = 0;
-    double phaseSpanWidth = 0;
 
-    bool hasUncertainZeros = false;
-    bool hasUncertainPoles = false;
 
     /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
