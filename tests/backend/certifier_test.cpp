@@ -8,8 +8,14 @@
  * stable, is refused by the roots with the verifier's tolerance, so the
  * search cannot return what the verifier would then reject; and a point
  * far above the family's stability limit is refused by the Routh table
- * before anything else is asked. On the toolbox example, the design the search
- * returns under the nearest-node reading of the columns, which those
+ * before anything else is asked. A point below the smallest gain the
+ * specifications admit is refused by them, and passes when the caller says
+ * the specifications already admitted it, which is how the searches hand over
+ * a point whose gain came from the specifications. On the magnetic
+ * levitation problem, a loop the Routh table of the family calls stable is
+ * refused by the nominal criterion, whose grid ends with the loop still above
+ * 0 dB, and the funnel stops there. On the toolbox example, the design the
+ * search returns under the nearest-node reading of the columns, which those
  * columns admit, is refused by the specifications themselves.
  */
 
@@ -148,6 +154,54 @@ TEST(Certifier, TheFunnelStopsAtTheFirstRefusal)
     EXPECT_EQ(funnel.family.statistics().verdicts, 1u);
     EXPECT_EQ(funnel.stability.statistics().verdicts, 0u) << "the nominal criterion was never asked";
     EXPECT_EQ(funnel.exact.statistics().verdicts, 0u) << "nor the specifications";
+    EXPECT_EQ(funnel.family.statistics().rootVerdicts, 0u);
+}
+
+TEST(Certifier, AnAdmittedPointSkipsTheSpecifications)
+{
+    const std::string file = example("dcm-T33.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+
+    const PointController belowTheBound{40.0, {1000.0}, {466.25}};
+    {
+        Funnel asked(project);
+        EXPECT_FALSE(asked.certifier.certify(belowTheBound)) << "below the smallest gain the specifications admit, near 40.89";
+        EXPECT_EQ(asked.certifier.statistics().refusedBySpecifications, 1u);
+        EXPECT_EQ(asked.certifier.statistics().refusedByRouth, 0u) << "a lower gain is further from the Routh limit";
+    }
+
+    Funnel admitted(project);
+    EXPECT_TRUE(admitted.certifier.certify(belowTheBound, true));
+    EXPECT_EQ(admitted.exact.statistics().verdicts, 0u) << "the specifications were never asked";
+    EXPECT_EQ(admitted.family.statistics().rootVerdicts, 1u) << "the roots still confirm the point";
+}
+
+TEST(Certifier, ALoopTheNominalCriterionRefusesStopsThere)
+{
+    const std::string file = example("maglev-lower.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    Funnel funnel(project);
+    ASSERT_TRUE(funnel.family.usable());
+
+    const PointController stillAboveZeroDb{728.517, {536.28, 3.41424}, {367.298}};
+    {
+        Funnel probe(project);
+        ASSERT_TRUE(probe.family.isStable(stillAboveZeroDb)) << "the Routh table of the family calls the loop stable";
+        ASSERT_FALSE(probe.stability.isNominallyStable(stillAboveZeroDb)) << "the nominal criterion does not";
+    }
+
+    EXPECT_FALSE(funnel.certifier.certify(stillAboveZeroDb));
+    EXPECT_EQ(funnel.certifier.statistics().refusedByNominalStability, 1u);
+    EXPECT_EQ(funnel.certifier.statistics().refusedByRouth, 0u);
+    EXPECT_EQ(funnel.exact.statistics().verdicts, 0u) << "the specifications were never asked";
     EXPECT_EQ(funnel.family.statistics().rootVerdicts, 0u);
 }
 

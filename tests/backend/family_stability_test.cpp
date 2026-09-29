@@ -2,7 +2,10 @@
  * @file
  * @brief The verifier closes the loop with every plant of the sweep.
  *
- * The four plant forms give the same polynomials their evaluation does; the
+ * The four plant forms give the same polynomials their evaluation does, and
+ * the Routh table in interval arithmetic proves non-Hurwitz exactly the
+ * interval polynomials every member of which fails, leaving undecided those
+ * that hold a Hurwitz member or put zero inside a pivot; the
  * swept family walks the sweep in the order of the templates, first grid
  * fastest, names each member by its values, and says why it cannot be
  * walked; the
@@ -39,6 +42,8 @@
 #include "src/core/loopshaping/common/family_stability_checker.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/loopshaping/common/swept_family.h"
+#include "src/core/math/interval.h"
+#include "src/core/math/interval_polynomial.h"
 #include "src/core/math/range.h"
 #include "src/core/math/polynomial.h"
 #include "src/core/math/sequences.h"
@@ -107,6 +112,24 @@ TEST(PolynomialArithmetic, ProductAndSumHighestDegreeFirst)
     EXPECT_EQ(math::polynomialProduct({}, {1.0, 3.0}), (std::vector<double>{1.0, 3.0}));
     EXPECT_EQ(math::polynomialSum({1.0, 2.0, 3.0}, {4.0, 5.0}), (std::vector<double>{1.0, 6.0, 8.0}));
     EXPECT_EQ(math::polynomialSum({4.0, 5.0}, {1.0, 2.0, 3.0}), (std::vector<double>{1.0, 6.0, 8.0}));
+}
+
+TEST(IntervalRouth, ProvesNonHurwitzOnlyWhatEveryMemberFails)
+{
+    using math::provablyNotHurwitz;
+    EXPECT_FALSE(provablyNotHurwitz({1.0, 3.0, 2.0})) << "(s + 1)(s + 2) is Hurwitz";
+    EXPECT_TRUE(provablyNotHurwitz({1.0, -1.0, 1.0})) << "a negative coefficient";
+    EXPECT_TRUE(provablyNotHurwitz({1.0, 0.0, 1.0})) << "a zero coefficient: roots on the axis";
+    EXPECT_TRUE(provablyNotHurwitz({1.0, 1.0, 1.0, 2.0})) << "positive coefficients, b c < a d";
+    EXPECT_FALSE(provablyNotHurwitz({1.0, 2.0, 3.0, 1.0})) << "positive coefficients, b c > a d";
+    EXPECT_FALSE(provablyNotHurwitz({-1.0, -3.0, -2.0})) << "the same Hurwitz polynomial with its sign flipped";
+
+    EXPECT_TRUE(provablyNotHurwitz({Interval(1.0), Interval(1.0), Interval(0.5, 1.5), Interval(2.0)}))
+            << "every member has c < 2";
+    EXPECT_FALSE(provablyNotHurwitz({Interval(1.0), Interval(1.0), Interval(0.5, 3.0), Interval(2.0)}))
+            << "members with c > 2 are Hurwitz: nothing is proven";
+    EXPECT_FALSE(provablyNotHurwitz({Interval(-1.0, 1.0), Interval(3.0), Interval(2.0)}))
+            << "a leading coefficient of no definite sign";
 }
 
 TEST(PlantPolynomials, EveryFormAgreesWithItsEvaluation)
@@ -476,6 +499,8 @@ TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
         EXPECT_GT(proven, 0u) << name;
         EXPECT_GT(holdingAStableOne, 0u) << name;
         EXPECT_EQ(provenOfThose, 0u) << name;
+        EXPECT_EQ(family.statistics().nominalBoxVerdicts, 1500u) << name;
+        EXPECT_EQ(family.statistics().nominalBoxPrunes, proven) << name;
     }
 }
 

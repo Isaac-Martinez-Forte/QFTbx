@@ -9,7 +9,11 @@
  * admissible gain set computed over the whole cloud agrees with the
  * verifier's criterion on a fine scan of gains at random zeros and poles,
  * the working-set search finds the same minimum as the whole cloud, and the
- * minimum is a minimum, a hair below it refused. The vertices the searches
+ * minimum is a minimum, a hair below it refused. The search keeps state of
+ * its own from one vertex to the next, which plant it asks first, and the
+ * points asked in between must not move it: two checks asked the same
+ * vertices, one of them asked other points between, give the same gains to
+ * the bit after the same exchange rounds and the same confirmations. The vertices the searches
  * returned in the study are pinned: the DC motor at z = 1000, p = 472.86
  * where the two bracketing columns demanded 89 and the specifications admit
  * 41.47, the toolbox example at its nearest-node vertex, and the gear-train
@@ -243,6 +247,47 @@ TEST(ExactGain, TheWorkingSetFindsTheMinimumOfTheWholeCloud)
         std::printf("EXACT-GAIN %-14s working set: %zu of 30 vertices admit a gain, %zu exchange rounds, %zu confirmations, largest set %zu\n",
                     name, found, rounds, confirmations, problem.check->statistics().largestWorkingSet);
         EXPECT_GT(found, 0u) << name;
+    }
+}
+
+TEST(ExactGain, WhatIsAskedBetweenTwoSearchesDoesNotMoveThem)
+{
+    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft"}) {
+        if (!std::filesystem::exists(example(name))) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        Problem alone(name);
+        Problem interrupted(name);
+        const Range gains = alone.structure->gain().range();
+
+        std::mt19937 vertices(17);
+        std::mt19937 between(41);
+        std::size_t found = 0;
+        for (int vertex = 0; vertex < 20; ++vertex) {
+            std::vector<double> zeros, poles;
+            for (const Parameter & z : alone.structure->numerator()) zeros.push_back(drawIn(z, vertices));
+            for (const Parameter & p : alone.structure->denominator()) poles.push_back(drawIn(p, vertices));
+
+            for (int asked = 0; asked < 3; ++asked) {
+                PointController other;
+                for (const Parameter & z : alone.structure->numerator()) other.zeros.push_back(drawIn(z, between));
+                for (const Parameter & p : alone.structure->denominator()) other.poles.push_back(drawIn(p, between));
+                other.gain = drawIn(alone.structure->gain(), between);
+                interrupted.check->admits(other);
+            }
+
+            const ExactPointCheck::GainSearch first = alone.check->lowestAdmissibleGain(zeros, poles, gains);
+            const ExactPointCheck::GainSearch second = interrupted.check->lowestAdmissibleGain(zeros, poles, gains);
+            ASSERT_EQ(first.gain.has_value(), second.gain.has_value()) << name << " vertex " << vertex;
+            EXPECT_EQ(first.rounds, second.rounds) << name << " vertex " << vertex;
+            EXPECT_EQ(first.confirmations, second.confirmations) << name << " vertex " << vertex;
+            if (first.gain.has_value()) {
+                EXPECT_EQ(*first.gain, *second.gain) << name << " vertex " << vertex;
+                ++found;
+            }
+        }
+        EXPECT_GT(found, 0u) << name;
+        EXPECT_GT(interrupted.check->statistics().verdicts, alone.check->statistics().verdicts) << name;
     }
 }
 

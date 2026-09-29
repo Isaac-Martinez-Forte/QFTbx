@@ -8,7 +8,11 @@
  * proven infeasible is sampled densely and every sample violates some
  * specification by the verifier's own kernel, and every magnitude in a strip
  * the verdict certifies forbidden, at any phase of the span, violates too.
- * Sectors that are proven, and strips that are found, both occur.
+ * Sectors that are proven, and strips that are found, both occur. The
+ * tracking part of a verdict is built from the working set the gain search
+ * grows, and kept between verdicts while that set stands: a check that gave
+ * verdicts before its working sets grew gives afterwards, to the bit, the
+ * verdicts of one that never gave any before.
  */
 
 #include <gtest/gtest.h>
@@ -19,6 +23,7 @@
 #include <filesystem>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/loopshaping/common/exact_point_check.h"
@@ -102,4 +107,68 @@ TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
         EXPECT_GT(proven, 0u) << name;
         EXPECT_GT(strips, 0u) << name;
     }
+}
+
+TEST(ExactSector, AVerdictAfterTheWorkingSetGrowsIsThatOfAFreshCache)
+{
+    std::size_t grown = 0;
+    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
+        const std::string file = (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        const std::vector<double> & omega = *project.omega()->values();
+        const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+        ExactPointCheck warmed(*project.plant(), structure, omega, project.templates(), specifications);
+        ExactPointCheck fresh(*project.plant(), structure, omega, project.templates(), specifications);
+        ASSERT_TRUE(warmed.usable());
+
+        struct Sector {
+            std::size_t frequency;
+            Range phase;
+            Range magnitude;
+        };
+        std::mt19937 generator(31);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        std::vector<Sector> sectors;
+        for (std::size_t f = 0; f < omega.size(); ++f) {
+            for (int trial = 0; trial < 20; ++trial) {
+                const double centrePhase = -360.0 * unit(generator);
+                const double centreDb = -40.0 + 100.0 * unit(generator);
+                const double spanPhase = std::pow(10.0, -2.0 + 3.6 * unit(generator));
+                const double spanDb = std::pow(10.0, -2.0 + 3.0 * unit(generator));
+                sectors.push_back({f, Range(centrePhase - spanPhase / 2.0, centrePhase + spanPhase / 2.0),
+                                   Range(centreDb - spanDb / 2.0, centreDb + spanDb / 2.0)});
+            }
+        }
+
+        for (const Sector & s : sectors) {
+            warmed.sectorVerdict(s.frequency, s.phase, s.magnitude);
+        }
+
+        const auto logDraw = [&](const Parameter & parameter) {
+            const Range r = parameter.range();
+            return std::exp(std::log(r.min) + unit(generator) * (std::log(r.max) - std::log(r.min)));
+        };
+        for (int vertex = 0; vertex < 30; ++vertex) {
+            std::vector<double> zeros, poles;
+            for (const Parameter & z : structure->numerator()) zeros.push_back(logDraw(z));
+            for (const Parameter & q : structure->denominator()) poles.push_back(logDraw(q));
+            warmed.lowestAdmissibleGain(zeros, poles, structure->gain().range());
+            fresh.lowestAdmissibleGain(zeros, poles, structure->gain().range());
+        }
+        grown += warmed.statistics().exchangeRounds;
+
+        for (const Sector & s : sectors) {
+            const ExactPointCheck::SectorVerdict a = warmed.sectorVerdict(s.frequency, s.phase, s.magnitude);
+            const ExactPointCheck::SectorVerdict b = fresh.sectorVerdict(s.frequency, s.phase, s.magnitude);
+            EXPECT_EQ(a.provablyInfeasible, b.provablyInfeasible) << name << " frequency " << s.frequency;
+            EXPECT_EQ(a.forbiddenBelowDb, b.forbiddenBelowDb) << name << " frequency " << s.frequency;
+            EXPECT_EQ(a.forbiddenAboveDb, b.forbiddenAboveDb) << name << " frequency " << s.frequency;
+        }
+    }
+    EXPECT_GT(grown, 0u) << "the gain searches grew some working set";
 }
