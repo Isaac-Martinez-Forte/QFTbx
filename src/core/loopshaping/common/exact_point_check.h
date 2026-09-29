@@ -41,8 +41,11 @@
  * below minus the tolerance, 1e-12 dB: the verifier accepts an excess of
  * zero, and a candidate put on the very edge of a bound by a root formula
  * must not be returned to be refused by a rounding. So whatever is admitted
- * here the verifier accepts, on the specifications, and the two cannot
- * disagree by an inlined copy of the comparison, because there is one.
+ * here the verifier accepts, on the specifications. The comparison is one,
+ * but the loop is evaluated here and again in the verifier, and the two
+ * evaluations may round differently in their last bit, as the compiler
+ * fuses their products in one place and not in the other. The tolerance,
+ * orders of magnitude above such a rounding, absorbs it.
  * Exact means exact with respect to the sampled value set, the verifier's
  * own reference: the sampling of the family stays the input. A rejection
  * leaves at the first frequency that fails, and the frequency that failed

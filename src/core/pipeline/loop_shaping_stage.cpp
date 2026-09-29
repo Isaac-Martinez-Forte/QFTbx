@@ -18,7 +18,6 @@
 #include "src/core/pipeline/loop_shaping_stage.h"
 
 #include "src/core/common/exception.h"
-#include "src/core/loopshaping/common/exact_point_check.h"
 #include "src/core/specifications/specification_record.h"
 
 namespace qftbx {
@@ -90,7 +89,7 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
             const SpecificationCheck & check = *result->check();
             const bool familyRefused = m_settings.algorithms.familyStabilityGate && check.family.checked
                                        && check.family.unstableMembers > 0;
-            if (!(check.worstExcessDb <= -ExactPointCheck::kToleranceDb) || familyRefused) {
+            if (!(check.worstExcessDb <= 0.0) || familyRefused) {
                 throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).")
                                        .arg(check.worstExcessDb).arg(check.family.unstableMembers));
             }
