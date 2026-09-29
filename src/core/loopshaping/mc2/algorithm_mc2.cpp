@@ -234,28 +234,13 @@ bool AlgorithmMc2::solve()
             continue;
         }
 
-        if (node->flag() == feasible) {
-            if (node->cornerVerdict().has_value()) {
-                if (*node->cornerVerdict()) {
-                    if (exactReading) {
-                        continue;
-                    }
-                    designedController = pointFromBox(node->system(), true);
-                    return finish();
-                }
-            } else {
-                const PointController corner = cornerOf(node->system(), true);
-                const bool certified = exactReading ? certifier->certify(corner) : family->isStable(corner);
-                node->setCornerVerdict(certified);
-
-                if (certified) {
-                    if (exactReading) {
-                        adoptIncumbent(loweredAtVertex(corner), node->system());
-                        continue;
-                    }
-                    designedController = pointFromBox(node->system(), true);
-                    return finish();
-                }
+        if (!exactReading && node->flag() == feasible) {
+            if (!node->cornerVerdict().has_value()) {
+                node->setCornerVerdict(family->isStable(cornerOf(node->system(), true)));
+            }
+            if (*node->cornerVerdict()) {
+                designedController = pointFromBox(node->system(), true);
+                return finish();
             }
         }
 
@@ -596,9 +581,7 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
             return false;
         }
 
-        bestCertifiedGain = point.gain;
-        bestCertifiedController = systemFromPoint(box, point);
-        ++certificate.incumbentUpdates;
+        adoptIncumbent(point, box);
         return true;
     }
 
@@ -620,10 +603,7 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
         return false;
     }
 
-    bestCertifiedGain = gain;
-    bestCertifiedController = systemFromPoint(box, point);
-    ++certificate.incumbentUpdates;
-
+    adoptIncumbent(point, box);
     return true;
 }
 
@@ -639,14 +619,9 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
     std::optional<bool> verdict;
 
     if (exactReading) {
-        if (gainInf < bestCertifiedGain) {
-            verdict = certifier->certify(point);
-            if (*verdict) {
-                const PointController design = loweredAtVertex(point);
-                bestCertifiedGain = design.gain;
-                bestCertifiedController = systemFromPoint(box.get(), design);
-                ++certificate.incumbentUpdates;
-            }
+        verdict = certifier->certify(point);
+        if (*verdict) {
+            adoptIncumbent(loweredAtVertex(point), box.get());
         }
     } else {
         if (!stability->isNominallyStable(point)) {
@@ -657,9 +632,7 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
         if (gainInf < bestCertifiedGain) {
             verdict = family->isStable(point);
             if (*verdict) {
-                bestCertifiedGain = gainInf;
-                bestCertifiedController = systemFromPoint(box.get(), point);
-                ++certificate.incumbentUpdates;
+                adoptIncumbent(point, box.get());
             }
         }
     }
