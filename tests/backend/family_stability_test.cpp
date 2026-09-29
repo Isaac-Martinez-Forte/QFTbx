@@ -16,10 +16,12 @@
  * of controllers wholly beyond the Routh limit of the DC motor's worst plant
  * is proven unstable by the interval Routh table, one that straddles the
  * limit, or lies below it, is not, and no controller sampled inside a box the
- * table proves unstable is stable. And the gate itself: on the magnetic
- * levitation problem the search returns a design the family does not accept
- * until it is given the sweep, and then only designs every plant is stable
- * under.
+ * table proves unstable is stable; the same holds with the nominal plant,
+ * on the DC motor of Tharewal's example 3.1 and on the magnetic levitation
+ * plant, whose poles sit on the imaginary axis. And the gate itself: on the
+ * magnetic levitation problem the search returns a design the family does
+ * not accept until it is given the sweep, and then only designs every plant
+ * is stable under.
  */
 
 #include <gtest/gtest.h>
@@ -398,6 +400,83 @@ TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
     EXPECT_TRUE(family.isStable(returned)) << "the design the battery returned stabilises the family by Routh";
     EXPECT_TRUE(family.isStableByRoots(returned)) << "and by the roots";
     EXPECT_FALSE(family.isBoxUnstable(design.get())) << "a box holding that design cannot be proven unstable";
+}
+
+TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
+{
+    for (const char * name : {"dcm-k.qft", "maglev-lower.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        ASSERT_NE(structure, nullptr);
+        LtiSystem * plant = project.plant();
+        FamilyStabilityChecker family(plant, structure, project.sweepGrids());
+        ASSERT_TRUE(family.usable());
+
+        const std::optional<LtiSystem::Polynomials> nominal = plant->polynomialsAt(
+                    nominalValues(plant->numerator()), nominalValues(plant->denominator()), plant->gain().nominal());
+        ASSERT_TRUE(nominal.has_value());
+        std::unique_ptr<LtiSystem> controller = structure->clone();
+        const auto stableAtNominal = [&](const PointController & point) {
+            const std::optional<LtiSystem::Polynomials> loop = controller->polynomialsAt(point.zeros, point.poles, point.gain);
+            return math::isHurwitz(math::polynomialSum(math::polynomialProduct(nominal->numerator, loop->numerator),
+                                                       math::polynomialProduct(nominal->denominator, loop->denominator)));
+        };
+
+        std::mt19937 generator(23);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        const auto logDraw = [&](const Parameter & parameter) {
+            const Range r = parameter.range();
+            return std::exp(std::log(r.min) + unit(generator) * (std::log(r.max) - std::log(r.min)));
+        };
+        const auto around = [&](double centre, double relativeWidth, const Range & within) {
+            return Range(std::max(within.min, centre / (1.0 + relativeWidth)), std::min(within.max, centre * (1.0 + relativeWidth)));
+        };
+
+        std::size_t proven = 0, sampled = 0, holdingAStableOne = 0, provenOfThose = 0;
+        for (int trial = 0; trial < 1500; ++trial) {
+            const double width = std::pow(10.0, -4.0 + 4.0 * unit(generator));
+            std::vector<Parameter> zeros, poles;
+            for (const Parameter & z : structure->numerator()) {
+                zeros.emplace_back(z.name(), around(logDraw(z), width, z.range()), z.range().min);
+            }
+            for (const Parameter & q : structure->denominator()) {
+                poles.emplace_back(q.name(), around(logDraw(q), width, q.range()), q.range().min);
+            }
+            const Range gain = around(logDraw(structure->gain()), width, structure->gain().range());
+            std::unique_ptr<LtiSystem> box = structure->create("box", zeros, poles,
+                                                               Parameter(std::string("k"), gain, gain.min), Parameter(0.0));
+            const bool isProven = family.isBoxUnstableAtNominal(box.get());
+            proven += isProven ? 1 : 0;
+
+            bool anyStable = false;
+            for (int point = 0; point < 20; ++point) {
+                PointController inside;
+                for (const Parameter & z : box->numerator()) inside.zeros.push_back(z.range().min + unit(generator) * (z.range().max - z.range().min));
+                for (const Parameter & q : box->denominator()) inside.poles.push_back(q.range().min + unit(generator) * (q.range().max - q.range().min));
+                inside.gain = gain.min + unit(generator) * (gain.max - gain.min);
+                const bool stable = stableAtNominal(inside);
+                anyStable = anyStable || stable;
+                if (isProven) {
+                    EXPECT_FALSE(stable) << name << " trial " << trial << ": a controller inside a box proven unstable at the nominal plant is stable";
+                    ++sampled;
+                }
+            }
+            if (anyStable) {
+                ++holdingAStableOne;
+                provenOfThose += isProven ? 1 : 0;
+            }
+        }
+        std::printf("NOMINAL-BOX %-16s %zu of 1500 random boxes proven unstable at the nominal plant, %zu controllers sampled inside; "
+                    "%zu boxes hold a stable one, %zu of them proven\n", name, proven, sampled, holdingAStableOne, provenOfThose);
+        EXPECT_GT(proven, 0u) << name;
+        EXPECT_GT(holdingAStableOne, 0u) << name;
+        EXPECT_EQ(provenOfThose, 0u) << name;
+    }
 }
 
 TEST(FamilyStabilityGate, TheSearchNoLongerReturnsTheUnstableMaglevDesign)

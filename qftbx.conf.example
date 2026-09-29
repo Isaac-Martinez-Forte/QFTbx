@@ -167,14 +167,14 @@
 # family-stability-gate = 1
 
 # MC2: how the search decides about a single controller. columns: against
-# the boundary columns, as published. exact-exits: a candidate leaves the
-# search only if it meets the specifications themselves over the whole
-# template. exact: the best gain is read from the specifications too, the
-# search runs on as a branch and bound until nothing is left, and every box
-# discarded carries a proof, by the Routh table in interval arithmetic on the
-# family or by the specifications over the box's own phase span. Both need a
-# template at every design frequency.
-# Values: columns, exact-exits or exact.
+# the boundary columns, as published. exact: against the specifications
+# themselves over the whole template, the best gain read from them at the
+# loop's exact phase, the search run on as a branch and bound until nothing
+# is left, and every box discarded with a proof, by the Routh table in
+# interval arithmetic on the family or by the specifications over the box's
+# own phase span, save what the nominal criterion refuses on its frequency
+# grid alone. exact needs a template at every design frequency.
+# Values: columns or exact.
 # point-reading = columns
 
 # Under point-reading = exact, the reading of the columns that guide the

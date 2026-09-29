@@ -7,8 +7,8 @@
  * the point on the Routh limit of the family, which the Routh table calls
  * stable, is refused by the roots with the verifier's tolerance, so the
  * search cannot return what the verifier would then reject; and a point
- * far outside the bounds is refused by the specifications before the
- * nominal criterion is asked. On the toolbox example, the design the search
+ * far above the family's stability limit is refused by the Routh table
+ * before anything else is asked. On the toolbox example, the design the search
  * returns under the nearest-node reading of the columns, which those
  * columns admit, is refused by the specifications themselves.
  */
@@ -137,13 +137,17 @@ TEST(Certifier, TheFunnelStopsAtTheFirstRefusal)
     project.load(file);
     Funnel funnel(project);
 
-    PointController farOutside = designOf(*project.loopShapingResult()->controller());
-    farOutside.gain *= 100.0;
+    const PointController beyondTheLimit{50.0, {1000.0}, {466.25}};
+    {
+        Funnel probe(project);
+        ASSERT_FALSE(probe.family.isStable(beyondTheLimit)) << "above the Routh limit of the family, near 40.89";
+    }
 
-    EXPECT_FALSE(funnel.certifier.certify(farOutside));
-    EXPECT_EQ(funnel.certifier.statistics().refusedBySpecifications, 1u);
+    EXPECT_FALSE(funnel.certifier.certify(beyondTheLimit));
+    EXPECT_EQ(funnel.certifier.statistics().refusedByRouth, 1u);
+    EXPECT_EQ(funnel.family.statistics().verdicts, 1u);
     EXPECT_EQ(funnel.stability.statistics().verdicts, 0u) << "the nominal criterion was never asked";
-    EXPECT_EQ(funnel.family.statistics().verdicts, 0u);
+    EXPECT_EQ(funnel.exact.statistics().verdicts, 0u) << "nor the specifications";
     EXPECT_EQ(funnel.family.statistics().rootVerdicts, 0u);
 }
 

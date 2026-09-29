@@ -54,4 +54,14 @@ const std::map<double, double> & McSearchNode::feasibleFrequencies() const
     return m_feasibleFrequencies;
 }
 
+void McSearchNode::setCornerVerdict(bool certified)
+{
+    m_cornerVerdict = certified;
+}
+
+std::optional<bool> McSearchNode::cornerVerdict() const
+{
+    return m_cornerVerdict;
+}
+
 }

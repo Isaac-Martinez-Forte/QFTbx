@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief The certification funnel, cheapest question first.
+ * @brief The certification funnel, the Routh table first.
  */
 
 #include "src/core/loopshaping/common/certifier.h"
@@ -16,16 +16,16 @@ bool Certifier::certify(const PointController & point, bool specificationsAdmitt
 {
     ++m_statistics.certifications;
 
-    if (!specificationsAdmitted && !m_exact.admits(point)) {
-        ++m_statistics.refusedBySpecifications;
+    if (!m_family.isStable(point)) {
+        ++m_statistics.refusedByRouth;
         return false;
     }
     if (!m_stability.isNominallyStable(point)) {
         ++m_statistics.refusedByNominalStability;
         return false;
     }
-    if (!m_family.isStable(point)) {
-        ++m_statistics.refusedByRouth;
+    if (!specificationsAdmitted && !m_exact.admits(point)) {
+        ++m_statistics.refusedBySpecifications;
         return false;
     }
     if (!m_family.isStableByRoots(point)) {

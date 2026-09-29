@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "src/core/loopshaping/common/point_controller.h"
@@ -58,11 +59,19 @@
  * until every piece is proven or a piece becomes negligible. Before any of
  * that, the lower corner of the box is closed with the same plant by the
  * real Routh table: a plant that leaves that corner stable proves nothing
- * about the box, and that answer costs a table. A search that reaches the gain the specifications need only
- * beyond the family's stability limit bisects such boxes down to its
- * resolution and tries their vertices one by one; this discards them whole,
- * with a proof. Only structures whose polynomials are products of linear
- * factors are asked (zero-pole-gain and time-constant forms).
+ * about the box, and that answer costs a table. A search that reaches the
+ * gain the specifications need only beyond the family's stability limit
+ * bisects such boxes down to its resolution and tries their vertices one by
+ * one; this discards them whole, with a proof. isBoxUnstableAtNominal asks
+ * the same of the nominal plant, which is what the nominal criterion's own
+ * box test answers from a frequency grid, so that a discard on that answer
+ * can be told proven from grid-backed; there the zeros and poles are
+ * bisected along with the gain, the widest relative to its size first,
+ * since on the DC motor of Tharewal's example 3.1 the gain alone proves
+ * none of the boxes that criterion refuses and every parameter proves a
+ * third of them. Only structures whose
+ * polynomials are products of linear factors are asked (zero-pole-gain and
+ * time-constant forms).
  *
  * It keeps a clone of the controller structure, since the search gives its
  * own away to the first box of the list.
@@ -83,11 +92,15 @@ public:
 
     bool isBoxUnstable(LtiSystem * box);
 
+    bool isBoxUnstableAtNominal(LtiSystem * box);
+
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t rootVerdicts = 0;
         std::size_t boxVerdicts = 0;
         std::size_t boxPrunes = 0;
+        std::size_t nominalBoxVerdicts = 0;
+        std::size_t nominalBoxPrunes = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 
@@ -96,6 +109,7 @@ private:
 
     std::unique_ptr<LtiSystem> m_controller;
     SweptFamily m_family;
+    std::optional<LtiSystem::Polynomials> m_nominal;
     bool m_usable = false;
     std::size_t m_lastUnstable = 0;
     std::vector<std::size_t> m_recentRefusers;

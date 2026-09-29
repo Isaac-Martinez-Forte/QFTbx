@@ -13,6 +13,7 @@
 #include "src/core/loopshaping/common/point_controller.h"
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <optional>
 #include <vector>
@@ -33,6 +34,11 @@ FamilyStabilityChecker::FamilyStabilityChecker(LtiSystem * plant, LtiSystem * co
     m_controller = controller->clone();
     m_family = SweptFamily(*plant, sweep);
     m_usable = m_family.usable();
+
+    if (m_usable) {
+        m_nominal = plant->polynomialsAt(nominalValues(plant->numerator()), nominalValues(plant->denominator()),
+                                         plant->gain().nominal());
+    }
 }
 
 void FamilyStabilityChecker::rememberRefuser(std::size_t member)
@@ -96,6 +102,121 @@ std::vector<Interval> asIntervals(const std::vector<double> & coefficients)
     return intervals;
 }
 
+struct BoxIntervals {
+    LtiSystem::Polynomials corner;
+    LtiSystem::SystemType type = LtiSystem::SystemType::ZeroPoleGain;
+    std::vector<Interval> zeros;
+    std::vector<Interval> poles;
+    Interval gain;
+};
+
+std::optional<BoxIntervals> boxIntervalsOf(LtiSystem * box, LtiSystem & controller)
+{
+    const LtiSystem::SystemType type = box->type();
+    if (type != LtiSystem::SystemType::ZeroPoleGain && type != LtiSystem::SystemType::TimeConstantGain) {
+        return std::nullopt;
+    }
+
+    const PointController corner = cornerOf(box, true);
+    const std::optional<LtiSystem::Polynomials> loop = controller.polynomialsAt(corner.zeros, corner.poles, corner.gain);
+    if (!loop.has_value()) {
+        return std::nullopt;
+    }
+
+    BoxIntervals intervals;
+    intervals.corner = *loop;
+    intervals.type = type;
+    for (const Parameter & zero : box->numerator()) {
+        intervals.zeros.push_back(intervalOf(zero));
+    }
+    for (const Parameter & pole : box->denominator()) {
+        intervals.poles.push_back(intervalOf(pole));
+    }
+    if (type == LtiSystem::SystemType::TimeConstantGain) {
+        for (const std::vector<Interval> * roots : {&intervals.zeros, &intervals.poles}) {
+            for (const Interval & r : *roots) {
+                if (r.containsZero()) {
+                    return std::nullopt;
+                }
+            }
+        }
+    }
+    intervals.gain = intervalOf(box->gain());
+    return intervals;
+}
+
+std::vector<Interval> factorProductOf(const std::vector<Interval> & roots, LtiSystem::SystemType type)
+{
+    std::vector<Interval> product{Interval(1.0)};
+    for (const Interval & r : roots) {
+        product = math::intervalPolynomialProduct(
+                    product, type == LtiSystem::SystemType::ZeroPoleGain ? std::vector<Interval>{Interval(1.0), r}
+                                                                          : std::vector<Interval>{Interval(1.0) / r, Interval(1.0)});
+    }
+    return product;
+}
+
+double relativeWidth(const Interval & x)
+{
+    const double scale = std::max(std::abs(x.lower()), std::abs(x.upper()));
+    return scale > 0.0 ? (x.upper() - x.lower()) / scale : 0.0;
+}
+
+bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals & box, bool splitRoots)
+{
+    if (math::isHurwitz(math::polynomialSum(math::polynomialProduct(plant.numerator, box.corner.numerator),
+                                            math::polynomialProduct(plant.denominator, box.corner.denominator)))) {
+        return false;
+    }
+
+    const std::vector<Interval> plantNumerator = asIntervals(plant.numerator);
+    const std::vector<Interval> plantDenominator = asIntervals(plant.denominator);
+
+    std::vector<Interval> zeros = box.zeros;
+    std::vector<Interval> poles = box.poles;
+    Interval gain = box.gain;
+
+    const std::function<bool (int)> provenOn = [&](int depth) {
+        std::vector<Interval> perGain = math::intervalPolynomialProduct(plantNumerator, factorProductOf(zeros, box.type));
+        for (Interval & c : perGain) {
+            c = c * gain;
+        }
+        const std::vector<Interval> withoutGain =
+                math::intervalPolynomialProduct(plantDenominator, factorProductOf(poles, box.type));
+        if (math::provablyNotHurwitz(math::intervalPolynomialSum(withoutGain, perGain))) {
+            return true;
+        }
+        if (depth >= 12) {
+            return false;
+        }
+
+        Interval * widest = &gain;
+        if (splitRoots) {
+            for (std::vector<Interval> * roots : {&zeros, &poles}) {
+                for (Interval & r : *roots) {
+                    if (relativeWidth(r) > relativeWidth(*widest)) {
+                        widest = &r;
+                    }
+                }
+            }
+        }
+        if (!(relativeWidth(*widest) > 1e-9)) {
+            return false;
+        }
+
+        const Interval whole = *widest;
+        const double middle = 0.5 * (whole.lower() + whole.upper());
+        *widest = Interval(whole.lower(), middle);
+        const bool lower = provenOn(depth + 1);
+        *widest = Interval(middle, whole.upper());
+        const bool proven = lower && provenOn(depth + 1);
+        *widest = whole;
+        return proven;
+    };
+
+    return provenOn(0);
+}
+
 }
 
 bool FamilyStabilityChecker::isBoxUnstable(LtiSystem * box)
@@ -103,83 +224,39 @@ bool FamilyStabilityChecker::isBoxUnstable(LtiSystem * box)
     if (!m_usable || box == nullptr) {
         return false;
     }
-    const LtiSystem::SystemType type = box->type();
-    if (type != LtiSystem::SystemType::ZeroPoleGain && type != LtiSystem::SystemType::TimeConstantGain) {
+    const std::optional<BoxIntervals> intervals = boxIntervalsOf(box, *m_controller);
+    if (!intervals.has_value()) {
         return false;
     }
 
     ++m_statistics.boxVerdicts;
 
-    const PointController corner = cornerOf(box, true);
-    const std::optional<LtiSystem::Polynomials> loop =
-            m_controller->polynomialsAt(corner.zeros, corner.poles, corner.gain);
-    if (!loop.has_value()) {
-        return false;
-    }
-
-    std::vector<Interval> numerator{Interval(1.0)};
-    std::vector<Interval> denominator{Interval(1.0)};
-    for (const Parameter & zero : box->numerator()) {
-        const Interval z = intervalOf(zero);
-        if (type == LtiSystem::SystemType::ZeroPoleGain) {
-            numerator = math::intervalPolynomialProduct(numerator, {Interval(1.0), z});
-        } else {
-            if (z.containsZero()) {
-                return false;
-            }
-            numerator = math::intervalPolynomialProduct(numerator, {Interval(1.0) / z, Interval(1.0)});
-        }
-    }
-    for (const Parameter & pole : box->denominator()) {
-        const Interval p = intervalOf(pole);
-        if (type == LtiSystem::SystemType::ZeroPoleGain) {
-            denominator = math::intervalPolynomialProduct(denominator, {Interval(1.0), p});
-        } else {
-            if (p.containsZero()) {
-                return false;
-            }
-            denominator = math::intervalPolynomialProduct(denominator, {Interval(1.0) / p, Interval(1.0)});
-        }
-    }
-    const Interval gain = intervalOf(box->gain());
-
     for (const std::size_t member : m_recentRefusers) {
-        const LtiSystem::Polynomials & plant = m_family.member(member);
-
-        if (math::isHurwitz(math::polynomialSum(math::polynomialProduct(plant.numerator, loop->numerator),
-                                                math::polynomialProduct(plant.denominator, loop->denominator)))) {
-            continue;
-        }
-
-        const std::vector<Interval> withoutGain =
-                math::intervalPolynomialProduct(asIntervals(plant.denominator), denominator);
-        const std::vector<Interval> perGain =
-                math::intervalPolynomialProduct(asIntervals(plant.numerator), numerator);
-
-        const auto unstableFor = [&](const Interval & k) {
-            std::vector<Interval> scaled = perGain;
-            for (Interval & c : scaled) {
-                c = c * k;
-            }
-            return math::provablyNotHurwitz(math::intervalPolynomialSum(withoutGain, scaled));
-        };
-        const std::function<bool (double, double, int)> provenOn = [&](double lower, double upper, int depth) {
-            if (unstableFor(Interval(lower, upper))) {
-                return true;
-            }
-            if (depth >= 12 || !(upper - lower > 1e-9 * upper)) {
-                return false;
-            }
-            const double middle = 0.5 * (lower + upper);
-            return provenOn(lower, middle, depth + 1) && provenOn(middle, upper, depth + 1);
-        };
-
-        if (provenOn(gain.lower(), gain.upper(), 0)) {
+        if (provenUnstableWith(m_family.member(member), *intervals, false)) {
             ++m_statistics.boxPrunes;
             return true;
         }
     }
 
+    return false;
+}
+
+bool FamilyStabilityChecker::isBoxUnstableAtNominal(LtiSystem * box)
+{
+    if (!m_nominal.has_value() || box == nullptr) {
+        return false;
+    }
+    const std::optional<BoxIntervals> intervals = boxIntervalsOf(box, *m_controller);
+    if (!intervals.has_value()) {
+        return false;
+    }
+
+    ++m_statistics.nominalBoxVerdicts;
+
+    if (provenUnstableWith(*m_nominal, *intervals, true)) {
+        ++m_statistics.nominalBoxPrunes;
+        return true;
+    }
     return false;
 }
 

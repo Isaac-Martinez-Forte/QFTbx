@@ -139,20 +139,18 @@ TEST_F(SettingsFile, TheLanguageIsATextWithTheShapeOfACode)
     EXPECT_THROW(qftbx::readSettings(written("[interface]\nlanguage = 3\n")), qftbx::InvalidInput);
 }
 
-TEST_F(SettingsFile, ThePointReadingIsOneOfThreeWords)
+TEST_F(SettingsFile, ThePointReadingIsOneOfTwoWords)
 {
     using PointReading = qftbx::Settings::Algorithms::PointReading;
     EXPECT_EQ(qftbx::Settings().algorithms.pointReading, PointReading::Columns);
     EXPECT_EQ(qftbx::readSettings(written("[algorithms]\npoint-reading = columns\n")).algorithms.pointReading,
               PointReading::Columns);
-    EXPECT_EQ(qftbx::readSettings(written("[algorithms]\npoint-reading = exact-exits\n")).algorithms.pointReading,
-              PointReading::ExactExits);
     EXPECT_EQ(qftbx::readSettings(written("[algorithms]\npoint-reading = exact\n")).algorithms.pointReading,
               PointReading::Exact);
     EXPECT_THROW(qftbx::readSettings(written("[algorithms]\npoint-reading = nearest\n")), qftbx::InvalidInput);
     EXPECT_THROW(qftbx::readSettings(written("[algorithms]\npoint-reading = 1\n")), qftbx::InvalidInput);
 
-    for (const PointReading reading : {PointReading::Columns, PointReading::ExactExits, PointReading::Exact}) {
+    for (const PointReading reading : {PointReading::Columns, PointReading::Exact}) {
         EXPECT_EQ(qftbx::pointReadingFromName(qftbx::pointReadingName(reading)), reading);
     }
 

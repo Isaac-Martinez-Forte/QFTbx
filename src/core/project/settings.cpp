@@ -32,18 +32,16 @@ namespace qftbx {
 const char * pointReadingName(Settings::Algorithms::PointReading reading)
 {
     switch (reading) {
-    case Settings::Algorithms::PointReading::ExactExits: return "exact-exits";
-    case Settings::Algorithms::PointReading::Exact:      return "exact";
-    case Settings::Algorithms::PointReading::Columns:    break;
+    case Settings::Algorithms::PointReading::Exact:   return "exact";
+    case Settings::Algorithms::PointReading::Columns: break;
     }
     return "columns";
 }
 
 std::optional<Settings::Algorithms::PointReading> pointReadingFromName(const std::string & name)
 {
-    if (name == "columns")     return Settings::Algorithms::PointReading::Columns;
-    if (name == "exact-exits") return Settings::Algorithms::PointReading::ExactExits;
-    if (name == "exact")       return Settings::Algorithms::PointReading::Exact;
+    if (name == "columns") return Settings::Algorithms::PointReading::Columns;
+    if (name == "exact")   return Settings::Algorithms::PointReading::Exact;
     return std::nullopt;
 }
 
@@ -270,7 +268,7 @@ const std::vector<Binding> & bindings()
          [](const std::string & text, std::int64_t line, Settings & into) {
              const std::optional<Settings::Algorithms::PointReading> reading = pointReadingFromName(text);
              if (!reading.has_value()) {
-                 refuse("algorithms.point-reading", line, "columns, exact-exits or exact, not \"" + text + "\"");
+                 refuse("algorithms.point-reading", line, "columns or exact, not \"" + text + "\"");
              }
              into.algorithms.pointReading = *reading;
          }},

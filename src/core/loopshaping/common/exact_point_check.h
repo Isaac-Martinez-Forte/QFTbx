@@ -48,6 +48,10 @@
  * leaves at the first frequency that fails, and the frequency that failed
  * last is asked first next time, since the candidates of a search resemble
  * one another; an admission always walks every plant of every frequency.
+ * The gain search below keeps a rotation of its own, so which frequency
+ * its confirmations fail at, and so which working set grows, depends on
+ * its own candidates alone and not on what else the search asked in
+ * between.
  *
  * lowestAdmissibleGain is the exact best gain at fixed zeros and poles, the
  * T3 step of the MC family done against the specifications instead of a
@@ -106,10 +110,15 @@
  * zero upwards or up to infinity, is a strip the search may cut off the box
  * with a proof; the pairs of the tracking spread enter the same way, the
  * farther plant among the vertices of the hull and the nearer among the
- * working set, a subset of the discs, which proves less but never wrongly. These are exact with
- * respect to the value set, and conservative with respect to the box only
- * through its enclosure. The bound is not lowered by the tolerance here:
- * what is discarded is proven to violate the specification itself.
+ * working set, a subset of the discs, which proves less but never wrongly.
+ * These are exact with respect to the value set, and conservative with
+ * respect to the box only through its enclosure. The bound is not lowered
+ * by the tolerance here: what is discarded is proven to violate the
+ * specification itself. The moduli and directions a verdict needs, of each
+ * plant and of each tracking pair, depend on the frequency alone, so they
+ * are computed once, the pairs again only when a working set has grown,
+ * and a verdict is products with the cosines and sines of the ends of the
+ * phase interval.
  *
  * A project whose templates do not cover every design frequency has no
  * reference: the check is then unusable and the caller keeps to the
@@ -169,6 +178,8 @@ public:
 private:
     std::complex<double> loopAt(const FrequencyReference & at, const PointController & point) const;
 
+    bool admitsFrom(const PointController & point, std::size_t & firstToAsk);
+
     void requireUsable() const;
 
     RangeUnion admissibleMagnitudes(const FrequencyReference & at, std::complex<double> direction,
@@ -180,14 +191,40 @@ private:
 
     bool growWorkingSet(std::size_t frequency, const PointController & point);
 
+    struct Direction {
+        double modulus;
+        double cosine;
+        double sine;
+        double norm;
+        double valueModulus;
+    };
+
+    struct TrackingPair {
+        double modulus;
+        double cosine;
+        double sine;
+        double constant;
+    };
+
+    struct TrackingPairs {
+        std::size_t bound = std::numeric_limits<std::size_t>::max();
+        std::size_t workingSize = 0;
+        std::vector<TrackingPair> pairs;
+    };
+
+    const std::vector<TrackingPair> & trackingPairs(std::size_t frequency, std::size_t bound);
+
     std::unique_ptr<LtiSystem> m_controller;
     std::optional<SpecificationReference> m_reference;
     std::vector<std::vector<std::size_t>> m_working;
     std::vector<std::vector<std::size_t>> m_hull;
     std::vector<std::size_t> m_byOmega;
+    std::vector<std::vector<Direction>> m_directions;
+    std::vector<TrackingPairs> m_pairs;
     std::vector<double> m_forbiddenLower;
     std::vector<double> m_forbiddenUpper;
     std::size_t m_firstToAsk = 0;
+    std::size_t m_ladderFirstToAsk = 0;
     Statistics m_statistics;
 };
 

@@ -15,15 +15,20 @@
  *
  * Under the exact point reading a controller may become the design the
  * search returns, or the best design so far that cuts every box above its
- * gain, only through this: the specifications themselves over the whole
- * template at its own loop value (ExactPointCheck), the nominal closed loop
- * stable, every plant of the sweep stable by the Routh table, and then the
- * same plants by the roots with the verifier's tolerance. The order is the
- * order of cost, and the funnel leaves at the first refusal. The last step
- * exists because the Routh table and the roots disagree within the
- * tolerance the roots are computed to, and a design accepted by one and
- * refused by the other would be returned and then rejected by the verifier;
- * on the DC motor the optimum sits exactly in that band.
+ * gain, only through this: every plant of the sweep stable by the Routh
+ * table, the nominal closed loop stable, the specifications themselves over
+ * the whole template at its own loop value (ExactPointCheck), and then the
+ * same plants by the roots with the verifier's tolerance. The funnel leaves
+ * at the first refusal, and the Routh table goes first because it is the
+ * cheapest question and, wherever the gain the specifications need lies
+ * beyond the family's stability limit, it turns away nearly every
+ * candidate the search asks about directly; the specifications cost a pass
+ * over every value set, and the roots are asked only of what the three
+ * have accepted. The last step exists because the Routh table and the roots
+ * disagree within the tolerance the roots are computed to, and a design
+ * accepted by one and refused by the other would be returned and then
+ * rejected by the verifier; on the DC motor the optimum sits exactly in
+ * that band.
  *
  * So whatever comes out of certify the verifier accepts, on the
  * specifications and on the family, by construction; and nothing the search

@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/search_node.h"
@@ -12,7 +13,9 @@
  * @file
  * @brief Live-list node of the MC family: a SearchNode plus the node
  * history of thesis sec. 4.4.4 - the execution stage, the cut switch and
- * the design frequencies the node is certified feasible at.
+ * the design frequencies the node is certified feasible at - and, for a
+ * feasible slab, the verdict its corner received when the slab was made,
+ * so that the corner is not asked again when the node is taken.
  *
  * Shared by MC of the thesis and by MC2, which carry the same history.
  *
@@ -41,12 +44,16 @@ public:
     void setFeasibleFrequencies(std::map<double, double> frequencies);
     const std::map<double, double> & feasibleFrequencies() const;
 
+    void setCornerVerdict(bool certified);
+    std::optional<bool> cornerVerdict() const;
+
 protected:
 
     bool enabled = true;
     Stage value = Stage::Initial;
 
     std::map<double, double> m_feasibleFrequencies;
+    std::optional<bool> m_cornerVerdict;
 };
 
 }

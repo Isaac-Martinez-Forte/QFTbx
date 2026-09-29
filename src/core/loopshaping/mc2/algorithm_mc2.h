@@ -93,42 +93,47 @@
  * prune - MC2 keeps as MC of the thesis has it, and the two share their
  * search node (common/mc_search_node.h).
  *
- * Under algorithms.point-reading = exact-exits or exact, the point a
- * feasible box or an epsilon-small box yields, the contraction of its gain
- * and the best gain of a box become the design, or the best design so far
- * that prunes the tree, only through the certification funnel
- * (common/certifier.h): the specifications themselves over the whole
- * template at the point's own loop value, the nominal criterion, the family
- * by the Routh table and then by the roots. A box the columns call feasible
- * whose corner the funnel refuses is not dropped: it goes on to the
- * epsilon test and the bisection like an ambiguous one. Boxes are still
- * classified and cut against the columns, so a verdict of infeasible is not
- * a proof; every such discard, every box the nominal criterion pruned whole
- * and every box dropped with no certified point is counted with the
- * smallest gain it could hold (LoopShapingStatistics::Certificate), and
- * "no feasible solution" is claimed only when nothing was discarded without
- * proof. Under exact, the gain of every point that leaves or prunes the
- * search is the smallest the specifications themselves admit at its zeros
- * and poles (ExactPointCheck::lowestAdmissibleGain, the exact T3): the best
- * gain of a box, the candidates an epsilon-small box yields at each of its
+ * Under algorithms.point-reading = exact, the point a feasible box or an
+ * epsilon-small box yields and the best gain of a box become the design,
+ * or the best design so far that prunes the tree, only through the
+ * certification funnel (common/certifier.h): the family by the Routh
+ * table, the nominal criterion, the specifications themselves over the
+ * whole template at the point's own loop value, and the family by the
+ * roots. A box the columns call feasible whose corner the funnel refuses
+ * is not dropped: it goes on to the epsilon test and the bisection like an
+ * ambiguous one, and the verdict its corner received when the slab was
+ * made travels with the node, so the corner is asked once. Every box the
+ * nominal criterion pruned whole and every box dropped with no certified
+ * point is counted with the smallest gain it could hold
+ * (LoopShapingStatistics::Certificate), and "no feasible solution" is
+ * claimed only when nothing was discarded without proof. The gain of every
+ * point that leaves or prunes the search is the smallest the
+ * specifications themselves admit at its zeros and poles
+ * (ExactPointCheck::lowestAdmissibleGain, the exact T3): the best gain of
+ * a box, the candidates an epsilon-small box yields at each of its
  * vertices and its centre, and the corner of a feasible box lowered along
- * its own ray before it is returned or made the best design so far. Under
- * exact the search also ends as a branch and bound ends: a certified point
- * does not return, it becomes the best design so far and prunes every box
- * whose gain cannot beat it, and the search goes on until the live list is
- * empty; the boxes resolved at the epsilon size are counted, with the
- * smallest gain they could hold, since a point at their vertices is not a
- * proof about their inside. And every box taken from the list is first
- * asked of the family gate whether all its controllers destabilise the
- * plant that refused last (the Routh table in interval arithmetic,
+ * its own ray before it is made the best design so far. The search ends
+ * as a branch and bound ends: a certified point does not return, it
+ * becomes the best design so far and prunes every box whose gain cannot
+ * beat it, a box whose smallest gain equals the best design's included,
+ * since a tie is no improvement, and the search goes on until the live
+ * list is empty; the boxes resolved at the epsilon size are counted, with
+ * the smallest gain they could hold, since a point at their vertices is
+ * not a proof about their inside. And every box taken from the list is first asked of the family
+ * gate whether all its controllers destabilise one of the plants that
+ * refused last (the Routh table in interval arithmetic,
  * FamilyStabilityChecker::isBoxUnstable): where the gain the specifications
  * need lies beyond the family's stability limit, the search would otherwise
  * bisect such boxes to its resolution and try every vertex, which is what
  * made the DC motor cost minutes; a box so proven is discarded whole, and
- * the discard is a proof. With the tree that small, the columns can be
- * checked too: a box the columns call infeasible is discarded only when the
- * exact sector verdict (ExactPointCheck::sectorVerdict) proves the whole
- * enclosure inside some plant's disc, and stays ambiguous otherwise; and the
+ * the discard is a proof. A box the nominal criterion finds unstable on
+ * its frequency grid is asked of the same table with the nominal plant, and
+ * its discard counts as proven when the table proves it; otherwise it rests
+ * on the grid and is counted apart, in the strict lower bound, as under the
+ * columns. With the tree that small, the columns can be checked too: a
+ * box the columns call infeasible is discarded only when the exact sector
+ * verdict (ExactPointCheck::sectorVerdict) proves the whole enclosure
+ * inside some plant's disc, and stays ambiguous otherwise; and the
  * magnitude cuts take the strips the same verdict certifies forbidden over
  * the box's own phase span instead of the extremes of the columns, which on
  * the toolbox example cut off a valid design. The phase cuts, which never
@@ -232,7 +237,6 @@ private:
         std::size_t freqIndex;
         double threshold;
         bool upperSide;   ///< true: [threshold, sup] is the feasible part
-        double fraction;   ///< |feasible part| / |range|
     };
 
     /// Detection results of one node, one entry per design frequency
@@ -240,8 +244,6 @@ private:
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
         std::vector<std::optional<NicholsBox>> projection;   ///< the Nichols box itself
-        std::vector<Range> boxMag;   ///< dB edges of the projected box
-        std::vector<Range> boxPhase;   ///< degree edges
         qftbx::BoxFlag flag = qftbx::feasible;
         std::size_t mainFrequency = 0;   ///< largest ambiguous projected area
     };
@@ -329,6 +331,7 @@ private:
     void resolvedAtEpsilon(double gainInf);
     void adoptIncumbent(const PointController & design, LtiSystem * box);
     void closeCertificate();
+    bool cannotImprove(double gainInf) const;
     bool finish();
 
     inline std::int32_t parameterCount(LtiSystem * box) const;

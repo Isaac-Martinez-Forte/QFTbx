@@ -89,7 +89,7 @@ struct Settings {
 
         bool familyStabilityGate = true;
 
-        enum class PointReading { Columns, ExactExits, Exact };
+        enum class PointReading { Columns, Exact };
 
         PointReading pointReading = PointReading::Columns;
 

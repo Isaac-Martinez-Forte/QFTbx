@@ -65,6 +65,18 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
         }
         std::sort(seed.begin(), seed.end());
         m_hull.push_back(seed);
+
+        std::vector<Direction> directions;
+        directions.reserve(at.nominalOverValueSet.size());
+        for (std::size_t n = 0; n < at.nominalOverValueSet.size(); ++n) {
+            const std::complex<double> qn = at.nominalOverValueSet[n];
+            const double modulus = std::abs(qn);
+            const double angle = std::arg(qn);
+            directions.push_back({modulus, std::cos(angle), std::sin(angle), std::norm(qn),
+                                  at.valueSet != nullptr ? std::abs((*at.valueSet)[n]) : 0.0});
+        }
+        m_directions.push_back(std::move(directions));
+        m_pairs.emplace_back();
         m_statistics.largestWorkingSet = std::max(m_statistics.largestWorkingSet, seed.size());
         m_working.push_back(std::move(seed));
     }
@@ -72,21 +84,36 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
 
 namespace {
 
-double largestCosineOver(double theta, double from, double to)
-{
-    const double twoPi = 2.0 * kPi;
-    if (to - from >= twoPi) {
-        return 1.0;
+struct Arc {
+    bool whole = false;
+    double fromCosine = 1.0, fromSine = 0.0;
+    double toCosine = 1.0, toSine = 0.0;
+    double middleCosine = 1.0, middleSine = 0.0;
+    double halfWidthCosine = 1.0;
+
+    Arc(double from, double to)
+    {
+        if (to - from >= 2.0 * kPi) {
+            whole = true;
+            return;
+        }
+        fromCosine = std::cos(from);
+        fromSine = std::sin(from);
+        toCosine = std::cos(to);
+        toSine = std::sin(to);
+        middleCosine = std::cos(0.5 * (from + to));
+        middleSine = std::sin(0.5 * (from + to));
+        halfWidthCosine = std::cos(0.5 * (to - from));
     }
-    double shifted = std::fmod(theta - from, twoPi);
-    if (shifted < 0.0) {
-        shifted += twoPi;
+
+    double largestCosine(double cosine, double sine) const
+    {
+        if (whole || cosine * middleCosine + sine * middleSine >= halfWidthCosine) {
+            return 1.0;
+        }
+        return std::max(cosine * fromCosine + sine * fromSine, cosine * toCosine + sine * toSine);
     }
-    if (shifted <= to - from) {
-        return 1.0;
-    }
-    return std::max(std::cos(from - theta), std::cos(to - theta));
-}
+};
 
 double largestOver(double a, double b, double c, double g1, double g2)
 {
@@ -171,9 +198,8 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
 
     const std::size_t f = m_byOmega[frequency];
     const FrequencyReference & at = m_reference->frequencies()[f];
-    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
-    const double from = phaseDegrees.min * kPi / 180.0;
-    const double to = phaseDegrees.max * kPi / 180.0;
+    const std::vector<Direction> & plants = m_directions[f];
+    const Arc arc(phaseDegrees.min * kPi / 180.0, phaseDegrees.max * kPi / 180.0);
     const double g1 = std::pow(10.0, magnitudeDb.min / 20.0);
     const double g2 = std::pow(10.0, magnitudeDb.max / 20.0);
 
@@ -182,26 +208,24 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
     lower.clear();
     upper.clear();
 
-    for (const FrequencyReference::Bound & bound : at.bounds) {
+    for (std::size_t k = 0; k < at.bounds.size(); ++k) {
+        const FrequencyReference::Bound & bound = at.bounds[k];
         if (bound.type == SpecificationType::TrackingLower) {
             const double dm1 = std::expm1(bound.boundDb * kLn10 / 10.0);
-            const double d2 = dm1 + 1.0;
-            for (const std::size_t n : m_hull[f]) {
-                for (const std::size_t j : m_working[f]) {
-                    const std::complex<double> w = d2 * q[j] - q[n];
-                    const double rho = std::abs(w) * largestCosineOver(std::arg(w), from, to);
-                    const double a = dm1, b = 2.0 * rho, c = d2 * std::norm(q[j]) - std::norm(q[n]);
-                    if (largestOver(a, b, c, g1, g2) < 0.0) {
-                        verdict.provablyInfeasible = true;
-                    }
-                    forbiddenOf(a, b, c, lower, upper);
+            for (const TrackingPair & pair : trackingPairs(f, k)) {
+                const double rho = pair.modulus * arc.largestCosine(pair.cosine, pair.sine);
+                const double a = dm1, b = 2.0 * rho, c = pair.constant;
+                if (largestOver(a, b, c, g1, g2) < 0.0) {
+                    verdict.provablyInfeasible = true;
                 }
+                forbiddenOf(a, b, c, lower, upper);
             }
             continue;
         }
 
         const double W = std::pow(10.0, bound.boundDb / 20.0);
-        for (std::size_t n = 0; n < q.size(); ++n) {
+        for (std::size_t n = 0; n < plants.size(); ++n) {
+            const Direction & plant = plants[n];
             double s = 0.0, t = 0.0;
             switch (bound.type) {
             case SpecificationType::Stability:
@@ -209,25 +233,24 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
                 s = 1.0 / W;
                 break;
             case SpecificationType::OutputDisturbance:
-                t = std::abs(q[n]) / W;
+                t = plant.modulus / W;
                 break;
             case SpecificationType::InputDisturbance:
                 t = std::abs(at.nominalPlant) / W;
                 break;
             case SpecificationType::ControlEffort: {
-                const double plant = std::abs((*at.valueSet)[n]);
-                if (!(plant > 0.0)) {
+                if (!(plant.valueModulus > 0.0)) {
                     continue;
                 }
-                s = 1.0 / (W * plant);
+                s = 1.0 / (W * plant.valueModulus);
                 break;
             }
             case SpecificationType::TrackingLower:
             case SpecificationType::TrackingUpper:
                 continue;
             }
-            const double cmax = std::abs(q[n]) * largestCosineOver(std::arg(q[n]), from, to);
-            const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = std::norm(q[n]) - t * t;
+            const double cmax = plant.modulus * arc.largestCosine(plant.cosine, plant.sine);
+            const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = plant.norm - t * t;
             if (largestOver(a, b, c, g1, g2) < 0.0) {
                 verdict.provablyInfeasible = true;
             }
@@ -273,6 +296,32 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
     return verdict;
 }
 
+const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPairs(std::size_t frequency, std::size_t bound)
+{
+    TrackingPairs & cached = m_pairs[frequency];
+    const std::vector<std::size_t> & working = m_working[frequency];
+    if (cached.bound == bound && cached.workingSize == working.size()) {
+        return cached.pairs;
+    }
+
+    const FrequencyReference & at = m_reference->frequencies()[frequency];
+    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
+    const double d2 = std::expm1(at.bounds[bound].boundDb * kLn10 / 10.0) + 1.0;
+
+    cached.pairs.clear();
+    cached.pairs.reserve(m_hull[frequency].size() * working.size());
+    for (const std::size_t n : m_hull[frequency]) {
+        for (const std::size_t j : working) {
+            const std::complex<double> w = d2 * q[j] - q[n];
+            const double angle = std::arg(w);
+            cached.pairs.push_back({std::abs(w), std::cos(angle), std::sin(angle), d2 * std::norm(q[j]) - std::norm(q[n])});
+        }
+    }
+    cached.bound = bound;
+    cached.workingSize = working.size();
+    return cached.pairs;
+}
+
 void ExactPointCheck::requireUsable() const
 {
     if (!usable()) {
@@ -289,17 +338,21 @@ std::complex<double> ExactPointCheck::loopAt(const FrequencyReference & at, cons
 bool ExactPointCheck::admits(const PointController & point)
 {
     requireUsable();
+    return admitsFrom(point, m_firstToAsk);
+}
 
+bool ExactPointCheck::admitsFrom(const PointController & point, std::size_t & firstToAsk)
+{
     ++m_statistics.verdicts;
 
     const std::vector<FrequencyReference> & frequencies = m_reference->frequencies();
     const std::size_t count = frequencies.size();
 
     for (std::size_t step = 0; step < count; ++step) {
-        const std::size_t i = (m_firstToAsk + step) % count;
+        const std::size_t i = (firstToAsk + step) % count;
         ++m_statistics.kernelPasses;
         if (!(m_reference->worstExcessAt(frequencies[i], loopAt(frequencies[i], point)) <= -kToleranceDb)) {
-            m_firstToAsk = i;
+            firstToAsk = i;
             ++m_statistics.rejections;
             return false;
         }
@@ -535,13 +588,13 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
 
                 const PointController candidate{gain, zeros, poles};
                 ++result.confirmations;
-                if (admits(candidate)) {
+                if (admitsFrom(candidate, m_ladderFirstToAsk)) {
                     result.gain = gain;
                     m_statistics.exchangeRounds += result.rounds;
                     m_statistics.ladderSteps += result.ladderSteps;
                     return result;
                 }
-                if (growWorkingSet(m_firstToAsk, candidate)) {
+                if (growWorkingSet(m_ladderFirstToAsk, candidate)) {
                     grew = true;
                     break;
                 }
