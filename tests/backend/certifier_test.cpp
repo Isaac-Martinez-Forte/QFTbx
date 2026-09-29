@@ -175,7 +175,7 @@ TEST(Certifier, AnAdmittedPointSkipsTheSpecifications)
     }
 
     Funnel admitted(project);
-    EXPECT_TRUE(admitted.certifier.certify(belowTheBound, true));
+    EXPECT_TRUE(admitted.certifier.certifyAdmitted(belowTheBound));
     EXPECT_EQ(admitted.exact.statistics().verdicts, 0u) << "the specifications were never asked";
     EXPECT_EQ(admitted.family.statistics().rootVerdicts, 1u) << "the roots still confirm the point";
 }

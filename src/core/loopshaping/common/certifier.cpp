@@ -12,7 +12,17 @@ Certifier::Certifier(ExactPointCheck & exact, NominalStabilityChecker & stabilit
 {
 }
 
-bool Certifier::certify(const PointController & point, bool specificationsAdmitted)
+bool Certifier::certify(const PointController & point)
+{
+    return funnel(point, true);
+}
+
+bool Certifier::certifyAdmitted(const PointController & point)
+{
+    return funnel(point, false);
+}
+
+bool Certifier::funnel(const PointController & point, bool askSpecifications)
 {
     ++m_statistics.certifications;
 
@@ -24,7 +34,7 @@ bool Certifier::certify(const PointController & point, bool specificationsAdmitt
         ++m_statistics.refusedByNominalStability;
         return false;
     }
-    if (!specificationsAdmitted && !m_exact.admits(point)) {
+    if (askSpecifications && !m_exact.admits(point)) {
         ++m_statistics.refusedBySpecifications;
         return false;
     }

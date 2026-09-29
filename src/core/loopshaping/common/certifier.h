@@ -34,7 +34,8 @@
  * specifications and on the family, by construction; and nothing the search
  * prunes with can be refused afterwards. A point the exact gain search
  * produced was admitted by the specifications on its way out, and the
- * caller says so to spare the pass over the value sets. The counts say how
+ * caller hands it to certifyAdmitted, which spares the pass over the value
+ * sets and asks everything else. The counts say how
  * many candidates were asked and where each refusal fell, which is what the
  * cost of the exact reading is measured by.
  */
@@ -45,7 +46,9 @@ class Certifier
 public:
     Certifier(ExactPointCheck & exact, NominalStabilityChecker & stability, FamilyStabilityChecker & family);
 
-    bool certify(const PointController & point, bool specificationsAdmitted = false);
+    bool certify(const PointController & point);
+
+    bool certifyAdmitted(const PointController & point);
 
     struct Statistics {
         std::size_t certifications = 0;
@@ -57,6 +60,8 @@ public:
     const Statistics & statistics() const { return m_statistics; }
 
 private:
+    bool funnel(const PointController & point, bool askSpecifications);
+
     ExactPointCheck & m_exact;
     NominalStabilityChecker & m_stability;
     FamilyStabilityChecker & m_family;

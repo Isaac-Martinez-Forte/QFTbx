@@ -298,9 +298,8 @@ private:
      */
     bool bestGainSearch(McSearchNode * node);
     void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                             std::vector<FeasibleThreshold> & thresholds, bool & improved);
-    void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                               bool & improved);
+                             std::vector<FeasibleThreshold> & thresholds);
+    void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis);
 
     qftbx::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                         const std::vector<FeasibleThreshold> & thresholds);
@@ -312,10 +311,7 @@ private:
     bool pointIsFeasible(const PointController & point);
     void insertFeasibleBox(std::unique_ptr<LtiSystem> box);
 
-    /// The certification funnel of the exact point reading (common/certifier.h).
-    bool certify(const PointController & point);
-
-    /// Under the exact gain: the lowest certified gain among the vertices
+    /// Under the exact reading: the lowest certified gain among the vertices
     /// and the centre of an epsilon-small box, each at its exact best gain;
     /// and a point lowered along its own ray to the smallest gain the
     /// specifications admit there, when that gain certifies too.
@@ -352,8 +348,7 @@ private:
     qftbx::ParameterGrids m_sweep;
     std::unique_ptr<ExactPointCheck> exact;
     std::unique_ptr<Certifier> certifier;
-    bool exactGains = false;
-    bool lastDiscardProven = false;
+    bool exactReading = false;
     Range initialGainRange;
     const qftbx::CloudSet * m_templates = nullptr;
     const qftbx::SpecificationSet * m_specifications = nullptr;
