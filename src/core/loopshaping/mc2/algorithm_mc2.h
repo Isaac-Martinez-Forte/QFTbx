@@ -6,6 +6,7 @@
 #include "src/core/loopshaping/loop_shaping_statistics.h"
 #include <cstdint>
 #include <complex>
+#include <limits>
 #include <optional>
 
 #include <vector>
@@ -271,6 +272,18 @@ private:
      * against the real detection and the nominal stability before it may
      * lower the prune bound.
      */
+    enum class Step { Next, Carry, Designed };
+
+    void prepare();
+    bool concludeEmptyList();
+    Step returnDesign(std::unique_ptr<LtiSystem> design);
+    Step resolveFeasibleHead(McSearchNode & node);
+    bool analyseOrDiscard(McSearchNode & node, NodeAnalysis & analysis, double gainInf);
+    Step resolveFeasibleCorner(McSearchNode & node, double gainInf);
+    Step resolveEpsilonBox(McSearchNode & node, double gainInf);
+    bool pruneUnstableBox(McSearchNode & node, double gainInf);
+    void expand(McSearchNode & node, NodeAnalysis & analysis);
+
     bool bestGainSearch(McSearchNode * node);
     std::optional<double> lowestGain(const std::vector<double> & zeros, const std::vector<double> & poles,
                                      Range gainRange);
@@ -306,7 +319,6 @@ private:
     void adoptIncumbent(const PointController & design, LtiSystem * box);
     void closeCertificate();
     bool cannotImprove(double gainInf) const;
-    bool finish();
 
     inline std::int32_t parameterCount(LtiSystem * box) const;
     Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
@@ -331,10 +343,10 @@ private:
     const qftbx::CloudSet * m_templates = nullptr;
     const qftbx::SpecificationSet * m_specifications = nullptr;
     LoopShapingStatistics::Certificate certificate;
-    double residueGainInf = 0;
-    double unprovenGainInf = 0;
-    double gridBackedGainInf = 0;
-    double resolvedGainInf = 0;
+    double residueGainInf = std::numeric_limits<double>::infinity();
+    double unprovenGainInf = std::numeric_limits<double>::infinity();
+    double gridBackedGainInf = std::numeric_limits<double>::infinity();
+    double resolvedGainInf = std::numeric_limits<double>::infinity();
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 
