@@ -127,62 +127,6 @@ double largestOver(double a, double b, double c, double g1, double g2)
     return largest;
 }
 
-void forbiddenOf(double a, double b, double c, std::vector<double> & lower, std::vector<double> & upper)
-{
-    if (a == 0.0) {
-        if (b == 0.0) {
-            if (c < 0.0) {
-                lower.push_back(0.0);
-                upper.push_back(kInfinity);
-            }
-            return;
-        }
-        const double root = -c / b;
-        if (b > 0.0) {
-            if (root > 0.0) {
-                lower.push_back(0.0);
-                upper.push_back(root);
-            }
-        } else {
-            lower.push_back(std::max(0.0, root));
-            upper.push_back(kInfinity);
-        }
-        return;
-    }
-
-    const double discriminant = b * b - 4.0 * a * c;
-    if (discriminant < 0.0) {
-        if (a < 0.0) {
-            lower.push_back(0.0);
-            upper.push_back(kInfinity);
-        }
-        return;
-    }
-    const double s = std::sqrt(discriminant);
-    const double qv = -0.5 * (b + (b >= 0.0 ? s : -s));
-    double r1 = 0.0, r2 = 0.0;
-    if (qv != 0.0) {
-        r1 = qv / a;
-        r2 = c / qv;
-    }
-    if (r1 > r2) {
-        std::swap(r1, r2);
-    }
-    if (a > 0.0) {
-        if (r2 > 0.0) {
-            lower.push_back(std::max(0.0, r1));
-            upper.push_back(r2);
-        }
-    } else {
-        if (r1 > 0.0) {
-            lower.push_back(0.0);
-            upper.push_back(r1);
-        }
-        lower.push_back(std::max(0.0, r2));
-        upper.push_back(kInfinity);
-    }
-}
-
 }
 
 ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t frequency, Range phaseDegrees,
@@ -218,7 +162,7 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
                 if (largestOver(a, b, c, g1, g2) < 0.0) {
                     verdict.provablyInfeasible = true;
                 }
-                forbiddenOf(a, b, c, lower, upper);
+                math::appendWhereNegative(a, b, c, lower, upper);
             }
             continue;
         }
@@ -254,7 +198,7 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
             if (largestOver(a, b, c, g1, g2) < 0.0) {
                 verdict.provablyInfeasible = true;
             }
-            forbiddenOf(a, b, c, lower, upper);
+            math::appendWhereNegative(a, b, c, lower, upper);
         }
     }
 
