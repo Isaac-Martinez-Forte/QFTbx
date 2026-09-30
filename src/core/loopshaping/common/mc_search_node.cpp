@@ -3,7 +3,7 @@
  * @brief The state a node of the MC family carries beyond the shared node.
  */
 
-#include <map>
+#include <utility>
 
 #include "src/core/loopshaping/common/mc_search_node.h"
 
@@ -16,42 +16,42 @@ McSearchNode::McSearchNode(double index, std::unique_ptr<LtiSystem> system, BoxF
 
 void McSearchNode::setCutsEnabled(bool enabled)
 {
-    this->enabled = enabled;
+    m_cutsEnabled = enabled;
 }
 
 bool McSearchNode::cutsEnabled() const
 {
-    return enabled;
+    return m_cutsEnabled;
 }
 
 void McSearchNode::setStage(Stage e)
 {
-    value = e;
+    m_stage = e;
 }
 
 Stage McSearchNode::stage() const
 {
-    return value;
+    return m_stage;
 }
 
-void McSearchNode::markFrequencyFeasible(double position, double frequency)
+void McSearchNode::markFrequencyFeasible(std::size_t frequency)
 {
-    m_feasibleFrequencies[position] = frequency;
+    if (frequency >= m_feasibleAt.size()) {
+        m_feasibleAt.resize(frequency + 1, 0);
+    }
+    m_feasibleAt[frequency] = 1;
 }
 
-bool McSearchNode::isFrequencyFeasible(double key) const
+bool McSearchNode::isFrequencyFeasible(std::size_t frequency) const
 {
-    return m_feasibleFrequencies.find(key) != m_feasibleFrequencies.end();
+    return frequency < m_feasibleAt.size() && m_feasibleAt[frequency] != 0;
 }
 
-void McSearchNode::setFeasibleFrequencies(std::map<double, double> frequencies)
+void McSearchNode::inheritHistoryFrom(const McSearchNode & parent)
 {
-    m_feasibleFrequencies = std::move(frequencies);
-}
-
-const std::map<double, double> & McSearchNode::feasibleFrequencies() const
-{
-    return m_feasibleFrequencies;
+    m_cutsEnabled = parent.m_cutsEnabled;
+    m_stage = parent.m_stage;
+    m_feasibleAt = parent.m_feasibleAt;
 }
 
 void McSearchNode::setCornerVerdict(bool certified)

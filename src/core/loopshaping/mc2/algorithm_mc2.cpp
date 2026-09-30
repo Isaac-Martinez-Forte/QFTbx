@@ -1015,8 +1015,7 @@ qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_
         const double gainInf = system->gain().range().min;
 
         auto t = std::make_unique<McSearchNode>(gainInf, std::move(system), ambiguous);
-        t->setCutsEnabled(node->cutsEnabled());
-        t->setFeasibleFrequencies(node->feasibleFrequencies());
+        t->inheritHistoryFrom(*node);
         return t;
     };
 
@@ -1110,7 +1109,7 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
                     ? children.t2 : children.t1).get();
 
             if (boxIsFeasibleAt(feasibleChild->system(), freq)) {
-                feasibleChild->markFrequencyFeasible(freq, omega->at(freq));
+                feasibleChild->markFrequencyFeasible(freq);
             }
 
             return children;
