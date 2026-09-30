@@ -249,7 +249,7 @@ bool AlgorithmMc2::solve()
 
             if (exactReading) {
                 if (certifier->certify(corner)) {
-                    adoptIncumbent(loweredAtVertex(corner), node->system());
+                    adoptIncumbent(lowestGainOnRay(corner), node->system());
                     continue;
                 }
             } else {
@@ -267,7 +267,7 @@ bool AlgorithmMc2::solve()
 
         if (isEpsilonSmall(node.get(), analysis)) {
             if (exactReading) {
-                const std::optional<PointController> corner = exactCorner(node->system());
+                const std::optional<PointController> corner = bestEpsilonCandidate(node->system());
 
                 if (!corner) {
                     dropToResidue(gainInf);
@@ -291,19 +291,11 @@ bool AlgorithmMc2::solve()
             }
 
             PointController best = *corner;
-            const RangeUnion gains = admissibleGains(best.zeros, best.poles, node->system()->gain().range());
-
-            if (!gains.isEmpty()) {
-                const double contracted = std::pow(10.0, gains.minimum() / 20.0);
-
-                if (contracted < best.gain) {
-                    PointController candidate{contracted, best.zeros, best.poles};
-
-                    if (satisfiesBoundaries(candidate, omega, conversion.get(), detector.get(), boundaries,
-                                            nominalPlantValues)
-                            && stability->isNominallyStable(candidate) && family->isStable(candidate)) {
-                        best = std::move(candidate);
-                    }
+            const std::optional<double> contracted = lowestGain(best.zeros, best.poles, node->system()->gain().range());
+            if (contracted.has_value() && *contracted < best.gain) {
+                PointController candidate{*contracted, best.zeros, best.poles};
+                if (accepts(candidate)) {
+                    best = std::move(candidate);
                 }
             }
 
@@ -494,7 +486,7 @@ bool AlgorithmMc2::boxIsFeasible(LtiSystem * box)
     return true;
 }
 
-RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
+RangeUnion AlgorithmMc2::columnGainsDb(const std::vector<double> & zeros,
                                         const std::vector<double> & poles, Range gainRange)
 {
     RangeUnion gains = RangeUnion::of(20.0 * std::log10(gainRange.min),
@@ -534,43 +526,42 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    if (exactReading) {
-        const ExactPointCheck::GainSearch search =
-                exact->lowestAdmissibleGain(zeroSups, poleInfs, box->gain().range());
-        if (!search.gain.has_value() || *search.gain >= bestCertifiedGain) {
-            return false;
-        }
-
-        const PointController point{*search.gain, std::move(zeroSups), std::move(poleInfs)};
-        if (!certifier->certifyAdmitted(point)) {
-            return false;
-        }
-
-        adoptIncumbent(point, box);
-        return true;
-    }
-
-    const RangeUnion gains = admissibleGains(zeroSups, poleInfs, box->gain().range());
-
-    if (gains.isEmpty()) {
+    const std::optional<double> gain = lowestGain(zeroSups, poleInfs, box->gain().range());
+    if (!gain.has_value() || *gain >= bestCertifiedGain) {
         return false;
     }
 
-    const double gain = std::pow(10.0, gains.minimum() / 20.0);
-
-    if (gain >= bestCertifiedGain) {
-        return false;
-    }
-
-    const PointController point{gain, std::move(zeroSups), std::move(poleInfs)};
-
-    if (!satisfiesBoundaries(point, omega, conversion.get(), detector.get(), boundaries, nominalPlantValues)
-            || !stability->isNominallyStable(point) || !family->isStable(point)) {
+    const PointController point{*gain, std::move(zeroSups), std::move(poleInfs)};
+    if (!accepts(point)) {
         return false;
     }
 
     adoptIncumbent(point, box);
     return true;
+}
+
+std::optional<double> AlgorithmMc2::lowestGain(const std::vector<double> & zeros, const std::vector<double> & poles,
+                                               Range gainRange)
+{
+    if (exactReading) {
+        return exact->lowestAdmissibleGain(zeros, poles, gainRange).gain;
+    }
+
+    const RangeUnion gains = columnGainsDb(zeros, poles, gainRange);
+    if (gains.isEmpty()) {
+        return std::nullopt;
+    }
+    return std::pow(10.0, gains.minimum() / 20.0);
+}
+
+bool AlgorithmMc2::accepts(const PointController & point)
+{
+    if (exactReading) {
+        return certifier->certifyAdmitted(point);
+    }
+
+    return satisfiesBoundaries(point, omega, conversion.get(), detector.get(), boundaries, nominalPlantValues)
+           && stability->isNominallyStable(point) && family->isStable(point);
 }
 
 void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
@@ -587,7 +578,7 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
     if (exactReading) {
         verdict = certifier->certify(point);
         if (*verdict) {
-            adoptIncumbent(loweredAtVertex(point), box.get());
+            adoptIncumbent(lowestGainOnRay(point), box.get());
         }
     } else {
         if (!stability->isNominallyStable(point)) {
@@ -611,20 +602,19 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
     liveList->insert(std::move(t));
 }
 
-PointController AlgorithmMc2::loweredAtVertex(const PointController & point)
+PointController AlgorithmMc2::lowestGainOnRay(const PointController & point)
 {
-    const ExactPointCheck::GainSearch search =
-            exact->lowestAdmissibleGain(point.zeros, point.poles, Range(initialGainRange.min, point.gain));
-    if (search.gain.has_value() && *search.gain < point.gain) {
-        const PointController lowered{*search.gain, point.zeros, point.poles};
-        if (certifier->certifyAdmitted(lowered)) {
+    const std::optional<double> gain = lowestGain(point.zeros, point.poles, Range(initialGainRange.min, point.gain));
+    if (gain.has_value() && *gain < point.gain) {
+        const PointController lowered{*gain, point.zeros, point.poles};
+        if (accepts(lowered)) {
             return lowered;
         }
     }
     return point;
 }
 
-std::optional<PointController> AlgorithmMc2::exactCorner(LtiSystem * box)
+std::optional<PointController> AlgorithmMc2::bestEpsilonCandidate(LtiSystem * box)
 {
     std::optional<PointController> best;
     std::vector<std::pair<std::vector<double>, std::vector<double>>> tried;
@@ -638,11 +628,10 @@ std::optional<PointController> AlgorithmMc2::exactCorner(LtiSystem * box)
         tried.emplace_back(vertex.zeros, vertex.poles);
 
         const double ceiling = std::min(best.has_value() ? best->gain : bestCertifiedGain, initialGainRange.max);
-        const ExactPointCheck::GainSearch search =
-                exact->lowestAdmissibleGain(vertex.zeros, vertex.poles, Range(initialGainRange.min, ceiling));
-        if (search.gain.has_value() && (!best.has_value() || *search.gain < best->gain)) {
-            const PointController candidate{*search.gain, vertex.zeros, vertex.poles};
-            if (certifier->certifyAdmitted(candidate)) {
+        const std::optional<double> gain = lowestGain(vertex.zeros, vertex.poles, Range(initialGainRange.min, ceiling));
+        if (gain.has_value() && (!best.has_value() || *gain < best->gain)) {
+            const PointController candidate{*gain, vertex.zeros, vertex.poles};
+            if (accepts(candidate)) {
                 best = candidate;
             }
         }
@@ -987,7 +976,7 @@ qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_
     return children;
 }
 
-inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure)
+inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, WidthMeasure measure)
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
@@ -999,12 +988,12 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
     const auto consider = [&](std::int32_t parameter, const NicholsBox & term, bool gainTerm) {
         double value;
 
-        if (measure == 2) {
+        if (measure == WidthMeasure::Phase) {
             if (gainTerm) {
                 return;
             }
             value = term.phaseDegrees.width();
-        } else if (measure == 1 || gainTerm) {
+        } else if (measure == WidthMeasure::Magnitude || gainTerm) {
             value = term.magnitudeDb.width();
         } else {
             value = term.magnitudeDb.width() * term.phaseDegrees.width();
@@ -1079,12 +1068,12 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
     const std::optional<NicholsBox> & main = analysis.projection.at(analysis.mainFrequency);
     const Range magnitude = main.has_value() ? magnitudeRangeOf(*main) : Range();
     const Range phase = main.has_value() ? phaseRangeOf(*main) : Range();
-    const int measure = phase.width() > magnitude.width() ? 2 : 1;
+    const WidthMeasure measure = phase.width() > magnitude.width() ? WidthMeasure::Phase : WidthMeasure::Magnitude;
 
     std::int32_t parameter = widestByMeasure(node, analysis.mainFrequency, measure);
 
     if (parameter < 0) {
-        parameter = widestByMeasure(node, analysis.mainFrequency, 0);
+        parameter = widestByMeasure(node, analysis.mainFrequency, WidthMeasure::Area);
     }
 
     const Range range = parameterRange(node->system(), parameter);

@@ -241,8 +241,8 @@ private:
      * nothing empties the intersection on its own, so no sentinel value is
      * needed for "no solution".
      */
-    RangeUnion admissibleGains(const std::vector<double> & zeros,
-                               const std::vector<double> & poles, Range gainRange);
+    RangeUnion columnGainsDb(const std::vector<double> & zeros,
+                             const std::vector<double> & poles, Range gainRange);
 
     /**
      * @brief The exact best gain of one vertex (T3): the smallest gain that
@@ -251,7 +251,7 @@ private:
      * The vertex is the one of the largest magnitude, which by
      * anti-monotonicity is the one of the smallest phase, and of the two it
      * is the one that needs the least gain to clear a lower boundary.
-     * admissibleGains() does the work; this decides whether what comes out
+     * columnGainsDb() does the work; this decides whether what comes out
      * is worth keeping.
      *
      * That is what makes it exact where the published formulation is not.
@@ -272,6 +272,9 @@ private:
      * lower the prune bound.
      */
     bool bestGainSearch(McSearchNode * node);
+    std::optional<double> lowestGain(const std::vector<double> & zeros, const std::vector<double> & poles,
+                                     Range gainRange);
+    bool accepts(const PointController & point);
     void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
                              std::vector<FeasibleThreshold> & thresholds);
     void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis);
@@ -279,7 +282,8 @@ private:
     qftbx::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                         const std::vector<FeasibleThreshold> & thresholds);
     qftbx::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
-    inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure);
+    enum class WidthMeasure { Area, Magnitude, Phase };
+    inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, WidthMeasure measure);
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
@@ -289,8 +293,8 @@ private:
     /// and the centre of an epsilon-small box, each at its exact best gain;
     /// and a point lowered along its own ray to the smallest gain the
     /// specifications admit there, when that gain certifies too.
-    std::optional<PointController> exactCorner(LtiSystem * box);
-    PointController loweredAtVertex(const PointController & point);
+    std::optional<PointController> bestEpsilonCandidate(LtiSystem * box);
+    PointController lowestGainOnRay(const PointController & point);
 
     /// The bookkeeping of the certificate: a box discarded on the columns
     /// alone, a box the nominal criterion pruned whole, a box dropped with
