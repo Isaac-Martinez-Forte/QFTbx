@@ -726,7 +726,7 @@ std::optional<PointController> AlgorithmMc2::bestEpsilonCandidate(LtiSystem * bo
     std::optional<PointController> best;
     std::vector<std::pair<std::vector<double>, std::vector<double>>> tried;
 
-    verifiedCornerBy(box, [&](const PointController & vertex) {
+    forEachCandidate(box, [&](const PointController & vertex) {
         for (const auto & seen : tried) {
             if (seen.first == vertex.zeros && seen.second == vertex.poles) {
                 return false;

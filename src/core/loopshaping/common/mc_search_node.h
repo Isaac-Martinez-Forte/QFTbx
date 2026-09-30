@@ -20,7 +20,9 @@
  * Shared by MC of the thesis and by MC2, which carry the same history.
  *
  * The node holds its frequency map by value, so every child of a
- * bisection receives a copy for free.
+ * bisection receives a copy for free. McBisectionResult holds the two
+ * children of a bisection for whoever receives them, to be inserted in the
+ * live list or dropped.
  */
 namespace qftbx {
 
@@ -54,6 +56,11 @@ protected:
 
     std::map<double, double> m_feasibleFrequencies;
     std::optional<bool> m_cornerVerdict;
+};
+
+struct McBisectionResult {
+    std::unique_ptr<McSearchNode> t1;
+    std::unique_ptr<McSearchNode> t2;
 };
 
 }
