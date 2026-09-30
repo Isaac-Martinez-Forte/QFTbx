@@ -1,31 +1,29 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
 
-#include "src/core/project/settings.h"
-#include "src/core/pipeline/cancellation.h"
-#include "src/core/loopshaping/loop_shaping_statistics.h"
-#include <cstdint>
 #include <complex>
+#include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
-
 #include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
-#include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
-#include "src/core/loopshaping/common/depth_accounting.h"
-#include "src/core/loopshaping/common/ordered_list.h"
-#include "src/core/loopshaping/common/mc_search_node.h"
-#include "src/core/loopshaping/common/nominal_stability_checker.h"
-#include "src/core/loopshaping/common/family_stability_checker.h"
-#include "src/core/loopshaping/common/exact_point_check.h"
 #include "src/core/loopshaping/common/certifier.h"
-#include "src/core/math/range_union.h"
-#include "src/core/math/sequence_vectors.h"
-
 #include "src/core/loopshaping/common/common_functions.h"
+#include "src/core/loopshaping/common/depth_accounting.h"
+#include "src/core/loopshaping/common/exact_point_check.h"
+#include "src/core/loopshaping/common/family_stability_checker.h"
+#include "src/core/loopshaping/common/mc_search_node.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
+#include "src/core/loopshaping/common/nominal_stability_checker.h"
+#include "src/core/loopshaping/common/ordered_list.h"
+#include "src/core/loopshaping/loop_shaping_statistics.h"
+#include "src/core/math/range_union.h"
+#include "src/core/pipeline/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/system/lti_system.h"
 
 /**
  * @file
@@ -224,10 +222,34 @@ private:
         std::size_t mainFrequency = 0;   ///< largest ambiguous projected area
     };
 
+    enum class Step { Next, Carry, Designed };
+    enum class WidthMeasure { Area, Magnitude, Phase };
+
+    void prepare();
+    bool concludeEmptyList();
+    Step returnDesign(std::unique_ptr<LtiSystem> design);
+    Step resolveFeasibleHead(McSearchNode & node);
+    bool analyseOrDiscard(McSearchNode & node, NodeAnalysis & analysis, double gainInf);
+    Step resolveFeasibleCorner(McSearchNode & node, double gainInf);
+    Step resolveEpsilonBox(McSearchNode & node, double gainInf);
+    bool pruneUnstableBox(McSearchNode & node, double gainInf);
+    void expand(McSearchNode & node, NodeAnalysis & analysis);
+
+    /// The bookkeeping of the certificate: a box discarded on the columns
+    /// alone, a box the nominal criterion pruned whole, a box dropped with
+    /// no certified point, and the bounds closed when the search stops.
+    void discardUnproven(double gainInf);
+    void discardGridBacked(double gainInf);
+    void dropToResidue(double gainInf);
+    void resolvedAtEpsilon(double gainInf);
+    void adoptIncumbent(const PointController & design, LtiSystem * box);
+    void closeCertificate();
+    bool cannotImprove(double gainInf) const;
+
     bool analyse(McSearchNode * node, NodeAnalysis & out);
     bool isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis);
-    void improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                            std::vector<FeasibleThreshold> & thresholds);
+    void improveNode(McSearchNode * node, NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
+
     /**
      * @brief The exact set of gains admissible with these zeros and poles,
      * in decibels of gain (T3).
@@ -242,8 +264,7 @@ private:
      * nothing empties the intersection on its own, so no sentinel value is
      * needed for "no solution".
      */
-    RangeUnion columnGainsDb(const std::vector<double> & zeros,
-                             const std::vector<double> & poles, Range gainRange);
+    RangeUnion columnGainsDb(const std::vector<double> & zeros, const std::vector<double> & poles, Range gainRange);
 
     /**
      * @brief The exact best gain of one vertex (T3): the smallest gain that
@@ -272,30 +293,17 @@ private:
      * against the real detection and the nominal stability before it may
      * lower the prune bound.
      */
-    enum class Step { Next, Carry, Designed };
-
-    void prepare();
-    bool concludeEmptyList();
-    Step returnDesign(std::unique_ptr<LtiSystem> design);
-    Step resolveFeasibleHead(McSearchNode & node);
-    bool analyseOrDiscard(McSearchNode & node, NodeAnalysis & analysis, double gainInf);
-    Step resolveFeasibleCorner(McSearchNode & node, double gainInf);
-    Step resolveEpsilonBox(McSearchNode & node, double gainInf);
-    bool pruneUnstableBox(McSearchNode & node, double gainInf);
-    void expand(McSearchNode & node, NodeAnalysis & analysis);
-
     bool bestGainSearch(McSearchNode * node);
     std::optional<double> lowestGain(const std::vector<double> & zeros, const std::vector<double> & poles,
                                      Range gainRange);
     bool accepts(const PointController & point);
-    void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                             std::vector<FeasibleThreshold> & thresholds);
+
+    void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
     void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis);
 
     qftbx::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                        const std::vector<FeasibleThreshold> & thresholds);
+                                    const std::vector<FeasibleThreshold> & thresholds);
     qftbx::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
-    enum class WidthMeasure { Area, Magnitude, Phase };
     inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, WidthMeasure measure);
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
@@ -309,66 +317,48 @@ private:
     std::optional<PointController> bestEpsilonCandidate(LtiSystem * box);
     PointController lowestGainOnRay(const PointController & point);
 
-    /// The bookkeeping of the certificate: a box discarded on the columns
-    /// alone, a box the nominal criterion pruned whole, a box dropped with
-    /// no certified point, and the bounds closed when the search stops.
-    void discardUnproven(double gainInf);
-    void discardGridBacked(double gainInf);
-    void dropToResidue(double gainInf);
-    void resolvedAtEpsilon(double gainInf);
-    void adoptIncumbent(const PointController & design, LtiSystem * box);
-    void closeCertificate();
-    bool cannotImprove(double gainInf) const;
-
     inline std::int32_t parameterCount(LtiSystem * box) const;
     Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
-    std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter,
-                                                       Range range) const;
+    std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter, Range range) const;
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
     std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     double epsilon = 0;
+    const qftbx::CloudSet * m_templates = nullptr;
+    const qftbx::SpecificationSet * m_specifications = nullptr;
+    qftbx::ParameterGrids m_sweep;
+    /// Copied whole and read as fields; the defaults are the compiled ones.
+    qftbx::Settings m_settings;
+    /// Not owned. Null means this run cannot be cancelled.
+    const qftbx::CancellationToken * m_cancellation = nullptr;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<FamilyStabilityChecker> family;
-    qftbx::ParameterGrids m_sweep;
     std::unique_ptr<ExactPointCheck> exact;
     std::unique_ptr<Certifier> certifier;
+
     bool exactReading = false;
+    Settings::Algorithms::McStrategies strategies;
+    double phaseGridStep = 0;
     Range initialGainRange;
-    const qftbx::CloudSet * m_templates = nullptr;
-    const qftbx::SpecificationSet * m_specifications = nullptr;
+    std::vector<std::complex<double>> nominalPlantValues;
+    std::unique_ptr<OrderedList> liveList;
+    /// Prune variable C (thesis 5.4.3): gain and controller of the best
+    /// certified solution found by MG.
+    double bestCertifiedGain = std::numeric_limits<double>::infinity();
+    std::unique_ptr<LtiSystem> bestCertifiedController;
+    std::unique_ptr<LtiSystem> designedController;
+    DepthAccounting depthAccounting;
+
     LoopShapingStatistics::Certificate certificate;
     double residueGainInf = std::numeric_limits<double>::infinity();
     double unprovenGainInf = std::numeric_limits<double>::infinity();
     double gridBackedGainInf = std::numeric_limits<double>::infinity();
     double resolvedGainInf = std::numeric_limits<double>::infinity();
-    std::unique_ptr<OrderedList> liveList;
-    std::vector<std::complex<double>> nominalPlantValues;
-
-    /// Prune variable C (thesis 5.4.3): gain and controller of the best
-    /// certified solution found by MG.
-    double bestCertifiedGain = 0;
-    std::unique_ptr<LtiSystem> bestCertifiedController;
-
-    std::unique_ptr<LtiSystem> designedController;
-
-    Settings::Algorithms::McStrategies strategies;
-    DepthAccounting depthAccounting;
-
-    double phaseGridStep = 0;
-
-
-    /// Not owned. Null means this run cannot be cancelled.
-    const qftbx::CancellationToken * m_cancellation = nullptr;
-
-    /// Copied whole and read as fields; the defaults are the compiled ones.
-    qftbx::Settings m_settings;
-
 };
 
 }

@@ -12,14 +12,16 @@
  */
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <memory>
 #include <utility>
 #include <vector>
-#include "src/core/math/constants.h"
-#include <cstdint>
+
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/mc2/algorithm_mc2.h"
-
-#include "src/core/math/range_union.h"
+#include "src/core/math/constants.h"
 
 namespace qftbx {
 
@@ -62,7 +64,7 @@ void AlgorithmMc2::setSettings(const qftbx::Settings & settings)
 }
 
 void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
-                                  const BoundaryData * boundaries, double epsilon)
+                              const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
     this->controller = controller->clone();
@@ -92,8 +94,7 @@ Range AlgorithmMc2::parameterRange(LtiSystem * box, std::int32_t parameter) cons
                              : Range(var.nominal(), var.nominal());
 }
 
-std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::int32_t parameter,
-                                                       Range range) const
+std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::int32_t parameter, Range range) const
 {
     std::vector<Parameter> numerator;
     numerator.reserve(box->numerator().size());
@@ -393,6 +394,52 @@ void AlgorithmMc2::expand(McSearchNode & node, NodeAnalysis & analysis)
     }
 }
 
+void AlgorithmMc2::discardUnproven(double gainInf)
+{
+    ++certificate.unprovenDiscards;
+    unprovenGainInf = std::min(unprovenGainInf, gainInf);
+}
+
+void AlgorithmMc2::discardGridBacked(double gainInf)
+{
+    ++certificate.gridBackedPrunes;
+    gridBackedGainInf = std::min(gridBackedGainInf, gainInf);
+}
+
+void AlgorithmMc2::dropToResidue(double gainInf)
+{
+    ++certificate.residueNodes;
+    residueGainInf = std::min(residueGainInf, gainInf);
+}
+
+void AlgorithmMc2::resolvedAtEpsilon(double gainInf)
+{
+    ++certificate.epsilonResolved;
+    resolvedGainInf = std::min(resolvedGainInf, gainInf);
+}
+
+void AlgorithmMc2::adoptIncumbent(const PointController & design, LtiSystem * box)
+{
+    if (design.gain < bestCertifiedGain) {
+        bestCertifiedGain = design.gain;
+        bestCertifiedController = systemFromPoint(box, design);
+        ++certificate.incumbentUpdates;
+    }
+}
+
+void AlgorithmMc2::closeCertificate()
+{
+    const double head = liveList->isEmpty() ? std::numeric_limits<double>::infinity()
+                                            : liveList->first()->getIndex();
+    certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf, resolvedGainInf});
+    certificate.lowerBoundStrict = std::min(certificate.lowerBound, gridBackedGainInf);
+}
+
+bool AlgorithmMc2::cannotImprove(double gainInf) const
+{
+    return exactReading ? gainInf >= bestCertifiedGain : gainInf > bestCertifiedGain;
+}
+
 std::size_t AlgorithmMc2::peakLiveNodes() const
 {
     return liveList != nullptr ? liveList->peakSize() : 0;
@@ -497,7 +544,7 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 }
 
 void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                                           std::vector<FeasibleThreshold> & thresholds)
+                               std::vector<FeasibleThreshold> & thresholds)
 {
     if (!node->cutsEnabled()) {
         return;
@@ -547,7 +594,7 @@ bool AlgorithmMc2::boxIsFeasible(LtiSystem * box)
 }
 
 RangeUnion AlgorithmMc2::columnGainsDb(const std::vector<double> & zeros,
-                                        const std::vector<double> & poles, Range gainRange)
+                                       const std::vector<double> & poles, Range gainRange)
 {
     RangeUnion gains = RangeUnion::of(20.0 * std::log10(gainRange.min),
                                       20.0 * std::log10(gainRange.max));
@@ -701,54 +748,8 @@ std::optional<PointController> AlgorithmMc2::bestEpsilonCandidate(LtiSystem * bo
     return best;
 }
 
-void AlgorithmMc2::discardUnproven(double gainInf)
-{
-    ++certificate.unprovenDiscards;
-    unprovenGainInf = std::min(unprovenGainInf, gainInf);
-}
-
-void AlgorithmMc2::discardGridBacked(double gainInf)
-{
-    ++certificate.gridBackedPrunes;
-    gridBackedGainInf = std::min(gridBackedGainInf, gainInf);
-}
-
-void AlgorithmMc2::dropToResidue(double gainInf)
-{
-    ++certificate.residueNodes;
-    residueGainInf = std::min(residueGainInf, gainInf);
-}
-
-void AlgorithmMc2::resolvedAtEpsilon(double gainInf)
-{
-    ++certificate.epsilonResolved;
-    resolvedGainInf = std::min(resolvedGainInf, gainInf);
-}
-
-void AlgorithmMc2::adoptIncumbent(const PointController & design, LtiSystem * box)
-{
-    if (design.gain < bestCertifiedGain) {
-        bestCertifiedGain = design.gain;
-        bestCertifiedController = systemFromPoint(box, design);
-        ++certificate.incumbentUpdates;
-    }
-}
-
-void AlgorithmMc2::closeCertificate()
-{
-    const double head = liveList->isEmpty() ? std::numeric_limits<double>::infinity()
-                                            : liveList->first()->getIndex();
-    certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf, resolvedGainInf});
-    certificate.lowerBoundStrict = std::min(certificate.lowerBound, gridBackedGainInf);
-}
-
-bool AlgorithmMc2::cannotImprove(double gainInf) const
-{
-    return exactReading ? gainInf >= bestCertifiedGain : gainInf > bestCertifiedGain;
-}
-
 void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                                            std::vector<FeasibleThreshold> & thresholds)
+                                std::vector<FeasibleThreshold> & thresholds)
 {
     LtiSystem * box = node->system();
     const std::int32_t total = parameterCount(box);
@@ -763,10 +764,9 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
 
         const bool isGain = parameter == 0;
         const bool isZero = !isGain && parameter <= static_cast<std::int32_t>(box->numerator().size());
-            const std::int32_t termIndex = isGain
-            ? -1
-            : (isZero ? parameter - 1
-                      : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
+        const std::int32_t termIndex = isGain ? -1
+                                     : (isZero ? parameter - 1
+                                               : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
 
         for (const CutKind kind : {CutKind::Magnitude, CutKind::Phase}) {
 
@@ -793,8 +793,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
 
                 for (std::size_t i = 0; i < omega->size(); ++i) {
 
-                    const std::optional<BoxClassification> & classification =
-                analysis.classification.at(i);
+                    const std::optional<BoxClassification> & classification = analysis.classification.at(i);
 
                     if (!classification.has_value() || classification->flag() != ambiguous) {
                         continue;
@@ -937,8 +936,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
 
     for (std::size_t i = 0; i < omega->size(); ++i) {
 
-        const std::optional<BoxClassification> & classification =
-                analysis.classification.at(i);
+        const std::optional<BoxClassification> & classification = analysis.classification.at(i);
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;
@@ -1003,8 +1001,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
     node->setSystem(boxFromBounds(v, bounds));
 }
 
-qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_t parameter,
-                                                         double point)
+qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_t parameter, double point)
 {
     LtiSystem * box = node->system();
     const Range range = parameterRange(box, parameter);
@@ -1030,7 +1027,8 @@ qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_
     return children;
 }
 
-inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, WidthMeasure measure)
+inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency,
+                                                  WidthMeasure measure)
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
@@ -1080,7 +1078,7 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
 }
 
 qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                                       const std::vector<FeasibleThreshold> & thresholds)
+                                              const std::vector<FeasibleThreshold> & thresholds)
 {
     if (strategies.treeBisection && !thresholds.empty()) {
 
