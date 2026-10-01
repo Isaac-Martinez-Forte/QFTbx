@@ -12,6 +12,7 @@
 #include <numeric>
 
 #include "src/core/common/exception.h"
+#include "src/core/math/constants.h"
 #include "src/core/math/convex_hull.h"
 #include "src/core/math/line_envelope.h"
 #include "src/core/math/quadratic_set.h"
@@ -22,7 +23,6 @@ namespace {
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
 constexpr double kLn10 = 2.302585092994045684;
-constexpr double kPi = 3.14159265358979323846;
 constexpr std::size_t kMaxRounds = 64;
 constexpr double kLadder[] = {0.0, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7};
 
@@ -40,6 +40,38 @@ double toDb(double g)
 RangeUnion fromParts(const std::vector<double> & lower, const std::vector<double> & upper)
 {
     return RangeUnion::of(lower.data(), upper.data(), lower.size());
+}
+
+double trackingFactor(double boundDb)
+{
+    return std::expm1(boundDb * kLn10 / 10.0);
+}
+
+struct Disc {
+    double s;
+    double t;
+};
+
+std::optional<Disc> discOf(SpecificationType type, double W, double modulus, double nominalModulus, double plantModulus)
+{
+    switch (type) {
+    case SpecificationType::Stability:
+    case SpecificationType::SensorNoise:
+        return Disc{1.0 / W, 0.0};
+    case SpecificationType::OutputDisturbance:
+        return Disc{0.0, modulus / W};
+    case SpecificationType::InputDisturbance:
+        return Disc{0.0, nominalModulus / W};
+    case SpecificationType::ControlEffort:
+        if (!(plantModulus > 0.0)) {
+            return std::nullopt;
+        }
+        return Disc{1.0 / (W * plantModulus), 0.0};
+    case SpecificationType::TrackingLower:
+    case SpecificationType::TrackingUpper:
+        break;
+    }
+    return std::nullopt;
 }
 
 }
@@ -93,7 +125,7 @@ struct Arc {
 
     Arc(double from, double to)
     {
-        if (to - from >= 2.0 * kPi) {
+        if (to - from >= 2.0 * math::kPi) {
             whole = true;
             return;
         }
@@ -143,9 +175,9 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
     const std::size_t f = m_byOmega[frequency];
     const FrequencyReference & at = m_reference->frequencies()[f];
     const std::vector<Direction> & plants = m_directions[f];
-    const Arc arc(phaseDegrees.min * kPi / 180.0, phaseDegrees.max * kPi / 180.0);
-    const double g1 = std::pow(10.0, magnitudeDb.min / 20.0);
-    const double g2 = std::pow(10.0, magnitudeDb.max / 20.0);
+    const Arc arc(phaseDegrees.min * math::kPi / 180.0, phaseDegrees.max * math::kPi / 180.0);
+    const double g1 = dbToLinear(magnitudeDb.min);
+    const double g2 = dbToLinear(magnitudeDb.max);
 
     std::vector<double> & lower = m_forbiddenLower;
     std::vector<double> & upper = m_forbiddenUpper;
@@ -155,7 +187,7 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
     for (std::size_t k = 0; k < at.bounds.size(); ++k) {
         const FrequencyReference::Bound & bound = at.bounds[k];
         if (bound.type == SpecificationType::TrackingLower) {
-            const double dm1 = std::expm1(bound.boundDb * kLn10 / 10.0);
+            const double dm1 = trackingFactor(bound.boundDb);
             for (const TrackingPair & pair : trackingPairs(f, k)) {
                 const double rho = pair.modulus * arc.largestCosine(pair.cosine, pair.sine);
                 const double a = dm1, b = 2.0 * rho, c = pair.constant;
@@ -167,32 +199,15 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
             continue;
         }
 
-        const double W = std::pow(10.0, bound.boundDb / 20.0);
+        const double W = dbToLinear(bound.boundDb);
+        const double nominalModulus = std::abs(at.nominalPlant);
         for (std::size_t n = 0; n < plants.size(); ++n) {
             const Direction & plant = plants[n];
-            double s = 0.0, t = 0.0;
-            switch (bound.type) {
-            case SpecificationType::Stability:
-            case SpecificationType::SensorNoise:
-                s = 1.0 / W;
-                break;
-            case SpecificationType::OutputDisturbance:
-                t = plant.modulus / W;
-                break;
-            case SpecificationType::InputDisturbance:
-                t = std::abs(at.nominalPlant) / W;
-                break;
-            case SpecificationType::ControlEffort: {
-                if (!(plant.valueModulus > 0.0)) {
-                    continue;
-                }
-                s = 1.0 / (W * plant.valueModulus);
-                break;
-            }
-            case SpecificationType::TrackingLower:
-            case SpecificationType::TrackingUpper:
+            const std::optional<Disc> disc = discOf(bound.type, W, plant.modulus, nominalModulus, plant.valueModulus);
+            if (!disc.has_value()) {
                 continue;
             }
+            const double s = disc->s, t = disc->t;
             const double cmax = plant.modulus * arc.largestCosine(plant.cosine, plant.sine);
             const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = plant.norm - t * t;
             if (largestOver(a, b, c, g1, g2) < 0.0) {
@@ -215,7 +230,7 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
             }
         }
         if (covered > 0.0) {
-            verdict.forbiddenBelowDb = covered < kInfinity ? 20.0 * std::log10(covered) : kInfinity;
+            verdict.forbiddenBelowDb = toDb(covered);
         }
         double reached = kInfinity;
         grew = true;
@@ -229,7 +244,7 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t freque
             }
         }
         if (reached < kInfinity) {
-            verdict.forbiddenAboveDb = reached > 0.0 ? 20.0 * std::log10(reached) : -kInfinity;
+            verdict.forbiddenAboveDb = toDb(reached);
         }
     }
 
@@ -250,7 +265,7 @@ const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPair
 
     const FrequencyReference & at = m_reference->frequencies()[frequency];
     const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
-    const double d2 = std::expm1(at.bounds[bound].boundDb * kLn10 / 10.0) + 1.0;
+    const double d2 = trackingFactor(at.bounds[bound].boundDb) + 1.0;
 
     cached.pairs.clear();
     cached.pairs.reserve(m_hull[frequency].size() * working.size());
@@ -332,7 +347,7 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(const FrequencyReference & at, 
         const double boundDb = bound.boundDb - kToleranceDb;
 
         if (bound.type == SpecificationType::TrackingLower) {
-            const double dm1 = std::expm1(boundDb * kLn10 / 10.0);
+            const double dm1 = trackingFactor(boundDb);
             const double d2 = dm1 + 1.0;
 
             std::vector<math::Line> lines;
@@ -372,37 +387,22 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(const FrequencyReference & at, 
             continue;
         }
 
-        const double W = std::pow(10.0, boundDb / 20.0);
+        const double W = dbToLinear(boundDb);
+        const double nominalModulus = std::abs(at.nominalPlant);
+        const bool output = bound.type == SpecificationType::OutputDisturbance;
+        const bool effort = bound.type == SpecificationType::ControlEffort;
         for (const std::size_t n : plants) {
             if (allowed.isEmpty()) {
                 break;
             }
             const double c = cosine(n);
             const double q2 = std::norm(q[n]);
-            double s = 0.0, t = 0.0;
-            switch (bound.type) {
-            case SpecificationType::Stability:
-            case SpecificationType::SensorNoise:
-                s = 1.0 / W;
-                break;
-            case SpecificationType::OutputDisturbance:
-                t = std::sqrt(q2) / W;
-                break;
-            case SpecificationType::InputDisturbance:
-                t = std::abs(at.nominalPlant) / W;
-                break;
-            case SpecificationType::ControlEffort: {
-                const double plant = std::abs((*at.valueSet)[n]);
-                if (!(plant > 0.0)) {
-                    return RangeUnion();
-                }
-                s = 1.0 / (W * plant);
-                break;
+            const std::optional<Disc> disc = discOf(bound.type, W, output ? std::sqrt(q2) : 0.0, nominalModulus,
+                                                    effort ? std::abs((*at.valueSet)[n]) : 0.0);
+            if (!disc.has_value()) {
+                return RangeUnion();
             }
-            case SpecificationType::TrackingLower:
-            case SpecificationType::TrackingUpper:
-                continue;
-            }
+            const double s = disc->s, t = disc->t;
             allowed.intersectWith(math::whereNonNegative(1.0 - s * s, 2.0 * (c - s * t), q2 - t * t));
         }
     }
@@ -518,8 +518,8 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
 
         bool grew = false;
         for (const Range & component : set.components()) {
-            const double lo = std::pow(10.0, component.min / 20.0);
-            const double hi = std::pow(10.0, component.max / 20.0);
+            const double lo = dbToLinear(component.min);
+            const double hi = dbToLinear(component.max);
             const double middle = 0.5 * (lo + hi);
             double previous = -1.0;
 
