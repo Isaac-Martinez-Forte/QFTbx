@@ -151,9 +151,9 @@ QJsonObject toJson(const Record & r)
         certificate["certified_cuts"] = static_cast<qint64>(c.certifiedCuts);
         certificate["sector_verdicts"] = static_cast<qint64>(c.sectorVerdicts);
         certificate["certifications"] = static_cast<qint64>(c.certifications);
-        certificate["refused_by_specifications"] = static_cast<qint64>(c.refusedBySpecifications);
-        certificate["refused_by_nominal_stability"] = static_cast<qint64>(c.refusedByNominalStability);
         certificate["refused_by_routh"] = static_cast<qint64>(c.refusedByRouth);
+        certificate["refused_by_nominal_stability"] = static_cast<qint64>(c.refusedByNominalStability);
+        certificate["refused_by_specifications"] = static_cast<qint64>(c.refusedBySpecifications);
         certificate["refused_by_roots"] = static_cast<qint64>(c.refusedByRoots);
         certificate["incumbent_updates"] = static_cast<qint64>(c.incumbentUpdates);
         certificate["kernel_passes"] = static_cast<qint64>(c.kernelPasses);
@@ -262,9 +262,9 @@ Record recordFromJson(const QJsonObject & o)
         c.certifiedCuts = static_cast<std::size_t>(certificate["certified_cuts"].toInteger());
         c.sectorVerdicts = static_cast<std::size_t>(certificate["sector_verdicts"].toInteger());
         c.certifications = static_cast<std::size_t>(certificate["certifications"].toInteger());
-        c.refusedBySpecifications = static_cast<std::size_t>(certificate["refused_by_specifications"].toInteger());
-        c.refusedByNominalStability = static_cast<std::size_t>(certificate["refused_by_nominal_stability"].toInteger());
         c.refusedByRouth = static_cast<std::size_t>(certificate["refused_by_routh"].toInteger());
+        c.refusedByNominalStability = static_cast<std::size_t>(certificate["refused_by_nominal_stability"].toInteger());
+        c.refusedBySpecifications = static_cast<std::size_t>(certificate["refused_by_specifications"].toInteger());
         c.refusedByRoots = static_cast<std::size_t>(certificate["refused_by_roots"].toInteger());
         c.incumbentUpdates = static_cast<std::size_t>(certificate["incumbent_updates"].toInteger());
         c.kernelPasses = static_cast<std::size_t>(certificate["kernel_passes"].toInteger());

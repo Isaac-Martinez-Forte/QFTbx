@@ -17,9 +17,9 @@
  * trick gives them in O(n log n): lines sorted by slope, a line that never
  * becomes the extreme one dropped, and the breakpoints where the extreme
  * line changes are the intersections of consecutive survivors. Only g >= 0
- * is kept. A piece names the line that is extreme from its start to the
- * start of the next piece, the last one to infinity; the upper envelope is
- * the lower one of the negated lines.
+ * is kept. A piece names, by the line's index, the line that is extreme
+ * from its start to the start of the next piece, the last one to infinity;
+ * the upper envelope is the lower one of the negated lines.
  */
 namespace qftbx {
 namespace math {
@@ -34,7 +34,7 @@ struct Line
 struct EnvelopePiece
 {
     double from = 0.0;
-    std::size_t line = 0;
+    std::size_t index = 0;
 };
 
 std::vector<EnvelopePiece> lowerEnvelope(std::vector<Line> lines);

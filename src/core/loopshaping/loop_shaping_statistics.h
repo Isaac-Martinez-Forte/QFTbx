@@ -85,9 +85,9 @@ struct LoopShapingStatistics
         std::size_t certifiedCuts = 0;
         std::size_t sectorVerdicts = 0;
         std::size_t certifications = 0;
-        std::size_t refusedBySpecifications = 0;
-        std::size_t refusedByNominalStability = 0;
         std::size_t refusedByRouth = 0;
+        std::size_t refusedByNominalStability = 0;
+        std::size_t refusedBySpecifications = 0;
         std::size_t refusedByRoots = 0;
         std::size_t incumbentUpdates = 0;
         std::size_t kernelPasses = 0;

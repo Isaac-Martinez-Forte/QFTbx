@@ -164,7 +164,7 @@ public:
         double forbiddenAboveDb = std::numeric_limits<double>::infinity();
     };
 
-    SectorVerdict sectorVerdict(std::size_t frequency, Range phaseDegrees, Range magnitudeDb);
+    SectorVerdict sectorVerdict(std::size_t omegaIndex, Range phaseDegrees, Range magnitudeDb);
 
     struct Statistics {
         std::size_t verdicts = 0;
@@ -193,12 +193,12 @@ private:
 
     bool growWorkingSet(std::size_t frequency, const PointController & point);
 
-    struct Direction {
+    struct Quotient {
         double modulus;
         double cosine;
         double sine;
         double norm;
-        double valueModulus;
+        double plantModulus;
     };
 
     struct TrackingPair {
@@ -219,8 +219,8 @@ private:
     std::optional<SpecificationReference> m_reference;
     std::vector<std::vector<std::size_t>> m_working;
     std::vector<std::vector<std::size_t>> m_hull;
-    std::vector<std::size_t> m_byOmega;
-    std::vector<std::vector<Direction>> m_directions;
+    std::vector<std::size_t> m_referenceOf;
+    std::vector<std::vector<Quotient>> m_quotients;
     std::vector<TrackingPairs> m_pairs;
     std::vector<double> m_forbiddenLower;
     std::vector<double> m_forbiddenUpper;

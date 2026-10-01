@@ -131,7 +131,7 @@ TEST(LineEnvelope, LowerAndUpperMatchThePlainExtremes)
             while (i + 1 < pieces.size() && pieces[i + 1].from <= g) {
                 ++i;
             }
-            return pieces[i].line;
+            return pieces[i].index;
         };
         for (int k = 0; k <= 200; ++k) {
             const double g = 0.05 * k;

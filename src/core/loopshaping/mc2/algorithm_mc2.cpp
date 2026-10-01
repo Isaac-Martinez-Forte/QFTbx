@@ -467,9 +467,9 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
     if (certifier != nullptr) {
         const Certifier::Statistics & funnel = certifier->statistics();
         statistics.certificate.certifications = funnel.certifications;
-        statistics.certificate.refusedBySpecifications = funnel.refusedBySpecifications;
-        statistics.certificate.refusedByNominalStability = funnel.refusedByNominalStability;
         statistics.certificate.refusedByRouth = funnel.refusedByRouth;
+        statistics.certificate.refusedByNominalStability = funnel.refusedByNominalStability;
+        statistics.certificate.refusedBySpecifications = funnel.refusedBySpecifications;
         statistics.certificate.refusedByRoots = funnel.refusedByRoots;
     }
     if (exact != nullptr) {

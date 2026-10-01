@@ -52,9 +52,9 @@ public:
 
     struct Statistics {
         std::size_t certifications = 0;
-        std::size_t refusedBySpecifications = 0;
-        std::size_t refusedByNominalStability = 0;
         std::size_t refusedByRouth = 0;
+        std::size_t refusedByNominalStability = 0;
+        std::size_t refusedBySpecifications = 0;
         std::size_t refusedByRoots = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
