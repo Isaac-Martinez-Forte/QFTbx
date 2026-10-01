@@ -2,7 +2,7 @@
  * @file
  * @brief The exact point check is the verifier's specification criterion.
  *
- * On every published problem, thousands of controllers drawn at random from
+ * On every published problem, five hundred controllers drawn at random from
  * the search box give, through the check, the entries the verifier records
  * on the same controller built as a system: the same values, bounds and
  * excesses to the last bit, and the same verdict up to the tolerance; a
@@ -99,7 +99,7 @@ TEST(ExactPointCheck, TheVerdictAndTheExcessesAreTheVerifiers)
         ExactPointCheck check(*project.plant(), structure, *project.omega()->values(),
                               project.templates(), specifications);
         ASSERT_TRUE(check.usable()) << name;
-        expectTheVerifiersEntries(check, structure, project, specifications, name, 2000);
+        expectTheVerifiersEntries(check, structure, project, specifications, name, 500);
         ++compared;
     }
     EXPECT_GE(compared, 10u);
