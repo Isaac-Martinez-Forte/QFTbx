@@ -1,25 +1,3 @@
-#ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
-#define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
-
-#include "src/core/project/settings.h"
-#include "src/core/pipeline/cancellation.h"
-#include <vector>
-#include <cstdint>
-#include <memory>
-
-#include "src/core/templates/cloud_set.h"
-#include "src/core/loopshaping/nt/algorithm_nt.h"
-#include "src/core/loopshaping/nk/algorithm_nk.h"
-#include "src/core/loopshaping/mr/algorithm_mr.h"
-#include "src/core/loopshaping/mc1/algorithm_mc1.h"
-#include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
-#include "src/core/loopshaping/mc2/algorithm_mc2.h"
-#include "src/core/loopshaping/mc3/algorithm_mc3.h"
-#include "src/core/loopshaping/loop_shaping_statistics.h"
-#include "src/core/system/lti_system.h"
-#include "src/core/boundaries/boundary_data.h"
-#include "src/core/templates/parameter_grids.h"
-
 /**
  * @file
  * @brief Facade over the loop-shaping algorithms: picks one, runs it over
@@ -45,6 +23,24 @@
  * specifications, the exact point reading evaluates a candidate against
  * (research.mc2-reading). statistics() is what the last run cost.
  */
+
+#ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
+#define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
+
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "src/core/boundaries/boundary_data.h"
+#include "src/core/loopshaping/loop_shaping_statistics.h"
+#include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/pipeline/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/specifications/specification_record.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
+
 namespace qftbx {
 
 class LoopShaping
