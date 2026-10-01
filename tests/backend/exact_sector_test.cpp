@@ -74,7 +74,7 @@ TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
                         for (int b = 0; b <= 12; ++b) {
                             const double phaseDeg = phase.min + (phase.max - phase.min) * a / 12.0;
                             const double db = magnitude.min + (magnitude.max - magnitude.min) * b / 12.0;
-                            EXPECT_GT(reference.worstExcessAt(at, loopAt(phaseDeg, db)), 0.0)
+                            EXPECT_GT(at.worstExcessAt(loopAt(phaseDeg, db)), 0.0)
                                 << name << " w=" << at.omega << " trial " << trial << " at " << phaseDeg << " deg, " << db << " dB";
                             ++sampled;
                         }
@@ -85,7 +85,7 @@ TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
                     for (int a = 0; a < 40; ++a) {
                         const double phaseDeg = phase.min + (phase.max - phase.min) * unit(generator);
                         const double db = verdict.forbiddenBelowDb - 1e-6 - 30.0 * unit(generator);
-                        EXPECT_GT(reference.worstExcessAt(at, loopAt(phaseDeg, db)), 0.0)
+                        EXPECT_GT(at.worstExcessAt(loopAt(phaseDeg, db)), 0.0)
                             << name << " w=" << at.omega << " trial " << trial << " below " << verdict.forbiddenBelowDb << " dB at " << db;
                         ++sampled;
                     }
@@ -95,7 +95,7 @@ TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
                     for (int a = 0; a < 40; ++a) {
                         const double phaseDeg = phase.min + (phase.max - phase.min) * unit(generator);
                         const double db = verdict.forbiddenAboveDb + 1e-6 + 30.0 * unit(generator);
-                        EXPECT_GT(reference.worstExcessAt(at, loopAt(phaseDeg, db)), 0.0)
+                        EXPECT_GT(at.worstExcessAt(loopAt(phaseDeg, db)), 0.0)
                             << name << " w=" << at.omega << " trial " << trial << " above " << verdict.forbiddenAboveDb << " dB at " << db;
                         ++sampled;
                     }

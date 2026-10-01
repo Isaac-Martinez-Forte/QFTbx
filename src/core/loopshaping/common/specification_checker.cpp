@@ -2,11 +2,11 @@
  * @file
  * @brief Checking a designed controller against every specification.
  *
- * At each design frequency the nominal loop is evaluated and the five
- * closed-loop magnitudes are bounded in the worst case over the family at
- * that loop value. The excess over a bound is in decibels, and a value that
- * is not finite violates by an infinite amount, so it can never read as
- * satisfied. The tracking band is governed by its lower bound, the upper one
+ * At each design frequency the nominal loop is evaluated and the
+ * closed-loop magnitudes the specifications in force there name are bounded
+ * in the worst case over the family at that loop value. The excess over a
+ * bound is in decibels, and a value that is not a number violates by an
+ * infinite amount, so it can never read as satisfied. The tracking band is governed by its lower bound, the upper one
  * only sets the cut height. Every member of the swept family is closed with
  * the controller's numerator and denominator, and a member is stable only
  * when every root of its characteristic polynomial is strictly in the left
@@ -20,7 +20,6 @@
 #include <cmath>
 #include <optional>
 
-#include "src/core/boundaries/closed_loop_worst_case.h"
 #include "src/core/common/exception.h"
 #include "src/core/math/polynomial.h"
 
@@ -165,22 +164,21 @@ SpecificationReference::SpecificationReference(LtiSystem & plant, const std::vec
     }
 }
 
-void SpecificationReference::recordExcesses(const FrequencyReference & at, std::complex<double> loop,
-                                            SpecificationCheck & check) const
+void FrequencyReference::recordExcesses(std::complex<double> loop, SpecificationCheck & check) const
 {
-    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet, at.mask);
+    const WorstCase worst = worstCaseAt(nominalPlant, loop, *valueSet, nominalOverValueSet, mask);
 
-    for (const FrequencyReference::Bound & bound : at.bounds) {
-        record(check, at.index, at.omega, bound.type, valueOf(worst, bound.type), bound.boundDb);
+    for (const Bound & bound : bounds) {
+        record(check, index, omega, bound.type, valueOf(worst, bound.type), bound.boundDb);
     }
 }
 
-double SpecificationReference::worstExcessAt(const FrequencyReference & at, std::complex<double> loop) const
+double FrequencyReference::worstExcessAt(std::complex<double> loop) const
 {
-    const WorstCase worst = worstCaseAt(at.nominalPlant, loop, *at.valueSet, at.nominalOverValueSet, at.mask);
+    const WorstCase worst = worstCaseAt(nominalPlant, loop, *valueSet, nominalOverValueSet, mask);
 
     double worstExcess = -std::numeric_limits<double>::infinity();
-    for (const FrequencyReference::Bound & bound : at.bounds) {
+    for (const Bound & bound : bounds) {
         worstExcess = std::max(worstExcess, excessOf(valueOf(worst, bound.type), bound.boundDb));
     }
     return worstExcess;
@@ -221,6 +219,8 @@ FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::P
     return result;
 }
 
+namespace {
+
 FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & controller)
 {
     FamilyStability result;
@@ -243,6 +243,8 @@ FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & contro
     return familyStabilityAt(family, *loop);
 }
 
+}
+
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,
                                               const CloudSet & templates,
@@ -254,7 +256,7 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
     SpecificationCheck check;
 
     for (const FrequencyReference & at : reference.frequencies()) {
-        reference.recordExcesses(at, controller.evaluate(at.omega) * at.nominalPlant, check);
+        at.recordExcesses(controller.evaluate(at.omega) * at.nominalPlant, check);
     }
 
     check.family = familyStabilityAt(SweptFamily(plant, sweep == nullptr ? ParameterGrids() : *sweep), controller);

@@ -57,15 +57,15 @@
  * P_0 / P of the value set, the bounds in force there in decibels, in the
  * order the entries are recorded, and the mask of the closed-loop
  * magnitudes those bounds need, so that the value set is walked for those
- * alone. recordExcesses then takes one loop
- * value and appends the entries of that frequency, worstExcessAt gives the
- * largest of them without recording, and they are the one place the
- * comparison is written, compiled once, so that a search asking about a
- * candidate and the verifier judging the returned design cannot disagree
- * by an inlined copy. The reference keeps pointers into the value sets it
- * was built from and must not outlive them. familyStabilityAt is the
- * family criterion on the same terms: given the swept family and the loop's
- * polynomials, one call per point.
+ * alone. A frequency's recordExcesses then takes one loop value and appends
+ * its entries, and its worstExcessAt gives the largest of them without
+ * recording; they are the one place the comparison is written, compiled
+ * once, so that a search asking about a candidate and the verifier judging
+ * the returned design compare alike, though each computes the loop value it
+ * passes in (see exact_point_check.h). The reference keeps pointers into the
+ * value sets it was built from and must not outlive them. familyStabilityAt
+ * is the family criterion on the same terms: given the swept family and the
+ * loop's polynomials, one call per point.
  *
  * The result lists every active specification at every design frequency with
  * the value achieved, the bound and the excess, and the largest excess. The
@@ -128,6 +128,10 @@ struct FrequencyReference
     std::vector<std::complex<double>> nominalOverValueSet;
     std::vector<Bound> bounds;
     WorstCaseMask mask;
+
+    void recordExcesses(std::complex<double> loop, SpecificationCheck & check) const;
+
+    double worstExcessAt(std::complex<double> loop) const;
 };
 
 class SpecificationReference
@@ -138,18 +142,12 @@ public:
 
     const std::vector<FrequencyReference> & frequencies() const { return m_frequencies; }
 
-    void recordExcesses(const FrequencyReference & at, std::complex<double> loop,
-                        SpecificationCheck & check) const;
-
-    double worstExcessAt(const FrequencyReference & at, std::complex<double> loop) const;
-
 private:
     std::vector<FrequencyReference> m_frequencies;
 };
 
 FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::Polynomials & loop);
 
-FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & controller);
 
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
                                               const std::vector<double> & omega,

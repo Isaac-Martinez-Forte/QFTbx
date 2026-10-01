@@ -49,6 +49,8 @@ public:
     std::vector<std::pair<std::string, double>> valuesOf(std::size_t index) const;
 
 private:
+    void decode(std::size_t index, std::vector<double> & values) const;
+
     State m_state = State::NoSweepRecord;
     std::vector<std::string> m_names;
     std::vector<std::vector<double>> m_grids;

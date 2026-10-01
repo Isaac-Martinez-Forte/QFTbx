@@ -182,7 +182,7 @@ bool ExactPointCheck::admitsFrom(const PointController & point, std::size_t & fi
     for (std::size_t step = 0; step < count; ++step) {
         const std::size_t i = (firstToAsk + step) % count;
         ++m_statistics.kernelPasses;
-        if (!(m_reference->worstExcessAt(frequencies[i], loopAt(frequencies[i], point)) <= -kToleranceDb)) {
+        if (!(frequencies[i].worstExcessAt(loopAt(frequencies[i], point)) <= -kToleranceDb)) {
             firstToAsk = i;
             return false;
         }
@@ -197,7 +197,7 @@ SpecificationCheck ExactPointCheck::checkOf(const PointController & point) const
 
     SpecificationCheck check;
     for (const FrequencyReference & at : m_reference->frequencies()) {
-        m_reference->recordExcesses(at, loopAt(at, point), check);
+        at.recordExcesses(loopAt(at, point), check);
     }
     return check;
 }

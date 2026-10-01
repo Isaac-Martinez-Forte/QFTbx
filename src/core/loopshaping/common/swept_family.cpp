@@ -11,6 +11,12 @@
 
 namespace qftbx {
 
+namespace {
+
+constexpr std::size_t kNotSwept = static_cast<std::size_t>(-1);
+
+}
+
 SweptFamily::SweptFamily(LtiSystem & plant, const ParameterGrids & sweep)
 {
     if (sweep.empty()) {
@@ -43,35 +49,35 @@ SweptFamily::SweptFamily(LtiSystem & plant, const ParameterGrids & sweep)
         count *= grid.size();
     }
 
+    const auto slotOf = [&](const Parameter & parameter) {
+        const auto named = std::find(m_names.begin(), m_names.end(), parameter.name());
+        return named == m_names.end() ? kNotSwept : static_cast<std::size_t>(named - m_names.begin());
+    };
+    std::vector<std::size_t> numeratorSlots, denominatorSlots;
+    for (const Parameter & parameter : plant.numerator()) { numeratorSlots.push_back(slotOf(parameter)); }
+    for (const Parameter & parameter : plant.denominator()) { denominatorSlots.push_back(slotOf(parameter)); }
+    const std::size_t gainSlot = slotOf(plant.gain());
+
     std::vector<double> numerator = nominalValues(plant.numerator());
     std::vector<double> denominator = nominalValues(plant.denominator());
-    std::vector<double> digit(m_names.size());
-
-    const auto valueOf = [&](const Parameter & parameter) {
-        for (std::size_t j = 0; j < m_names.size(); ++j) {
-            if (m_names[j] == parameter.name()) {
-                return digit[j];
-            }
-        }
-        return parameter.nominal();
-    };
+    std::vector<double> digit;
 
     m_members.reserve(count);
     for (std::size_t member = 0; member < count; ++member) {
-        std::size_t rest = member;
-        for (std::size_t j = 0; j < m_grids.size(); ++j) {
-            digit[j] = m_grids[j][rest % m_grids[j].size()];
-            rest /= m_grids[j].size();
-        }
+        decode(member, digit);
         for (std::size_t c = 0; c < numerator.size(); ++c) {
-            numerator[c] = valueOf(plant.numerator()[c]);
+            if (numeratorSlots[c] != kNotSwept) {
+                numerator[c] = digit[numeratorSlots[c]];
+            }
         }
         for (std::size_t c = 0; c < denominator.size(); ++c) {
-            denominator[c] = valueOf(plant.denominator()[c]);
+            if (denominatorSlots[c] != kNotSwept) {
+                denominator[c] = digit[denominatorSlots[c]];
+            }
         }
+        const double gain = gainSlot != kNotSwept ? digit[gainSlot] : plant.gain().nominal();
 
-        const std::optional<LtiSystem::Polynomials> polynomials =
-                plant.polynomialsAt(numerator, denominator, valueOf(plant.gain()));
+        const std::optional<LtiSystem::Polynomials> polynomials = plant.polynomialsAt(numerator, denominator, gain);
         if (!polynomials.has_value()) {
             m_members.clear();
             m_state = State::NotRational;
@@ -83,14 +89,24 @@ SweptFamily::SweptFamily(LtiSystem & plant, const ParameterGrids & sweep)
     m_state = State::Usable;
 }
 
-std::vector<std::pair<std::string, double>> SweptFamily::valuesOf(std::size_t index) const
+void SweptFamily::decode(std::size_t index, std::vector<double> & values) const
 {
-    std::vector<std::pair<std::string, double>> values;
-    values.reserve(m_names.size());
+    values.resize(m_grids.size());
     std::size_t rest = index;
     for (std::size_t j = 0; j < m_grids.size(); ++j) {
-        values.emplace_back(m_names[j], m_grids[j][rest % m_grids[j].size()]);
+        values[j] = m_grids[j][rest % m_grids[j].size()];
         rest /= m_grids[j].size();
+    }
+}
+
+std::vector<std::pair<std::string, double>> SweptFamily::valuesOf(std::size_t index) const
+{
+    std::vector<double> digit;
+    decode(index, digit);
+    std::vector<std::pair<std::string, double>> values;
+    values.reserve(m_names.size());
+    for (std::size_t j = 0; j < m_names.size(); ++j) {
+        values.emplace_back(m_names[j], digit[j]);
     }
     return values;
 }

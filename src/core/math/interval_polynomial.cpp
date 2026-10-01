@@ -22,7 +22,7 @@ std::vector<Interval> intervalPolynomialProduct(const std::vector<Interval> & a,
     std::vector<Interval> product(a.size() + b.size() - 1, Interval(0.0));
     for (std::size_t i = 0; i < a.size(); ++i) {
         for (std::size_t j = 0; j < b.size(); ++j) {
-            product[i + j] = product[i + j] + a[i] * b[j];
+            product[i + j] += a[i] * b[j];
         }
     }
     return product;
@@ -35,7 +35,7 @@ std::vector<Interval> intervalPolynomialSum(const std::vector<Interval> & a, con
     std::vector<Interval> sum = longer;
     const std::size_t offset = longer.size() - shorter.size();
     for (std::size_t i = 0; i < shorter.size(); ++i) {
-        sum[offset + i] = sum[offset + i] + shorter[i];
+        sum[offset + i] += shorter[i];
     }
     return sum;
 }
