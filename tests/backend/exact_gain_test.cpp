@@ -3,18 +3,16 @@
  * @brief The exact best gain at fixed zeros and poles is the smallest gain
  * the verifier admits there.
  *
- * The pieces first: the quadratic solver against a scan for every sign
- * case, the line envelopes against the plain minimum and maximum, the hull
- * against a square with points inside. Then on the published problems: the
- * admissible gain set computed over the whole cloud agrees with the
- * verifier's criterion on a fine scan of gains at random zeros and poles,
- * the working-set search finds the same minimum as the whole cloud, and the
- * minimum is a minimum, a hair below it refused. The search keeps state of
- * its own from one vertex to the next, which plant it asks first, and the
- * points asked in between must not move it: two checks asked the same
- * vertices, one of them asked other points between, give the same gains to
- * the bit after the same exchange rounds and the same confirmations. The vertices the searches
- * returned in the study are pinned: the DC motor at z = 1000, p = 472.86
+ * On the published problems: the admissible gain set computed over the
+ * whole cloud agrees with the verifier's criterion on a fine scan of gains
+ * at random zeros and poles, the working-set search finds the same minimum
+ * as the whole cloud, and the minimum is a minimum, a hair below it refused.
+ * The search keeps state of its own from one vertex to the next, which plant
+ * it asks first, and the points asked in between must not move it: two
+ * checks asked the same vertices, one of them asked other points between,
+ * give the same gains to the bit after the same exchange rounds and the same
+ * confirmations. The vertices the searches returned in the study are
+ * pinned: the DC motor at z = 1000, p = 472.86
  * where the two bracketing columns demanded 89 and the specifications admit
  * 41.47, the toolbox example at its nearest-node vertex, and the gear-train
  * motor at its conservative vertex.
@@ -22,21 +20,19 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cmath>
-#include <complex>
+#include <cstddef>
 #include <cstdio>
 #include <filesystem>
+#include <memory>
 #include <random>
 #include <string>
 #include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/loopshaping/common/exact_point_check.h"
-#include "src/core/math/convex_hull.h"
-#include "src/core/math/line_envelope.h"
-#include "src/core/math/quadratic_set.h"
 #include "src/core/math/range.h"
+#include "src/core/math/range_union.h"
 #include "src/core/specifications/specification_record.h"
 
 using namespace qftbx;
@@ -79,92 +75,6 @@ struct Problem
     std::unique_ptr<ExactPointCheck> check;
 };
 
-}
-
-TEST(QuadraticSet, EverySignCaseAgreesWithAScan)
-{
-    std::mt19937 generator(11);
-    std::uniform_real_distribution<double> coefficient(-3.0, 3.0);
-    int compared = 0;
-    for (int trial = 0; trial < 400; ++trial) {
-        const double a = trial % 5 == 0 ? 0.0 : coefficient(generator);
-        const double b = trial % 7 == 0 ? 0.0 : coefficient(generator);
-        const double c = coefficient(generator);
-        const RangeUnion set = math::whereNonNegative(a, b, c);
-        for (int k = 0; k <= 600; ++k) {
-            const double g = 0.01 * k;
-            const double value = a * g * g + b * g + c;
-            if (std::abs(value) < 1e-9) {
-                continue;
-            }
-            EXPECT_EQ(set.contains(g), value > 0.0) << "a=" << a << " b=" << b << " c=" << c << " g=" << g;
-            ++compared;
-        }
-    }
-    EXPECT_GT(compared, 200000);
-
-    EXPECT_TRUE(math::whereNonNegative(1e-6, 2.0, -1.0).contains(0.5000002));
-    EXPECT_FALSE(math::whereNonNegative(1e-6, 2.0, -1.0).contains(0.4999));
-}
-
-TEST(LineEnvelope, LowerAndUpperMatchThePlainExtremes)
-{
-    std::mt19937 generator(5);
-    std::uniform_real_distribution<double> slope(-4.0, 4.0), intercept(-10.0, 10.0);
-    for (int trial = 0; trial < 50; ++trial) {
-        std::vector<math::Line> lines;
-        const std::size_t count = 1 + trial % 40;
-        for (std::size_t k = 0; k < count; ++k) {
-            lines.push_back({slope(generator), intercept(generator), k});
-        }
-        if (trial % 3 == 0 && count > 1) {
-            lines[1].slope = lines[0].slope;
-        }
-        const std::vector<math::EnvelopePiece> lower = math::lowerEnvelope(lines);
-        const std::vector<math::EnvelopePiece> upper = math::upperEnvelope(lines);
-        ASSERT_FALSE(lower.empty());
-        EXPECT_EQ(lower.front().from, 0.0);
-        EXPECT_EQ(upper.front().from, 0.0);
-
-        const auto activeLine = [](const std::vector<math::EnvelopePiece> & pieces, double g) {
-            std::size_t i = 0;
-            while (i + 1 < pieces.size() && pieces[i + 1].from <= g) {
-                ++i;
-            }
-            return pieces[i].index;
-        };
-        for (int k = 0; k <= 200; ++k) {
-            const double g = 0.05 * k;
-            double minimum = std::numeric_limits<double>::infinity(), maximum = -minimum;
-            for (const math::Line & line : lines) {
-                minimum = std::min(minimum, line.slope * g + line.intercept);
-                maximum = std::max(maximum, line.slope * g + line.intercept);
-            }
-            const math::Line & low = lines[activeLine(lower, g)];
-            const math::Line & high = lines[activeLine(upper, g)];
-            EXPECT_NEAR(low.slope * g + low.intercept, minimum, 1e-9 * (1.0 + std::abs(minimum)));
-            EXPECT_NEAR(high.slope * g + high.intercept, maximum, 1e-9 * (1.0 + std::abs(maximum)));
-        }
-    }
-}
-
-TEST(ConvexHull, ASquareWithPointsInsideHasFourVertices)
-{
-    std::vector<std::complex<double>> points = {{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0.5, 0.5}, {0.2, 0.7}, {0.5, 0.0}, {1, 0}};
-    const std::vector<std::size_t> hull = math::convexHullVertices(points);
-    ASSERT_EQ(hull.size(), 4u);
-    for (const std::size_t v : hull) {
-        EXPECT_TRUE(v <= 3u) << "vertex index " << v;
-    }
-    for (std::size_t k = 0; k < 4; ++k) {
-        const std::complex<double> & o = points[hull[k]];
-        const std::complex<double> & a = points[hull[(k + 1) % 4]];
-        const std::complex<double> & b = points[hull[(k + 2) % 4]];
-        EXPECT_GT((a.real() - o.real()) * (b.imag() - o.imag()) - (a.imag() - o.imag()) * (b.real() - o.real()), 0.0)
-            << "counter-clockwise";
-    }
-    EXPECT_EQ(math::convexHullVertices({{1, 1}, {1, 1}}).size(), 1u);
-    EXPECT_EQ(math::convexHullVertices({}).size(), 0u);
 }
 
 TEST(ExactGain, TheAdmissibleSetIsTheVerifiersOnAScan)

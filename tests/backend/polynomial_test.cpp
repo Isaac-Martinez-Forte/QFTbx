@@ -10,7 +10,9 @@
  * beyond the allowed one. The maglev denominator s^2 + 430.25 and the ACC'90
  * denominator s^2 (s^2 + 0.02 s + 1) check that far roots keep their precision
  * and that a double root at the origin is not read as a pair on the axis,
- * which would put an indentation where the plant has none.
+ * which would put an indentation where the plant has none. Products and sums
+ * take their coefficients highest degree first, and an empty operand is one
+ * in a product.
  */
 
 #include <gtest/gtest.h>
@@ -216,4 +218,12 @@ TEST(Polynomial, HurwitzAgreesWithTheRootsAndRejectsTheAxis)
     EXPECT_TRUE(qftbx::math::isHurwitz({1.0, 2.0, 1.0}));
     EXPECT_TRUE(qftbx::math::isHurwitz({-1.0, -2.0, -1.0})) << "the sign of the leading coefficient does not matter";
     EXPECT_FALSE(qftbx::math::isHurwitz({1.0, 1.0, 1.0, 100.0})) << "the Routh table catches what the signs do not";
+}
+
+TEST(Polynomial, ProductAndSumGoHighestDegreeFirst)
+{
+    EXPECT_EQ(polynomialProduct({1.0, 2.0}, {1.0, 3.0}), (std::vector<double>{1.0, 5.0, 6.0}));
+    EXPECT_EQ(polynomialProduct({}, {1.0, 3.0}), (std::vector<double>{1.0, 3.0}));
+    EXPECT_EQ(polynomialSum({1.0, 2.0, 3.0}, {4.0, 5.0}), (std::vector<double>{1.0, 6.0, 8.0}));
+    EXPECT_EQ(polynomialSum({4.0, 5.0}, {1.0, 2.0, 3.0}), (std::vector<double>{1.0, 6.0, 8.0}));
 }

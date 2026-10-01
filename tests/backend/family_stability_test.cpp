@@ -106,14 +106,6 @@ ParameterGrids gridsOf(LtiSystem & plant, std::size_t points)
 
 }
 
-TEST(PolynomialArithmetic, ProductAndSumHighestDegreeFirst)
-{
-    EXPECT_EQ(math::polynomialProduct({1.0, 2.0}, {1.0, 3.0}), (std::vector<double>{1.0, 5.0, 6.0}));
-    EXPECT_EQ(math::polynomialProduct({}, {1.0, 3.0}), (std::vector<double>{1.0, 3.0}));
-    EXPECT_EQ(math::polynomialSum({1.0, 2.0, 3.0}, {4.0, 5.0}), (std::vector<double>{1.0, 6.0, 8.0}));
-    EXPECT_EQ(math::polynomialSum({4.0, 5.0}, {1.0, 2.0, 3.0}), (std::vector<double>{1.0, 6.0, 8.0}));
-}
-
 TEST(IntervalRouth, ProvesNonHurwitzOnlyWhatEveryMemberFails)
 {
     using math::provablyNotHurwitz;
