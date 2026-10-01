@@ -91,10 +91,6 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
         const FrequencyReference & at = m_reference->frequencies()[f];
         m_byOmega[at.index] = f;
         std::vector<std::size_t> seed = math::convexHullVertices(at.nominalOverValueSet);
-        if (seed.empty()) {
-            seed.resize(at.nominalOverValueSet.size());
-            std::iota(seed.begin(), seed.end(), std::size_t(0));
-        }
         std::sort(seed.begin(), seed.end());
         m_hull.push_back(seed);
 
@@ -105,7 +101,7 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
             const double modulus = std::abs(qn);
             const double angle = std::arg(qn);
             directions.push_back({modulus, std::cos(angle), std::sin(angle), std::norm(qn),
-                                  at.valueSet != nullptr ? std::abs((*at.valueSet)[n]) : 0.0});
+                                  std::abs((*at.valueSet)[n])});
         }
         m_directions.push_back(std::move(directions));
         m_pairs.emplace_back();
@@ -259,7 +255,7 @@ const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPair
 {
     TrackingPairs & cached = m_pairs[frequency];
     const std::vector<std::size_t> & working = m_working[frequency];
-    if (cached.bound == bound && cached.workingSize == working.size()) {
+    if (cached.workingSize == working.size()) {
         return cached.pairs;
     }
 
@@ -276,7 +272,6 @@ const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPair
             cached.pairs.push_back({std::abs(w), std::cos(angle), std::sin(angle), d2 * std::norm(q[j]) - std::norm(q[n])});
         }
     }
-    cached.bound = bound;
     cached.workingSize = working.size();
     return cached.pairs;
 }
@@ -312,7 +307,6 @@ bool ExactPointCheck::admitsFrom(const PointController & point, std::size_t & fi
         ++m_statistics.kernelPasses;
         if (!(m_reference->worstExcessAt(frequencies[i], loopAt(frequencies[i], point)) <= -kToleranceDb)) {
             firstToAsk = i;
-            ++m_statistics.rejections;
             return false;
         }
     }
@@ -331,9 +325,11 @@ SpecificationCheck ExactPointCheck::checkOf(const PointController & point) const
     return check;
 }
 
-RangeUnion ExactPointCheck::admissibleMagnitudes(const FrequencyReference & at, std::complex<double> direction,
+RangeUnion ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
                                                  const std::vector<std::size_t> & plants) const
 {
+    const FrequencyReference & at = m_reference->frequencies()[frequency];
+    const std::vector<Direction> & quotients = m_directions[frequency];
     RangeUnion allowed = RangeUnion::of(0.0, kInfinity);
 
     const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
@@ -353,7 +349,7 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(const FrequencyReference & at, 
             std::vector<math::Line> lines;
             lines.reserve(plants.size());
             for (const std::size_t n : plants) {
-                lines.push_back({2.0 * cosine(n), std::norm(q[n]), n});
+                lines.push_back({2.0 * cosine(n), quotients[n].norm, n});
             }
             const std::vector<math::EnvelopePiece> nearest = math::lowerEnvelope(lines);
             const std::vector<math::EnvelopePiece> farthest = math::upperEnvelope(lines);
@@ -369,7 +365,7 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(const FrequencyReference & at, 
                 const std::size_t m = farthest[j].line;
 
                 RangeUnion piece = math::whereNonNegative(dm1, 2.0 * (d2 * cosine(n) - cosine(m)),
-                                                          d2 * std::norm(q[n]) - std::norm(q[m]));
+                                                          d2 * quotients[n].norm - quotients[m].norm);
                 piece.intersectWith(from, to);
                 for (const Range & part : piece.components()) {
                     lower.push_back(part.min);
@@ -396,9 +392,9 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(const FrequencyReference & at, 
                 break;
             }
             const double c = cosine(n);
-            const double q2 = std::norm(q[n]);
+            const double q2 = quotients[n].norm;
             const std::optional<Disc> disc = discOf(bound.type, W, output ? std::sqrt(q2) : 0.0, nominalModulus,
-                                                    effort ? std::abs((*at.valueSet)[n]) : 0.0);
+                                                    effort ? quotients[n].valueModulus : 0.0);
             if (!disc.has_value()) {
                 return RangeUnion();
             }
@@ -437,7 +433,7 @@ RangeUnion ExactPointCheck::admissibleGainsDbOver(const std::vector<double> & ze
             everyPlant.resize(at.nominalOverValueSet.size());
             std::iota(everyPlant.begin(), everyPlant.end(), std::size_t(0));
         }
-        const RangeUnion magnitudes = admissibleMagnitudes(at, unit / mu,
+        const RangeUnion magnitudes = admissibleMagnitudes(f, unit / mu,
                                                            workingSets == nullptr ? everyPlant : (*workingSets)[f]);
 
         std::vector<double> lower, upper;
@@ -463,12 +459,10 @@ bool ExactPointCheck::growWorkingSet(std::size_t frequency, const PointControlle
     const FrequencyReference & at = m_reference->frequencies()[frequency];
     const std::complex<double> loop = loopAt(at, point);
     const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
-
-    bool outputInForce = false, effortInForce = false;
-    for (const FrequencyReference::Bound & bound : at.bounds) {
-        outputInForce = outputInForce || bound.type == SpecificationType::OutputDisturbance;
-        effortInForce = effortInForce || bound.type == SpecificationType::ControlEffort;
-    }
+    const std::vector<Direction> & quotients = m_directions[frequency];
+    const bool outputInForce = at.mask.outputDisturbance;
+    const bool effortInForce = at.mask.controlEffort;
+    const double loopModulus = std::abs(loop);
 
     std::size_t nearest = 0, farthest = 0, worstOutput = 0, worstEffort = 0;
     double dMin = kInfinity, dMax = -kInfinity, outputMax = -kInfinity, effortMax = -kInfinity;
@@ -477,11 +471,11 @@ bool ExactPointCheck::growWorkingSet(std::size_t frequency, const PointControlle
         if (d < dMin) { dMin = d; nearest = n; }
         if (d > dMax) { dMax = d; farthest = n; }
         if (outputInForce) {
-            const double output = std::abs(q[n]) / d;
+            const double output = quotients[n].modulus / d;
             if (output > outputMax) { outputMax = output; worstOutput = n; }
         }
         if (effortInForce) {
-            const double effort = std::abs(loop) / (std::abs((*at.valueSet)[n]) * d);
+            const double effort = loopModulus / (quotients[n].valueModulus * d);
             if (effort > effortMax) { effortMax = effort; worstEffort = n; }
         }
     }

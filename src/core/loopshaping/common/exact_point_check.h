@@ -168,7 +168,6 @@ public:
 
     struct Statistics {
         std::size_t verdicts = 0;
-        std::size_t rejections = 0;
         std::size_t kernelPasses = 0;
         std::size_t gainSearches = 0;
         std::size_t exchangeRounds = 0;
@@ -185,7 +184,7 @@ private:
 
     void requireUsable() const;
 
-    RangeUnion admissibleMagnitudes(const FrequencyReference & at, std::complex<double> direction,
+    RangeUnion admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
                                     const std::vector<std::size_t> & plants) const;
 
     RangeUnion admissibleGainsDbOver(const std::vector<double> & zeros, const std::vector<double> & poles,
@@ -210,7 +209,6 @@ private:
     };
 
     struct TrackingPairs {
-        std::size_t bound = std::numeric_limits<std::size_t>::max();
         std::size_t workingSize = 0;
         std::vector<TrackingPair> pairs;
     };
