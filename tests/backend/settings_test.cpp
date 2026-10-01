@@ -7,7 +7,8 @@
  * never becomes zero or a default: a word, an empty field, trailing text, a
  * fraction where an integer belongs, a value out of range, a repeated key and
  * a malformed line are refused by name, while an unknown key is collected and
- * reported so that a newer file still starts this build. A file named in the
+ * reported so that a newer file still starts this build. The theme is one
+ * of three words and is refused as any other value. A file named in the
  * environment must exist; none anywhere gives the defaults. The research
  * switches take their own words, and when the settings are loaded the user
  * file and qftbx-research.conf each take only their own keys, while a file
@@ -141,6 +142,16 @@ TEST_F(SettingsFile, TheLanguageIsATextWithTheShapeOfACode)
     EXPECT_EQ(qftbx::readSettings(written("[interface]\nlanguage = system\n")).interface.language, "system");
     EXPECT_THROW(qftbx::readSettings(written("[interface]\nlanguage = Spanish\n")), qftbx::InvalidInput);
     EXPECT_THROW(qftbx::readSettings(written("[interface]\nlanguage = 3\n")), qftbx::InvalidInput);
+}
+
+TEST_F(SettingsFile, TheThemeIsSystemLightOrDark)
+{
+    EXPECT_EQ(qftbx::Settings().interface.theme, "system");
+    for (const std::string theme : {"system", "light", "dark"}) {
+        EXPECT_EQ(qftbx::readSettings(written("[interface]\ntheme = " + theme + "\n")).interface.theme, theme);
+    }
+    EXPECT_THROW(qftbx::readSettings(written("[interface]\ntheme = blue\n")), qftbx::InvalidInput);
+    EXPECT_THROW(qftbx::readSettings(written("[interface]\ntheme = Dark\n")), qftbx::InvalidInput);
 }
 
 TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)

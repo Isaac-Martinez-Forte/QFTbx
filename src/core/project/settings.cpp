@@ -230,10 +230,9 @@ const std::vector<Binding> & bindings()
          }},
 
         {"interface.theme",
-         [](const std::string & text, const std::string &, std::int64_t line, Settings & into) {
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              if (text != "system" && text != "light" && text != "dark") {
-                 throw ParseError(QFTBX_TR("Core", "interface.theme must be system, light or dark: '%1'").arg(text),
-                                  line);
+                 refuse(key, line, "system, light or dark, not \"" + text + "\"");
              }
              into.interface.theme = text;
          }},
