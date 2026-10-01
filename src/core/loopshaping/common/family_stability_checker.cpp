@@ -1,16 +1,17 @@
 /**
  * @file
  * @brief Closing the loop with every plant of the sweep, by the Routh table
- * and, to confirm, by the roots.
+ * and, to confirm, by the roots, and proving a whole box of controllers
+ * unstable with a plant of the sweep or with the nominal plant.
  *
  * A verdict multiplies every member's numerator and denominator by the
- * candidate's and asks whether the sum is Hurwitz; the confirmation asks
- * the verifier's family criterion the same question.
+ * candidate's and asks whether the sum is Hurwitz; the confirmation asks the
+ * verifier's family criterion the same question. A box proof encloses the
+ * box's factors in intervals and asks the interval Routh table, bisecting
+ * the gain, or every parameter at the nominal plant, until it decides.
  */
 
 #include "src/core/loopshaping/common/family_stability_checker.h"
-
-#include "src/core/loopshaping/common/point_controller.h"
 
 #include <algorithm>
 #include <cmath>
@@ -24,64 +25,13 @@
 
 namespace qftbx {
 
-FamilyStabilityChecker::FamilyStabilityChecker(LtiSystem * plant, LtiSystem * controller,
-                                               const ParameterGrids & sweep)
-{
-    if (plant == nullptr || controller == nullptr || hasDelay(*controller)) {
-        return;
-    }
-
-    m_controller = controller->clone();
-    m_family = SweptFamily(*plant, sweep);
-    m_usable = m_family.usable();
-
-    if (m_usable) {
-        m_nominal = nominalPolynomials(*plant);
-    }
-}
-
-void FamilyStabilityChecker::rememberRefuser(std::size_t member)
-{
-    const auto known = std::find(m_recentRefusers.begin(), m_recentRefusers.end(), member);
-    if (known != m_recentRefusers.end()) {
-        m_recentRefusers.erase(known);
-    }
-    m_recentRefusers.insert(m_recentRefusers.begin(), member);
-    if (m_recentRefusers.size() > 4) {
-        m_recentRefusers.pop_back();
-    }
-}
-
-bool FamilyStabilityChecker::isStable(const PointController & point)
-{
-    if (!m_usable) {
-        return true;
-    }
-
-    ++m_statistics.verdicts;
-
-    const std::optional<LtiSystem::Polynomials> loop =
-            m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
-    if (!loop.has_value()) {
-        return true;
-    }
-
-    const std::size_t count = m_family.size();
-    for (std::size_t step = 0; step < count; ++step) {
-        const std::size_t member = (m_lastUnstable + step) % count;
-        const LtiSystem::Polynomials & plant = m_family.member(member);
-        const std::vector<double> characteristic = characteristicOf(plant, *loop);
-        if (!math::isHurwitz(characteristic)) {
-            m_lastUnstable = member;
-            rememberRefuser(member);
-            return false;
-        }
-    }
-
-    return true;
-}
-
 namespace {
+
+constexpr std::size_t kRecentRefusers = 4;
+constexpr int kMaxBisectionDepth = 12;
+constexpr double kNegligibleWidth = 1e-9;
+
+enum class Bisect { GainOnly, EveryParameter };
 
 Interval intervalOf(const Parameter & parameter)
 {
@@ -159,7 +109,7 @@ double relativeWidth(const Interval & x)
     return scale > 0.0 ? (x.upper() - x.lower()) / scale : 0.0;
 }
 
-bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals & box, bool splitRoots)
+bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals & box, Bisect bisect)
 {
     if (math::isHurwitz(characteristicOf(plant, box.corner))) {
         return false;
@@ -182,12 +132,12 @@ bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals
         if (math::provablyNotHurwitz(math::intervalPolynomialSum(withoutGain, perGain))) {
             return true;
         }
-        if (depth >= 12) {
+        if (depth >= kMaxBisectionDepth) {
             return false;
         }
 
         Interval * widest = &gain;
-        if (splitRoots) {
+        if (bisect == Bisect::EveryParameter) {
             for (std::vector<Interval> * roots : {&zeros, &poles}) {
                 for (Interval & r : *roots) {
                     if (relativeWidth(r) > relativeWidth(*widest)) {
@@ -196,7 +146,7 @@ bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals
                 }
             }
         }
-        if (!(relativeWidth(*widest) > 1e-9)) {
+        if (!(relativeWidth(*widest) > kNegligibleWidth)) {
             return false;
         }
 
@@ -215,9 +165,70 @@ bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals
 
 }
 
+FamilyStabilityChecker::FamilyStabilityChecker(LtiSystem * plant, LtiSystem * controller,
+                                               const ParameterGrids & sweep)
+{
+    if (plant == nullptr || controller == nullptr || hasDelay(*controller)) {
+        return;
+    }
+
+    m_controller = controller->clone();
+    m_family = SweptFamily(*plant, sweep);
+
+    if (m_family.usable()) {
+        m_nominal = nominalPolynomials(*plant);
+    }
+}
+
+bool FamilyStabilityChecker::isStable(const PointController & point)
+{
+    if (!m_family.usable()) {
+        return true;
+    }
+
+    ++m_statistics.verdicts;
+
+    const std::optional<LtiSystem::Polynomials> loop =
+            m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
+    if (!loop.has_value()) {
+        return true;
+    }
+
+    const std::size_t count = m_family.size();
+    const std::size_t first = m_recentRefusers.empty() ? 0 : m_recentRefusers.front();
+    for (std::size_t step = 0; step < count; ++step) {
+        const std::size_t member = (first + step) % count;
+        const LtiSystem::Polynomials & plant = m_family.member(member);
+        const std::vector<double> characteristic = characteristicOf(plant, *loop);
+        if (!math::isHurwitz(characteristic)) {
+            rememberRefuser(member);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool FamilyStabilityChecker::isStableByRoots(const PointController & point)
+{
+    if (!m_family.usable()) {
+        return true;
+    }
+
+    ++m_statistics.rootVerdicts;
+
+    const std::optional<LtiSystem::Polynomials> loop =
+            m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
+    if (!loop.has_value()) {
+        return true;
+    }
+
+    return familyStabilityAt(m_family, *loop).unstableMembers == 0;
+}
+
 bool FamilyStabilityChecker::isBoxUnstable(LtiSystem * box)
 {
-    if (!m_usable || box == nullptr) {
+    if (!m_family.usable() || box == nullptr) {
         return false;
     }
     const std::optional<BoxIntervals> intervals = boxIntervalsOf(box, *m_controller);
@@ -228,7 +239,7 @@ bool FamilyStabilityChecker::isBoxUnstable(LtiSystem * box)
     ++m_statistics.boxVerdicts;
 
     for (const std::size_t member : m_recentRefusers) {
-        if (provenUnstableWith(m_family.member(member), *intervals, false)) {
+        if (provenUnstableWith(m_family.member(member), *intervals, Bisect::GainOnly)) {
             ++m_statistics.boxPrunes;
             return true;
         }
@@ -249,28 +260,23 @@ bool FamilyStabilityChecker::isBoxUnstableAtNominal(LtiSystem * box)
 
     ++m_statistics.nominalBoxVerdicts;
 
-    if (provenUnstableWith(*m_nominal, *intervals, true)) {
+    if (provenUnstableWith(*m_nominal, *intervals, Bisect::EveryParameter)) {
         ++m_statistics.nominalBoxPrunes;
         return true;
     }
     return false;
 }
 
-bool FamilyStabilityChecker::isStableByRoots(const PointController & point)
+void FamilyStabilityChecker::rememberRefuser(std::size_t member)
 {
-    if (!m_usable) {
-        return true;
+    const auto known = std::find(m_recentRefusers.begin(), m_recentRefusers.end(), member);
+    if (known != m_recentRefusers.end()) {
+        m_recentRefusers.erase(known);
     }
-
-    ++m_statistics.rootVerdicts;
-
-    const std::optional<LtiSystem::Polynomials> loop =
-            m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
-    if (!loop.has_value()) {
-        return true;
+    m_recentRefusers.insert(m_recentRefusers.begin(), member);
+    if (m_recentRefusers.size() > kRecentRefusers) {
+        m_recentRefusers.pop_back();
     }
-
-    return familyStabilityAt(m_family, *loop).unstableMembers == 0;
 }
 
 }

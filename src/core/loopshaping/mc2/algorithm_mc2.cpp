@@ -200,7 +200,6 @@ bool AlgorithmMc2::solve()
         const double gainInf = node->system()->gain().range().min;
 
         if (exactReading && family->isBoxUnstable(node->system())) {
-            ++certificate.familyPrunes;
             continue;
         }
 
@@ -364,9 +363,7 @@ bool AlgorithmMc2::pruneUnstableBox(McSearchNode & node, double gainInf)
         return false;
     }
 
-    if (exactReading && family->isBoxUnstableAtNominal(node.system())) {
-        ++certificate.familyPrunes;
-    } else {
+    if (!exactReading || !family->isBoxUnstableAtNominal(node.system())) {
         discardGridBacked(gainInf);
     }
     return true;
@@ -464,6 +461,9 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.stabilityProfiles = stability->statistics().profilesComputed;
     }
     statistics.certificate = certificate;
+    if (family != nullptr) {
+        statistics.certificate.familyPrunes = family->statistics().boxPrunes + family->statistics().nominalBoxPrunes;
+    }
     if (certifier != nullptr) {
         const Certifier::Statistics & funnel = certifier->statistics();
         statistics.certificate.certifications = funnel.certifications;

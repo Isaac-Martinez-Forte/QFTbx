@@ -31,47 +31,51 @@
  * requirements is a different job and a later step.
  *
  * The plants' polynomials are the SweptFamily's, built once, when the
- * checker is. isStable is the Routh table per member, tens of microseconds
- * for a family of hundreds, stopping at the first member that fails; the
- * member that failed last is asked first, since the candidates of a search
- * resemble one another and a refusal then costs one table.
+ * checker is, and the nominal plant's beside them. A plant or controller
+ * with a delay, one that is not a rational function, or a project with no
+ * record of its sweep leaves the checker unusable: isStable and
+ * isStableByRoots then answer stable, which leaves the caller where it would
+ * be without the checker, and the box tests answer nothing proven.
+ *
+ * isStable is the Routh table per member, tens of microseconds for a family
+ * of hundreds, stopping at the first member that fails; the member that
+ * failed last is asked first, since the candidates of a search resemble one
+ * another and a refusal then costs one table.
+ *
  * isStableByRoots is the verifier's own criterion on the same members, the
  * roots of every characteristic polynomial with the tolerance the verifier
  * applies to the axis, milliseconds rather than microseconds: the two agree
- * except in that tolerance band, and a candidate that is to be returned
- * under the exact reading is confirmed by the second so that the verifier
- * cannot refuse afterwards what the search accepted. A plant or controller
- * with a delay, one that is not a rational function, or a project with no
- * record of its sweep leaves the checker unusable, and the caller then goes
- * on as it did before: the checker never approves what it cannot decide.
+ * except in that tolerance band, and a candidate that is to be returned under
+ * the exact reading is confirmed by the second so that the verifier cannot
+ * refuse afterwards what the search accepted.
  *
  * isBoxUnstable asks the opposite question of a whole box of controllers:
- * whether every one of them destabilises some plant of the family. The
- * box's zeros and poles become interval coefficients of the controller's
+ * whether every one of them destabilises some plant of the family. The box's
+ * zeros and poles become interval coefficients of the controller's
  * polynomials, the plants that refused most recently (four are kept, the
  * first plant that refuses a point is rarely the one that refuses it most)
- * are closed with them one by one, and the Routh table in interval
- * arithmetic (math/interval_polynomial.h) either proves every member
- * non-Hurwitz or says nothing. The gain enters the characteristic polynomial
- * affinely, A(s) + k B(s), and appears in several coefficients at once, so
- * a single interval for it makes the enclosure of a Routh entry straddle
- * zero long before the box does; the gain interval is therefore bisected
- * until every piece is proven or a piece becomes negligible. Before any of
- * that, the lower corner of the box is closed with the same plant by the
- * real Routh table: a plant that leaves that corner stable proves nothing
+ * are closed with them one by one, and the Routh table in interval arithmetic
+ * (math/interval_polynomial.h) either proves every member non-Hurwitz or says
+ * nothing. The gain enters the characteristic polynomial affinely,
+ * A(s) + k B(s), and appears in several coefficients at once, so a single
+ * interval for it makes the enclosure of a Routh entry straddle zero long
+ * before the box does; the gain interval is therefore bisected, twelve levels
+ * at most, until every piece is proven or a piece becomes negligible. Before
+ * any of that, the lower corner of the box is closed with the same plant by
+ * the real Routh table: a plant that leaves that corner stable proves nothing
  * about the box, and that answer costs a table. A search that reaches the
  * gain the specifications need only beyond the family's stability limit
  * bisects such boxes down to its resolution and tries their vertices one by
- * one; this discards them whole, with a proof. isBoxUnstableAtNominal asks
- * the same of the nominal plant, which is what the nominal criterion's own
- * box test answers from a frequency grid, so that a discard on that answer
- * can be told proven from grid-backed; there the zeros and poles are
- * bisected along with the gain, the widest relative to its size first,
- * since on the DC motor of Tharewal's example 3.1 the gain alone proves
- * none of the boxes that criterion refuses and every parameter proves a
- * third of them. Only structures whose
- * polynomials are products of linear factors are asked (zero-pole-gain and
- * time-constant forms).
+ * one; this discards them whole, with a proof.
+ *
+ * isBoxUnstableAtNominal asks the same of the nominal plant, which is what
+ * the nominal criterion's own box test answers from a frequency grid, so that
+ * a discard on that answer can be told proven from grid-backed. There the
+ * zeros and poles are bisected along with the gain, the widest relative to
+ * its size first, since on the DC motor of Tharewal's example 3.1 the gain
+ * alone proves none of the boxes that criterion refuses and every parameter
+ * proves a third of them. Only structures whose polynomials are products of
+ * linear factors are asked (zero-pole-gain and time-constant forms).
  *
  * It keeps a clone of the controller structure, since the search gives its
  * own away to the first box of the list.
@@ -83,8 +87,7 @@ class FamilyStabilityChecker
 public:
     FamilyStabilityChecker(LtiSystem * plant, LtiSystem * controller, const ParameterGrids & sweep);
 
-    bool usable() const { return m_usable; }
-    std::size_t members() const { return m_family.size(); }
+    bool usable() const { return m_family.usable(); }
 
     bool isStable(const PointController & point);
 
@@ -110,8 +113,6 @@ private:
     std::unique_ptr<LtiSystem> m_controller;
     SweptFamily m_family;
     std::optional<LtiSystem::Polynomials> m_nominal;
-    bool m_usable = false;
-    std::size_t m_lastUnstable = 0;
     std::vector<std::size_t> m_recentRefusers;
     Statistics m_statistics;
 };
