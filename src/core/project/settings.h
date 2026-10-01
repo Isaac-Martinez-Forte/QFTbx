@@ -12,13 +12,15 @@
  * structural constants of the method are not here, since writing them down
  * would configure nothing and break the program.
  *
- * The groups: the limits, which only refuse input and so change no result;
- * what the interval search may spend; the resolution of the nominal stability check, which trades
- * time against how often the check can decide and never touches the
- * criterion; the figures that come from the published algorithms, the group
- * to be careful with because a value changed there changes what the program
- * computes; the interface; the defaults of the dialogs; and the record. Each
- * key, its default and its range is described in docs/CONFIGURATION.md. No
+ * The groups, in the same order here, in the table that reads them, in the
+ * example file and in the guide: the interface; the record; the limits,
+ * which only refuse input and so change no result; what the interval search
+ * may spend; the defaults of the dialogs; the resolution of the nominal
+ * stability check, which trades time against how often the check can decide
+ * and never touches the criterion; and the figures that come from the
+ * published algorithms, the group to be careful with because a value changed
+ * there changes what the program computes. Each key, its default and its
+ * range is described in docs/CONFIGURATION.md. No
  * test reads the settings file: every one builds its own, so a value here
  * can never change what a test means.
  *
@@ -46,6 +48,26 @@ namespace qftbx {
 
 struct Settings {
 
+    struct Interface {
+        std::string language = "system";
+
+        std::string theme = "system";
+
+        std::int32_t digits = 4;
+
+        std::string canvas;
+
+        std::string window;
+    } interface;
+
+    struct Log {
+        bool enabled = false;
+
+        std::string path;
+
+        std::int32_t sizeLimitKilobytes = 1024;
+    } log;
+
     struct Limits {
         std::int64_t maxGridCells = 10000000;
 
@@ -59,6 +81,26 @@ struct Settings {
     struct Search {
         std::size_t maxLiveNodes = 32000000;
     } search;
+
+    struct Defaults {
+        double phaseStart = -360.0;
+        double phaseEnd = 0.0;
+        std::int32_t phasePoints = 361;
+        double magnitudeStart = -60.0;
+        double magnitudeEnd = 60.0;
+        std::int32_t magnitudePoints = 121;
+
+        bool boundariesFromCloud = false;
+
+        std::int32_t templatePointCount = 25;
+
+        bool epsilonInNichols = true;
+        double dbPerDegree = 1.0;
+
+        double loopStart = 1.0e-9;
+        double loopEnd = 10.0;
+        std::int32_t loopPointCount = 100;
+    } defaults;
 
     struct Stability {
         std::int32_t baseGridPoints = 3000;
@@ -92,55 +134,16 @@ struct Settings {
         double certifiedGainTolerance = 1.01;
     } algorithms;
 
-    struct Defaults {
-        double phaseStart = -360.0;
-        double phaseEnd = 0.0;
-        std::int32_t phasePoints = 361;
-        double magnitudeStart = -60.0;
-        double magnitudeEnd = 60.0;
-        std::int32_t magnitudePoints = 121;
-
-        bool boundariesFromCloud = false;
-
-        std::int32_t templatePointCount = 25;
-
-        bool epsilonInNichols = true;
-        double dbPerDegree = 1.0;
-
-        double loopStart = 1.0e-9;
-        double loopEnd = 10.0;
-        std::int32_t loopPointCount = 100;
-    } defaults;
-
-    struct Interface {
-        std::string language = "system";
-        std::string canvas;
-
-        std::string window;
-
-        std::string theme = "system";
-
-        std::int32_t digits = 4;
-    } interface;
-
-    struct Log {
-        bool enabled = false;
-
-        std::string path;
-
-        std::int32_t sizeLimitKilobytes = 1024;
-    } log;
-
     struct Research {
         enum class PointReading { Columns, Exact };
+
+        enum class BoundaryGuide { Nearest, Conservative };
 
         PointReading mc2Reading = PointReading::Exact;
 
         bool conservativeColumns = true;
 
         bool familyGate = true;
-
-        enum class BoundaryGuide { Nearest, Conservative };
 
         BoundaryGuide exactGuide = BoundaryGuide::Nearest;
 

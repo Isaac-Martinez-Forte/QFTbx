@@ -20,9 +20,6 @@
 # ("en", "es"; the View menu lists them).
 # language = system
 
-# The canvas as it was left when the application closed: a "phase:size" list.
-# canvas =
-
 # "system" takes the machine's colours, "light" and "dark" the toolbox's own.
 # theme = system
 
@@ -30,8 +27,29 @@
 # Range: 1 to 17.
 # digits = 4
 
+# The canvas as it was left when the application closed: a "phase:size" list.
+# canvas =
+
 # The window size when it closed: "width height", "maximized", or empty.
 # window =
+
+
+# [log] - the record of what the engines did and how long it took, one line
+# per stage.
+[log]
+
+# Off by default.
+# enabled = 0
+
+# Empty means $XDG_STATE_HOME/qftbx/qftbx.log, or
+# $HOME/.local/state/qftbx/qftbx.log. A path that cannot be written leaves
+# the record closed rather than stopping a computation.
+# path =
+
+# Past this size the file becomes the previous generation and a new one
+# starts; two generations are kept.
+# Range: 16 to 1048576.
+# size-limit-kilobytes = 1024
 
 
 # [limits] - ceilings against typos. They only refuse input; none changes a
@@ -191,20 +209,3 @@
 # certified gain search.
 # Range: above 1, up to 10.
 # certified-gain-tolerance = 1.01
-
-# [log] - the record of what the engines did and how long it took, one line
-# per stage.
-[log]
-
-# Off by default.
-# enabled = 0
-
-# Empty means $XDG_STATE_HOME/qftbx/qftbx.log, or
-# $HOME/.local/state/qftbx/qftbx.log. A path that cannot be written leaves
-# the record closed rather than stopping a computation.
-# path =
-
-# Past this size the file becomes the previous generation and a new one
-# starts; two generations are kept.
-# Range: 16 to 1048576.
-# size-limit-kilobytes = 1024

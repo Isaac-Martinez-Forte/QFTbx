@@ -184,6 +184,41 @@ std::string languageIn(const std::string & text, const std::string & key, std::i
 const std::vector<Binding> & bindings()
 {
     static const std::vector<Binding> table = {
+        {"interface.language",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.interface.language = languageIn(text, key, line);
+         }},
+        {"interface.theme",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             if (text != "system" && text != "light" && text != "dark") {
+                 refuse(key, line, "system, light or dark, not \"" + text + "\"");
+             }
+             into.interface.theme = text;
+         }},
+        {"interface.digits",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.interface.digits = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 17.0));
+         }},
+        {"interface.canvas",
+         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
+             into.interface.canvas = text;
+         }},
+        {"interface.window",
+         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
+             into.interface.window = text;
+         }},
+
+        {"log.enabled",
+         flag([](Settings & into) -> bool & { return into.log.enabled; })},
+        {"log.path",
+         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
+             into.log.path = text;
+         }},
+        {"log.size-limit-kilobytes",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.log.sizeLimitKilobytes = static_cast<std::int32_t>(wholeIn(text, key, line, 16.0, 1048576.0));
+         }},
+
         {"limits.max-grid-cells",
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.limits.maxGridCells = static_cast<std::int64_t>(wholeIn(text, key, line, 4.0, 1.0e15));
@@ -202,6 +237,61 @@ const std::vector<Binding> & bindings()
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.limits.maxMagnitude = realIn(text, key, line, 1.0, 1.0e300);
          }},
+
+        {"search.max-live-nodes",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.search.maxLiveNodes = static_cast<std::size_t>(wholeIn(text, key, line, 1.0, 1.0e15));
+         }},
+
+        {"defaults.boundary-grid.phase-start",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.phaseStart = realIn(text, key, line, -3600.0, 3600.0);
+         }},
+        {"defaults.boundary-grid.phase-end",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.phaseEnd = realIn(text, key, line, -3600.0, 3600.0);
+         }},
+        {"defaults.boundary-grid.phase-points",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.phasePoints = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
+         }},
+        {"defaults.boundary-grid.magnitude-start",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.magnitudeStart = realIn(text, key, line, -1000.0, 1000.0);
+         }},
+        {"defaults.boundary-grid.magnitude-end",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.magnitudeEnd = realIn(text, key, line, -1000.0, 1000.0);
+         }},
+        {"defaults.boundary-grid.magnitude-points",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.magnitudePoints = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
+         }},
+        {"defaults.boundary-grid.from-cloud",
+         flag([](Settings & into) -> bool & { return into.defaults.boundariesFromCloud; })},
+        {"defaults.templates.point-count",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.templatePointCount = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1.0e6));
+         }},
+        {"defaults.templates.epsilon-in-nichols",
+         flag([](Settings & into) -> bool & { return into.defaults.epsilonInNichols; })},
+        {"defaults.templates.db-per-degree",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.dbPerDegree = realIn(text, key, line, 1.0e-6, 1.0e6);
+         }},
+        {"defaults.loop-shaping.start",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.loopStart = realIn(text, key, line, 1.0e-300, 1.0e300);
+         }},
+        {"defaults.loop-shaping.end",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.loopEnd = realIn(text, key, line, 1.0e-300, 1.0e300);
+         }},
+        {"defaults.loop-shaping.point-count",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.loopPointCount = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
+         }},
+
         {"stability.base-grid-points",
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.stability.baseGridPoints = static_cast<std::int32_t>(wholeIn(text, key, line, 10.0, 1.0e7));
@@ -217,45 +307,6 @@ const std::vector<Binding> & bindings()
         {"stability.refinement-budget",
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.stability.refinementBudget = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1.0e9));
-         }},
-
-        {"interface.language",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.interface.language = languageIn(text, key, line);
-         }},
-
-        {"interface.canvas",
-         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
-             into.interface.canvas = text;
-         }},
-
-        {"interface.theme",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             if (text != "system" && text != "light" && text != "dark") {
-                 refuse(key, line, "system, light or dark, not \"" + text + "\"");
-             }
-             into.interface.theme = text;
-         }},
-
-        {"interface.digits",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.interface.digits = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 17.0));
-         }},
-
-        {"interface.window",
-         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
-             into.interface.window = text;
-         }},
-
-        {"log.enabled",
-         flag([](Settings & into) -> bool & { return into.log.enabled; })},
-        {"log.path",
-         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
-             into.log.path = text;
-         }},
-        {"log.size-limit-kilobytes",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.log.sizeLimitKilobytes = static_cast<std::int32_t>(wholeIn(text, key, line, 16.0, 1048576.0));
          }},
 
         {"algorithms.template-representatives",
@@ -287,63 +338,6 @@ const std::vector<Binding> & bindings()
         {"algorithms.certified-gain-tolerance",
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.algorithms.certifiedGainTolerance = realIn(text, key, line, 1.0000001, 10.0);
-         }},
-
-        {"defaults.boundary-grid.phase-start",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.phaseStart = realIn(text, key, line, -3600.0, 3600.0);
-         }},
-        {"defaults.boundary-grid.phase-end",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.phaseEnd = realIn(text, key, line, -3600.0, 3600.0);
-         }},
-        {"defaults.boundary-grid.phase-points",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.phasePoints = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
-         }},
-        {"defaults.boundary-grid.magnitude-start",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.magnitudeStart = realIn(text, key, line, -1000.0, 1000.0);
-         }},
-        {"defaults.boundary-grid.magnitude-end",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.magnitudeEnd = realIn(text, key, line, -1000.0, 1000.0);
-         }},
-        {"defaults.boundary-grid.magnitude-points",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.magnitudePoints = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
-         }},
-
-        {"defaults.boundary-grid.from-cloud",
-         flag([](Settings & into) -> bool & { return into.defaults.boundariesFromCloud; })},
-
-        {"defaults.templates.point-count",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.templatePointCount = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1.0e6));
-         }},
-
-        {"defaults.templates.epsilon-in-nichols",
-         flag([](Settings & into) -> bool & { return into.defaults.epsilonInNichols; })},
-        {"defaults.templates.db-per-degree",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.dbPerDegree = realIn(text, key, line, 1.0e-6, 1.0e6);
-         }},
-        {"defaults.loop-shaping.start",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.loopStart = realIn(text, key, line, 1.0e-300, 1.0e300);
-         }},
-        {"defaults.loop-shaping.end",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.loopEnd = realIn(text, key, line, 1.0e-300, 1.0e300);
-         }},
-        {"defaults.loop-shaping.point-count",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.defaults.loopPointCount = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
-         }},
-
-        {"search.max-live-nodes",
-         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
-             into.search.maxLiveNodes = static_cast<std::size_t>(wholeIn(text, key, line, 1.0, 1.0e15));
          }},
 
         {"research.mc2-reading",

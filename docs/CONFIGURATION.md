@@ -31,10 +31,10 @@ View menu writes `language` and `theme`.
 | Key | Default | Values | Meaning |
 |---|---|---|---|
 | `language` | `system` | `system` or a language code | The language the interface starts in; the codes are those of the compiled translations (`src/gui/translations/README.md`) |
-| `canvas` | empty | a list of `phase:size` | The canvas as it was when the application last closed |
 | `theme` | `system` | `system`, `light`, `dark` | `system` takes the machine's palette, `light` and `dark` the toolbox's own |
-| `window` | empty | `width height`, `maximized` | The window size when it last closed |
 | `digits` | `4` | 1 to 17 | Significant digits the forms show; the project file keeps every digit |
+| `canvas` | empty | a list of `phase:size` | The canvas as it was when the application last closed |
+| `window` | empty | `width height`, `maximized` | The window size when it last closed |
 
 **`[log]`**. A record of what the engines did and how long it took, one line
 per stage.
