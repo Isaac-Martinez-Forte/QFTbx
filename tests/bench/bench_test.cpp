@@ -7,9 +7,11 @@
  * warm-up, and a step sequence grows the base structure by a zero or a pole.
  * The spread of a sample is its median, mean, deviation and extremes; the
  * summary groups records, leaves warm-ups and failures out of the timings and
- * notices when repetitions disagree on the controller. A run of one case on
- * the ACC'90 fixture must leave a complete record that survives its file,
- * with the gain of 1000 that fixture's goldens pin.
+ * notices when repetitions disagree on the controller. A certificate with
+ * every count set survives its JSON, and so do the infinite lower bounds of
+ * a search that left nothing unproven. A run of one case on the ACC'90
+ * fixture must leave a complete record that survives its file, with the gain
+ * of 0.001 that fixture's goldens pin.
  */
 
 #include <gtest/gtest.h>
@@ -178,6 +180,67 @@ TEST(BenchmarkSummary, GroupsRecordsAndLeavesWarmUpsAndFailuresOut)
     EXPECT_TRUE(a.countersAgree);
     EXPECT_EQ(a.statistics.peakLiveNodes, 7u);
     EXPECT_NE(markdownTable(aggregates).find("NO"), std::string::npos);
+}
+
+TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
+{
+    Record record;
+    LoopShapingStatistics::Certificate & c = record.statistics.certificate;
+    c.exactPoints = true;
+    c.lowerBound = 556.5;
+    c.lowerBoundStrict = 550.25;
+    c.residueNodes = 1;
+    c.epsilonResolved = 2;
+    c.unprovenDiscards = 3;
+    c.gridBackedPrunes = 4;
+    c.familyPrunes = 5;
+    c.provenInfeasible = 6;
+    c.columnsOverruled = 7;
+    c.certifiedCuts = 8;
+    c.sectorVerdicts = 9;
+    c.certifications = 10;
+    c.refusedByRouth = 11;
+    c.refusedByNominalStability = 12;
+    c.refusedBySpecifications = 13;
+    c.refusedByRoots = 14;
+    c.incumbentUpdates = 15;
+    c.kernelPasses = 16;
+    c.gainSearches = 17;
+    c.exchangeRounds = 18;
+    c.ladderSteps = 19;
+    c.largestWorkingSet = 20;
+
+    const Record back = recordFromJson(toJson(record));
+    const LoopShapingStatistics::Certificate & b = back.statistics.certificate;
+    EXPECT_TRUE(b.exactPoints);
+    EXPECT_EQ(b.lowerBound, c.lowerBound);
+    EXPECT_EQ(b.lowerBoundStrict, c.lowerBoundStrict);
+    EXPECT_EQ(b.residueNodes, c.residueNodes);
+    EXPECT_EQ(b.epsilonResolved, c.epsilonResolved);
+    EXPECT_EQ(b.unprovenDiscards, c.unprovenDiscards);
+    EXPECT_EQ(b.gridBackedPrunes, c.gridBackedPrunes);
+    EXPECT_EQ(b.familyPrunes, c.familyPrunes);
+    EXPECT_EQ(b.provenInfeasible, c.provenInfeasible);
+    EXPECT_EQ(b.columnsOverruled, c.columnsOverruled);
+    EXPECT_EQ(b.certifiedCuts, c.certifiedCuts);
+    EXPECT_EQ(b.sectorVerdicts, c.sectorVerdicts);
+    EXPECT_EQ(b.certifications, c.certifications);
+    EXPECT_EQ(b.refusedByRouth, c.refusedByRouth);
+    EXPECT_EQ(b.refusedByNominalStability, c.refusedByNominalStability);
+    EXPECT_EQ(b.refusedBySpecifications, c.refusedBySpecifications);
+    EXPECT_EQ(b.refusedByRoots, c.refusedByRoots);
+    EXPECT_EQ(b.incumbentUpdates, c.incumbentUpdates);
+    EXPECT_EQ(b.kernelPasses, c.kernelPasses);
+    EXPECT_EQ(b.gainSearches, c.gainSearches);
+    EXPECT_EQ(b.exchangeRounds, c.exchangeRounds);
+    EXPECT_EQ(b.ladderSteps, c.ladderSteps);
+    EXPECT_EQ(b.largestWorkingSet, c.largestWorkingSet);
+
+    const Record unbounded = recordFromJson(toJson(Record()));
+    EXPECT_FALSE(unbounded.statistics.certificate.exactPoints);
+    EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBound));
+    EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBoundStrict));
+    EXPECT_EQ(unbounded.statistics.certificate.largestWorkingSet, 0u);
 }
 
 TEST(BenchmarkMeasurement, ARunOfACaseLeavesACompleteRecord)

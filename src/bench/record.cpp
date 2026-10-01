@@ -4,10 +4,14 @@
  *
  * The environment names the host, the operating system, the compiler, the
  * git commit compiled in, the interval backend and the load average at the
- * time. Fields absent from a record read as zero, and a worst excess that is
- * missing reads as not-a-number. The digest of a design is an FNV-1a hash
- * over the exact bits of the gain, the zeros and the poles, so two runs agree
- * only when their results are identical to the last bit.
+ * time. A count absent from a record reads as zero; a lower bound that is
+ * missing reads as infinity, the bound of a search that left nothing
+ * unproven; a worst excess or a worst real part of the family that is
+ * missing reads as not-a-number, and a missing load average as -1. The
+ * counts of the certificate are written and read from one table, in the
+ * order of the certification funnel. The digest of a design is an FNV-1a
+ * hash over the exact bits of the gain, the zeros and the poles, so two runs
+ * agree only when their results are identical to the last bit.
  */
 
 #include "src/bench/record.h"
@@ -90,6 +94,34 @@ std::vector<double> fromArray(const QJsonArray & array)
     return values;
 }
 
+struct CertificateCount {
+    const char * key;
+    std::size_t LoopShapingStatistics::Certificate::* member;
+};
+
+const CertificateCount kCertificateCounts[] = {
+    {"residue_nodes", &LoopShapingStatistics::Certificate::residueNodes},
+    {"epsilon_resolved", &LoopShapingStatistics::Certificate::epsilonResolved},
+    {"unproven_discards", &LoopShapingStatistics::Certificate::unprovenDiscards},
+    {"grid_backed_prunes", &LoopShapingStatistics::Certificate::gridBackedPrunes},
+    {"family_prunes", &LoopShapingStatistics::Certificate::familyPrunes},
+    {"proven_infeasible", &LoopShapingStatistics::Certificate::provenInfeasible},
+    {"columns_overruled", &LoopShapingStatistics::Certificate::columnsOverruled},
+    {"certified_cuts", &LoopShapingStatistics::Certificate::certifiedCuts},
+    {"sector_verdicts", &LoopShapingStatistics::Certificate::sectorVerdicts},
+    {"certifications", &LoopShapingStatistics::Certificate::certifications},
+    {"refused_by_routh", &LoopShapingStatistics::Certificate::refusedByRouth},
+    {"refused_by_nominal_stability", &LoopShapingStatistics::Certificate::refusedByNominalStability},
+    {"refused_by_specifications", &LoopShapingStatistics::Certificate::refusedBySpecifications},
+    {"refused_by_roots", &LoopShapingStatistics::Certificate::refusedByRoots},
+    {"incumbent_updates", &LoopShapingStatistics::Certificate::incumbentUpdates},
+    {"kernel_passes", &LoopShapingStatistics::Certificate::kernelPasses},
+    {"gain_searches", &LoopShapingStatistics::Certificate::gainSearches},
+    {"exchange_rounds", &LoopShapingStatistics::Certificate::exchangeRounds},
+    {"ladder_steps", &LoopShapingStatistics::Certificate::ladderSteps},
+    {"largest_working_set", &LoopShapingStatistics::Certificate::largestWorkingSet},
+};
+
 }
 
 QJsonObject toJson(const Record & r)
@@ -141,26 +173,9 @@ QJsonObject toJson(const Record & r)
         if (std::isfinite(c.lowerBoundStrict)) {
             certificate["lower_bound_strict"] = c.lowerBoundStrict;
         }
-        certificate["residue_nodes"] = static_cast<qint64>(c.residueNodes);
-        certificate["epsilon_resolved"] = static_cast<qint64>(c.epsilonResolved);
-        certificate["unproven_discards"] = static_cast<qint64>(c.unprovenDiscards);
-        certificate["grid_backed_prunes"] = static_cast<qint64>(c.gridBackedPrunes);
-        certificate["family_prunes"] = static_cast<qint64>(c.familyPrunes);
-        certificate["proven_infeasible"] = static_cast<qint64>(c.provenInfeasible);
-        certificate["columns_overruled"] = static_cast<qint64>(c.columnsOverruled);
-        certificate["certified_cuts"] = static_cast<qint64>(c.certifiedCuts);
-        certificate["sector_verdicts"] = static_cast<qint64>(c.sectorVerdicts);
-        certificate["certifications"] = static_cast<qint64>(c.certifications);
-        certificate["refused_by_routh"] = static_cast<qint64>(c.refusedByRouth);
-        certificate["refused_by_nominal_stability"] = static_cast<qint64>(c.refusedByNominalStability);
-        certificate["refused_by_specifications"] = static_cast<qint64>(c.refusedBySpecifications);
-        certificate["refused_by_roots"] = static_cast<qint64>(c.refusedByRoots);
-        certificate["incumbent_updates"] = static_cast<qint64>(c.incumbentUpdates);
-        certificate["kernel_passes"] = static_cast<qint64>(c.kernelPasses);
-        certificate["gain_searches"] = static_cast<qint64>(c.gainSearches);
-        certificate["exchange_rounds"] = static_cast<qint64>(c.exchangeRounds);
-        certificate["ladder_steps"] = static_cast<qint64>(c.ladderSteps);
-        certificate["largest_working_set"] = static_cast<qint64>(c.largestWorkingSet);
+        for (const CertificateCount & count : kCertificateCounts) {
+            certificate[count.key] = static_cast<qint64>(c.*count.member);
+        }
         s["certificate"] = certificate;
     }
     if (!r.statistics.byDepth.empty()) {
@@ -252,26 +267,9 @@ Record recordFromJson(const QJsonObject & o)
                                                            : std::numeric_limits<double>::infinity();
         c.lowerBoundStrict = certificate.contains("lower_bound_strict") ? certificate["lower_bound_strict"].toDouble()
                                                                         : std::numeric_limits<double>::infinity();
-        c.residueNodes = static_cast<std::size_t>(certificate["residue_nodes"].toInteger());
-        c.epsilonResolved = static_cast<std::size_t>(certificate["epsilon_resolved"].toInteger());
-        c.unprovenDiscards = static_cast<std::size_t>(certificate["unproven_discards"].toInteger());
-        c.gridBackedPrunes = static_cast<std::size_t>(certificate["grid_backed_prunes"].toInteger());
-        c.familyPrunes = static_cast<std::size_t>(certificate["family_prunes"].toInteger());
-        c.provenInfeasible = static_cast<std::size_t>(certificate["proven_infeasible"].toInteger());
-        c.columnsOverruled = static_cast<std::size_t>(certificate["columns_overruled"].toInteger());
-        c.certifiedCuts = static_cast<std::size_t>(certificate["certified_cuts"].toInteger());
-        c.sectorVerdicts = static_cast<std::size_t>(certificate["sector_verdicts"].toInteger());
-        c.certifications = static_cast<std::size_t>(certificate["certifications"].toInteger());
-        c.refusedByRouth = static_cast<std::size_t>(certificate["refused_by_routh"].toInteger());
-        c.refusedByNominalStability = static_cast<std::size_t>(certificate["refused_by_nominal_stability"].toInteger());
-        c.refusedBySpecifications = static_cast<std::size_t>(certificate["refused_by_specifications"].toInteger());
-        c.refusedByRoots = static_cast<std::size_t>(certificate["refused_by_roots"].toInteger());
-        c.incumbentUpdates = static_cast<std::size_t>(certificate["incumbent_updates"].toInteger());
-        c.kernelPasses = static_cast<std::size_t>(certificate["kernel_passes"].toInteger());
-        c.gainSearches = static_cast<std::size_t>(certificate["gain_searches"].toInteger());
-        c.exchangeRounds = static_cast<std::size_t>(certificate["exchange_rounds"].toInteger());
-        c.ladderSteps = static_cast<std::size_t>(certificate["ladder_steps"].toInteger());
-        c.largestWorkingSet = static_cast<std::size_t>(certificate["largest_working_set"].toInteger());
+        for (const CertificateCount & count : kCertificateCounts) {
+            c.*count.member = static_cast<std::size_t>(certificate[count.key].toInteger());
+        }
     }
     for (const QJsonValue & v : s["by_depth"].toArray()) {
         const QJsonObject entry = v.toObject();
