@@ -8,11 +8,10 @@
  * built from. Before any of them starts, and outside their parallel regions,
  * the phase window of the boundaries is checked to cover the whole phase a
  * loop can take, because a narrower window would have the search read
- * verdicts for phases nobody computed. When the point reading is not the
- * columns, the specification records are turned into the set the exact
- * check evaluates, once per run, and handed to MC2 with the templates. The
- * cost counters of the run are read from the algorithm and kept with the
- * result.
+ * verdicts for phases nobody computed. When MC2 reads the points exactly,
+ * the specification records are turned into the set the exact check
+ * evaluates, once per run, and handed to it with the templates. The cost
+ * counters of the run are read from the algorithm and kept with the result.
  */
 
 #include <chrono>
@@ -46,12 +45,6 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
 
     auto timer = std::chrono::steady_clock::now();
     bool solved = false;
-
-    std::optional<qftbx::SpecificationSet> specificationSet;
-    if (m_settings.research.mc2Reading != qftbx::Settings::Research::PointReading::Columns
-            && specifications != nullptr) {
-        specificationSet.emplace(toSpecificationSet(*specifications));
-    }
 
     m_statistics = LoopShapingStatistics();
     const auto report = [&](std::unique_ptr<LtiSystem> designed, LoopShapingStatistics statistics) {
@@ -120,6 +113,11 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         mc2->setCancellation(m_cancellation);
         mc2->setSettings(m_settings);
         mc2->setPlantFamily(m_sweep);
+        std::optional<qftbx::SpecificationSet> specificationSet;
+        if (m_settings.research.mc2Reading == qftbx::Settings::Research::PointReading::Exact
+                && specifications != nullptr) {
+            specificationSet.emplace(toSpecificationSet(*specifications));
+        }
         mc2->setSpecifications(m_templates, specificationSet.has_value() ? &*specificationSet : nullptr);
         timer = std::chrono::steady_clock::now();
         solved = mc2->solve();
