@@ -624,7 +624,7 @@ void MainWindow::ensureLoopShapingPhase()
         loopShapingForm->setLimits(m_settings.limits.maxMagnitude,
                                      m_settings.limits.maxTemplatePoints);
         loopShapingForm->applyDefaults(m_settings.defaults);
-        loopShapingForm->setConservativeColumns(m_settings.algorithms.conservativeBoundaryColumns);
+        loopShapingForm->setConservativeColumns(m_settings.research.conservativeColumns);
         loopShapingViewer = new LoopShapingViewer(this);
         connect(loopShapingForm, &StepPanel::accepted, this, &MainWindow::applyLoopShaping);
 
@@ -929,7 +929,7 @@ void MainWindow::on_loopButton_clicked()
 
 void MainWindow::applyLoopShaping()
 {
-    m_settings.algorithms.conservativeBoundaryColumns = loopShapingForm->conservativeColumns();
+    m_settings.research.conservativeColumns = loopShapingForm->conservativeColumns();
     controller->applySettings(m_settings);
 
     const bool linSpace = loopShapingForm->isLinSpace();

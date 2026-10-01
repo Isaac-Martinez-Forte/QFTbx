@@ -43,7 +43,7 @@
  * the searches close the loop with before they return a design; and the
  * templates, which must outlive run() too and which, with the
  * specifications, the exact point reading evaluates a candidate against
- * (algorithms.point-reading). statistics() is what the last run cost.
+ * (research.mc2-reading). statistics() is what the last run cost.
  */
 namespace qftbx {
 

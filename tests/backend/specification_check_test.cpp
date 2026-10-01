@@ -58,7 +58,7 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
     controller.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + c.file);
 
     Settings settings;
-    settings.algorithms.conservativeBoundaryColumns = c.conservativeColumns;
+    settings.research.conservativeColumns = c.conservativeColumns;
     controller.applySettings(settings);
 
     ASSERT_TRUE(controller.computeLoopShaping(0.5, c.algorithm, Range(1e-9, 10.0), 100)) << c.name;

@@ -48,7 +48,7 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
     bool solved = false;
 
     std::optional<qftbx::SpecificationSet> specificationSet;
-    if (m_settings.algorithms.pointReading != qftbx::Settings::Algorithms::PointReading::Columns
+    if (m_settings.research.mc2Reading != qftbx::Settings::Research::PointReading::Columns
             && specifications != nullptr) {
         specificationSet.emplace(toSpecificationSet(*specifications));
     }

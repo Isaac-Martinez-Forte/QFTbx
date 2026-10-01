@@ -231,7 +231,7 @@ TEST(Certifier, WhatTheNearestColumnAdmitsTheSpecificationRefuses)
     EXPECT_TRUE(funnel.certifier.certify(conservative)) << "the published design of the file passes";
 
     Settings published;
-    published.algorithms.conservativeBoundaryColumns = false;
+    published.research.conservativeColumns = false;
     project.applySettings(published);
     ASSERT_TRUE(project.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100));
     const PointController nearestDesign = designOf(*project.loopShapingResult()->controller());

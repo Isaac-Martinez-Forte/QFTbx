@@ -2159,7 +2159,7 @@ TEST_F(GuiSmoke, ZZEjemploCompleto)
     project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     qftbx::Settings settings;
-    settings.algorithms.conservativeBoundaryColumns = true;
+    settings.research.conservativeColumns = true;
     project.applySettings(settings);
 
     const bool designed = project.computeLoopShaping(0.5, qftbx::mc2,

@@ -75,9 +75,9 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
     auto result = std::make_unique<LoopShapingResult>(search.controllerStructure(), plotRange, pointCount);
     result->setStatistics(search.statistics());
     result->setRun({algorithm, epsilon,
-                    algorithm == qftbx::mc2 ? m_settings.algorithms.conservativeColumnsInForce()
-                                            : m_settings.algorithms.conservativeBoundaryColumns,
-                    m_settings.algorithms.pointReading});
+                    algorithm == qftbx::mc2 ? m_settings.research.conservativeColumnsInForce()
+                                            : m_settings.research.conservativeColumns,
+                    m_settings.research.mc2Reading});
 
     if (data.templates().size() == data.frequencies()->size()) {
         result->setCheck(checkAgainstSpecifications(*result->controller(), *data.plant(),
@@ -87,7 +87,7 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
         if (result->statistics().certificate.exactPoints) {
             const SpecificationCheck & check = *result->check();
-            const bool familyRefused = m_settings.algorithms.familyStabilityGate && check.family.checked
+            const bool familyRefused = m_settings.research.familyGate && check.family.checked
                                        && check.family.unstableMembers > 0;
             if (!(check.worstExcessDb <= 0.0) || familyRefused) {
                 throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).")

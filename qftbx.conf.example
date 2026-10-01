@@ -154,34 +154,6 @@
 # Range: 0 or 1.
 # mr-nichols-epsilon = 0
 
-# How a phase between two nodes of the boundary grid is read. 1: both
-# bracketing nodes must allow the point, the conservative reading. 0: the
-# nearest node, as published, which admits up to half a grid step of
-# violation. NT, NK and MC1 are far slower with 1 on a one-degree grid.
-# Range: 0 or 1.
-# conservative-boundary-columns = 1
-
-# Whether a search closes the loop with every plant of the sweep before it
-# returns a design (1), or returns what the boundaries accept (0).
-# Range: 0 or 1.
-# family-stability-gate = 1
-
-# MC2: how the search decides about a single controller. columns: against
-# the boundary columns, as published. exact: against the specifications
-# themselves over the whole template, the best gain read from them at the
-# loop's exact phase, the search run on as a branch and bound until nothing
-# is left, and every box discarded with a proof, by the Routh table in
-# interval arithmetic on the family or by the specifications over the box's
-# own phase span, save what the nominal criterion refuses on its frequency
-# grid alone. exact needs a template at every design frequency.
-# Values: columns or exact.
-# point-reading = columns
-
-# Under point-reading = exact, the reading of the columns that guide the
-# search: published (the nearest node) or conservative.
-# Values: published or conservative.
-# exact-boundary-guide = published
-
 # Templates: when the contour walk does not close at a frequency, 1 lets the
 # whole template stand in for its contour there; 0 stops with an error.
 # Range: 0 or 1.
@@ -219,21 +191,6 @@
 # certified gain search.
 # Range: above 1, up to 10.
 # certified-gain-tolerance = 1.01
-
-# MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch
-# each, all on as published. Each discards only boxes proven not to hold a
-# better design, but which box the search stops at depends on them.
-# Range: 0 or 1 each.
-[algorithms.mc]
-# infeasible-magnitude = 1
-# infeasible-phase = 1
-# feasible-magnitude = 1
-# feasible-phase = 1
-# best-gain = 1
-# tree-bisection = 1
-# The execution stages of sec. 4.4, MC of the thesis only.
-# stages = 1
-
 
 # [log] - the record of what the engines did and how long it took, one line
 # per stage.

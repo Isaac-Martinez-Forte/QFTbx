@@ -46,7 +46,7 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 void AlgorithmMcThesis::setSettings(const qftbx::Settings & settings)
 {
     m_settings = settings;
-    const Settings::Algorithms::McStrategies & mc = settings.algorithms.mc;
+    const Settings::Research::McStrategies & mc = settings.research.mc;
     strategies.infeasibleMagnitude = mc.infeasibleMagnitude;
     strategies.infeasiblePhase = mc.infeasiblePhase;
     strategies.feasibleMagnitude = mc.feasibleMagnitude;
@@ -136,10 +136,10 @@ bool AlgorithmMcThesis::solve()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.research.conservativeColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
     family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
-                                                     m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
+                                                     m_settings.research.familyGate ? m_sweep : ParameterGrids());
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();

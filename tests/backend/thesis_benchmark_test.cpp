@@ -146,7 +146,7 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
         std::string(QFTBX_TEST_DATA_DIR) + "/" + golden.file);
 
     qftbx::Settings settings;
-    settings.algorithms.conservativeBoundaryColumns = golden.conservativeColumns;
+    settings.research.conservativeColumns = golden.conservativeColumns;
     controller.applySettings(settings);
 
     LtiSystem* structure = controller.controllerStructure();

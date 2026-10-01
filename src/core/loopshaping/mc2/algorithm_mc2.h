@@ -92,7 +92,7 @@
  * prune - MC2 keeps as MC of the thesis has it, and the two share their
  * search node (common/mc_search_node.h).
  *
- * Under algorithms.point-reading = exact, the point a feasible box or an
+ * Under research.mc2-reading = exact, the point a feasible box or an
  * epsilon-small box yields and the best gain of a box become the design,
  * or the best design so far that prunes the tree, only through the
  * certification funnel (common/certifier.h): the family by the Routh
@@ -180,7 +180,7 @@ public:
 
     /**
      * @brief The templates and the specifications the exact point reading
-     * evaluates a candidate against (algorithms.point-reading), in the
+     * evaluates a candidate against (research.mc2-reading), in the
      * pattern of setPlantFamily.
      *
      * Both have to outlive solve(). Either absent, or a template set that
@@ -342,7 +342,7 @@ private:
     std::unique_ptr<Certifier> certifier;
 
     bool exactReading = false;
-    Settings::Algorithms::McStrategies strategies;
+    Settings::Research::McStrategies strategies;
     double phaseGridStep = 0;
     Range initialGainRange;
     std::vector<std::complex<double>> nominalPlantValues;

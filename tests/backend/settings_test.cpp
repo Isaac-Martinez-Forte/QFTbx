@@ -8,10 +8,14 @@
  * fraction where an integer belongs, a value out of range, a repeated key and
  * a malformed line are refused by name, while an unknown key is collected and
  * reported so that a newer file still starts this build. A file named in the
- * environment must exist; none anywhere gives the defaults. Writing one
- * setting leaves the rest of the file alone. The example configuration must
- * uncomment to exactly the compiled defaults and name every setting the build
- * knows, and a search budget set in the settings must reach the algorithms.
+ * environment must exist; none anywhere gives the defaults. The research
+ * switches take their own words, and when the settings are loaded the user
+ * file and qftbx-research.conf each take only their own keys, while a file
+ * read on its own takes both. Writing one setting leaves the rest of the file
+ * alone. The example configuration must uncomment to exactly the compiled
+ * defaults and name every user setting the build knows, the three free texts
+ * aside, which it shows empty, and a search budget
+ * set in the settings must reach the algorithms.
  */
 
 #include "src/core/loopshaping/loop_shaping_types.h"
@@ -139,33 +143,37 @@ TEST_F(SettingsFile, TheLanguageIsATextWithTheShapeOfACode)
     EXPECT_THROW(qftbx::readSettings(written("[interface]\nlanguage = 3\n")), qftbx::InvalidInput);
 }
 
-TEST_F(SettingsFile, ThePointReadingIsOneOfTwoWords)
+TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)
 {
-    using PointReading = qftbx::Settings::Algorithms::PointReading;
-    EXPECT_EQ(qftbx::Settings().algorithms.pointReading, PointReading::Columns);
-    EXPECT_EQ(qftbx::readSettings(written("[algorithms]\npoint-reading = columns\n")).algorithms.pointReading,
+    using PointReading = qftbx::Settings::Research::PointReading;
+    EXPECT_EQ(qftbx::Settings().research.mc2Reading, PointReading::Columns);
+    EXPECT_EQ(qftbx::readSettings(written("[research]\nmc2-reading = columns\n")).research.mc2Reading,
               PointReading::Columns);
-    EXPECT_EQ(qftbx::readSettings(written("[algorithms]\npoint-reading = exact\n")).algorithms.pointReading,
+    EXPECT_EQ(qftbx::readSettings(written("[research]\nmc2-reading = exact\n")).research.mc2Reading,
               PointReading::Exact);
-    EXPECT_THROW(qftbx::readSettings(written("[algorithms]\npoint-reading = nearest\n")), qftbx::InvalidInput);
-    EXPECT_THROW(qftbx::readSettings(written("[algorithms]\npoint-reading = 1\n")), qftbx::InvalidInput);
+    EXPECT_THROW(qftbx::readSettings(written("[research]\nmc2-reading = nearest\n")), qftbx::InvalidInput);
+    EXPECT_THROW(qftbx::readSettings(written("[research]\nmc2-reading = 1\n")), qftbx::InvalidInput);
 
     for (const PointReading reading : {PointReading::Columns, PointReading::Exact}) {
         EXPECT_EQ(qftbx::pointReadingFromName(qftbx::pointReadingName(reading)), reading);
     }
 
-    using BoundaryGuide = qftbx::Settings::Algorithms::BoundaryGuide;
-    EXPECT_EQ(qftbx::Settings().algorithms.exactBoundaryGuide, BoundaryGuide::Published);
-    EXPECT_EQ(qftbx::readSettings(written("[algorithms]\nexact-boundary-guide = conservative\n")).algorithms.exactBoundaryGuide,
+    using BoundaryGuide = qftbx::Settings::Research::BoundaryGuide;
+    EXPECT_EQ(qftbx::Settings().research.exactGuide, BoundaryGuide::Nearest);
+    EXPECT_EQ(qftbx::readSettings(written("[research]\nexact-guide = conservative\n")).research.exactGuide,
               BoundaryGuide::Conservative);
-    EXPECT_THROW(qftbx::readSettings(written("[algorithms]\nexact-boundary-guide = nearest\n")), qftbx::InvalidInput);
+    EXPECT_THROW(qftbx::readSettings(written("[research]\nexact-guide = published\n")), qftbx::InvalidInput);
+
+    EXPECT_TRUE(qftbx::Settings().research.conservativeColumns);
+    EXPECT_FALSE(qftbx::readSettings(written("[research]\ncolumns = nearest\n")).research.conservativeColumns);
+    EXPECT_THROW(qftbx::readSettings(written("[research]\ncolumns = 0\n")), qftbx::InvalidInput);
 
     qftbx::Settings inForce;
-    EXPECT_TRUE(inForce.algorithms.conservativeColumnsInForce()) << "the columns readings keep the conservative default";
-    inForce.algorithms.pointReading = PointReading::Exact;
-    EXPECT_FALSE(inForce.algorithms.conservativeColumnsInForce()) << "exact points are guided by the published columns";
-    inForce.algorithms.exactBoundaryGuide = BoundaryGuide::Conservative;
-    EXPECT_TRUE(inForce.algorithms.conservativeColumnsInForce());
+    EXPECT_TRUE(inForce.research.conservativeColumnsInForce()) << "the columns readings keep the conservative default";
+    inForce.research.mc2Reading = PointReading::Exact;
+    EXPECT_FALSE(inForce.research.conservativeColumnsInForce()) << "exact points are guided by the nearest node";
+    inForce.research.exactGuide = BoundaryGuide::Conservative;
+    EXPECT_TRUE(inForce.research.conservativeColumnsInForce());
 }
 
 TEST_F(SettingsFile, WritingASettingLeavesTheRestOfTheFileAlone)
@@ -279,11 +287,15 @@ TEST_F(SettingsFile, AFileThatIsNotThereIsAFileError)
 TEST(Settings, LoadingWithNoFileAnywhereGivesTheDefaults)
 {
     ::unsetenv("QFTBX_CONFIG");
+    ::unsetenv("QFTBX_RESEARCH_CONFIG");
 
     const qftbx::Settings settings = qftbx::loadSettings();
 
     if (settings.source.empty()) {
         EXPECT_EQ(settings.search.maxLiveNodes, 32000000u);
+    }
+    if (settings.researchSource.empty()) {
+        EXPECT_EQ(settings.research.mc2Reading, qftbx::Settings().research.mc2Reading);
     }
 }
 
@@ -303,6 +315,42 @@ TEST(Settings, AFileNamedInTheEnvironmentIsUsed)
 
     EXPECT_EQ(settings.search.maxLiveNodes, 77u);
     EXPECT_EQ(settings.source, path);
+}
+
+TEST(Settings, EachFileTakesOnlyItsOwnKeys)
+{
+    const std::string user = std::string(QFTBX_TEST_DATA_DIR "/../settings_user_keys.conf");
+    const std::string research = std::string(QFTBX_TEST_DATA_DIR "/../settings_research_keys.conf");
+    {
+        std::ofstream file(user);
+        file << "[search]\nmax-live-nodes = 77\n[research]\nfamily-gate = 0\n";
+    }
+    {
+        std::ofstream file(research);
+        file << "[research]\ncolumns = nearest\n[search]\nmax-live-nodes = 5\n";
+    }
+
+    ::setenv("QFTBX_CONFIG", user.c_str(), 1);
+    ::setenv("QFTBX_RESEARCH_CONFIG", research.c_str(), 1);
+    const qftbx::Settings settings = qftbx::loadSettings();
+    ::unsetenv("QFTBX_CONFIG");
+    ::unsetenv("QFTBX_RESEARCH_CONFIG");
+    const qftbx::Settings alone = qftbx::readSettings(user);
+    std::remove(user.c_str());
+    std::remove(research.c_str());
+
+    EXPECT_EQ(settings.source, user);
+    EXPECT_EQ(settings.researchSource, research);
+    EXPECT_EQ(settings.search.maxLiveNodes, 77u) << "the research file does not set a user key";
+    EXPECT_TRUE(settings.research.familyGate) << "the user file does not set a research key";
+    EXPECT_FALSE(settings.research.conservativeColumns);
+    ASSERT_EQ(settings.unknownKeys.size(), 2u);
+    EXPECT_EQ(settings.unknownKeys[0], "research.family-gate");
+    EXPECT_EQ(settings.unknownKeys[1], "search.max-live-nodes");
+
+    EXPECT_TRUE(alone.unknownKeys.empty()) << "a file read on its own takes both";
+    EXPECT_FALSE(alone.research.familyGate);
+    EXPECT_EQ(alone.search.maxLiveNodes, 77u);
 }
 
 TEST(Settings, AFileNamedInTheEnvironmentThatCannotBeReadIsAnError)
@@ -377,24 +425,12 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.algorithms.maxNarrowingPasses,
               defaults.algorithms.maxNarrowingPasses);
     EXPECT_EQ(fromExample.algorithms.mrNicholsEpsilon, defaults.algorithms.mrNicholsEpsilon);
-    EXPECT_EQ(fromExample.algorithms.conservativeBoundaryColumns,
-              defaults.algorithms.conservativeBoundaryColumns);
-    EXPECT_EQ(fromExample.algorithms.familyStabilityGate, defaults.algorithms.familyStabilityGate);
-    EXPECT_EQ(fromExample.algorithms.pointReading, defaults.algorithms.pointReading);
-    EXPECT_EQ(fromExample.algorithms.exactBoundaryGuide, defaults.algorithms.exactBoundaryGuide);
     EXPECT_EQ(fromExample.algorithms.wholeTemplateIfNoContour,
               defaults.algorithms.wholeTemplateIfNoContour);
     EXPECT_EQ(fromExample.algorithms.alphaShapeContour,
               defaults.algorithms.alphaShapeContour);
     EXPECT_EQ(fromExample.algorithms.borderSweep, defaults.algorithms.borderSweep);
     EXPECT_EQ(fromExample.algorithms.closedFormColumns, defaults.algorithms.closedFormColumns);
-    EXPECT_EQ(fromExample.algorithms.mc.infeasibleMagnitude, defaults.algorithms.mc.infeasibleMagnitude);
-    EXPECT_EQ(fromExample.algorithms.mc.infeasiblePhase, defaults.algorithms.mc.infeasiblePhase);
-    EXPECT_EQ(fromExample.algorithms.mc.feasibleMagnitude, defaults.algorithms.mc.feasibleMagnitude);
-    EXPECT_EQ(fromExample.algorithms.mc.feasiblePhase, defaults.algorithms.mc.feasiblePhase);
-    EXPECT_EQ(fromExample.algorithms.mc.bestGain, defaults.algorithms.mc.bestGain);
-    EXPECT_EQ(fromExample.algorithms.mc.treeBisection, defaults.algorithms.mc.treeBisection);
-    EXPECT_EQ(fromExample.algorithms.mc.stages, defaults.algorithms.mc.stages);
     EXPECT_EQ(fromExample.algorithms.localSearchBudget,
               defaults.algorithms.localSearchBudget);
     EXPECT_EQ(fromExample.algorithms.gainTolerance, defaults.algorithms.gainTolerance);
@@ -405,7 +441,12 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.log.enabled, defaults.log.enabled);
     EXPECT_EQ(fromExample.log.sizeLimitKilobytes, defaults.log.sizeLimitKilobytes);
 
-    EXPECT_EQ(settingsFound, 48)
+    int userKeys = 0;
+    for (const std::string & key : qftbx::settingKeys()) {
+        const bool freeText = key == "interface.canvas" || key == "interface.window" || key == "log.path";
+        userKeys += key.rfind("research.", 0) == 0 || freeText ? 0 : 1;
+    }
+    EXPECT_EQ(settingsFound, userKeys)
         << "a setting was added to the code and not to qftbx.conf.example";
 
     EXPECT_TRUE(fromExample.unknownKeys.empty())

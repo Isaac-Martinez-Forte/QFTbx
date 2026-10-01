@@ -98,16 +98,10 @@ golden tests and the article validations describe another program.
 | `template-representatives` | 9 | 2 to 1000 | MR (Rambabu and Nataraj, FDA-10): template points entering the constraint set per design frequency; the paper uses 9 |
 | `max-narrowing-passes` | 8 | 1 to 1000 | MR: passes of the HC4 narrowing before a box is accepted as narrowed |
 | `mr-nichols-epsilon` | 0 | 0 or 1 | MR: 0 measures the termination epsilon on the parameter box, as the paper does; 1 on the Nichols box, as the other four algorithms do |
-| `conservative-boundary-columns` | 1 | 0 or 1 | NT, NK, MC1, MC (thesis), MC2: 1 requires both grid nodes around a phase to allow the point; 0 reads the nearest node, as published, which admits up to half a grid step of violation. See the note below |
-| `family-stability-gate` | 1 | 0 or 1 | NT, NK, MC1, MC (thesis), MC2, MC3: 1 closes the loop with every plant of the sweep by the Routh table before a design is returned; 0 reproduces the published algorithms. It acts only when the project records its sweep |
-| `point-reading` | columns | columns, exact | MC2: `columns` judges each controller against the boundary columns, as published. `exact` judges it against the specifications over the whole template, reads the best gain at the loop's exact phase, runs the branch and bound until the list is empty, and discards a box only with a proof; the boxes the nominal criterion refuses on its frequency grid alone are counted apart in the strict lower bound. `exact` needs a template at every design frequency |
-| `exact-boundary-guide` | published | published, conservative | MC2 under `point-reading = exact`: how the columns that guide the search are read, the nearest node or both nodes around a phase |
 | `whole-template-if-no-contour` | 1 | 0 or 1 | Templates: when the contour walk does not close at a frequency, 1 uses the whole template there and 0 stops with an error |
 | `alpha-shape-contour` | 0 | 0 or 1 | Templates: 1 extracts the contour as the alpha-shape, which always closes; 0 uses Nordin's walk, as published |
 | `border-sweep` | 0 | 0 or 1 | Templates: with exactly two uncertain parameters, 1 sweeps only the border of the parameter box |
 | `closed-form-columns` | 0 | 0 or 1 | Boundaries: 1 reads the columns of the five magnitude specifications in closed form (Chait and Yaniv 1993) instead of off the sampled sheet; tracking keeps its sheet |
-| `mc.infeasible-magnitude`, `mc.infeasible-phase`, `mc.feasible-magnitude`, `mc.feasible-phase`, `mc.best-gain`, `mc.tree-bisection` | 1 | 0 or 1 | MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch each, for measuring what each one buys. They can move the answer |
-| `mc.stages` | 1 | 0 or 1 | MC (thesis) only: the execution stages of sec. 4.4 |
 | `local-search-budget` | 400 | 1 to 1e7 | NK (Nataraj and Kubal 2007): iterations the local refinement of a candidate may spend |
 | `gain-tolerance` | 1.01 | above 1, up to 10 | NK: the ratio at which the gain bisection stops; a pruning bound, not the accuracy of the answer |
 | `certified-gain-tolerance` | 1.01 | above 1, up to 10 | MC1 (Martínez-Forte and Cervera 2021): the same ratio for the certified gain search |
@@ -116,19 +110,20 @@ Constants of the method, such as 2π, the seven specification slots or the
 0 dB ray of the stability criterion, are not settings and are not in the
 file.
 
-## The two column readings
+## How the columns are read
 
-The nearest-node reading is the published one, and between two nodes it
-admits what the boundary at the point's own phase forbids. The conservative
-reading removes that error at any grid, but on the toolbox example 2 NT, NK
-and MC1 slow down by about a thousand times on a one-degree grid, and a finer
-grid brings that down; there MC2 costs about the same with either reading.
-Measured on that example:
+NT, NK, MC1, MC (thesis), MC3 and MC2 read a phase between two nodes of the
+boundary grid conservatively: both bracketing nodes must allow the point. The
+published algorithms read the nearest node, which admits between two nodes
+what the boundary at the point's own phase forbids; the conservative reading
+removes that error at any grid, but on the toolbox example 2 NT, NK and MC1
+slow down by about a thousand times on a one-degree grid, and a finer grid
+brings that down. Measured on that example:
 
 | | phase grid | reading | result | total time |
 |---|---|---|---|---|
 | as published | 361 points (1 degree) | nearest node | k = 557.1, violates by +0.05 dB | about 1 s |
-| certified | 1441 or 2881 points (0.25 or 0.125 degrees) | conservative | k = 567.3, meets every specification | 3 to 8 s |
+| this program | 1441 or 2881 points (0.25 or 0.125 degrees) | conservative | k = 567.3, meets every specification | 3 to 8 s |
 
 Either way the returned controller is checked against the specifications on
 the full templates, and the loop-shaping viewer shows the verdict.

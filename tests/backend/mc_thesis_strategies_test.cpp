@@ -73,7 +73,7 @@ double designedGain(const Strategies & strategies, std::size_t * peakNodes = nul
     AlgorithmMcThesis mc;
     {
         Settings published;
-        published.algorithms.conservativeBoundaryColumns = false;
+        published.research.conservativeColumns = false;
         mc.setSettings(published);
     }
     mc.setStrategies(strategies);

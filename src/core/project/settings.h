@@ -21,6 +21,13 @@
  * key, its default and its range is described in docs/CONFIGURATION.md. No
  * test reads the settings file: every one builds its own, so a value here
  * can never change what a test means.
+ *
+ * Research holds what is not for a user: the variants that reproduce the
+ * published algorithms and the switches the measurements of the method turn,
+ * read from a file of their own, qftbx-research.conf, found as qftbx.conf is
+ * (QFTBX_RESEARCH_CONFIG, the working directory, ~/.config/qftbx). Each file
+ * takes only its own keys, and their defaults are the program's own way of
+ * working; the benchmark and the command-line solver read both.
  */
 
 #ifndef QFTBX_SETTINGS_H
@@ -75,34 +82,6 @@ struct Settings {
 
         bool closedFormColumns = false;
 
-        struct McStrategies {
-            bool infeasibleMagnitude = true;
-            bool infeasiblePhase = true;
-            bool feasibleMagnitude = true;
-            bool feasiblePhase = true;
-            bool bestGain = true;
-            bool treeBisection = true;
-            bool stages = true;
-        } mc;
-
-        bool conservativeBoundaryColumns = true;
-
-        bool familyStabilityGate = true;
-
-        enum class PointReading { Columns, Exact };
-
-        PointReading pointReading = PointReading::Columns;
-
-        enum class BoundaryGuide { Published, Conservative };
-
-        BoundaryGuide exactBoundaryGuide = BoundaryGuide::Published;
-
-        bool conservativeColumnsInForce() const
-        {
-            return pointReading == PointReading::Exact ? exactBoundaryGuide == BoundaryGuide::Conservative
-                                                       : conservativeBoundaryColumns;
-        }
-
         std::int32_t localSearchBudget = 400;
 
         double gainTolerance = 1.01;
@@ -149,18 +128,50 @@ struct Settings {
         std::int32_t sizeLimitKilobytes = 1024;
     } log;
 
+    struct Research {
+        enum class PointReading { Columns, Exact };
+
+        PointReading mc2Reading = PointReading::Columns;
+
+        bool conservativeColumns = true;
+
+        bool familyGate = true;
+
+        enum class BoundaryGuide { Nearest, Conservative };
+
+        BoundaryGuide exactGuide = BoundaryGuide::Nearest;
+
+        struct McStrategies {
+            bool infeasibleMagnitude = true;
+            bool infeasiblePhase = true;
+            bool feasibleMagnitude = true;
+            bool feasiblePhase = true;
+            bool bestGain = true;
+            bool treeBisection = true;
+            bool stages = true;
+        } mc;
+
+        bool conservativeColumnsInForce() const
+        {
+            return mc2Reading == PointReading::Exact ? exactGuide == BoundaryGuide::Conservative
+                                                     : conservativeColumns;
+        }
+    } research;
+
     std::string source;
+
+    std::string researchSource;
 
     std::vector<std::string> unknownKeys;
 };
 
-const char * pointReadingName(Settings::Algorithms::PointReading reading);
+const char * pointReadingName(Settings::Research::PointReading reading);
 
-std::optional<Settings::Algorithms::PointReading> pointReadingFromName(const std::string & name);
+std::optional<Settings::Research::PointReading> pointReadingFromName(const std::string & name);
 
-const char * boundaryGuideName(Settings::Algorithms::BoundaryGuide guide);
+const char * boundaryGuideName(Settings::Research::BoundaryGuide guide);
 
-std::optional<Settings::Algorithms::BoundaryGuide> boundaryGuideFromName(const std::string & name);
+std::optional<Settings::Research::BoundaryGuide> boundaryGuideFromName(const std::string & name);
 
 Settings readSettings(const std::string & path);
 

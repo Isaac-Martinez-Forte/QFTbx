@@ -10,7 +10,11 @@
  * when it is not a number; fractions are refused where a whole number is
  * wanted, duplicates are refused, and a ratio tolerance must be strictly
  * above one so a bisection can end. Writing one key edits the file in place,
- * keeping every other line as the person left it.
+ * keeping every other line as the person left it. The research keys, those
+ * of the [research] section, are read from qftbx-research.conf when the
+ * settings are loaded, and only there: each file reports the other's keys as
+ * unknown. A file read on its own, as the benchmark and the command-line
+ * solver read theirs, takes both.
  */
 
 #include "src/core/common/record.h"
@@ -29,31 +33,31 @@
 
 namespace qftbx {
 
-const char * pointReadingName(Settings::Algorithms::PointReading reading)
+const char * pointReadingName(Settings::Research::PointReading reading)
 {
     switch (reading) {
-    case Settings::Algorithms::PointReading::Exact:   return "exact";
-    case Settings::Algorithms::PointReading::Columns: break;
+    case Settings::Research::PointReading::Exact:   return "exact";
+    case Settings::Research::PointReading::Columns: break;
     }
     return "columns";
 }
 
-std::optional<Settings::Algorithms::PointReading> pointReadingFromName(const std::string & name)
+std::optional<Settings::Research::PointReading> pointReadingFromName(const std::string & name)
 {
-    if (name == "columns") return Settings::Algorithms::PointReading::Columns;
-    if (name == "exact")   return Settings::Algorithms::PointReading::Exact;
+    if (name == "columns") return Settings::Research::PointReading::Columns;
+    if (name == "exact")   return Settings::Research::PointReading::Exact;
     return std::nullopt;
 }
 
-const char * boundaryGuideName(Settings::Algorithms::BoundaryGuide guide)
+const char * boundaryGuideName(Settings::Research::BoundaryGuide guide)
 {
-    return guide == Settings::Algorithms::BoundaryGuide::Conservative ? "conservative" : "published";
+    return guide == Settings::Research::BoundaryGuide::Conservative ? "conservative" : "nearest";
 }
 
-std::optional<Settings::Algorithms::BoundaryGuide> boundaryGuideFromName(const std::string & name)
+std::optional<Settings::Research::BoundaryGuide> boundaryGuideFromName(const std::string & name)
 {
-    if (name == "published")    return Settings::Algorithms::BoundaryGuide::Published;
-    if (name == "conservative") return Settings::Algorithms::BoundaryGuide::Conservative;
+    if (name == "nearest")      return Settings::Research::BoundaryGuide::Nearest;
+    if (name == "conservative") return Settings::Research::BoundaryGuide::Conservative;
     return std::nullopt;
 }
 
@@ -254,32 +258,6 @@ const std::vector<Binding> & bindings()
              into.algorithms.mrNicholsEpsilon =
                  wholeIn(text, "algorithms.mr-nichols-epsilon", line, 0.0, 1.0) != 0.0;
          }},
-        {"algorithms.conservative-boundary-columns",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.conservativeBoundaryColumns =
-                 wholeIn(text, "algorithms.conservative-boundary-columns", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.family-stability-gate",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.familyStabilityGate =
-                 wholeIn(text, "algorithms.family-stability-gate", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.point-reading",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             const std::optional<Settings::Algorithms::PointReading> reading = pointReadingFromName(text);
-             if (!reading.has_value()) {
-                 refuse("algorithms.point-reading", line, "columns or exact, not \"" + text + "\"");
-             }
-             into.algorithms.pointReading = *reading;
-         }},
-        {"algorithms.exact-boundary-guide",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             const std::optional<Settings::Algorithms::BoundaryGuide> guide = boundaryGuideFromName(text);
-             if (!guide.has_value()) {
-                 refuse("algorithms.exact-boundary-guide", line, "published or conservative, not \"" + text + "\"");
-             }
-             into.algorithms.exactBoundaryGuide = *guide;
-         }},
         {"algorithms.whole-template-if-no-contour",
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.wholeTemplateIfNoContour =
@@ -299,34 +277,6 @@ const std::vector<Binding> & bindings()
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.algorithms.closedFormColumns =
                  wholeIn(text, "algorithms.closed-form-columns", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.infeasible-magnitude",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.infeasibleMagnitude = wholeIn(text, "algorithms.mc.infeasible-magnitude", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.infeasible-phase",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.infeasiblePhase = wholeIn(text, "algorithms.mc.infeasible-phase", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.feasible-magnitude",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.feasibleMagnitude = wholeIn(text, "algorithms.mc.feasible-magnitude", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.feasible-phase",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.feasiblePhase = wholeIn(text, "algorithms.mc.feasible-phase", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.best-gain",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.bestGain = wholeIn(text, "algorithms.mc.best-gain", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.tree-bisection",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.treeBisection = wholeIn(text, "algorithms.mc.tree-bisection", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.stages",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.stages = wholeIn(text, "algorithms.mc.stages", line, 0.0, 1.0) != 0.0;
          }},
         {"algorithms.local-search-budget",
          [](const std::string & text, std::int64_t line, Settings & into) {
@@ -418,25 +368,81 @@ const std::vector<Binding> & bindings()
              into.search.maxLiveNodes = static_cast<std::size_t>(
                  wholeIn(text, "search.max-live-nodes", line, 1.0, 1.0e15));
          }},
+
+        {"research.mc2-reading",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             const std::optional<Settings::Research::PointReading> reading = pointReadingFromName(text);
+             if (!reading.has_value()) {
+                 refuse("research.mc2-reading", line, "columns or exact, not \"" + text + "\"");
+             }
+             into.research.mc2Reading = *reading;
+         }},
+        {"research.columns",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             if (text != "conservative" && text != "nearest") {
+                 refuse("research.columns", line, "conservative or nearest, not \"" + text + "\"");
+             }
+             into.research.conservativeColumns = text == "conservative";
+         }},
+        {"research.family-gate",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.familyGate = wholeIn(text, "research.family-gate", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.exact-guide",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             const std::optional<Settings::Research::BoundaryGuide> guide = boundaryGuideFromName(text);
+             if (!guide.has_value()) {
+                 refuse("research.exact-guide", line, "nearest or conservative, not \"" + text + "\"");
+             }
+             into.research.exactGuide = *guide;
+         }},
+        {"research.mc.infeasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.infeasibleMagnitude = wholeIn(text, "research.mc.infeasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc.infeasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.infeasiblePhase = wholeIn(text, "research.mc.infeasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc.feasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.feasibleMagnitude = wholeIn(text, "research.mc.feasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc.feasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.feasiblePhase = wholeIn(text, "research.mc.feasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc.best-gain",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.bestGain = wholeIn(text, "research.mc.best-gain", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc.tree-bisection",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.treeBisection = wholeIn(text, "research.mc.tree-bisection", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc.stages",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc.stages = wholeIn(text, "research.mc.stages", line, 0.0, 1.0) != 0.0;
+         }},
     };
 
     return table;
 }
 
-std::string environmentPath()
+std::string environmentPath(const char * variable)
 {
-    const char * named = std::getenv("QFTBX_CONFIG");
+    const char * named = std::getenv(variable);
     return named != nullptr ? std::string(named) : std::string();
 }
 
-std::string homePath()
+std::string homePath(const char * file)
 {
     const char * home = std::getenv("HOME");
     if (home == nullptr) {
         return std::string();
     }
 
-    return std::string(home) + "/.config/qftbx/qftbx.conf";
+    return std::string(home) + "/.config/qftbx/" + file;
 }
 
 bool readable(const std::string & path)
@@ -451,15 +457,21 @@ bool readable(const std::string & path)
 
 }
 
-Settings readSettings(const std::string & path)
+namespace {
+
+enum class Scope { User, Research, Both };
+
+bool isResearchKey(const std::string & key)
+{
+    return key.rfind("research.", 0) == 0;
+}
+
+void readInto(const std::string & path, Scope scope, Settings & settings)
 {
     std::ifstream file(path);
     if (!file.good()) {
         throw FileError(QFTBX_TR("Core", "the settings file cannot be read: %1").arg(path));
     }
-
-    Settings settings;
-    settings.source = path;
 
     std::string section;
     std::string line;
@@ -516,20 +528,29 @@ Settings readSettings(const std::string & path)
                                             return key == binding.key;
                                         });
 
-        if (found == table.end()) {
+        const bool inScope = scope == Scope::Both || (scope == Scope::Research) == isResearchKey(key);
+        if (found == table.end() || !inScope) {
             settings.unknownKeys.push_back(key);
             continue;
         }
 
         found->apply(value, number, settings);
     }
+}
 
+}
+
+Settings readSettings(const std::string & path)
+{
+    Settings settings;
+    settings.source = path;
+    readInto(path, Scope::Both, settings);
     return settings;
 }
 
 std::string userSettingsPath()
 {
-    return homePath();
+    return homePath("qftbx.conf");
 }
 
 void writeSetting(const std::string & path, const std::string & key, const std::string & value)
@@ -644,18 +665,37 @@ void openRecord(const Settings & settings)
 
 Settings loadSettings()
 {
-    const std::string named = environmentPath();
-    if (!named.empty()) {
-        return readSettings(named);
-    }
+    Settings settings;
 
-    for (const std::string & candidate : {std::string("qftbx.conf"), homePath()}) {
-        if (readable(candidate)) {
-            return readSettings(candidate);
+    const std::string named = environmentPath("QFTBX_CONFIG");
+    if (!named.empty()) {
+        settings.source = named;
+        readInto(named, Scope::User, settings);
+    } else {
+        for (const std::string & candidate : {std::string("qftbx.conf"), homePath("qftbx.conf")}) {
+            if (readable(candidate)) {
+                settings.source = candidate;
+                readInto(candidate, Scope::User, settings);
+                break;
+            }
         }
     }
 
-    return Settings();
+    const std::string research = environmentPath("QFTBX_RESEARCH_CONFIG");
+    if (!research.empty()) {
+        settings.researchSource = research;
+        readInto(research, Scope::Research, settings);
+    } else {
+        for (const std::string & candidate : {std::string("qftbx-research.conf"), homePath("qftbx-research.conf")}) {
+            if (readable(candidate)) {
+                settings.researchSource = candidate;
+                readInto(candidate, Scope::Research, settings);
+                break;
+            }
+        }
+    }
+
+    return settings;
 }
 
 }

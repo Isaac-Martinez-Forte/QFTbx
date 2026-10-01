@@ -52,8 +52,8 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
     controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / c.file).string());
 
     Settings settings;
-    settings.algorithms.pointReading = Settings::Algorithms::PointReading::Exact;
-    settings.algorithms.mc.feasibleMagnitude = false;
+    settings.research.mc2Reading = Settings::Research::PointReading::Exact;
+    settings.research.mc.feasibleMagnitude = false;
     controller.applySettings(settings);
 
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100)) << c.name;
@@ -67,7 +67,7 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
     EXPECT_TRUE(check.family.checked) << c.name;
     EXPECT_EQ(check.family.unstableMembers, 0u) << c.name;
 
-    EXPECT_EQ(result->run().pointReading, Settings::Algorithms::PointReading::Exact) << c.name;
+    EXPECT_EQ(result->run().pointReading, Settings::Research::PointReading::Exact) << c.name;
 
     const LoopShapingStatistics::Certificate & certificate = result->statistics().certificate;
     EXPECT_TRUE(certificate.exactPoints) << c.name;

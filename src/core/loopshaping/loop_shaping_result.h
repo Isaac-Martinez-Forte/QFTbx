@@ -52,7 +52,7 @@ public:
         LoopShapingAlgorithm algorithm = qftbx::nt;
         double epsilon = 0.0;
         bool conservativeColumns = false;
-        Settings::Algorithms::PointReading pointReading = Settings::Algorithms::PointReading::Columns;
+        Settings::Research::PointReading pointReading = Settings::Research::PointReading::Columns;
     };
 
     const Run & run() const { return m_run; }
