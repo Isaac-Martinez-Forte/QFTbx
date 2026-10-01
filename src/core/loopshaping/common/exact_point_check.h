@@ -19,8 +19,8 @@
 /**
  * @file
  * @brief The verifier's specification criterion, asked of one candidate of
- * the search at a time, and the exact set of gains it admits at fixed zeros
- * and poles.
+ * the search at a time, the exact set of gains it admits at fixed zeros and
+ * poles, and the verdict it gives on a whole sector of loop values.
  *
  * The searches decide about single controllers with the boundaries: the
  * point's degenerate box is projected onto the Nichols chart and read
@@ -96,8 +96,10 @@
  * and the verifier by evaluation. Each refusal that teaches nothing new
  * climbs the ladder instead; the working sets persist across calls, so the
  * exchange converges once per run and the calls after it cost a few
- * quadratics. admissibleGainsDb is the same set over the whole cloud, for
- * the tests and for reference.
+ * quadratics. An exchange that has not settled after 64 rounds gives up on
+ * the vertex, which then offers no gain: it costs a candidate, never a
+ * proof. admissibleGainsDb is the same set over the whole cloud, for the
+ * tests and for reference.
  *
  * sectorVerdict is the same geometry asked of a whole box of controllers,
  * given the enclosure of its loop at one frequency, a phase interval and a
@@ -126,8 +128,8 @@
  * A project whose templates do not cover every design frequency has no
  * reference: the check is then unusable and the caller keeps to the
  * columns, as the verifier reports such a design unverified. checkOf gives
- * the full list of a point's excesses, for reporting and for the test that
- * pins the identity with the verifier; the family is not its business.
+ * the full list of a point's excesses, for the tests, among them the one
+ * that pins the identity with the verifier; the family is not its business.
  */
 namespace qftbx {
 
@@ -178,21 +180,6 @@ public:
     const Statistics & statistics() const { return m_statistics; }
 
 private:
-    std::complex<double> loopAt(const FrequencyReference & at, const PointController & point) const;
-
-    bool admitsFrom(const PointController & point, std::size_t & firstToAsk);
-
-    void requireUsable() const;
-
-    RangeUnion admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
-                                    const std::vector<std::size_t> & plants) const;
-
-    RangeUnion admissibleGainsDbOver(const std::vector<double> & zeros, const std::vector<double> & poles,
-                                     Range gainRange,
-                                     const std::vector<std::vector<std::size_t>> * workingSets) const;
-
-    bool growWorkingSet(std::size_t frequency, const PointController & point);
-
     struct Quotient {
         double modulus;
         double cosine;
@@ -212,6 +199,24 @@ private:
         std::size_t workingSize = 0;
         std::vector<TrackingPair> pairs;
     };
+
+    void requireUsable() const;
+
+    std::complex<double> loopAt(const FrequencyReference & at, const PointController & point) const;
+
+    bool admitsFrom(const PointController & point, std::size_t & firstToAsk);
+
+    RangeUnion admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
+                                    const std::vector<std::size_t> & plants) const;
+
+    RangeUnion trackingMagnitudes(std::size_t frequency, std::complex<double> direction,
+                                  const std::vector<std::size_t> & plants, double boundDb) const;
+
+    RangeUnion admissibleGainsDbOver(const std::vector<double> & zeros, const std::vector<double> & poles,
+                                     Range gainRange,
+                                     const std::vector<std::vector<std::size_t>> * workingSets) const;
+
+    bool growWorkingSet(std::size_t frequency, const PointController & point);
 
     const std::vector<TrackingPair> & trackingPairs(std::size_t frequency, std::size_t bound);
 

@@ -74,44 +74,6 @@ std::optional<Disc> discOf(SpecificationType type, double W, double modulus, dou
     return std::nullopt;
 }
 
-}
-
-ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, const std::vector<double> & omega,
-                                 const CloudSet & templates, const SpecificationSet & specifications)
-{
-    if (controller == nullptr || templates.size() < omega.size()) {
-        return;
-    }
-
-    m_controller = controller->clone();
-    m_reference.emplace(plant, omega, templates, specifications);
-
-    m_referenceOf.assign(omega.size(), std::numeric_limits<std::size_t>::max());
-    for (std::size_t f = 0; f < m_reference->frequencies().size(); ++f) {
-        const FrequencyReference & at = m_reference->frequencies()[f];
-        m_referenceOf[at.index] = f;
-        std::vector<std::size_t> seed = math::convexHullVertices(at.nominalOverValueSet);
-        std::sort(seed.begin(), seed.end());
-        m_hull.push_back(seed);
-
-        std::vector<Quotient> quotients;
-        quotients.reserve(at.nominalOverValueSet.size());
-        for (std::size_t n = 0; n < at.nominalOverValueSet.size(); ++n) {
-            const std::complex<double> qn = at.nominalOverValueSet[n];
-            const double modulus = std::abs(qn);
-            const double angle = std::arg(qn);
-            quotients.push_back({modulus, std::cos(angle), std::sin(angle), std::norm(qn),
-                                  std::abs((*at.valueSet)[n])});
-        }
-        m_quotients.push_back(std::move(quotients));
-        m_pairs.emplace_back();
-        m_statistics.largestWorkingSet = std::max(m_statistics.largestWorkingSet, seed.size());
-        m_working.push_back(std::move(seed));
-    }
-}
-
-namespace {
-
 struct Arc {
     bool whole = false;
     double fromCosine = 1.0, fromSine = 0.0;
@@ -157,122 +119,38 @@ double largestOver(double a, double b, double c, double g1, double g2)
 
 }
 
-ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaIndex, Range phaseDegrees,
-                                                              Range magnitudeDb)
+ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, const std::vector<double> & omega,
+                                 const CloudSet & templates, const SpecificationSet & specifications)
 {
-    requireUsable();
-
-    SectorVerdict verdict;
-    if (omegaIndex >= m_referenceOf.size() || m_referenceOf[omegaIndex] == std::numeric_limits<std::size_t>::max()) {
-        return verdict;
-    }
-    ++m_statistics.sectorVerdicts;
-
-    const std::size_t f = m_referenceOf[omegaIndex];
-    const FrequencyReference & at = m_reference->frequencies()[f];
-    const std::vector<Quotient> & quotients = m_quotients[f];
-    const Arc arc(phaseDegrees.min * math::kPi / 180.0, phaseDegrees.max * math::kPi / 180.0);
-    const double g1 = dbToLinear(magnitudeDb.min);
-    const double g2 = dbToLinear(magnitudeDb.max);
-
-    std::vector<double> & lower = m_forbiddenLower;
-    std::vector<double> & upper = m_forbiddenUpper;
-    lower.clear();
-    upper.clear();
-
-    for (std::size_t k = 0; k < at.bounds.size(); ++k) {
-        const FrequencyReference::Bound & bound = at.bounds[k];
-        if (bound.type == SpecificationType::TrackingLower) {
-            const double dm1 = trackingFactor(bound.boundDb);
-            for (const TrackingPair & pair : trackingPairs(f, k)) {
-                const double rho = pair.modulus * arc.largestCosine(pair.cosine, pair.sine);
-                const double a = dm1, b = 2.0 * rho, c = pair.constant;
-                if (largestOver(a, b, c, g1, g2) < 0.0) {
-                    verdict.provablyInfeasible = true;
-                }
-                math::appendWhereNegative(a, b, c, lower, upper);
-            }
-            continue;
-        }
-
-        const double W = dbToLinear(bound.boundDb);
-        const double nominalModulus = std::abs(at.nominalPlant);
-        for (const Quotient & quotient : quotients) {
-            const std::optional<Disc> disc = discOf(bound.type, W, quotient.modulus, nominalModulus, quotient.plantModulus);
-            if (!disc.has_value()) {
-                continue;
-            }
-            const double s = disc->s, t = disc->t;
-            const double cmax = quotient.modulus * arc.largestCosine(quotient.cosine, quotient.sine);
-            const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = quotient.norm - t * t;
-            if (largestOver(a, b, c, g1, g2) < 0.0) {
-                verdict.provablyInfeasible = true;
-            }
-            math::appendWhereNegative(a, b, c, lower, upper);
-        }
+    if (controller == nullptr || templates.size() < omega.size()) {
+        return;
     }
 
-    if (!lower.empty()) {
-        double covered = 0.0;
-        bool grew = true;
-        while (grew) {
-            grew = false;
-            for (std::size_t k = 0; k < lower.size(); ++k) {
-                if (lower[k] <= covered && upper[k] > covered) {
-                    covered = upper[k];
-                    grew = true;
-                }
-            }
+    m_controller = controller->clone();
+    m_reference.emplace(plant, omega, templates, specifications);
+
+    m_referenceOf.assign(omega.size(), std::numeric_limits<std::size_t>::max());
+    for (std::size_t f = 0; f < m_reference->frequencies().size(); ++f) {
+        const FrequencyReference & at = m_reference->frequencies()[f];
+        m_referenceOf[at.index] = f;
+        std::vector<std::size_t> seed = math::convexHullVertices(at.nominalOverValueSet);
+        std::sort(seed.begin(), seed.end());
+        m_hull.push_back(seed);
+
+        std::vector<Quotient> quotients;
+        quotients.reserve(at.nominalOverValueSet.size());
+        for (std::size_t n = 0; n < at.nominalOverValueSet.size(); ++n) {
+            const std::complex<double> qn = at.nominalOverValueSet[n];
+            const double modulus = std::abs(qn);
+            const double angle = std::arg(qn);
+            quotients.push_back({modulus, std::cos(angle), std::sin(angle), std::norm(qn),
+                                  std::abs((*at.valueSet)[n])});
         }
-        if (covered > 0.0) {
-            verdict.forbiddenBelowDb = toDb(covered);
-        }
-        double reached = kInfinity;
-        grew = true;
-        while (grew) {
-            grew = false;
-            for (std::size_t k = 0; k < lower.size(); ++k) {
-                if (upper[k] >= reached && lower[k] < reached) {
-                    reached = lower[k];
-                    grew = true;
-                }
-            }
-        }
-        if (reached < kInfinity) {
-            verdict.forbiddenAboveDb = toDb(reached);
-        }
+        m_quotients.push_back(std::move(quotients));
+        m_pairs.emplace_back();
+        m_statistics.largestWorkingSet = std::max(m_statistics.largestWorkingSet, seed.size());
+        m_working.push_back(std::move(seed));
     }
-
-    if (verdict.forbiddenBelowDb >= magnitudeDb.max || verdict.forbiddenAboveDb <= magnitudeDb.min) {
-        verdict.provablyInfeasible = true;
-    }
-
-    return verdict;
-}
-
-const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPairs(std::size_t frequency, std::size_t bound)
-{
-    TrackingPairs & cached = m_pairs[frequency];
-    const std::vector<std::size_t> & working = m_working[frequency];
-    if (cached.workingSize == working.size()) {
-        return cached.pairs;
-    }
-
-    const FrequencyReference & at = m_reference->frequencies()[frequency];
-    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
-    const double d2 = trackingFactor(at.bounds[bound].boundDb) + 1.0;
-
-    cached.pairs.clear();
-    cached.pairs.reserve(m_hull[frequency].size() * working.size());
-    for (const std::size_t n : m_hull[frequency]) {
-        for (const std::size_t j : working) {
-            const std::complex<double> w = d2 * q[j] - q[n];
-            const double angle = std::arg(w);
-            cached.pairs.push_back({std::abs(w), std::cos(angle), std::sin(angle), d2 * std::norm(q[j]) - std::norm(q[n])});
-        }
-    }
-    cached.workingSize = working.size();
-    return cached.pairs;
 }
 
 void ExactPointCheck::requireUsable() const
@@ -342,43 +220,7 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::com
         const double boundDb = bound.boundDb - kToleranceDb;
 
         if (bound.type == SpecificationType::TrackingLower) {
-            const double dm1 = trackingFactor(boundDb);
-            const double d2 = dm1 + 1.0;
-
-            std::vector<math::Line> lines;
-            lines.reserve(plants.size());
-            for (const std::size_t n : plants) {
-                lines.push_back({2.0 * cosine(n), quotients[n].norm, n});
-            }
-            const std::vector<math::EnvelopePiece> nearest = math::lowerEnvelope(lines);
-            const std::vector<math::EnvelopePiece> farthest = math::upperEnvelope(lines);
-
-            std::vector<double> lower, upper;
-            std::size_t i = 0, j = 0;
-            double from = 0.0;
-            while (i < nearest.size() && j < farthest.size()) {
-                const double nextNearest = i + 1 < nearest.size() ? nearest[i + 1].from : kInfinity;
-                const double nextFarthest = j + 1 < farthest.size() ? farthest[j + 1].from : kInfinity;
-                const double to = std::min(nextNearest, nextFarthest);
-                const std::size_t n = nearest[i].index;
-                const std::size_t m = farthest[j].index;
-
-                RangeUnion piece = math::whereNonNegative(dm1, 2.0 * (d2 * cosine(n) - cosine(m)),
-                                                          d2 * quotients[n].norm - quotients[m].norm);
-                piece.intersectWith(from, to);
-                for (const Range & part : piece.components()) {
-                    lower.push_back(part.min);
-                    upper.push_back(part.max);
-                }
-
-                if (to == kInfinity) {
-                    break;
-                }
-                from = to;
-                if (nextNearest == to) ++i;
-                if (nextFarthest == to) ++j;
-            }
-            allowed.intersectWith(fromParts(lower, upper));
+            allowed.intersectWith(trackingMagnitudes(frequency, direction, plants, boundDb));
             continue;
         }
 
@@ -403,6 +245,53 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::com
     }
 
     return allowed;
+}
+
+RangeUnion ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::complex<double> direction,
+                                               const std::vector<std::size_t> & plants, double boundDb) const
+{
+    const FrequencyReference & at = m_reference->frequencies()[frequency];
+    const std::vector<Quotient> & quotients = m_quotients[frequency];
+    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
+    const auto cosine = [&](std::size_t n) { return std::real(std::conj(q[n]) * direction); };
+
+    const double dm1 = trackingFactor(boundDb);
+    const double d2 = dm1 + 1.0;
+
+    std::vector<math::Line> lines;
+    lines.reserve(plants.size());
+    for (const std::size_t n : plants) {
+        lines.push_back({2.0 * cosine(n), quotients[n].norm, n});
+    }
+    const std::vector<math::EnvelopePiece> nearest = math::lowerEnvelope(lines);
+    const std::vector<math::EnvelopePiece> farthest = math::upperEnvelope(lines);
+
+    std::vector<double> lower, upper;
+    std::size_t i = 0, j = 0;
+    double from = 0.0;
+    while (i < nearest.size() && j < farthest.size()) {
+        const double nextNearest = i + 1 < nearest.size() ? nearest[i + 1].from : kInfinity;
+        const double nextFarthest = j + 1 < farthest.size() ? farthest[j + 1].from : kInfinity;
+        const double to = std::min(nextNearest, nextFarthest);
+        const std::size_t n = nearest[i].index;
+        const std::size_t m = farthest[j].index;
+
+        RangeUnion piece = math::whereNonNegative(dm1, 2.0 * (d2 * cosine(n) - cosine(m)),
+                                                  d2 * quotients[n].norm - quotients[m].norm);
+        piece.intersectWith(from, to);
+        for (const Range & part : piece.components()) {
+            lower.push_back(part.min);
+            upper.push_back(part.max);
+        }
+
+        if (to == kInfinity) {
+            break;
+        }
+        from = to;
+        if (nextNearest == to) ++i;
+        if (nextFarthest == to) ++j;
+    }
+    return fromParts(lower, upper);
 }
 
 RangeUnion ExactPointCheck::admissibleGainsDbOver(const std::vector<double> & zeros, const std::vector<double> & poles,
@@ -527,9 +416,7 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
                 ++result.confirmations;
                 if (admitsFrom(candidate, m_ladderFirstToAsk)) {
                     result.gain = gain;
-                    m_statistics.exchangeRounds += result.rounds;
-                    m_statistics.ladderSteps += result.ladderSteps;
-                    return result;
+                    break;
                 }
                 if (growWorkingSet(m_ladderFirstToAsk, candidate)) {
                     grew = true;
@@ -537,7 +424,7 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
                 }
                 ++result.ladderSteps;
             }
-            if (grew) {
+            if (grew || result.gain.has_value()) {
                 break;
             }
         }
@@ -550,6 +437,124 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
     m_statistics.exchangeRounds += result.rounds;
     m_statistics.ladderSteps += result.ladderSteps;
     return result;
+}
+
+ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaIndex, Range phaseDegrees,
+                                                              Range magnitudeDb)
+{
+    requireUsable();
+
+    SectorVerdict verdict;
+    if (omegaIndex >= m_referenceOf.size() || m_referenceOf[omegaIndex] == std::numeric_limits<std::size_t>::max()) {
+        return verdict;
+    }
+    ++m_statistics.sectorVerdicts;
+
+    const std::size_t f = m_referenceOf[omegaIndex];
+    const FrequencyReference & at = m_reference->frequencies()[f];
+    const std::vector<Quotient> & quotients = m_quotients[f];
+    const Arc arc(phaseDegrees.min * math::kPi / 180.0, phaseDegrees.max * math::kPi / 180.0);
+    const double g1 = dbToLinear(magnitudeDb.min);
+    const double g2 = dbToLinear(magnitudeDb.max);
+
+    std::vector<double> & lower = m_forbiddenLower;
+    std::vector<double> & upper = m_forbiddenUpper;
+    lower.clear();
+    upper.clear();
+
+    for (std::size_t k = 0; k < at.bounds.size(); ++k) {
+        const FrequencyReference::Bound & bound = at.bounds[k];
+        if (bound.type == SpecificationType::TrackingLower) {
+            const double dm1 = trackingFactor(bound.boundDb);
+            for (const TrackingPair & pair : trackingPairs(f, k)) {
+                const double rho = pair.modulus * arc.largestCosine(pair.cosine, pair.sine);
+                const double a = dm1, b = 2.0 * rho, c = pair.constant;
+                if (largestOver(a, b, c, g1, g2) < 0.0) {
+                    verdict.provablyInfeasible = true;
+                }
+                math::appendWhereNegative(a, b, c, lower, upper);
+            }
+            continue;
+        }
+
+        const double W = dbToLinear(bound.boundDb);
+        const double nominalModulus = std::abs(at.nominalPlant);
+        for (const Quotient & quotient : quotients) {
+            const std::optional<Disc> disc = discOf(bound.type, W, quotient.modulus, nominalModulus, quotient.plantModulus);
+            if (!disc.has_value()) {
+                continue;
+            }
+            const double s = disc->s, t = disc->t;
+            const double cmax = quotient.modulus * arc.largestCosine(quotient.cosine, quotient.sine);
+            const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = quotient.norm - t * t;
+            if (largestOver(a, b, c, g1, g2) < 0.0) {
+                verdict.provablyInfeasible = true;
+            }
+            math::appendWhereNegative(a, b, c, lower, upper);
+        }
+    }
+
+    if (!lower.empty()) {
+        double covered = 0.0;
+        bool grew = true;
+        while (grew) {
+            grew = false;
+            for (std::size_t k = 0; k < lower.size(); ++k) {
+                if (lower[k] <= covered && upper[k] > covered) {
+                    covered = upper[k];
+                    grew = true;
+                }
+            }
+        }
+        if (covered > 0.0) {
+            verdict.forbiddenBelowDb = toDb(covered);
+        }
+        double reached = kInfinity;
+        grew = true;
+        while (grew) {
+            grew = false;
+            for (std::size_t k = 0; k < lower.size(); ++k) {
+                if (upper[k] >= reached && lower[k] < reached) {
+                    reached = lower[k];
+                    grew = true;
+                }
+            }
+        }
+        if (reached < kInfinity) {
+            verdict.forbiddenAboveDb = toDb(reached);
+        }
+    }
+
+    if (verdict.forbiddenBelowDb >= magnitudeDb.max || verdict.forbiddenAboveDb <= magnitudeDb.min) {
+        verdict.provablyInfeasible = true;
+    }
+
+    return verdict;
+}
+
+const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPairs(std::size_t frequency, std::size_t bound)
+{
+    TrackingPairs & cached = m_pairs[frequency];
+    const std::vector<std::size_t> & working = m_working[frequency];
+    if (cached.workingSize == working.size()) {
+        return cached.pairs;
+    }
+
+    const FrequencyReference & at = m_reference->frequencies()[frequency];
+    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
+    const double d2 = trackingFactor(at.bounds[bound].boundDb) + 1.0;
+
+    cached.pairs.clear();
+    cached.pairs.reserve(m_hull[frequency].size() * working.size());
+    for (const std::size_t n : m_hull[frequency]) {
+        for (const std::size_t j : working) {
+            const std::complex<double> w = d2 * q[j] - q[n];
+            const double angle = std::arg(w);
+            cached.pairs.push_back({std::abs(w), std::cos(angle), std::sin(angle), d2 * std::norm(q[j]) - std::norm(q[n])});
+        }
+    }
+    cached.workingSize = working.size();
+    return cached.pairs;
 }
 
 }
