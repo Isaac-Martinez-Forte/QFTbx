@@ -1,6 +1,7 @@
 /**
  * @file
- * @brief Name, description and value equality of a system.
+ * @brief Name, description and value equality of a system, and the nominal
+ * values, polynomials and closed loops taken from one.
  *
  * Equality compares the type first, then the textual numerator and
  * denominator, which carry whatever a concrete family adds on top of its
@@ -8,6 +9,8 @@
  */
 
 #include "src/core/system/lti_system.h"
+
+#include "src/core/math/polynomial.h"
 
 namespace qftbx {
 
@@ -63,6 +66,33 @@ bool LtiSystem::sameAs(LtiSystem & other)
     }
 
     return gain() == other.gain() && delay() == other.delay();
+}
+
+std::vector<double> nominalValues(const std::vector<Parameter> & parameters)
+{
+    std::vector<double> values;
+    values.reserve(parameters.size());
+    for (const Parameter & parameter : parameters) {
+        values.push_back(parameter.nominal());
+    }
+    return values;
+}
+
+bool hasDelay(LtiSystem & system)
+{
+    return system.delay().isUncertain() || system.delay().nominal() != 0.0;
+}
+
+std::optional<LtiSystem::Polynomials> nominalPolynomials(LtiSystem & system)
+{
+    return system.polynomialsAt(nominalValues(system.numerator()), nominalValues(system.denominator()),
+                                system.gain().nominal());
+}
+
+std::vector<double> characteristicOf(const LtiSystem::Polynomials & plant, const LtiSystem::Polynomials & loop)
+{
+    return math::polynomialSum(math::polynomialProduct(plant.numerator, loop.numerator),
+                               math::polynomialProduct(plant.denominator, loop.denominator));
 }
 
 }

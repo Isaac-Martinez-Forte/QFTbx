@@ -126,12 +126,8 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
 
     m_plantAtZero = m_plant->evaluate(0.0);
 
-    std::vector<double> numerator, denominator;
-    for (Parameter & parameter : m_plant->numerator()) numerator.push_back(parameter.nominal());
-    for (Parameter & parameter : m_plant->denominator()) denominator.push_back(parameter.nominal());
-    const std::optional<LtiSystem::Polynomials> polynomials =
-            m_plant->polynomialsAt(numerator, denominator, m_plant->gain().nominal());
-    if (polynomials.has_value() && m_plant->delay().nominal() == 0.0 && !m_plant->delay().isUncertain()) {
+    const std::optional<LtiSystem::Polynomials> polynomials = nominalPolynomials(*m_plant);
+    if (polynomials.has_value() && !hasDelay(*m_plant)) {
         const auto lowest = [](const std::vector<double> & p, int & zerosAtOrigin) {
             zerosAtOrigin = 0;
             for (auto it = p.rbegin(); it != p.rend(); ++it) {

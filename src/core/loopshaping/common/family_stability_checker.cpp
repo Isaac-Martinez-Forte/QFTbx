@@ -36,8 +36,7 @@ FamilyStabilityChecker::FamilyStabilityChecker(LtiSystem * plant, LtiSystem * co
     m_usable = m_family.usable();
 
     if (m_usable) {
-        m_nominal = plant->polynomialsAt(nominalValues(plant->numerator()), nominalValues(plant->denominator()),
-                                         plant->gain().nominal());
+        m_nominal = nominalPolynomials(*plant);
     }
 }
 
@@ -71,9 +70,7 @@ bool FamilyStabilityChecker::isStable(const PointController & point)
     for (std::size_t step = 0; step < count; ++step) {
         const std::size_t member = (m_lastUnstable + step) % count;
         const LtiSystem::Polynomials & plant = m_family.member(member);
-        const std::vector<double> characteristic =
-                math::polynomialSum(math::polynomialProduct(plant.numerator, loop->numerator),
-                                    math::polynomialProduct(plant.denominator, loop->denominator));
+        const std::vector<double> characteristic = characteristicOf(plant, *loop);
         if (!math::isHurwitz(characteristic)) {
             m_lastUnstable = member;
             rememberRefuser(member);
@@ -164,8 +161,7 @@ double relativeWidth(const Interval & x)
 
 bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals & box, bool splitRoots)
 {
-    if (math::isHurwitz(math::polynomialSum(math::polynomialProduct(plant.numerator, box.corner.numerator),
-                                            math::polynomialProduct(plant.denominator, box.corner.denominator)))) {
+    if (math::isHurwitz(characteristicOf(plant, box.corner))) {
         return false;
     }
 

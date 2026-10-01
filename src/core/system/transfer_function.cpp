@@ -40,29 +40,13 @@ Parameter & TransferFunction::delay() {
     return m_delay;
 }
 
-namespace {
-
-std::vector<double> nominalsOf(const std::vector<Parameter> & parameters)
-{
-    std::vector<double> values;
-    values.reserve(parameters.size());
-
-    for (const Parameter & parameter : parameters) {
-        values.push_back(parameter.nominal());
-    }
-
-    return values;
-}
-
-}
-
 std::complex <double> TransferFunction::evaluate(double w) {
-    return valueAt(w, nominalsOf(m_numerator), nominalsOf(m_denominator),
+    return valueAt(w, nominalValues(m_numerator), nominalValues(m_denominator),
                    m_gain.nominal(), m_delay.nominal());
 }
 
 std::optional<std::vector<std::complex<double>>> TransferFunction::nominalPoles() {
-    return polesAt(nominalsOf(m_numerator), nominalsOf(m_denominator));
+    return polesAt(nominalValues(m_numerator), nominalValues(m_denominator));
 }
 
 std::vector <std::complex <double> > TransferFunction::evaluate(const std::vector <double> & omega) {

@@ -197,9 +197,7 @@ FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::P
 
     for (std::size_t member = 0; member < family.size(); ++member) {
         const LtiSystem::Polynomials & plant = family.member(member);
-        const std::vector<double> characteristic =
-                math::polynomialSum(math::polynomialProduct(plant.numerator, loop.numerator),
-                                    math::polynomialProduct(plant.denominator, loop.denominator));
+        const std::vector<double> characteristic = characteristicOf(plant, loop);
         const std::vector<std::complex<double>> roots = math::polynomialRoots(characteristic);
 
         double realPart = -std::numeric_limits<double>::infinity();
@@ -236,9 +234,7 @@ FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & contro
         return result;
     }
 
-    const std::optional<LtiSystem::Polynomials> loop =
-            controller.polynomialsAt(nominalValues(controller.numerator()), nominalValues(controller.denominator()),
-                                     controller.gain().nominal());
+    const std::optional<LtiSystem::Polynomials> loop = nominalPolynomials(controller);
     if (!loop.has_value()) {
         result.notChecked = FamilyStability::NotChecked::NotRational;
         return result;

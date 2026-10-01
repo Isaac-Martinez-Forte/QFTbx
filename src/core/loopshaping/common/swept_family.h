@@ -30,9 +30,7 @@
  */
 namespace qftbx {
 
-bool hasDelay(LtiSystem & system);
 
-std::vector<double> nominalValues(std::vector<Parameter> & parameters);
 
 class SweptFamily
 {

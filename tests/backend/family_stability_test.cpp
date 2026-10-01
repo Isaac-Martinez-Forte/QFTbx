@@ -440,14 +440,12 @@ TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
         FamilyStabilityChecker family(plant, structure, project.sweepGrids());
         ASSERT_TRUE(family.usable());
 
-        const std::optional<LtiSystem::Polynomials> nominal = plant->polynomialsAt(
-                    nominalValues(plant->numerator()), nominalValues(plant->denominator()), plant->gain().nominal());
+        const std::optional<LtiSystem::Polynomials> nominal = nominalPolynomials(*plant);
         ASSERT_TRUE(nominal.has_value());
         std::unique_ptr<LtiSystem> controller = structure->clone();
         const auto stableAtNominal = [&](const PointController & point) {
             const std::optional<LtiSystem::Polynomials> loop = controller->polynomialsAt(point.zeros, point.poles, point.gain);
-            return math::isHurwitz(math::polynomialSum(math::polynomialProduct(nominal->numerator, loop->numerator),
-                                                       math::polynomialProduct(nominal->denominator, loop->denominator)));
+            return math::isHurwitz(characteristicOf(*nominal, *loop));
         };
 
         std::mt19937 generator(23);

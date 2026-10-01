@@ -11,21 +11,6 @@
 
 namespace qftbx {
 
-bool hasDelay(LtiSystem & system)
-{
-    return system.delay().isUncertain() || system.delay().nominal() != 0.0;
-}
-
-std::vector<double> nominalValues(std::vector<Parameter> & parameters)
-{
-    std::vector<double> values;
-    values.reserve(parameters.size());
-    for (const Parameter & parameter : parameters) {
-        values.push_back(parameter.nominal());
-    }
-    return values;
-}
-
 SweptFamily::SweptFamily(LtiSystem & plant, const ParameterGrids & sweep)
 {
     if (sweep.empty()) {
