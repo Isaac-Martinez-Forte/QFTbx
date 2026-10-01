@@ -61,6 +61,7 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
     Settings settings;
     settings.research.conservativeColumns = c.conservativeColumns;
     settings.research.mc2Reading = Settings::Research::PointReading::Columns;
+    settings.research.mc2.feasibleMagnitude = true;
     controller.applySettings(settings);
 
     ASSERT_TRUE(controller.computeLoopShaping(0.5, c.algorithm, Range(1e-9, 10.0), 100)) << c.name;

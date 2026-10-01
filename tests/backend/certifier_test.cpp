@@ -233,6 +233,7 @@ TEST(Certifier, WhatTheNearestColumnAdmitsTheSpecificationRefuses)
     Settings published;
     published.research.conservativeColumns = false;
     published.research.mc2Reading = Settings::Research::PointReading::Columns;
+    published.research.mc2.feasibleMagnitude = true;
     project.applySettings(published);
     ASSERT_TRUE(project.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100));
     const PointController nearestDesign = designOf(*project.loopShapingResult()->controller());

@@ -19,8 +19,9 @@
  * realised by many zero-pole boxes, which one a search meets follows from the
  * arithmetic of the machine it runs on, so those cases pin the gain within
  * its own tolerance and ask of the zero and the pole only that they lie in
- * the box searched. MC2 is pinned under its columns reading, the published
- * formulation; its own exact reading has a test of its own. The values are a
+ * the box searched. MC2 is pinned under its columns reading with every
+ * strategy of the thesis, the published formulation; its own configuration,
+ * the exact reading without the feasible magnitude cut, has a test of its own. The values are a
  * regression net; correctness is judged against each algorithm's paper.
  */
 
@@ -149,6 +150,7 @@ TEST_P(ThesisBenchmarkGolden, ResultIsPinned)
     qftbx::Settings settings;
     settings.research.conservativeColumns = golden.conservativeColumns;
     settings.research.mc2Reading = qftbx::Settings::Research::PointReading::Columns;
+    settings.research.mc2.feasibleMagnitude = true;
     controller.applySettings(settings);
 
     LtiSystem* structure = controller.controllerStructure();

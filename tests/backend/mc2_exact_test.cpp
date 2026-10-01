@@ -3,8 +3,8 @@
  * @brief MC2 under the exact point reading, end to end.
  *
  * Each published problem is loaded as the interface loads it and MC2 runs
- * with the exact point reading and without the feasible magnitude cut, the
- * configuration the battery chose, at epsilon 0.5. The result is checked as
+ * as it does by default, with the exact point reading and without the
+ * feasible magnitude cut, at epsilon 0.5. The result is checked as
  * a user would see it: the design meets every specification over the whole
  * template and closes the loop stably with every plant of the sweep, the run
  * records that it read the points exactly, the certificate's lower bounds
@@ -53,7 +53,6 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
 
     Settings settings;
     settings.research.mc2Reading = Settings::Research::PointReading::Exact;
-    settings.research.mc.feasibleMagnitude = false;
     controller.applySettings(settings);
 
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100)) << c.name;

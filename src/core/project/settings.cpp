@@ -424,6 +424,30 @@ const std::vector<Binding> & bindings()
          [](const std::string & text, std::int64_t line, Settings & into) {
              into.research.mc.stages = wholeIn(text, "research.mc.stages", line, 0.0, 1.0) != 0.0;
          }},
+        {"research.mc2.infeasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc2.infeasibleMagnitude = wholeIn(text, "research.mc2.infeasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc2.infeasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc2.infeasiblePhase = wholeIn(text, "research.mc2.infeasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc2.feasible-magnitude",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc2.feasibleMagnitude = wholeIn(text, "research.mc2.feasible-magnitude", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc2.feasible-phase",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc2.feasiblePhase = wholeIn(text, "research.mc2.feasible-phase", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc2.best-gain",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc2.bestGain = wholeIn(text, "research.mc2.best-gain", line, 0.0, 1.0) != 0.0;
+         }},
+        {"research.mc2.tree-bisection",
+         [](const std::string & text, std::int64_t line, Settings & into) {
+             into.research.mc2.treeBisection = wholeIn(text, "research.mc2.tree-bisection", line, 0.0, 1.0) != 0.0;
+         }},
     };
 
     return table;

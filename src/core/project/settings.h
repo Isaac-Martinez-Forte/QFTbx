@@ -27,7 +27,10 @@
  * read from a file of their own, qftbx-research.conf, found as qftbx.conf is
  * (QFTBX_RESEARCH_CONFIG, the working directory, ~/.config/qftbx). Each file
  * takes only its own keys, and their defaults are the program's own way of
- * working; the benchmark and the command-line solver read both.
+ * working; the benchmark and the command-line solver read both. The
+ * strategies of the thesis are switched apart for MC of the thesis, all of
+ * them on, and for MC2, without the feasible magnitude cut, the configuration
+ * measured best for it.
  */
 
 #ifndef QFTBX_SETTINGS_H
@@ -150,6 +153,12 @@ struct Settings {
             bool treeBisection = true;
             bool stages = true;
         } mc;
+
+        McStrategies mc2 = [] {
+            McStrategies strategies;
+            strategies.feasibleMagnitude = false;
+            return strategies;
+        }();
 
         bool conservativeColumnsInForce() const
         {

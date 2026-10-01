@@ -60,7 +60,7 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 void AlgorithmMc2::setSettings(const qftbx::Settings & settings)
 {
     m_settings = settings;
-    strategies = settings.research.mc;
+    strategies = settings.research.mc2;
 }
 
 void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,

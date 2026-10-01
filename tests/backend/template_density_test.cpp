@@ -64,6 +64,7 @@ TEST(TemplateDensity, ADenserTemplateDoesNotChangeTheVerdict)
     controller.load(file);
     Settings columns;
     columns.research.mc2Reading = Settings::Research::PointReading::Columns;
+    columns.research.mc2.feasibleMagnitude = true;
     controller.applySettings(columns);
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100));
 
