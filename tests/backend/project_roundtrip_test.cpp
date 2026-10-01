@@ -9,13 +9,17 @@
  * Further cases cover what no fixture carries: a reparametrised parameter
  * comes back raw with its expression applied once; a skipped frequency, the
  * plant's description, the settings of the run and the verifier's verdict
- * survive, the verdict with nothing active without its infinite number. A NaN
- * and an unwritable path are refused.
+ * survive, the verdict with nothing active without its infinite number. A
+ * run written before it recorded its point reading reads as the columns, and
+ * a point reading the build does not know is refused. A NaN and an
+ * unwritable path are refused.
  */
 
 #include "src/core/system/polynomial_form.h"
 #include <gtest/gtest.h>
 
+#include <fstream>
+#include <iterator>
 #include <limits>
 
 #include <string>
@@ -27,6 +31,7 @@
 #include <pugixml.hpp>
 
 #include "tests/backend/project_compare.h"
+#include "src/core/common/exception.h"
 #include "src/persistence/project_reader.h"
 #include "src/persistence/project_writer.h"
 
@@ -350,6 +355,52 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
     EXPECT_TRUE(reloaded.loopShaping()->check()->satisfied());
     EXPECT_DOUBLE_EQ(reloaded.loopShaping()->check()->worstExcessDb, -1.25);
+}
+
+TEST(RoundTripSettings, ARunWithoutItsPointReadingReadsTheColumnsAndAnUnknownOneIsRefused)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("reading.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.loopShaping(), nullptr);
+    original.loopShaping()->setRun({qftbx::mc2, 0.05, true, Settings::Research::PointReading::Exact});
+
+    ProjectContent content;
+    content.plant = original.plant();
+    content.omega = original.omega();
+    content.templates = &original.templates();
+    content.epsilon = original.epsilon();
+    content.controller = original.controller();
+    content.loopShaping = original.loopShaping();
+    ProjectWriter writer;
+    writer.save(path, content);
+
+    std::ifstream in(path);
+    const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    const std::string attribute = " point-reading=\"exact\"";
+    const std::size_t at = text.find(attribute);
+    ASSERT_NE(at, std::string::npos);
+
+    const auto rewritten = [&](const char * name, const std::string & replacement) {
+        std::string changed = text;
+        changed.replace(at, attribute.size(), replacement);
+        const std::string file = temporary.filePath(name).toStdString();
+        std::ofstream out(file);
+        out << changed;
+        return file;
+    };
+
+    ProjectReader withoutReading;
+    withoutReading.load(rewritten("without.qft", ""));
+    ASSERT_NE(withoutReading.loopShaping(), nullptr);
+    EXPECT_EQ(withoutReading.loopShaping()->run().algorithm, qftbx::mc2);
+    EXPECT_EQ(withoutReading.loopShaping()->run().pointReading, Settings::Research::PointReading::Columns);
+
+    ProjectReader unknown;
+    EXPECT_THROW(unknown.load(rewritten("unknown.qft", " point-reading=\"sideways\"")), qftbx::ParseError);
 }
 
 TEST(RoundTripSettings, AVerdictWithNoActiveSpecificationIsStillWritten)

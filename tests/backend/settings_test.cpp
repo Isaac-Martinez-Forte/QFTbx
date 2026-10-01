@@ -8,22 +8,31 @@
  * fraction where an integer belongs, a value out of range, a repeated key and
  * a malformed line are refused by name, while an unknown key is collected and
  * reported so that a newer file still starts this build. The theme is one
- * of three words and is refused as any other value. A file named in the
- * environment must exist; none anywhere gives the defaults. The research
- * switches take their own words, and when the settings are loaded the user
- * file and qftbx-research.conf each take only their own keys, while a file
- * read on its own takes both. Writing one setting leaves the rest of the file
- * alone. The example configuration must uncomment to exactly the compiled
- * defaults and name every user setting the build knows, the three free texts
- * aside, which it shows empty, and a search budget
- * set in the settings must reach the algorithms.
+ * of three words and is refused as any other value. The research switches
+ * take their own words: the reading of MC2, columns or exact, whose names go
+ * both ways; the guide of the exact reading; the reading of the columns; and
+ * which reading of the columns is in force follows the reading of MC2.
+ * Writing one setting leaves the rest of the file alone. Loading looks in an
+ * environment of its own, with its home and its working directory in a
+ * temporary folder: a file named in the environment must exist, the working
+ * directory comes before the home and the environment before both, none
+ * anywhere gives the defaults, and the user file and qftbx-research.conf
+ * each take only their own keys, while a file read on its own takes both.
+ * The example configuration must uncomment to exactly the compiled defaults
+ * and name every user setting the build knows, the three free texts aside,
+ * which it shows empty, and a search budget set in the settings must reach
+ * the algorithms. Every file a test writes goes to a temporary folder.
  */
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
+#include <QTemporaryDir>
+
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
 
@@ -44,31 +53,84 @@ using namespace qftbx;
 
 namespace {
 
+std::string writtenAt(const std::string & path, const std::string & content)
+{
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path());
+    std::ofstream file(path);
+    file << content;
+    return path;
+}
+
 class SettingsFile : public ::testing::Test
 {
 protected:
-    void TearDown() override
+    std::string written(const std::string & content)
     {
-        if (!m_path.empty()) {
-            std::remove(m_path.c_str());
+        return writtenAt(m_folder.filePath("settings.conf").toStdString(), content);
+    }
+
+    std::string folder() const { return m_folder.path().toStdString(); }
+
+private:
+    QTemporaryDir m_folder;
+};
+
+class IsolatedEnvironment
+{
+public:
+    IsolatedEnvironment()
+        : m_home(saved("HOME")),
+          m_config(saved("QFTBX_CONFIG")),
+          m_researchConfig(saved("QFTBX_RESEARCH_CONFIG")),
+          m_workingDirectory(std::filesystem::current_path())
+    {
+        ::setenv("HOME", home().c_str(), 1);
+        ::unsetenv("QFTBX_CONFIG");
+        ::unsetenv("QFTBX_RESEARCH_CONFIG");
+        std::filesystem::create_directories(workingDirectory());
+        std::filesystem::current_path(workingDirectory());
+    }
+
+    ~IsolatedEnvironment()
+    {
+        std::filesystem::current_path(m_workingDirectory);
+        restore("HOME", m_home);
+        restore("QFTBX_CONFIG", m_config);
+        restore("QFTBX_RESEARCH_CONFIG", m_researchConfig);
+    }
+
+    IsolatedEnvironment(const IsolatedEnvironment &) = delete;
+    IsolatedEnvironment & operator=(const IsolatedEnvironment &) = delete;
+
+    std::string home() const { return m_folder.filePath("home").toStdString(); }
+
+    std::string workingDirectory() const { return m_folder.filePath("work").toStdString(); }
+
+    std::string inHome(const std::string & file) const { return home() + "/.config/qftbx/" + file; }
+
+    std::string elsewhere(const std::string & file) const { return m_folder.filePath(QString::fromStdString(file)).toStdString(); }
+
+private:
+    static std::optional<std::string> saved(const char * variable)
+    {
+        const char * value = std::getenv(variable);
+        return value != nullptr ? std::optional<std::string>(value) : std::nullopt;
+    }
+
+    static void restore(const char * variable, const std::optional<std::string> & value)
+    {
+        if (value.has_value()) {
+            ::setenv(variable, value->c_str(), 1);
+        } else {
+            ::unsetenv(variable);
         }
     }
 
-    std::string written(const std::string & content)
-    {
-        m_path = std::string(QFTBX_TEST_DATA_DIR "/../settings_under_test_")
-                 + ::testing::UnitTest::GetInstance()->current_test_info()->name()
-                 + ".conf";
-
-        std::ofstream file(m_path);
-        file << content;
-        file.close();
-
-        return m_path;
-    }
-
-private:
-    std::string m_path;
+    QTemporaryDir m_folder;
+    std::optional<std::string> m_home;
+    std::optional<std::string> m_config;
+    std::optional<std::string> m_researchConfig;
+    std::filesystem::path m_workingDirectory;
 };
 
 }
@@ -154,7 +216,7 @@ TEST_F(SettingsFile, TheThemeIsSystemLightOrDark)
     EXPECT_THROW(qftbx::readSettings(written("[interface]\ntheme = Dark\n")), qftbx::InvalidInput);
 }
 
-TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)
+TEST_F(SettingsFile, TheReadingOfMc2IsColumnsOrExact)
 {
     using PointReading = qftbx::Settings::Research::PointReading;
     EXPECT_EQ(qftbx::Settings().research.mc2Reading, PointReading::Exact) << "MC2 reads its points exactly";
@@ -169,17 +231,28 @@ TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)
         EXPECT_EQ(qftbx::pointReadingFromName(qftbx::pointReadingName(reading)), reading);
     }
     EXPECT_EQ(qftbx::pointReadingChoices(), "columns or exact");
+}
 
+TEST_F(SettingsFile, TheGuideOfTheExactReadingIsNearestOrConservative)
+{
     using BoundaryGuide = qftbx::Settings::Research::BoundaryGuide;
     EXPECT_EQ(qftbx::Settings().research.exactGuide, BoundaryGuide::Nearest);
     EXPECT_EQ(qftbx::readSettings(written("[research]\nexact-guide = conservative\n")).research.exactGuide,
               BoundaryGuide::Conservative);
     EXPECT_THROW(qftbx::readSettings(written("[research]\nexact-guide = published\n")), qftbx::InvalidInput);
+}
 
+TEST_F(SettingsFile, TheColumnsAreReadConservativelyOrByTheNearestNode)
+{
     EXPECT_TRUE(qftbx::Settings().research.conservativeColumns);
     EXPECT_FALSE(qftbx::readSettings(written("[research]\ncolumns = nearest\n")).research.conservativeColumns);
     EXPECT_THROW(qftbx::readSettings(written("[research]\ncolumns = 0\n")), qftbx::InvalidInput);
+}
 
+TEST(Settings, TheReadingOfTheColumnsInForceFollowsTheReadingOfMc2)
+{
+    using PointReading = qftbx::Settings::Research::PointReading;
+    using BoundaryGuide = qftbx::Settings::Research::BoundaryGuide;
     qftbx::Settings inForce;
     EXPECT_FALSE(inForce.research.conservativeColumnsInForce()) << "exact points are guided by the nearest node";
     inForce.research.exactGuide = BoundaryGuide::Conservative;
@@ -232,12 +305,9 @@ TEST_F(SettingsFile, WritingASettingLeavesTheRestOfTheFileAlone)
 
 TEST_F(SettingsFile, WritingASettingCreatesTheFileAndItsDirectory)
 {
-    const std::string directory = std::string(QFTBX_TEST_DATA_DIR "/../settings_written_dir");
-    const std::string path = directory + "/deeper/qftbx.conf";
-    std::filesystem::remove_all(directory);
+    const std::string path = folder() + "/written/deeper/qftbx.conf";
     qftbx::writeSetting(path, "interface.language", "es");
     EXPECT_EQ(qftbx::readSettings(path).interface.language, "es");
-    std::filesystem::remove_all(directory);
 }
 
 TEST_F(SettingsFile, AFractionWhereAWholeNumberBelongsIsRefused)
@@ -299,58 +369,74 @@ TEST_F(SettingsFile, AFileThatIsNotThereIsAFileError)
 
 TEST(Settings, LoadingWithNoFileAnywhereGivesTheDefaults)
 {
-    ::unsetenv("QFTBX_CONFIG");
-    ::unsetenv("QFTBX_RESEARCH_CONFIG");
+    const IsolatedEnvironment environment;
 
     const qftbx::Settings settings = qftbx::loadSettings();
 
-    if (settings.source.empty()) {
-        EXPECT_EQ(settings.search.maxLiveNodes, 32000000u);
-    }
-    if (settings.researchSource.empty()) {
-        EXPECT_EQ(settings.research.mc2Reading, qftbx::Settings().research.mc2Reading);
-    }
+    EXPECT_TRUE(settings.source.empty());
+    EXPECT_TRUE(settings.researchSource.empty());
+    EXPECT_EQ(settings.search.maxLiveNodes, qftbx::Settings().search.maxLiveNodes);
+    EXPECT_EQ(settings.research.mc2Reading, qftbx::Settings().research.mc2Reading);
+    EXPECT_TRUE(settings.unknownKeys.empty());
 }
 
 TEST(Settings, AFileNamedInTheEnvironmentIsUsed)
 {
-    const std::string path =
-        std::string(QFTBX_TEST_DATA_DIR "/../settings_from_environment.conf");
-
-    std::ofstream file(path);
-    file << "[search]\nmax-live-nodes = 77\n";
-    file.close();
+    const IsolatedEnvironment environment;
+    const std::string path = writtenAt(environment.elsewhere("from-environment.conf"), "[search]\nmax-live-nodes = 77\n");
 
     ::setenv("QFTBX_CONFIG", path.c_str(), 1);
     const qftbx::Settings settings = qftbx::loadSettings();
-    ::unsetenv("QFTBX_CONFIG");
-    std::remove(path.c_str());
 
     EXPECT_EQ(settings.search.maxLiveNodes, 77u);
     EXPECT_EQ(settings.source, path);
 }
 
+TEST(Settings, TheWorkingDirectoryComesBeforeTheHomeAndTheEnvironmentBeforeBoth)
+{
+    const IsolatedEnvironment environment;
+    const std::string home = writtenAt(environment.inHome("qftbx.conf"), "[search]\nmax-live-nodes = 22\n");
+    const std::string researchHome = writtenAt(environment.inHome("qftbx-research.conf"), "[research]\nfamily-gate = 0\n");
+
+    qftbx::Settings settings = qftbx::loadSettings();
+    EXPECT_EQ(settings.source, home);
+    EXPECT_EQ(settings.search.maxLiveNodes, 22u);
+    EXPECT_EQ(settings.researchSource, researchHome);
+    EXPECT_FALSE(settings.research.familyGate);
+
+    writtenAt(environment.workingDirectory() + "/qftbx.conf", "[search]\nmax-live-nodes = 11\n");
+    writtenAt(environment.workingDirectory() + "/qftbx-research.conf", "[research]\ncolumns = nearest\n");
+    settings = qftbx::loadSettings();
+    EXPECT_EQ(settings.source, "qftbx.conf");
+    EXPECT_EQ(settings.search.maxLiveNodes, 11u);
+    EXPECT_EQ(settings.researchSource, "qftbx-research.conf");
+    EXPECT_FALSE(settings.research.conservativeColumns);
+    EXPECT_TRUE(settings.research.familyGate) << "only the first file found is read";
+
+    const std::string named = writtenAt(environment.elsewhere("named.conf"), "[search]\nmax-live-nodes = 33\n");
+    const std::string researchNamed = writtenAt(environment.elsewhere("named-research.conf"), "[research]\nexact-guide = conservative\n");
+    ::setenv("QFTBX_CONFIG", named.c_str(), 1);
+    ::setenv("QFTBX_RESEARCH_CONFIG", researchNamed.c_str(), 1);
+    settings = qftbx::loadSettings();
+    EXPECT_EQ(settings.source, named);
+    EXPECT_EQ(settings.search.maxLiveNodes, 33u);
+    EXPECT_EQ(settings.researchSource, researchNamed);
+    EXPECT_EQ(settings.research.exactGuide, qftbx::Settings::Research::BoundaryGuide::Conservative);
+    EXPECT_TRUE(settings.research.conservativeColumns);
+}
+
 TEST(Settings, EachFileTakesOnlyItsOwnKeys)
 {
-    const std::string user = std::string(QFTBX_TEST_DATA_DIR "/../settings_user_keys.conf");
-    const std::string research = std::string(QFTBX_TEST_DATA_DIR "/../settings_research_keys.conf");
-    {
-        std::ofstream file(user);
-        file << "[search]\nmax-live-nodes = 77\n[research]\nfamily-gate = 0\n";
-    }
-    {
-        std::ofstream file(research);
-        file << "[research]\ncolumns = nearest\n[search]\nmax-live-nodes = 5\n";
-    }
+    const IsolatedEnvironment environment;
+    const std::string user = writtenAt(environment.elsewhere("user-keys.conf"),
+                                       "[search]\nmax-live-nodes = 77\n[research]\nfamily-gate = 0\n");
+    const std::string research = writtenAt(environment.elsewhere("research-keys.conf"),
+                                           "[research]\ncolumns = nearest\n[search]\nmax-live-nodes = 5\n");
 
     ::setenv("QFTBX_CONFIG", user.c_str(), 1);
     ::setenv("QFTBX_RESEARCH_CONFIG", research.c_str(), 1);
     const qftbx::Settings settings = qftbx::loadSettings();
-    ::unsetenv("QFTBX_CONFIG");
-    ::unsetenv("QFTBX_RESEARCH_CONFIG");
     const qftbx::Settings alone = qftbx::readSettings(user);
-    std::remove(user.c_str());
-    std::remove(research.c_str());
 
     EXPECT_EQ(settings.source, user);
     EXPECT_EQ(settings.researchSource, research);
@@ -368,11 +454,10 @@ TEST(Settings, EachFileTakesOnlyItsOwnKeys)
 
 TEST(Settings, AFileNamedInTheEnvironmentThatCannotBeReadIsAnError)
 {
-    ::setenv("QFTBX_CONFIG", "/nonexistent/qftbx.conf", 1);
+    const IsolatedEnvironment environment;
+    ::setenv("QFTBX_CONFIG", environment.elsewhere("missing.conf").c_str(), 1);
 
     EXPECT_THROW(qftbx::loadSettings(), qftbx::FileError);
-
-    ::unsetenv("QFTBX_CONFIG");
 }
 
 TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
@@ -380,8 +465,8 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     std::ifstream example(QFTBX_EXAMPLE_CONFIG);
     ASSERT_TRUE(example.good()) << "the example settings file is missing";
 
-    const std::string path =
-        std::string(QFTBX_TEST_DATA_DIR "/../settings_example_uncommented.conf");
+    QTemporaryDir folder;
+    const std::string path = folder.filePath("example-uncommented.conf").toStdString();
 
     std::ofstream uncommented(path);
     std::string line;
@@ -404,7 +489,6 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_GT(settingsFound, 0) << "no settings found in the example";
 
     const qftbx::Settings fromExample = qftbx::readSettings(path);
-    std::remove(path.c_str());
 
     const qftbx::Settings defaults;
 
