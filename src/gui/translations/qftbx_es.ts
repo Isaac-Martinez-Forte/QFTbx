@@ -690,12 +690,40 @@
         <translation>algoritmo de ajuste del lazo desconocido «%1»</translation>
     </message>
     <message>
-        <source>interface.theme must be system, light or dark: &apos;%1&apos;</source>
-        <translation>interface.theme debe ser system, light o dark: «%1»</translation>
-    </message>
-    <message>
         <source>The computation has not finished yet.</source>
         <translation>El cálculo todavía no ha terminado.</translation>
+    </message>
+    <message>
+        <source>The exact point check has no value set for every design frequency.</source>
+        <translation>La comprobación exacta de los puntos no tiene un template para cada frecuencia de diseño.</translation>
+    </message>
+    <message>
+        <source>MC2 reads every point against the specifications and needs a template at every design frequency.</source>
+        <translation>MC2 lee cada punto frente a las especificaciones y necesita un template en cada frecuencia de diseño.</translation>
+    </message>
+    <message>
+        <source>The search found no design and cannot prove that none exists: %1 boxes were discarded on the boundary columns or on the nominal stability of their enclosure alone, and %2 were left without a certified point. A design, if there is one, needs a gain of at least %3.</source>
+        <translation>La búsqueda no encontró ningún diseño y no puede demostrar que no exista: se descartaron %1 cajas sólo por las columnas de los boundaries o por la estabilidad nominal de su envoltura, y %2 quedaron sin un punto certificado. Un diseño, si lo hay, necesita una ganancia de al menos %3.</translation>
+    </message>
+    <message>
+        <source>The loop shaping needs a template at every design frequency: compute the templates first.</source>
+        <translation>El ajuste del lazo necesita un template en cada frecuencia de diseño: calcule primero los templates.</translation>
+    </message>
+    <message>
+        <source>Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).</source>
+        <translation>Error interno: el diseño devuelto con la lectura exacta de los puntos no pasa el verificador (peor exceso %1 dB, %2 plantas inestables).</translation>
+    </message>
+    <message>
+        <source>unknown reason &apos;%1&apos; for the family not being checked</source>
+        <translation>motivo desconocido «%1» para no haber comprobado la familia</translation>
+    </message>
+    <message>
+        <source>a swept parameter needs its name</source>
+        <translation>un parámetro barrido necesita su nombre</translation>
+    </message>
+    <message>
+        <source>unknown point reading &apos;%1&apos; (%2)</source>
+        <translation>lectura de los puntos desconocida «%1» (%2)</translation>
     </message>
 </context>
 <context>
@@ -853,14 +881,6 @@
     <message>
         <source>Algorithm MC&amp;2</source>
         <translation>Algoritmo MC&amp;2</translation>
-    </message>
-    <message>
-        <source>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</source>
-        <translation>Juzgar cada punto y cada caja por las dos columnas de frontera que rodean su fase, en vez de por la más cercana. Elimina el pequeño error permisivo de la rejilla de fase; las búsquedas sin cota de mejor ganancia se vuelven mucho más lentas.</translation>
-    </message>
-    <message>
-        <source>Conservative boundary reading</source>
-        <translation>Lectura conservadora de las fronteras</translation>
     </message>
     <message>
         <source>Compute</source>
