@@ -9,7 +9,10 @@
  * over the full templates at its own loop value, because the boundaries are
  * a discretisation and do not all err on the safe side. That check says
  * whether the answer meets what was asked and by how much it misses when it
- * does not; a project whose templates are absent gets no check. A design
+ * does not. The templates are a required phase of the design: without one at
+ * every design frequency there is no loop shaping, since neither that check
+ * nor the exact reading of MC2 could be made. The run records the reading it
+ * used, the exact one only when MC2 read the points exactly. A design
  * returned under the exact point reading passed that very check inside the
  * search, so its failing here would be a fault in the program, and is
  * raised as one.
@@ -46,6 +49,10 @@ void LoopShapingStage::requirePrerequisites(const ProjectData & data) const
                            "design frequencies, the specifications or "
                            "the templates change."));
     }
+    if (data.templates().size() < data.frequencies()->size()) {
+        throw InvalidInput(QFTBX_TR("Core", "The loop shaping needs a template at every design frequency: "
+                           "compute the templates first."));
+    }
 }
 
 bool LoopShapingStage::run(ProjectData & data, double epsilon,
@@ -74,25 +81,24 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
 
     auto result = std::make_unique<LoopShapingResult>(search.controllerStructure(), plotRange, pointCount);
     result->setStatistics(search.statistics());
+    const bool exactPoints = result->statistics().certificate.exactPoints;
     result->setRun({algorithm, epsilon,
-                    algorithm == qftbx::mc2 ? m_settings.research.conservativeColumnsInForce()
-                                            : m_settings.research.conservativeColumns,
-                    m_settings.research.mc2Reading});
+                    exactPoints ? m_settings.research.exactGuide == Settings::Research::BoundaryGuide::Conservative
+                                : m_settings.research.conservativeColumns,
+                    exactPoints ? Settings::Research::PointReading::Exact : Settings::Research::PointReading::Columns});
 
-    if (data.templates().size() == data.frequencies()->size()) {
-        result->setCheck(checkAgainstSpecifications(*result->controller(), *data.plant(),
-                                                    *data.frequencies(), data.templates(),
-                                                    toSpecificationSet(*data.specifications()),
-                                                    &data.sweepGrids()));
+    result->setCheck(checkAgainstSpecifications(*result->controller(), *data.plant(),
+                                                *data.frequencies(), data.templates(),
+                                                toSpecificationSet(*data.specifications()),
+                                                &data.sweepGrids()));
 
-        if (result->statistics().certificate.exactPoints) {
-            const SpecificationCheck & check = *result->check();
-            const bool familyRefused = m_settings.research.familyGate && check.family.checked
-                                       && check.family.unstableMembers > 0;
-            if (!(check.worstExcessDb <= 0.0) || familyRefused) {
-                throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).")
-                                       .arg(check.worstExcessDb).arg(check.family.unstableMembers));
-            }
+    if (exactPoints) {
+        const SpecificationCheck & check = *result->check();
+        const bool familyRefused = m_settings.research.familyGate && check.family.checked
+                                   && check.family.unstableMembers > 0;
+        if (!(check.worstExcessDb <= 0.0) || familyRefused) {
+            throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).")
+                                   .arg(check.worstExcessDb).arg(check.family.unstableMembers));
         }
     }
 

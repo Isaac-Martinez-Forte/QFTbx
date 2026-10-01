@@ -2,12 +2,16 @@
  * @file
  * @brief The step that picks the loop-shaping algorithm and its accuracy.
  *
- * Declares the panel for the algorithm, its epsilon, the conservative
- * reading of the boundary columns, the starting point of the local search
- * where the algorithm has one, and the range and point count of the plot.
- * The range fields are prefilled from the settings and ceilings, also from
- * the settings, only ever refuse input. Reopening a design shows the
- * algorithm, epsilon and range that produced it.
+ * Step 7 of the design: the panel for the algorithm, its epsilon, the
+ * starting point of the local search where the algorithm has one, and the
+ * range and point count of the plot. What the epsilon measures depends on the
+ * algorithm, since each follows the criterion of its own paper (see
+ * ProjectController::computeLoopShaping), and the label of the field says
+ * which. The range fields are prefilled from the settings, the same range on
+ * opening and on picking either spacing, and the ceilings, also from the
+ * settings, only keep a typo from reaching a conversion or an allocation:
+ * moving them changes no computed result. Reopening a design shows the
+ * algorithm, epsilon, range and point count that produced it.
  */
 
 #ifndef QFTBX_LOOP_SHAPING_FORM_H
@@ -31,50 +35,20 @@ class LoopShapingForm;
 
 namespace qftbx {
 
-/**
- * @brief Step 7 of the design: picks one of the loop-shaping
- * algorithms and the accuracy to run it to.
- *
- * What the accuracy measures depends on the algorithm chosen, because each
- * follows the criterion of its own paper - see
- * ProjectController::computeLoopShaping. The single field does not say so
- * yet.
- */
 class LoopShapingForm : public StepPanel
 {
     Q_OBJECT
 
 public:
-    /**
-     * @brief The ceilings on what its fields accept, from the settings.
-     *
-     * They exist to keep a typo from reaching a conversion or an allocation,
-     * not to express any control-design limit, so moving them changes no
-     * computed result.
-     */
     void setLimits(double maxMagnitude, double maxPointCount)
     { m_maxMagnitude = maxMagnitude; m_maxPointCount = maxPointCount; }
 
-    /**
-     * @brief Prefills the range fields from the settings.
-     *
-     * ONE range, used on opening and on picking either mode. There were three
-     * hardcoded sets before - one per place - and the two mode ones differed
-     * from each other and from the opening one with no reason given anywhere.
-     * Worse, they overwrote whatever the fields held, so a configured default
-     * would have been thrown away the moment a mode was picked.
-     */
     void applyDefaults(const qftbx::Settings::Defaults & defaults);
 
     explicit LoopShapingForm(QWidget *parent = 0);
     ~LoopShapingForm();
 
     qreal epsilonValue ();
-
-    /// Whether the boundary columns are to be read conservatively (both
-    /// nodes around a phase) for this run; see Settings::algorithms.
-    bool conservativeColumns() const;
-    void setConservativeColumns(bool on);
 
     qftbx::LoopShapingAlgorithm algorithmValue();
 
@@ -84,21 +58,11 @@ public:
 
     bool isLinSpace();
 
-    /**
-     * @brief Fills the plot range and the point count with those of the
-     * design the project holds.
-     *
-     * The algorithm and the tolerance are NOT among them: the result does
-     * not record which algorithm produced it, so the form would be
-     * inventing an answer. That is the gap the file format has to close.
-     */
     void setFromProject(const qftbx::LoopShapingResult * result);
 
     qint32 initialisationValue ();
 
 private slots:
-    /// Says which epsilon the field is asking for, because it is not the
-    /// same quantity for every algorithm.
     void updateEpsilonLabel();
 
     void on_okButton_clicked();
@@ -129,7 +93,6 @@ private:
     qftbx::LoopShapingAlgorithm alg = qftbx::nt;
 
     bool linLogSpace = false;
-    /// Kept because the mode radios prefill from it too.
     qftbx::Settings::Defaults m_defaults;
 
     double m_maxMagnitude = qftbx::Settings().limits.maxMagnitude;

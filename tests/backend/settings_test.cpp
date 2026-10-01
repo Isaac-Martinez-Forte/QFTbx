@@ -146,7 +146,7 @@ TEST_F(SettingsFile, TheLanguageIsATextWithTheShapeOfACode)
 TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)
 {
     using PointReading = qftbx::Settings::Research::PointReading;
-    EXPECT_EQ(qftbx::Settings().research.mc2Reading, PointReading::Columns);
+    EXPECT_EQ(qftbx::Settings().research.mc2Reading, PointReading::Exact) << "MC2 reads its points exactly";
     EXPECT_EQ(qftbx::readSettings(written("[research]\nmc2-reading = columns\n")).research.mc2Reading,
               PointReading::Columns);
     EXPECT_EQ(qftbx::readSettings(written("[research]\nmc2-reading = exact\n")).research.mc2Reading,
@@ -169,11 +169,12 @@ TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)
     EXPECT_THROW(qftbx::readSettings(written("[research]\ncolumns = 0\n")), qftbx::InvalidInput);
 
     qftbx::Settings inForce;
-    EXPECT_TRUE(inForce.research.conservativeColumnsInForce()) << "the columns readings keep the conservative default";
-    inForce.research.mc2Reading = PointReading::Exact;
     EXPECT_FALSE(inForce.research.conservativeColumnsInForce()) << "exact points are guided by the nearest node";
     inForce.research.exactGuide = BoundaryGuide::Conservative;
     EXPECT_TRUE(inForce.research.conservativeColumnsInForce());
+    inForce.research.mc2Reading = PointReading::Columns;
+    inForce.research.conservativeColumns = false;
+    EXPECT_FALSE(inForce.research.conservativeColumnsInForce()) << "the columns reading follows research.columns";
 }
 
 TEST_F(SettingsFile, WritingASettingLeavesTheRestOfTheFileAlone)

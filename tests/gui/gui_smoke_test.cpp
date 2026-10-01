@@ -2438,7 +2438,6 @@ TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
 
     EXPECT_TRUE(child<QRadioButton>(&dialog, "mc2Radio")->isChecked());
     EXPECT_EQ(child<QLineEdit>(&dialog, "epsilonEdit")->text(), QString("0.02"));
-    EXPECT_TRUE(child<QCheckBox>(&dialog, "conservativeColumnsCheck")->isChecked());
 }
 
 TEST_F(GuiSmoke, OpeningAProjectDrawsWhatItCarries)

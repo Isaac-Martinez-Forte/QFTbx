@@ -92,7 +92,7 @@
  * prune - MC2 keeps as MC of the thesis has it, and the two share their
  * search node (common/mc_search_node.h).
  *
- * Under research.mc2-reading = exact, the point a feasible box or an
+ * Under the exact reading, MC2's own, the point a feasible box or an
  * epsilon-small box yields and the best gain of a box become the design,
  * or the best design so far that prunes the tree, only through the
  * certification funnel (common/certifier.h): the family by the Routh
@@ -136,9 +136,10 @@
  * magnitude cuts take the strips the same verdict certifies forbidden over
  * the box's own phase span instead of the extremes of the columns, which on
  * the toolbox example cut off a valid design. The phase cuts, which never
- * fire, are left out of the exact reading. Under the default reading the
- * search is what it was, bit for bit, and the certificate is bookkeeping
- * alone.
+ * fire, are left out of the exact reading. Under the columns reading, kept
+ * among the research settings to compare with the published formulation
+ * (research.mc2-reading = columns), the search is what it was, bit for bit,
+ * and the certificate is bookkeeping alone.
  */
 namespace qftbx {
 

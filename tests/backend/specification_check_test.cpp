@@ -13,8 +13,9 @@
  * pinned in all of them. Under the published reading of the columns the excess
  * is recorded as the state of the chain, a positive value being a violation
  * the search did not see; under the conservative reading it is at or below
- * zero. A NaN pin only prints the value. The run attaches the same check to
- * its result; a result read from a file has none.
+ * zero. MC2 is asked under its columns reading, the one these readings
+ * concern. A NaN pin only prints the value. The run attaches the same check
+ * to its result; a result read from a file has none.
  */
 
 #include <gtest/gtest.h>
@@ -59,6 +60,7 @@ TEST_P(ReturnedControllerAgainstSpecifications, WorstExcessIsPinned)
 
     Settings settings;
     settings.research.conservativeColumns = c.conservativeColumns;
+    settings.research.mc2Reading = Settings::Research::PointReading::Columns;
     controller.applySettings(settings);
 
     ASSERT_TRUE(controller.computeLoopShaping(0.5, c.algorithm, Range(1e-9, 10.0), 100)) << c.name;

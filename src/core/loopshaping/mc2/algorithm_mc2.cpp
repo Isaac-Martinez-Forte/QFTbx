@@ -133,14 +133,14 @@ void AlgorithmMc2::prepare()
 
     exact.reset();
     certifier.reset();
-    if (m_settings.research.mc2Reading == Settings::Research::PointReading::Exact
-            && m_templates != nullptr && m_specifications != nullptr) {
-        exact = std::make_unique<ExactPointCheck>(*plant, controller.get(), *omega, *m_templates, *m_specifications);
-        if (exact->usable()) {
-            certifier = std::make_unique<Certifier>(*exact, *stability, *family);
-        } else {
-            exact.reset();
+    if (m_settings.research.mc2Reading == Settings::Research::PointReading::Exact) {
+        if (m_templates != nullptr && m_specifications != nullptr) {
+            exact = std::make_unique<ExactPointCheck>(*plant, controller.get(), *omega, *m_templates, *m_specifications);
         }
+        if (exact == nullptr || !exact->usable()) {
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "MC2 reads every point against the specifications and needs a template at every design frequency."));
+        }
+        certifier = std::make_unique<Certifier>(*exact, *stability, *family);
     }
 
     exactReading = certifier != nullptr;

@@ -131,7 +131,7 @@ struct Settings {
     struct Research {
         enum class PointReading { Columns, Exact };
 
-        PointReading mc2Reading = PointReading::Columns;
+        PointReading mc2Reading = PointReading::Exact;
 
         bool conservativeColumns = true;
 

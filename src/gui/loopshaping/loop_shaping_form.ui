@@ -265,16 +265,6 @@
       </layout>
      </item>
      <item>
-      <widget class="QCheckBox" name="conservativeColumnsCheck">
-       <property name="toolTip">
-        <string>Judge every point and box by both boundary columns around its phase instead of the nearest one. Removes the small permissive error of the phase grid; the searches without a best-gain bound become much slower.</string>
-       </property>
-       <property name="text">
-        <string>Conservative boundary reading</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <spacer name="bottomSpacer">
        <property name="orientation">
         <enum>Qt::Vertical</enum>

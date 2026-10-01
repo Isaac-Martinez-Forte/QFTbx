@@ -134,14 +134,6 @@ qreal LoopShapingForm::epsilonValue(){
     return epsilonEdit;
 }
 
-bool LoopShapingForm::conservativeColumns() const {
-    return ui->conservativeColumnsCheck->isChecked();
-}
-
-void LoopShapingForm::setConservativeColumns(bool on) {
-    ui->conservativeColumnsCheck->setChecked(on);
-}
-
 qftbx::LoopShapingAlgorithm LoopShapingForm::algorithmValue(){
     return alg;
 }
@@ -186,7 +178,6 @@ void LoopShapingForm::setFromProject(const qftbx::LoopShapingResult * result)
     if (run.epsilon > 0.0) {
         ui->epsilonEdit->setText(qftbx::numberText(run.epsilon));
     }
-    ui->conservativeColumnsCheck->setChecked(run.conservativeColumns);
 
     switch (run.algorithm) {
     case qftbx::nk:  ui->nkRadio->setChecked(true);  break;

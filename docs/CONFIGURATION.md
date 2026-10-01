@@ -112,13 +112,16 @@ file.
 
 ## How the columns are read
 
-NT, NK, MC1, MC (thesis), MC3 and MC2 read a phase between two nodes of the
+NT, NK, MC1, MC (thesis) and MC3 read a phase between two nodes of the
 boundary grid conservatively: both bracketing nodes must allow the point. The
 published algorithms read the nearest node, which admits between two nodes
 what the boundary at the point's own phase forbids; the conservative reading
 removes that error at any grid, but on the toolbox example 2 NT, NK and MC1
 slow down by about a thousand times on a one-degree grid, and a finer grid
-brings that down. Measured on that example:
+brings that down. MC2 does not decide on the columns at all: it judges every
+controller against the specifications themselves over the whole template,
+at the loop's own phase, and uses the columns only to guide its search, so
+it needs a template at every design frequency. Measured on that example:
 
 | | phase grid | reading | result | total time |
 |---|---|---|---|---|
