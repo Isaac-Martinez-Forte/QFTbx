@@ -157,6 +157,7 @@ TEST_F(SettingsFile, TheResearchSwitchesTakeTheirWords)
     for (const PointReading reading : {PointReading::Columns, PointReading::Exact}) {
         EXPECT_EQ(qftbx::pointReadingFromName(qftbx::pointReadingName(reading)), reading);
     }
+    EXPECT_EQ(qftbx::pointReadingChoices(), "columns or exact");
 
     using BoundaryGuide = qftbx::Settings::Research::BoundaryGuide;
     EXPECT_EQ(qftbx::Settings().research.exactGuide, BoundaryGuide::Nearest);

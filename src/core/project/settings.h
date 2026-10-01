@@ -178,9 +178,7 @@ const char * pointReadingName(Settings::Research::PointReading reading);
 
 std::optional<Settings::Research::PointReading> pointReadingFromName(const std::string & name);
 
-const char * boundaryGuideName(Settings::Research::BoundaryGuide guide);
-
-std::optional<Settings::Research::BoundaryGuide> boundaryGuideFromName(const std::string & name);
+std::string pointReadingChoices();
 
 Settings readSettings(const std::string & path);
 
