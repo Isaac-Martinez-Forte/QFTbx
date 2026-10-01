@@ -5,11 +5,10 @@
  * The four plant forms give the same polynomials their evaluation does, and
  * the Routh table in interval arithmetic proves non-Hurwitz exactly the
  * interval polynomials every member of which fails, leaving undecided those
- * that hold a Hurwitz member or put zero inside a pivot; the
- * swept family walks the sweep in the order of the templates, first grid
- * fastest, names each member by its values, and says why it cannot be
- * walked; the
- * magnetic levitation benchmark tells apart the design that stabilises the
+ * that hold a Hurwitz member or put zero inside a pivot; the swept family
+ * walks the sweep in the order of the templates, first grid fastest, names
+ * each member by its values, and says why it cannot be walked; the magnetic
+ * levitation benchmark tells apart the design that stabilises the
  * whole family from the one the specifications alone let through (42 of the
  * 121 plants unstable, the case that made the check necessary); the ACC'90
  * benchmark, where the minimum-gain answer is the floor of the gain box,
@@ -19,7 +18,10 @@
  * of controllers wholly beyond the Routh limit of the DC motor's worst plant
  * is proven unstable by the interval Routh table, one that straddles the
  * limit, or lies below it, is not, and no controller sampled inside a box the
- * table proves unstable is stable; the same holds with the nominal plant,
+ * table proves unstable is stable, while the design the battery returned on
+ * the first toolbox example lies in no box it can prove; the box proof
+ * starts from the plants that refused the last points asked, so each box is
+ * asked after its corner; the same holds with the nominal plant,
  * on the DC motor of Tharewal's example 3.1 and on the magnetic levitation
  * plant, whose poles sit on the imaginary axis. And the gate itself: on the
  * magnetic levitation problem the search returns a design the family does
@@ -29,10 +31,11 @@
 
 #include <gtest/gtest.h>
 
-#include <complex>
-#include <filesystem>
 #include <cmath>
+#include <complex>
 #include <cstdio>
+#include <filesystem>
+#include <memory>
 #include <optional>
 #include <random>
 #include <string>
@@ -42,19 +45,21 @@
 #include "src/core/loopshaping/common/family_stability_checker.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/loopshaping/common/swept_family.h"
+#include "src/core/loopshaping/mc3/algorithm_mc3.h"
 #include "src/core/math/interval.h"
 #include "src/core/math/interval_polynomial.h"
-#include "src/core/math/range.h"
 #include "src/core/math/polynomial.h"
+#include "src/core/math/range.h"
 #include "src/core/math/sequences.h"
 #include "src/core/specifications/specification_record.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/zero_pole_gain.h"
-#include "src/core/loopshaping/mc3/algorithm_mc3.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
+using namespace qftbx_tests;
 
 namespace {
 
@@ -85,9 +90,9 @@ void expectPolynomialsMatchEvaluation(LtiSystem & system)
     }
 }
 
-std::string example(const char * name)
+void rememberTheRefusersOf(FamilyStabilityChecker & family, const PointController & point)
 {
-    return (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
+    family.isStable(point);
 }
 
 ParameterGrids gridsOf(LtiSystem & plant, std::size_t points)
@@ -361,39 +366,18 @@ TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
 
         std::mt19937 generator(17);
         std::uniform_real_distribution<double> unit(0.0, 1.0);
-        const auto logDraw = [&](const Parameter & parameter) {
-            const Range r = parameter.range();
-            return std::exp(std::log(r.min) + unit(generator) * (std::log(r.max) - std::log(r.min)));
-        };
-        const auto around = [&](double centre, double relativeWidth, const Range & within) {
-            const double lo = std::max(within.min, centre / (1.0 + relativeWidth));
-            const double hi = std::min(within.max, centre * (1.0 + relativeWidth));
-            return Range(lo, hi);
-        };
 
         std::size_t proven = 0, sampled = 0;
         for (int trial = 0; trial < 400; ++trial) {
             const double width = std::pow(10.0, -3.0 + 3.0 * unit(generator));
-            std::vector<Parameter> zeros, poles;
-            for (const Parameter & z : structure->numerator()) {
-                zeros.emplace_back(z.name(), around(logDraw(z), width, z.range()), z.range().min);
-            }
-            for (const Parameter & q : structure->denominator()) {
-                poles.emplace_back(q.name(), around(logDraw(q), width, q.range()), q.range().min);
-            }
-            const Range gain = around(logDraw(structure->gain()), width, structure->gain().range());
-            std::unique_ptr<LtiSystem> box = structure->create("box", zeros, poles,
-                                                               Parameter(std::string("k"), gain, gain.min), Parameter(0.0));
-            family.isStable(cornerOf(box.get(), true));
+            std::unique_ptr<LtiSystem> box = randomBox(*structure, width, generator);
+            rememberTheRefusersOf(family, cornerOf(box.get(), true));
             if (!family.isBoxUnstable(box.get())) {
                 continue;
             }
             ++proven;
             for (int point = 0; point < 50; ++point) {
-                PointController inside;
-                for (const Parameter & z : box->numerator()) inside.zeros.push_back(z.range().min + unit(generator) * (z.range().max - z.range().min));
-                for (const Parameter & q : box->denominator()) inside.poles.push_back(q.range().min + unit(generator) * (q.range().max - q.range().min));
-                inside.gain = gain.min + unit(generator) * (gain.max - gain.min);
+                const PointController inside = pointInside(*box, generator);
                 EXPECT_FALSE(family.isStable(inside)) << name << " trial " << trial << ": a controller inside a proven box is stable";
                 EXPECT_FALSE(family.isStableByRoots(inside)) << name << " trial " << trial;
                 ++sampled;
@@ -402,12 +386,19 @@ TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
         std::printf("FAMILY-BOX %-13s %zu of 400 random boxes proven unstable, %zu controllers sampled inside\n", name, proven, sampled);
         EXPECT_GT(proven, 0u) << name;
     }
+}
 
+TEST(FamilyStabilityGate, TheDesignTheBatteryReturnedLiesInNoProvenBox)
+{
+    const std::string file = example("toolbox-1.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
     ProjectController project;
-    project.load(example("toolbox-1.qft"));
+    project.load(file);
     LtiSystem * structure = project.controllerStructure();
     FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
-    family.isStable({70.0, {1000.0}, {154.4}});
+    rememberTheRefusersOf(family, {70.0, {1000.0}, {154.4}});
     const PointController returned{50.76606550592597, {974.9780649705508}, {130.90456263300797}};
     std::unique_ptr<LtiSystem> design = structure->create("design", {Parameter(std::string("z1"), Range(974.9, 975.1), 974.9)},
                                                           {Parameter(std::string("p1"), Range(130.9, 130.91), 130.9)},
@@ -442,36 +433,17 @@ TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
 
         std::mt19937 generator(23);
         std::uniform_real_distribution<double> unit(0.0, 1.0);
-        const auto logDraw = [&](const Parameter & parameter) {
-            const Range r = parameter.range();
-            return std::exp(std::log(r.min) + unit(generator) * (std::log(r.max) - std::log(r.min)));
-        };
-        const auto around = [&](double centre, double relativeWidth, const Range & within) {
-            return Range(std::max(within.min, centre / (1.0 + relativeWidth)), std::min(within.max, centre * (1.0 + relativeWidth)));
-        };
 
         std::size_t proven = 0, sampled = 0, holdingAStableOne = 0, provenOfThose = 0;
         for (int trial = 0; trial < 1500; ++trial) {
             const double width = std::pow(10.0, -4.0 + 4.0 * unit(generator));
-            std::vector<Parameter> zeros, poles;
-            for (const Parameter & z : structure->numerator()) {
-                zeros.emplace_back(z.name(), around(logDraw(z), width, z.range()), z.range().min);
-            }
-            for (const Parameter & q : structure->denominator()) {
-                poles.emplace_back(q.name(), around(logDraw(q), width, q.range()), q.range().min);
-            }
-            const Range gain = around(logDraw(structure->gain()), width, structure->gain().range());
-            std::unique_ptr<LtiSystem> box = structure->create("box", zeros, poles,
-                                                               Parameter(std::string("k"), gain, gain.min), Parameter(0.0));
+            std::unique_ptr<LtiSystem> box = randomBox(*structure, width, generator);
             const bool isProven = family.isBoxUnstableAtNominal(box.get());
             proven += isProven ? 1 : 0;
 
             bool anyStable = false;
             for (int point = 0; point < 20; ++point) {
-                PointController inside;
-                for (const Parameter & z : box->numerator()) inside.zeros.push_back(z.range().min + unit(generator) * (z.range().max - z.range().min));
-                for (const Parameter & q : box->denominator()) inside.poles.push_back(q.range().min + unit(generator) * (q.range().max - q.range().min));
-                inside.gain = gain.min + unit(generator) * (gain.max - gain.min);
+                const PointController inside = pointInside(*box, generator);
                 const bool stable = stableAtNominal(inside);
                 anyStable = anyStable || stable;
                 if (isProven) {

@@ -16,7 +16,6 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
@@ -31,46 +30,12 @@
 #include "src/core/loopshaping/common/point_controller.h"
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/specifications/specification_record.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
+using namespace qftbx_tests;
 
 namespace {
-
-std::vector<std::string> publishedProblems()
-{
-    std::vector<std::string> files;
-    if (!std::filesystem::exists(QFTBX_EXAMPLES_DIR)) {
-        return files;
-    }
-    for (const std::filesystem::directory_entry & entry : std::filesystem::directory_iterator(QFTBX_EXAMPLES_DIR)) {
-        if (entry.path().extension() == ".qft") {
-            files.push_back(entry.path().string());
-        }
-    }
-    std::sort(files.begin(), files.end());
-    return files;
-}
-
-PointController randomPoint(LtiSystem & box, std::mt19937 & generator)
-{
-    std::uniform_real_distribution<double> unit(0.0, 1.0);
-    const auto draw = [&](const Parameter & parameter) {
-        if (!parameter.isUncertain()) {
-            return parameter.nominal();
-        }
-        const Range range = parameter.range();
-        if (range.min > 0.0) {
-            return std::exp(std::log(range.min) + unit(generator) * (std::log(range.max) - std::log(range.min)));
-        }
-        return range.min + unit(generator) * (range.max - range.min);
-    };
-
-    PointController point;
-    for (const Parameter & parameter : box.numerator()) point.zeros.push_back(draw(parameter));
-    for (const Parameter & parameter : box.denominator()) point.poles.push_back(draw(parameter));
-    point.gain = draw(box.gain());
-    return point;
-}
 
 bool sameBits(double a, double b)
 {
@@ -114,7 +79,7 @@ void expectTheVerifiersEntries(ExactPointCheck & check, LtiSystem * structure, P
 
 TEST(ExactPointCheck, TheVerdictAndTheExcessesAreTheVerifiers)
 {
-    const std::vector<std::string> files = publishedProblems();
+    const std::vector<std::string> files = allExamples();
     if (files.empty()) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -142,7 +107,7 @@ TEST(ExactPointCheck, TheVerdictAndTheExcessesAreTheVerifiers)
 
 TEST(ExactPointCheck, AStructureWithADelayIsEvaluatedAsTheVerifierDoes)
 {
-    const std::string file = (std::filesystem::path(QFTBX_EXAMPLES_DIR) / "toolbox-2.qft").string();
+    const std::string file = example("toolbox-2.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -162,7 +127,7 @@ TEST(ExactPointCheck, AStructureWithADelayIsEvaluatedAsTheVerifierDoes)
 
 TEST(ExactPointCheck, TheToleranceRefusesTheEdgeTheVerifierAccepts)
 {
-    const std::string file = (std::filesystem::path(QFTBX_EXAMPLES_DIR) / "toolbox-2.qft").string();
+    const std::string file = example("toolbox-2.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -175,10 +140,7 @@ TEST(ExactPointCheck, TheToleranceRefusesTheEdgeTheVerifierAccepts)
     const std::vector<double> & omega = *project.omega()->values();
     const SpecificationSet specifications = toSpecificationSet(*project.specifications());
 
-    PointController point;
-    for (const Parameter & z : design->numerator()) point.zeros.push_back(z.nominal());
-    for (const Parameter & p : design->denominator()) point.poles.push_back(p.nominal());
-
+    PointController point = designOf(*design);
     const auto worstExcessAt = [&](double gain) {
         point.gain = gain;
         return checkAgainstSpecifications(*systemFromPoint(structure, point), *project.plant(), omega,
@@ -211,7 +173,7 @@ TEST(ExactPointCheck, TheToleranceRefusesTheEdgeTheVerifierAccepts)
 
 TEST(ExactPointCheck, WithoutAValueSetForEveryFrequencyItIsUnusable)
 {
-    const std::string file = (std::filesystem::path(QFTBX_EXAMPLES_DIR) / "toolbox-2.qft").string();
+    const std::string file = example("toolbox-2.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }

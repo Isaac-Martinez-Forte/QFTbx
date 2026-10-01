@@ -38,15 +38,12 @@
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/math/range.h"
 #include "src/core/specifications/specification_record.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
+using namespace qftbx_tests;
 
 namespace {
-
-std::string example(const char * name)
-{
-    return (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
-}
 
 struct Funnel
 {
@@ -69,15 +66,6 @@ struct Funnel
     FamilyStabilityChecker family;
     Certifier certifier;
 };
-
-PointController designOf(LtiSystem & design)
-{
-    PointController point;
-    for (const Parameter & z : design.numerator()) point.zeros.push_back(z.nominal());
-    for (const Parameter & p : design.denominator()) point.poles.push_back(p.nominal());
-    point.gain = design.gain().nominal();
-    return point;
-}
 
 }
 
@@ -145,8 +133,8 @@ TEST(Certifier, TheFunnelStopsAtTheFirstRefusal)
 
     const PointController beyondTheLimit{50.0, {1000.0}, {466.25}};
     {
-        Funnel probe(project);
-        ASSERT_FALSE(probe.family.isStable(beyondTheLimit)) << "above the Routh limit of the family, near 40.89";
+        FamilyStabilityChecker probe(project.plant(), project.controllerStructure(), project.sweepGrids());
+        ASSERT_FALSE(probe.isStable(beyondTheLimit)) << "above the Routh limit of the family, near 40.89";
     }
 
     EXPECT_FALSE(funnel.certifier.certify(beyondTheLimit));

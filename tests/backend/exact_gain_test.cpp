@@ -34,28 +34,12 @@
 #include "src/core/math/range.h"
 #include "src/core/math/range_union.h"
 #include "src/core/specifications/specification_record.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
+using namespace qftbx_tests;
 
 namespace {
-
-std::string example(const char * name)
-{
-    return (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
-}
-
-double drawIn(const Parameter & parameter, std::mt19937 & generator)
-{
-    if (!parameter.isUncertain()) {
-        return parameter.nominal();
-    }
-    std::uniform_real_distribution<double> unit(0.0, 1.0);
-    const Range range = parameter.range();
-    if (range.min > 0.0) {
-        return std::exp(std::log(range.min) + unit(generator) * (std::log(range.max) - std::log(range.min)));
-    }
-    return range.min + unit(generator) * (range.max - range.min);
-}
 
 struct Problem
 {
@@ -179,11 +163,7 @@ TEST(ExactGain, WhatIsAskedBetweenTwoSearchesDoesNotMoveThem)
             for (const Parameter & p : alone.structure->denominator()) poles.push_back(drawIn(p, vertices));
 
             for (int asked = 0; asked < 3; ++asked) {
-                PointController other;
-                for (const Parameter & z : alone.structure->numerator()) other.zeros.push_back(drawIn(z, between));
-                for (const Parameter & p : alone.structure->denominator()) other.poles.push_back(drawIn(p, between));
-                other.gain = drawIn(alone.structure->gain(), between);
-                interrupted.check->admits(other);
+                interrupted.check->admits(randomPoint(*alone.structure, between));
             }
 
             const ExactPointCheck::GainSearch first = alone.check->lowestAdmissibleGain(zeros, poles, gains);

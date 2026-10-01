@@ -19,25 +19,49 @@
 
 #include <cmath>
 #include <complex>
+#include <cstddef>
 #include <cstdio>
 #include <filesystem>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/loopshaping/common/exact_point_check.h"
 #include "src/core/loopshaping/common/specification_checker.h"
+#include "src/core/math/constants.h"
 #include "src/core/math/range.h"
 #include "src/core/specifications/specification_record.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
+using namespace qftbx_tests;
+
+namespace {
+
+struct Sector {
+    Range phase;
+    Range magnitude;
+};
+
+Sector randomSector(std::mt19937 & generator)
+{
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    const double centrePhase = -360.0 * unit(generator);
+    const double centreDb = -40.0 + 100.0 * unit(generator);
+    const double spanPhase = std::pow(10.0, -2.0 + 3.6 * unit(generator));
+    const double spanDb = std::pow(10.0, -2.0 + 3.0 * unit(generator));
+    return {Range(centrePhase - spanPhase / 2.0, centrePhase + spanPhase / 2.0),
+            Range(centreDb - spanDb / 2.0, centreDb + spanDb / 2.0)};
+}
+
+}
 
 TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
 {
-    constexpr double kPi = 3.14159265358979323846;
     for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
-        const std::string file = (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
+        const std::string file = example(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -55,17 +79,12 @@ TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
 
         for (const FrequencyReference & at : reference.frequencies()) {
             for (int trial = 0; trial < 60; ++trial) {
-                const double centrePhase = -360.0 * unit(generator);
-                const double centreDb = -40.0 + 100.0 * unit(generator);
-                const double spanPhase = std::pow(10.0, -2.0 + 3.6 * unit(generator));
-                const double spanDb = std::pow(10.0, -2.0 + 3.0 * unit(generator));
-                const Range phase(centrePhase - spanPhase / 2.0, centrePhase + spanPhase / 2.0);
-                const Range magnitude(centreDb - spanDb / 2.0, centreDb + spanDb / 2.0);
+                const auto [phase, magnitude] = randomSector(generator);
 
                 const ExactPointCheck::SectorVerdict verdict = check.sectorVerdict(at.index, phase, magnitude);
 
                 const auto loopAt = [&](double phaseDeg, double db) {
-                    return std::polar(std::pow(10.0, db / 20.0), phaseDeg * kPi / 180.0);
+                    return std::polar(std::pow(10.0, db / 20.0), phaseDeg * math::kPi / 180.0);
                 };
 
                 if (verdict.provablyInfeasible) {
@@ -113,7 +132,7 @@ TEST(ExactSector, AVerdictAfterTheWorkingSetGrowsIsThatOfAFreshCache)
 {
     std::size_t grown = 0;
     for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
-        const std::string file = (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
+        const std::string file = example(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -126,48 +145,33 @@ TEST(ExactSector, AVerdictAfterTheWorkingSetGrowsIsThatOfAFreshCache)
         ExactPointCheck fresh(*project.plant(), structure, omega, project.templates(), specifications);
         ASSERT_TRUE(warmed.usable());
 
-        struct Sector {
-            std::size_t frequency;
-            Range phase;
-            Range magnitude;
-        };
         std::mt19937 generator(31);
-        std::uniform_real_distribution<double> unit(0.0, 1.0);
-        std::vector<Sector> sectors;
+        std::vector<std::pair<std::size_t, Sector>> sectors;
         for (std::size_t f = 0; f < omega.size(); ++f) {
             for (int trial = 0; trial < 20; ++trial) {
-                const double centrePhase = -360.0 * unit(generator);
-                const double centreDb = -40.0 + 100.0 * unit(generator);
-                const double spanPhase = std::pow(10.0, -2.0 + 3.6 * unit(generator));
-                const double spanDb = std::pow(10.0, -2.0 + 3.0 * unit(generator));
-                sectors.push_back({f, Range(centrePhase - spanPhase / 2.0, centrePhase + spanPhase / 2.0),
-                                   Range(centreDb - spanDb / 2.0, centreDb + spanDb / 2.0)});
+                sectors.emplace_back(f, randomSector(generator));
             }
         }
 
-        for (const Sector & s : sectors) {
-            warmed.sectorVerdict(s.frequency, s.phase, s.magnitude);
+        for (const auto & [frequency, sector] : sectors) {
+            warmed.sectorVerdict(frequency, sector.phase, sector.magnitude);
         }
 
-        const auto logDraw = [&](const Parameter & parameter) {
-            const Range r = parameter.range();
-            return std::exp(std::log(r.min) + unit(generator) * (std::log(r.max) - std::log(r.min)));
-        };
         for (int vertex = 0; vertex < 30; ++vertex) {
             std::vector<double> zeros, poles;
-            for (const Parameter & z : structure->numerator()) zeros.push_back(logDraw(z));
-            for (const Parameter & q : structure->denominator()) poles.push_back(logDraw(q));
+            for (const Parameter & z : structure->numerator()) zeros.push_back(drawIn(z, generator));
+            for (const Parameter & q : structure->denominator()) poles.push_back(drawIn(q, generator));
             warmed.lowestAdmissibleGain(zeros, poles, structure->gain().range());
             fresh.lowestAdmissibleGain(zeros, poles, structure->gain().range());
         }
         grown += warmed.statistics().exchangeRounds;
 
-        for (const Sector & s : sectors) {
-            const ExactPointCheck::SectorVerdict a = warmed.sectorVerdict(s.frequency, s.phase, s.magnitude);
-            const ExactPointCheck::SectorVerdict b = fresh.sectorVerdict(s.frequency, s.phase, s.magnitude);
-            EXPECT_EQ(a.provablyInfeasible, b.provablyInfeasible) << name << " frequency " << s.frequency;
-            EXPECT_EQ(a.forbiddenBelowDb, b.forbiddenBelowDb) << name << " frequency " << s.frequency;
-            EXPECT_EQ(a.forbiddenAboveDb, b.forbiddenAboveDb) << name << " frequency " << s.frequency;
+        for (const auto & [frequency, sector] : sectors) {
+            const ExactPointCheck::SectorVerdict a = warmed.sectorVerdict(frequency, sector.phase, sector.magnitude);
+            const ExactPointCheck::SectorVerdict b = fresh.sectorVerdict(frequency, sector.phase, sector.magnitude);
+            EXPECT_EQ(a.provablyInfeasible, b.provablyInfeasible) << name << " frequency " << frequency;
+            EXPECT_EQ(a.forbiddenBelowDb, b.forbiddenBelowDb) << name << " frequency " << frequency;
+            EXPECT_EQ(a.forbiddenAboveDb, b.forbiddenAboveDb) << name << " frequency " << frequency;
         }
     }
     EXPECT_GT(grown, 0u) << "the gain searches grew some working set";
