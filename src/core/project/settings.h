@@ -20,8 +20,8 @@
  * and never touches the criterion; and the figures that come from the
  * published algorithms, the group to be careful with because a value changed
  * there changes what the program computes. Each key, its default and its
- * range is described in docs/CONFIGURATION.md. No
- * test reads the settings file: every one builds its own, so a value here
+ * range is described in docs/CONFIGURATION.md. The tests never take a value
+ * from a settings file: each builds its own settings, so a value set in one
  * can never change what a test means.
  *
  * Research holds what is not for a user: the variants that reproduce the

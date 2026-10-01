@@ -20,8 +20,9 @@ The first one that exists wins:
 An INI file. Comments start with `#` or `;`. A key is its section and its
 name: `max-grid-cells` under `[limits]` is `limits.max-grid-cells`. A value
 that is not a number, or lies outside its range, stops the program with a
-message naming the key and the line. Only the application reads the file;
-the test suite builds its own settings.
+message naming the key and the line. The application and the command-line
+solver read the file; the tests build their own settings and never take a
+value from it.
 
 ## The sections
 
@@ -90,8 +91,9 @@ itself is not a setting.
 | `refinement-budget` | 200000 | 1 to 1e9 | Refinements one verdict may spend before answering "cannot decide" |
 
 **`[algorithms]`**. Figures from the published algorithms. These change what
-an algorithm computes, not how long it takes: a value changed here makes the
-golden tests and the article validations describe another program.
+an algorithm computes, not only how long it takes: with a value changed here
+the program is no longer the one the golden tests and the article
+validations describe.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
@@ -115,18 +117,23 @@ file.
 NT, NK, MC1, MC (thesis) and MC3 read a phase between two nodes of the
 boundary grid conservatively: both bracketing nodes must allow the point. The
 published algorithms read the nearest node, which admits between two nodes
-what the boundary at the point's own phase forbids; the conservative reading
-removes that error at any grid, but on the toolbox example 2 NT, NK and MC1
-slow down by about a thousand times on a one-degree grid, and a finer grid
-brings that down. MC2 does not decide on the columns at all: it judges every
-controller against the specifications themselves over the whole template,
-at the loop's own phase, and uses the columns only to guide its search, so
-it needs a template at every design frequency. Measured on that example:
+what the boundary at the point's own phase forbids. The conservative reading
+removes that error at any grid, at a cost in time that a finer grid brings
+down. MC2 does not decide on the columns at all: it judges every controller
+against the specifications themselves over the whole template, at the loop's
+own phase, and uses the columns only to steer its search, so it needs a
+template at every design frequency and the grid changes only which design it
+reaches within the epsilon. Measured on the toolbox example 2
+(`examples/toolbox-2.qft`, epsilon 0.5, the whole design on one thread):
 
-| | phase grid | reading | result | total time |
+| algorithm | phase grid | reading | result | total time |
 |---|---|---|---|---|
-| as published | 361 points (1 degree) | nearest node | k = 557.1, violates by +0.05 dB | about 1 s |
-| this program | 1441 or 2881 points (0.25 or 0.125 degrees) | conservative | k = 567.3, meets every specification | 3 to 8 s |
+| NT as published | 361 points (1 degree) | nearest node | k = 557.0, exceeds by 0.05 dB | 1.5 s |
+| NT | 361 points | conservative | k = 567.3, meets every specification | 53 s |
+| NT | 1441 points (0.25 degrees) | conservative | k = 567.3, meets every specification | 6.9 s |
+| MC2 | 361 points | exact | k = 568.8, meets every specification | 1.7 s |
+| MC2 | 1441 points | exact | k = 567.5, meets every specification | 5.3 s |
 
-Either way the returned controller is checked against the specifications on
-the full templates, and the loop-shaping viewer shows the verdict.
+Whatever the algorithm, the returned controller is checked against the
+specifications on the full templates, and the loop-shaping viewer shows the
+verdict.

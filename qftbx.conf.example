@@ -13,7 +13,7 @@
 
 
 # [interface] - the interface. The window writes canvas and window itself,
-# and the View menu writes language.
+# and the View menu writes language and theme.
 [interface]
 
 # The language the interface starts in: "system", or a compiled translation
@@ -151,9 +151,9 @@
 
 
 # [algorithms] - figures from the published algorithms. These change what an
-# algorithm computes, not how long it takes: a value changed here makes the
-# golden tests and the article validations describe another program. No test
-# reads this file.
+# algorithm computes, not only how long it takes: with a value changed here
+# the program is no longer the one the golden tests and the article
+# validations describe.
 [algorithms]
 
 # MR (Rambabu and Nataraj, FDA-10): template points entering the constraint
