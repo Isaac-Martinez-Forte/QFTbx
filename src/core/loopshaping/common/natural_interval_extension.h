@@ -34,9 +34,17 @@
  * parameters read one term at a time: a numerator factor (jw + z) p0, a
  * denominator factor p0 / (jw + p), and the gain k p0.
  *
- * The magnitude is converted to dB with its ends clamped to the positive
- * finite doubles, so the conversion stays finite, and the phase is mapped
- * onto the (-2 pi, 0] branch. A phase set that crosses the branch cut
+ * The modulus and the phase of the loop are computed apart, by the very
+ * operations the polar product would apply to each, so mayReachUnitModulus
+ * can ask whether the modulus over a box may be one at a frequency, given
+ * the square of the frequency and the modulus of the nominal plant there,
+ * from the moduli of the factors alone, and answer as the enclosure would,
+ * without the phases. The magnitude is converted to dB with its ends clamped
+ * to the positive finite doubles, so the conversion stays finite, and the
+ * phase is mapped onto the (-2 pi, 0] branch. Since the logarithm is zero
+ * only at one, and widening a value that is not zero by a few ulps never
+ * crosses zero, the clamped modulus contains one exactly when the decibels
+ * contain zero. A phase set that crosses the branch cut
  * (0/-360 degrees) is not a single interval inside the branch: the
  * enclosure degrades to the whole branch, which is conservative but keeps
  * the containment guarantee. Only ZeroPoleGain controller structures are
@@ -84,6 +92,8 @@ public:
     Factors factorsOf(const std::vector<double> & zeros, const std::vector<double> & poles, double w);
 
     NicholsBox nicholsOf(const Interval & gain, const Factors & factors, std::complex<double> p0);
+
+    bool mayReachUnitModulus(LtiSystem * controller, const Interval & wSquared, const Interval & nominalModulus);
 
     NicholsBox numeratorTermBox(Parameter & zero, double w, std::complex<double> p0);
     NicholsBox denominatorTermBox(Parameter & pole, double w, std::complex<double> p0);

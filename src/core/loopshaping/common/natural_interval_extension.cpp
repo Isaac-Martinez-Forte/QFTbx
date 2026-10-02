@@ -35,9 +35,75 @@ Interval parameterInterval(Parameter & parameter)
     return Interval(parameter.nominal());
 }
 
+Interval factorModulus(const Interval & x, const Interval & wSquared)
+{
+    return sqrt(sqr(x) + wSquared);
+}
+
 PolarInterval factor(const Interval & x, double w)
 {
-    return PolarInterval(ComplexInterval(x, Interval(w)));
+    const Interval jw(w);
+    return PolarInterval(factorModulus(x, sqr(jw)), ComplexInterval(x, jw).phase());
+}
+
+Interval loopModulus(const Interval & gain, const Interval & numerator, const Interval & nominal,
+                     const Interval & denominator)
+{
+    const Interval scaled = numerator * nominal;
+    const Interval gained = gain.lower() >= 0.0 ? gain * scaled
+                          : gain.upper() <= 0.0 ? -gain * scaled
+                                                : abs(gain) * scaled;
+    return gained / denominator;
+}
+
+Interval loopPhase(const Interval & gain, const Interval & numerator, const Interval & nominal,
+                   const Interval & denominator)
+{
+    const Interval phase = numerator + nominal;
+    const Interval gained = gain.lower() >= 0.0 ? phase
+                          : gain.upper() <= 0.0 ? phase + Interval::pi()
+                                                : Interval::hull(phase, phase + Interval::pi());
+    return gained - denominator;
+}
+
+Interval clampedModulus(const Interval & modulus)
+{
+    double low = modulus.lower();
+    double high = modulus.upper();
+
+    if (high > std::numeric_limits<double>::max()) {
+        high = std::numeric_limits<double>::max();
+    }
+    if (high <= 0.0) {
+        high = std::numeric_limits<double>::min();
+    }
+    if (low <= 0.0) {
+        low = std::numeric_limits<double>::min();
+    }
+    return Interval(low, high);
+}
+
+Interval decibelsOf(const Interval & modulus)
+{
+    return Interval(20.0) * log10(clampedModulus(modulus));
+}
+
+Interval onTheBranch(Interval theta)
+{
+    static const Interval twoPi = Interval(2.0) * Interval::pi();
+
+    if (theta.width() >= twoPi.lower()) {
+        theta = Interval(-twoPi.upper(), 0.0);
+    } else {
+        const double turns = std::ceil(theta.upper() / twoPi.lower());
+        theta = theta - Interval(turns) * twoPi;
+
+        if (theta.upper() > 0.0 || theta.lower() < -twoPi.upper()) {
+            theta = Interval(-twoPi.upper(), 0.0);
+        }
+    }
+
+    return theta * Interval(kRadToDeg);
 }
 
 void ensureSupportedStructure(LtiSystem::SystemType type)
@@ -76,36 +142,7 @@ PolarInterval NaturalIntervalExtension::factorProduct(const std::vector<double> 
 
 NicholsBox NaturalIntervalExtension::toNichols(const PolarInterval & loop)
 {
-    double low = loop.magnitude().lower();
-    double high = loop.magnitude().upper();
-
-    if (high > std::numeric_limits<double>::max()) {
-        high = std::numeric_limits<double>::max();
-    }
-    if (high <= 0.0) {
-        high = std::numeric_limits<double>::min();
-    }
-    if (low <= 0.0) {
-        low = std::numeric_limits<double>::min();
-    }
-
-    const Interval magnitudeDb = Interval(20.0) * log10(Interval(low, high));
-
-    static const Interval twoPi = Interval(2.0) * Interval::pi();
-    Interval theta = loop.phase();
-
-    if (theta.width() >= twoPi.lower()) {
-        theta = Interval(-twoPi.upper(), 0.0);
-    } else {
-        const double turns = std::ceil(theta.upper() / twoPi.lower());
-        theta = theta - Interval(turns) * twoPi;
-
-        if (theta.upper() > 0.0 || theta.lower() < -twoPi.upper()) {
-            theta = Interval(-twoPi.upper(), 0.0);
-        }
-    }
-
-    return {magnitudeDb, theta * Interval(kRadToDeg)};
+    return {decibelsOf(loop.magnitude()), onTheBranch(loop.phase())};
 }
 
 NicholsBox NaturalIntervalExtension::nicholsBox(LtiSystem * controller, double w, std::complex<double> p0)
@@ -149,9 +186,31 @@ NaturalIntervalExtension::Factors NaturalIntervalExtension::factorsOf(const std:
 NicholsBox NaturalIntervalExtension::nicholsOf(const Interval & gain, const Factors & factors,
                                                std::complex<double> p0)
 {
-    const PolarInterval loop = gain * (factors.numerator * PolarInterval(p0)) / factors.denominator;
+    const PolarInterval nominal(p0);
+    const Interval modulus = loopModulus(gain, factors.numerator.magnitude(), nominal.magnitude(),
+                                         factors.denominator.magnitude());
+    const Interval phase = loopPhase(gain, factors.numerator.phase(), nominal.phase(), factors.denominator.phase());
 
-    return toNichols(loop);
+    return {decibelsOf(modulus), onTheBranch(phase)};
+}
+
+bool NaturalIntervalExtension::mayReachUnitModulus(LtiSystem * controller, const Interval & wSquared,
+                                                   const Interval & nominalModulus)
+{
+    ensureSupportedStructure(controller->type());
+
+    Interval numerator(1.0);
+    for (Parameter & parameter : controller->numerator()) {
+        numerator = numerator * factorModulus(parameterInterval(parameter), wSquared);
+    }
+    Interval denominator(1.0);
+    for (Parameter & parameter : controller->denominator()) {
+        denominator = denominator * factorModulus(parameterInterval(parameter), wSquared);
+    }
+
+    const Interval modulus = clampedModulus(loopModulus(parameterInterval(controller->gain()), numerator,
+                                                       nominalModulus, denominator));
+    return modulus.lower() <= 1.0 && modulus.upper() >= 1.0;
 }
 
 NicholsBox NaturalIntervalExtension::numeratorTermBox(Parameter & zero, double w, std::complex<double> p0)

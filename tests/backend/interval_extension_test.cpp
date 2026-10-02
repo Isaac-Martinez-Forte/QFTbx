@@ -9,8 +9,12 @@
  * the (-360, 0] branch the boundaries use. A certain controller projects to
  * a point; an uncertain gain gives the exact magnitude range and a single
  * phase; a pure gain, with no zeros or poles, projects exactly; the widest
- * search box of the thesis benchmarks stays finite in decibels; and sampled
- * instances of a three-parameter box all fall inside its projection.
+ * search box of the thesis benchmarks stays finite in decibels; sampled
+ * instances of a three-parameter box all fall inside its projection; and
+ * whether the loop of a box may have unit modulus, asked from the moduli of
+ * the factors alone, is answered as the whole enclosure answers whether its
+ * decibels contain zero, over random boxes whose modulus is brought to one
+ * within a few ulps up to a tenth.
  */
 
 #include <gtest/gtest.h>
@@ -19,7 +23,9 @@
 
 #include <cmath>
 #include <complex>
+#include <memory>
 #include <optional>
+#include <random>
 #include <vector>
 
 #include "src/core/math/point.h"
@@ -178,4 +184,46 @@ TEST(NaturalIntervalExtension, SampledInstancesStayInsideTheBox)
     delete controller;
 }
 
+}
+
+TEST(NaturalIntervalExtension, TheUnitModulusIsAskedAsTheEnclosureAnswers)
+{
+    NaturalIntervalExtension extension;
+    std::mt19937_64 generator(13);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    const auto logUniform = [&](double low, double high) {
+        return std::exp(std::log(low) + unit(generator) * (std::log(high) - std::log(low)));
+    };
+
+    std::size_t reaching = 0;
+    std::size_t asked = 0;
+    for (int trial = 0; trial < 50000; ++trial) {
+        const double w = logUniform(1e-3, 1e3);
+        const Complex p0 = std::polar(logUniform(1e-4, 1e4), -2.0 * M_PI * unit(generator));
+        const double zero = logUniform(1e-2, 1e3);
+        const double pole = logUniform(1e-2, 1e3);
+        const double zeroWidth = trial % 3 == 0 ? 0.0 : logUniform(1e-12, 1e-1);
+        const double poleWidth = trial % 5 == 0 ? 0.0 : logUniform(1e-12, 1e-1);
+
+        const double atCentre = std::abs(Complex(zero, w)) / std::abs(Complex(pole, w)) * std::abs(p0);
+        double gain = 1.0 / atCentre;
+        for (int step = static_cast<int>(generator() % 9) - 4; step != 0; step += step > 0 ? -1 : 1) {
+            gain = std::nextafter(gain, step > 0 ? 2.0 * gain : 0.0);
+        }
+        const double gainWidth = trial % 2 == 0 ? 0.0 : logUniform(1e-16, 1e-1);
+
+        const std::unique_ptr<LtiSystem> box(makeZpk(
+            Parameter(std::string("k"), Range(gain, gain * (1.0 + gainWidth)), gain),
+            Parameter(std::string("z"), Range(zero, zero * (1.0 + zeroWidth)), zero),
+            Parameter(std::string("p"), Range(pole, pole * (1.0 + poleWidth)), pole)));
+
+        const NicholsBox enclosure = extension.nicholsBox(box.get(), w, p0);
+        const bool containsZeroDb = enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0;
+        const bool mayReach = extension.mayReachUnitModulus(box.get(), sqr(Interval(w)), ComplexInterval(p0).magnitude());
+        EXPECT_EQ(mayReach, containsZeroDb) << "trial " << trial << ": w " << w << " gain " << gain;
+        reaching += containsZeroDb ? 1 : 0;
+        ++asked;
+    }
+    EXPECT_GT(reaching, asked / 10) << "the boxes straddle the unit modulus often enough to test it";
+    EXPECT_LT(reaching, asked) << "and miss it sometimes";
 }

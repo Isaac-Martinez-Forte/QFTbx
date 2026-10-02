@@ -107,12 +107,16 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
     m_frequencies.reserve(m_tolerances.baseGridPoints);
     m_plantRe.reserve(m_tolerances.baseGridPoints);
     m_plantIm.reserve(m_tolerances.baseGridPoints);
+    m_frequencySquares.reserve(m_tolerances.baseGridPoints);
+    m_plantModuli.reserve(m_tolerances.baseGridPoints);
     for (int i = 0; i < m_tolerances.baseGridPoints; ++i) {
         const double w = std::pow(10.0, logFrom + (logTo - logFrom) * i / (m_tolerances.baseGridPoints - 1));
         const std::complex<double> value = m_plant->evaluate(w);
         m_frequencies.push_back(w);
         m_plantRe.push_back(value.real());
         m_plantIm.push_back(value.imag());
+        m_frequencySquares.push_back(sqr(Interval(w)));
+        m_plantModuli.push_back(ComplexInterval(value).magnitude());
     }
 
     m_cosMaxPhaseStep = std::cos(m_tolerances.maxPhaseStepDegrees * qftbx::math::kPi / 180.0);
@@ -435,6 +439,9 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
 
     const std::size_t n = m_frequencies.size();
     const auto reachesCriticalPoint = [&](std::size_t i) {
+        if (!extension.mayReachUnitModulus(box, m_frequencySquares[i], m_plantModuli[i])) {
+            return false;
+        }
         const NicholsBox enclosure = extension.nicholsBox(box, m_frequencies[i],
                                                           std::complex<double>(m_plantRe[i], m_plantIm[i]));
         return enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0 &&

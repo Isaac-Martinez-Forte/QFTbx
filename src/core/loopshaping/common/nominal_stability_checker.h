@@ -43,7 +43,11 @@
  * per sample: the phase step is a dot product and a crossing a change of sign.
  * isBoxUnstable rejects a whole box when one member is unstable and the box's
  * interval enclosure keeps the critical point out at one sample in eight of
- * the base grid, since the crossing count then cannot change inside it.
+ * the base grid, since the crossing count then cannot change inside it. At
+ * each sample it asks the modulus of the loop over the box first, from the
+ * square of the frequency and the modulus of the plant kept with the grid,
+ * and the phase only where the modulus may be one, which is the same answer
+ * the whole enclosure gives at a fraction of its arc tangents.
  */
 
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H
@@ -59,6 +63,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/point_controller.h"
 #include "src/core/loopshaping/common/natural_interval_extension.h"
+#include "src/core/math/interval.h"
 
 namespace qftbx {
 
@@ -133,6 +138,8 @@ private:
     std::vector<double> m_frequencies;
     std::vector<double> m_plantRe;
     std::vector<double> m_plantIm;
+    std::vector<Interval> m_frequencySquares;
+    std::vector<Interval> m_plantModuli;
 
     std::vector<double> m_w;
     std::vector<double> m_re;
