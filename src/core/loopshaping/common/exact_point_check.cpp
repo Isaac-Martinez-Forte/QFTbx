@@ -265,8 +265,9 @@ RangeUnion ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::compl
     for (const std::size_t n : plants) {
         lines.push_back({2.0 * cosine(n), quotients[n].norm, n});
     }
-    const std::vector<math::EnvelopePiece> nearest = math::lowerEnvelope(lines);
-    const std::vector<math::EnvelopePiece> farthest = math::upperEnvelope(lines);
+    math::EnvelopeScratch envelope;
+    std::vector<math::EnvelopePiece> nearest, farthest;
+    math::envelopes(lines, envelope, nearest, farthest);
 
     std::vector<double> lower, upper;
     std::size_t i = 0, j = 0;

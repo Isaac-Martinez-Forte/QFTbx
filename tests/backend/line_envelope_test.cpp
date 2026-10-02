@@ -6,7 +6,8 @@
  * Fifty random sets of one to forty lines, some with two parallel lines,
  * are walked over a grid of gains: the line each envelope names at a gain
  * must give the plain minimum and maximum there, and both envelopes start
- * at zero.
+ * at zero. Buffers kept from one set of lines to the next give the
+ * envelopes fresh ones give.
  */
 
 #include <gtest/gtest.h>
@@ -60,5 +61,41 @@ TEST(LineEnvelope, LowerAndUpperMatchThePlainExtremes)
             EXPECT_NEAR(low.slope * g + low.intercept, minimum, 1e-9 * (1.0 + std::abs(minimum)));
             EXPECT_NEAR(high.slope * g + high.intercept, maximum, 1e-9 * (1.0 + std::abs(maximum)));
         }
+    }
+}
+
+TEST(LineEnvelope, BuffersKeptFromOneSetToTheNextGiveWhatFreshOnesGive)
+{
+    const auto same = [](const std::vector<math::EnvelopePiece> & a, const std::vector<math::EnvelopePiece> & b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        for (std::size_t k = 0; k < a.size(); ++k) {
+            if (a[k].from != b[k].from || a[k].index != b[k].index) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    std::mt19937 generator(9);
+    std::uniform_real_distribution<double> slope(-4.0, 4.0), intercept(-10.0, 10.0);
+    math::EnvelopeScratch kept;
+    std::vector<math::EnvelopePiece> lower, upper;
+    for (int trial = 0; trial < 200; ++trial) {
+        std::vector<math::Line> lines;
+        const std::size_t count = 1 + (trial * 7) % 40;
+        for (std::size_t k = 0; k < count; ++k) {
+            lines.push_back({slope(generator), intercept(generator), k});
+        }
+        math::envelopes(lines, kept, lower, upper);
+
+        math::EnvelopeScratch fresh;
+        std::vector<math::EnvelopePiece> freshLower, freshUpper;
+        math::envelopes(lines, fresh, freshLower, freshUpper);
+        EXPECT_TRUE(same(lower, freshLower)) << "trial " << trial;
+        EXPECT_TRUE(same(upper, freshUpper)) << "trial " << trial;
+        EXPECT_TRUE(same(lower, math::lowerEnvelope(lines))) << "trial " << trial;
+        EXPECT_TRUE(same(upper, math::upperEnvelope(lines))) << "trial " << trial;
     }
 }

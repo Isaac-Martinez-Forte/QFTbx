@@ -19,7 +19,9 @@
  * line changes are the intersections of consecutive survivors. Only g >= 0
  * is kept. A piece names, by the line's index, the line that is extreme
  * from its start to the start of the next piece, the last one to infinity;
- * the upper envelope is the lower one of the negated lines.
+ * the upper envelope is the lower one of the negated lines. envelopes gives
+ * both from one sort, into vectors and buffers the caller keeps, and
+ * lowerEnvelope and upperEnvelope each return one.
  */
 namespace qftbx {
 namespace math {
@@ -36,6 +38,15 @@ struct EnvelopePiece
     double from = 0.0;
     std::size_t index = 0;
 };
+
+struct EnvelopeScratch
+{
+    std::vector<Line> sorted;
+    std::vector<Line> hull;
+};
+
+void envelopes(const std::vector<Line> & lines, EnvelopeScratch & scratch,
+               std::vector<EnvelopePiece> & lower, std::vector<EnvelopePiece> & upper);
 
 std::vector<EnvelopePiece> lowerEnvelope(std::vector<Line> lines);
 
