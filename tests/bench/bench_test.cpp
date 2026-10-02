@@ -203,6 +203,7 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     c.sectorVerdicts = 9;
     c.certifications = 10;
     c.refusedByRouth = 11;
+    c.refusedByNominalRouth = 104;
     c.refusedByNominalStability = 12;
     c.refusedBySpecifications = 13;
     c.refusedByRoots = 14;
@@ -234,6 +235,7 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     EXPECT_EQ(b.sectorVerdicts, c.sectorVerdicts);
     EXPECT_EQ(b.certifications, c.certifications);
     EXPECT_EQ(b.refusedByRouth, c.refusedByRouth);
+    EXPECT_EQ(b.refusedByNominalRouth, c.refusedByNominalRouth);
     EXPECT_EQ(b.refusedByNominalStability, c.refusedByNominalStability);
     EXPECT_EQ(b.refusedBySpecifications, c.refusedBySpecifications);
     EXPECT_EQ(b.refusedByRoots, c.refusedByRoots);

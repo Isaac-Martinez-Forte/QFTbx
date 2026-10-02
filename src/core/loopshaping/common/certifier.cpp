@@ -30,6 +30,10 @@ bool Certifier::funnel(const PointController & point, bool askSpecifications)
         ++m_statistics.refusedByRouth;
         return false;
     }
+    if (!m_family.isStableAtNominal(point)) {
+        ++m_statistics.refusedByNominalRouth;
+        return false;
+    }
     if (!m_stability.isNominallyStable(point)) {
         ++m_statistics.refusedByNominalStability;
         return false;

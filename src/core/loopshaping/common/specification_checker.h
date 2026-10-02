@@ -65,7 +65,9 @@
  * passes in (see exact_point_check.h). The reference keeps pointers into the
  * value sets it was built from and must not outlive them. familyStabilityAt
  * is the family criterion on the same terms: given the swept family and the
- * loop's polynomials, one call per point.
+ * loop's polynomials, one call per point, and rootVerdictOf the criterion on
+ * one characteristic polynomial, for whoever closes the loop with a plant of
+ * its own.
  *
  * The result lists every active specification at every design frequency with
  * the value achieved, the bound and the excess, and the largest excess. The
@@ -145,6 +147,14 @@ public:
 private:
     std::vector<FrequencyReference> m_frequencies;
 };
+
+struct RootVerdict
+{
+    bool stable = false;
+    double worstRealPart = -std::numeric_limits<double>::infinity();
+};
+
+RootVerdict rootVerdictOf(const std::vector<double> & characteristic);
 
 FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::Polynomials & loop);
 

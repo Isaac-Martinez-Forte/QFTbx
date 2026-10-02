@@ -471,6 +471,7 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         const Certifier::Statistics & funnel = certifier->statistics();
         statistics.certificate.certifications = funnel.certifications;
         statistics.certificate.refusedByRouth = funnel.refusedByRouth;
+        statistics.certificate.refusedByNominalRouth = funnel.refusedByNominalRouth;
         statistics.certificate.refusedByNominalStability = funnel.refusedByNominalStability;
         statistics.certificate.refusedBySpecifications = funnel.refusedBySpecifications;
         statistics.certificate.refusedByRoots = funnel.refusedByRoots;

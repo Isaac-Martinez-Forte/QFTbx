@@ -5,8 +5,9 @@
  * unstable with a plant of the sweep or with the nominal plant.
  *
  * A verdict multiplies every member's numerator and denominator by the
- * candidate's and asks whether the sum is Hurwitz; the confirmation asks the
- * verifier's family criterion the same question. A box proof encloses the
+ * candidate's and asks whether the sum is Hurwitz, and the nominal verdict
+ * the same of the nominal plant; the confirmation asks the verifier's
+ * criterion the same question of the nominal plant and of every member. A box proof encloses the
  * box's factors in intervals and asks the interval Routh table, bisecting
  * the gain, or every parameter at the nominal plant, until it decides.
  */
@@ -209,9 +210,26 @@ bool FamilyStabilityChecker::isStable(const PointController & point)
     return true;
 }
 
+bool FamilyStabilityChecker::isStableAtNominal(const PointController & point)
+{
+    if (!m_nominal.has_value()) {
+        return true;
+    }
+
+    ++m_statistics.nominalVerdicts;
+
+    const std::optional<LtiSystem::Polynomials> loop =
+            m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
+    if (!loop.has_value()) {
+        return true;
+    }
+
+    return math::isHurwitz(characteristicOf(*m_nominal, *loop));
+}
+
 bool FamilyStabilityChecker::isStableByRoots(const PointController & point)
 {
-    if (!m_family.usable()) {
+    if (!m_family.usable() && !m_nominal.has_value()) {
         return true;
     }
 
@@ -223,7 +241,10 @@ bool FamilyStabilityChecker::isStableByRoots(const PointController & point)
         return true;
     }
 
-    return familyStabilityAt(m_family, *loop).unstableMembers == 0;
+    if (m_nominal.has_value() && !rootVerdictOf(characteristicOf(*m_nominal, *loop)).stable) {
+        return false;
+    }
+    return !m_family.usable() || familyStabilityAt(m_family, *loop).unstableMembers == 0;
 }
 
 bool FamilyStabilityChecker::isBoxUnstable(LtiSystem * box)

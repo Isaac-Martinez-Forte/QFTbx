@@ -46,12 +46,21 @@
  * failed last is asked first, since the candidates of a search resemble one
  * another and a refusal then costs one table.
  *
- * isStableByRoots is the verifier's own criterion on the same members, the
- * roots of every characteristic polynomial with the tolerance the verifier
- * applies to the axis, milliseconds rather than microseconds: the two agree
- * except in that tolerance band, and a candidate that is to be returned under
- * the exact reading is confirmed by the second so that the verifier cannot
- * refuse afterwards what the search accepted.
+ * isStableAtNominal is the same Routh table with the nominal plant. The
+ * nominal criterion decides the nominal loop from a frequency grid, and a
+ * grid can miss the crossing that makes a loop unstable: on the ACC'90
+ * problem with its robust performance specifications it approved a loop
+ * whose nominal closed loop has its poles at +2.22 +- 2.42j. The table needs
+ * no grid and no sweep, only the nominal plant's polynomials.
+ *
+ * isStableByRoots is the verifier's own criterion (rootVerdictOf) on the
+ * nominal plant and on the same members, the roots of every characteristic
+ * polynomial with the tolerance the verifier applies to the axis,
+ * milliseconds rather than microseconds: the two agree except in that
+ * tolerance band, and a candidate that is to be returned under the exact
+ * reading is confirmed by the second so that the verifier cannot refuse
+ * afterwards what the search accepted. It is the tolerance, not the table,
+ * that refuses a design whose pole sits on the axis but for a rounding.
  *
  * isBoxUnstable asks the opposite question of a whole box of controllers:
  * whether every one of them destabilises some plant of the family. The box's
@@ -95,6 +104,8 @@ public:
 
     bool isStable(const PointController & point);
 
+    bool isStableAtNominal(const PointController & point);
+
     bool isStableByRoots(const PointController & point);
 
     bool isBoxUnstable(LtiSystem * box);
@@ -103,6 +114,7 @@ public:
 
     struct Statistics {
         std::size_t verdicts = 0;
+        std::size_t nominalVerdicts = 0;
         std::size_t rootVerdicts = 0;
         std::size_t boxVerdicts = 0;
         std::size_t boxPrunes = 0;

@@ -112,6 +112,7 @@ const CertificateCount kCertificateCounts[] = {
     {"sector_verdicts", &LoopShapingStatistics::Certificate::sectorVerdicts},
     {"certifications", &LoopShapingStatistics::Certificate::certifications},
     {"refused_by_routh", &LoopShapingStatistics::Certificate::refusedByRouth},
+    {"refused_by_nominal_routh", &LoopShapingStatistics::Certificate::refusedByNominalRouth},
     {"refused_by_nominal_stability", &LoopShapingStatistics::Certificate::refusedByNominalStability},
     {"refused_by_specifications", &LoopShapingStatistics::Certificate::refusedBySpecifications},
     {"refused_by_roots", &LoopShapingStatistics::Certificate::refusedByRoots},

@@ -184,6 +184,20 @@ double FrequencyReference::worstExcessAt(std::complex<double> loop) const
     return worstExcess;
 }
 
+RootVerdict rootVerdictOf(const std::vector<double> & characteristic)
+{
+    const std::vector<std::complex<double>> roots = math::polynomialRoots(characteristic);
+
+    RootVerdict verdict;
+    double largest = 0.0;
+    for (const std::complex<double> & root : roots) {
+        verdict.worstRealPart = std::max(verdict.worstRealPart, root.real());
+        largest = std::max(largest, std::abs(root));
+    }
+    verdict.stable = !roots.empty() && !(verdict.worstRealPart > -1e-7 * largest);
+    return verdict;
+}
+
 FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::Polynomials & loop)
 {
     FamilyStability result;
@@ -194,21 +208,12 @@ FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::P
     }
 
     for (std::size_t member = 0; member < family.size(); ++member) {
-        const LtiSystem::Polynomials & plant = family.member(member);
-        const std::vector<double> characteristic = characteristicOf(plant, loop);
-        const std::vector<std::complex<double>> roots = math::polynomialRoots(characteristic);
-
-        double realPart = -std::numeric_limits<double>::infinity();
-        double largest = 0.0;
-        for (const std::complex<double> & root : roots) {
-            realPart = std::max(realPart, root.real());
-            largest = std::max(largest, std::abs(root));
-        }
-        if (roots.empty() || realPart > -1e-7 * largest) {
+        const RootVerdict verdict = rootVerdictOf(characteristicOf(family.member(member), loop));
+        if (!verdict.stable) {
             ++result.unstableMembers;
         }
-        if (realPart > result.worstRealPart) {
-            result.worstRealPart = realPart;
+        if (verdict.worstRealPart > result.worstRealPart) {
+            result.worstRealPart = verdict.worstRealPart;
             result.worstMember = family.valuesOf(member);
         }
     }

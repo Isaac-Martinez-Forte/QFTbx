@@ -14,7 +14,11 @@
  * a point whose gain came from the specifications. On the magnetic
  * levitation problem, a loop the Routh table of the family calls stable is
  * refused by the nominal criterion, whose grid ends with the loop still above
- * 0 dB, and the funnel stops there. On the toolbox example, the design the
+ * 0 dB, and the funnel stops there. On the ACC'90 benchmark, with no sweep,
+ * a loop the nominal criterion approves, its grid missing the crossing of
+ * the -180 degree ray near 0.71 rad/s, has its nominal closed-loop poles in
+ * the right half-plane, and the Routh table of the nominal plant refuses it
+ * before anything else is asked. On the toolbox example, the design the
  * search returns under the nearest-node reading of the columns, which those
  * columns admit, is refused by the specifications themselves.
  */
@@ -38,6 +42,8 @@
 #include "src/core/loopshaping/common/specification_checker.h"
 #include "src/core/math/range.h"
 #include "src/core/specifications/specification_record.h"
+#include "src/core/system/parameter.h"
+#include "src/core/templates/parameter_grids.h"
 #include "tests/backend/published_problems.h"
 
 using namespace qftbx;
@@ -191,6 +197,40 @@ TEST(Certifier, ALoopTheNominalCriterionRefusesStopsThere)
     EXPECT_EQ(funnel.certifier.statistics().refusedByRouth, 0u);
     EXPECT_EQ(funnel.exact.statistics().verdicts, 0u) << "the specifications were never asked";
     EXPECT_EQ(funnel.family.statistics().rootVerdicts, 0u);
+}
+
+TEST(Certifier, TheNominalRouthRefusesALoopTheNominalCriterionApproves)
+{
+    const std::string file = example("acc90.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * base = project.controllerStructure();
+    ASSERT_NE(base, nullptr);
+    std::vector<Parameter> poles = base->denominator();
+    poles.emplace_back(std::string("p2"), Range(0.01, 1000.0), 0.01);
+    const std::unique_ptr<LtiSystem> structure = base->create("base+p", base->numerator(), poles, base->gain());
+
+    std::vector<double> * omega = project.omega()->values();
+    const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+    ExactPointCheck exact(*project.plant(), structure.get(), *omega, project.templates(), specifications);
+    NominalStabilityChecker stability(project.plant(), omega);
+    FamilyStabilityChecker family(project.plant(), structure.get(), ParameterGrids());
+    Certifier certifier(exact, stability, family);
+    ASSERT_FALSE(family.usable());
+
+    const PointController unstable{428296.26, {12.141131223597256}, {24.303731346711288, 999.99999999999079}};
+    ASSERT_TRUE(stability.isNominallyStable(unstable)) << "the nominal criterion approves the loop";
+    EXPECT_TRUE(family.isStable(unstable)) << "there is no family to refuse it";
+    EXPECT_FALSE(family.isStableAtNominal(unstable));
+    EXPECT_FALSE(family.isStableByRoots(unstable)) << "nor do the roots accept it";
+
+    EXPECT_FALSE(certifier.certify(unstable));
+    EXPECT_EQ(certifier.statistics().refusedByNominalRouth, 1u);
+    EXPECT_EQ(certifier.statistics().refusedByNominalStability, 0u);
+    EXPECT_EQ(exact.statistics().verdicts, 0u) << "the specifications were never asked";
 }
 
 TEST(Certifier, WhatTheNearestColumnAdmitsTheSpecificationRefuses)
