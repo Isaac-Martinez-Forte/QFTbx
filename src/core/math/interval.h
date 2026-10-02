@@ -65,9 +65,11 @@
  * positive x. atan2(y, x) is the argument of the rectangle {x + j y}: the
  * whole turn [-pi, pi] when the rectangle contains the origin; otherwise the
  * argument is continuous over it and monotone along each edge, so its
- * extremes sit at the corners, and a rectangle crossing the negative real
- * axis is measured from that axis and turned by pi, so the result runs
- * continuously past pi instead of splitting at the cut. pi() and e() are
+ * extremes sit at the corners, each asked once: a side whose two ends have
+ * the same bits, as the factor jw + z of a real zero has, is one end, and a
+ * point is one corner, with +0 and -0 told apart. A rectangle crossing the
+ * negative real axis is measured from that axis and turned by pi, so the
+ * result runs continuously past pi instead of splitting at the cut. pi() and e() are
  * enclosures of the constants, not their nearest doubles; an Interval given
  * its ends in either order takes them in order, and width() is rounded
  * upwards.
@@ -341,9 +343,13 @@ public:
         double lowest = std::numeric_limits<double>::infinity();
         double highest = -std::numeric_limits<double>::infinity();
 
-        for (const double xi : {x.lower(), x.upper()}) {
-            for (const double yi : {y.lower(), y.upper()}) {
-                const double angle = acrossTheNegativeAxis ? std::atan2(-yi, -xi) : std::atan2(yi, xi);
+        const double xs[2] = {x.lower(), x.upper()};
+        const double ys[2] = {y.lower(), y.upper()};
+        const int xEnds = std::memcmp(&xs[0], &xs[1], sizeof(double)) == 0 ? 1 : 2;
+        const int yEnds = std::memcmp(&ys[0], &ys[1], sizeof(double)) == 0 ? 1 : 2;
+        for (int i = 0; i < xEnds; ++i) {
+            for (int j = 0; j < yEnds; ++j) {
+                const double angle = acrossTheNegativeAxis ? std::atan2(-ys[j], -xs[i]) : std::atan2(ys[j], xs[i]);
                 lowest = std::fmin(lowest, angle);
                 highest = std::fmax(highest, angle);
             }

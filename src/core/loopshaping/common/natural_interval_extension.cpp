@@ -9,7 +9,8 @@
  * evaluate differently and are refused with a message. Magnitudes are
  * clamped to the positive finite doubles before the logarithm, and phases
  * are shifted by whole turns onto (-2 pi, 0], the whole branch being the
- * answer whenever the set crosses the cut or rounding puts an end past it.
+ * answer whenever the set crosses the cut or rounding puts an end past it;
+ * the enclosure of a whole turn is computed once.
  */
 
 #include "src/core/loopshaping/common/natural_interval_extension.h"
@@ -90,7 +91,7 @@ NicholsBox NaturalIntervalExtension::toNichols(const PolarInterval & loop)
 
     const Interval magnitudeDb = Interval(20.0) * log10(Interval(low, high));
 
-    const Interval twoPi = Interval(2.0) * Interval::pi();
+    static const Interval twoPi = Interval(2.0) * Interval::pi();
     Interval theta = loop.phase();
 
     if (theta.width() >= twoPi.lower()) {

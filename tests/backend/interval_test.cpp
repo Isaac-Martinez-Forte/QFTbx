@@ -11,8 +11,11 @@
  * environment is the same before and after, which is what lets the
  * arithmetic run inside OpenMP regions and next to Qt; a square on one side
  * of zero is, to the bit, the hull of the squares of its two ends, over
- * random ends at every scale and the special values among them; and a
- * rectangle across the negative real axis keeps a continuous phase.
+ * random ends at every scale and the special values among them; the phase
+ * of a rectangle is the one its four corners give, to the bit, also when a
+ * side or the whole rectangle is degenerate and when its ends are +0 and
+ * -0; and a rectangle across the negative real axis keeps a continuous
+ * phase.
  */
 
 #include <gtest/gtest.h>
@@ -257,6 +260,51 @@ TEST(IntervalArithmetic, ASquareOnOneSideOfZeroIsTheHullOfTheSquaresOfItsEnds)
         const double hi = (generator() & 3) == 0 ? lo : lo + std::ldexp(unit(generator), static_cast<int>(generator() % 2100) - 1075);
         expectTheHull(lo, hi);
         expectTheHull(-hi, -lo);
+    }
+}
+
+TEST(IntervalArithmetic, ThePhaseOfARectangleIsThatOfItsFourCorners)
+{
+    const auto fourCorners = [](const Interval & y, const Interval & x) {
+        if (x.containsZero() && y.containsZero()) {
+            return Interval(-Interval::pi().upper(), Interval::pi().upper());
+        }
+        const bool across = x.upper() < 0.0 && y.containsZero();
+        double lowest = std::numeric_limits<double>::infinity();
+        double highest = -std::numeric_limits<double>::infinity();
+        for (const double xi : {x.lower(), x.upper()}) {
+            for (const double yi : {y.lower(), y.upper()}) {
+                const double angle = across ? std::atan2(-yi, -xi) : std::atan2(yi, xi);
+                lowest = std::fmin(lowest, angle);
+                highest = std::fmax(highest, angle);
+            }
+        }
+        const Interval corners(detail::downwards(lowest), detail::upwards(highest));
+        return across ? Interval::pi() + corners : corners;
+    };
+
+    std::mt19937_64 generator(3);
+    std::uniform_real_distribution<double> unit(-1.0, 1.0);
+    const double specials[] = {0.0, -0.0, 1.0, -1.0, 1e-300, -1e-300, 4.9e-324, -4.9e-324, 1e300, -1e300};
+    const auto pick = [&]() {
+        return generator() % 4 == 0 ? specials[generator() % 10]
+                                    : unit(generator) * std::ldexp(1.0, static_cast<int>(generator() % 200) - 100);
+    };
+    for (int trial = 0; trial < 300000; ++trial) {
+        double x0 = pick();
+        double x1 = generator() % 3 == 0 ? x0 : pick();
+        const double y0 = pick();
+        const double y1 = generator() % 3 == 0 ? y0 : pick();
+        if (generator() % 7 == 0) {
+            x0 = 0.0;
+            x1 = -0.0;
+        }
+        const Interval x(x0, x1);
+        const Interval y(y0, y1);
+        const Interval phase = atan2(y, x);
+        const Interval reference = fourCorners(y, x);
+        EXPECT_TRUE(sameBits(phase.lower(), reference.lower())) << "x [" << x0 << ", " << x1 << "] y [" << y0 << ", " << y1 << "]";
+        EXPECT_TRUE(sameBits(phase.upper(), reference.upper())) << "x [" << x0 << ", " << x1 << "] y [" << y0 << ", " << y1 << "]";
     }
 }
 
