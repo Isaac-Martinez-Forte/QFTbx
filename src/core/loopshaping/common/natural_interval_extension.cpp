@@ -35,9 +35,14 @@ Interval parameterInterval(Parameter & parameter)
     return Interval(parameter.nominal());
 }
 
+Interval factorModulusOfSquare(const Interval & xSquared, const Interval & wSquared)
+{
+    return sqrt(xSquared + wSquared);
+}
+
 Interval factorModulus(const Interval & x, const Interval & wSquared)
 {
-    return sqrt(sqr(x) + wSquared);
+    return factorModulusOfSquare(sqr(x), wSquared);
 }
 
 PolarInterval factor(const Interval & x, double w)
@@ -194,22 +199,36 @@ NicholsBox NaturalIntervalExtension::nicholsOf(const Interval & gain, const Fact
     return {decibelsOf(modulus), onTheBranch(phase)};
 }
 
-bool NaturalIntervalExtension::mayReachUnitModulus(LtiSystem * controller, const Interval & wSquared,
-                                                   const Interval & nominalModulus)
+NaturalIntervalExtension::BoxSquares NaturalIntervalExtension::squaresOf(LtiSystem * controller)
 {
     ensureSupportedStructure(controller->type());
 
-    Interval numerator(1.0);
+    BoxSquares squares;
+    squares.zeros.reserve(controller->numerator().size());
     for (Parameter & parameter : controller->numerator()) {
-        numerator = numerator * factorModulus(parameterInterval(parameter), wSquared);
+        squares.zeros.push_back(sqr(parameterInterval(parameter)));
+    }
+    squares.poles.reserve(controller->denominator().size());
+    for (Parameter & parameter : controller->denominator()) {
+        squares.poles.push_back(sqr(parameterInterval(parameter)));
+    }
+    squares.gain = parameterInterval(controller->gain());
+    return squares;
+}
+
+bool NaturalIntervalExtension::mayReachUnitModulus(const BoxSquares & box, const Interval & wSquared,
+                                                   const Interval & nominalModulus)
+{
+    Interval numerator(1.0);
+    for (const Interval & square : box.zeros) {
+        numerator = numerator * factorModulusOfSquare(square, wSquared);
     }
     Interval denominator(1.0);
-    for (Parameter & parameter : controller->denominator()) {
-        denominator = denominator * factorModulus(parameterInterval(parameter), wSquared);
+    for (const Interval & square : box.poles) {
+        denominator = denominator * factorModulusOfSquare(square, wSquared);
     }
 
-    const Interval modulus = clampedModulus(loopModulus(parameterInterval(controller->gain()), numerator,
-                                                       nominalModulus, denominator));
+    const Interval modulus = clampedModulus(loopModulus(box.gain, numerator, nominalModulus, denominator));
     return modulus.lower() <= 1.0 && modulus.upper() >= 1.0;
 }
 

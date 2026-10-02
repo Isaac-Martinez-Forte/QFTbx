@@ -438,8 +438,9 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
     }
 
     const std::size_t n = m_frequencies.size();
+    const NaturalIntervalExtension::BoxSquares squares = extension.squaresOf(box);
     const auto reachesCriticalPoint = [&](std::size_t i) {
-        if (!extension.mayReachUnitModulus(box, m_frequencySquares[i], m_plantModuli[i])) {
+        if (!extension.mayReachUnitModulus(squares, m_frequencySquares[i], m_plantModuli[i])) {
             return false;
         }
         const NicholsBox enclosure = extension.nicholsBox(box, m_frequencies[i],

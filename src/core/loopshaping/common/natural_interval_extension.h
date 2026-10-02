@@ -39,7 +39,8 @@
  * can ask whether the modulus over a box may be one at a frequency, given
  * the square of the frequency and the modulus of the nominal plant there,
  * from the moduli of the factors alone, and answer as the enclosure would,
- * without the phases. The magnitude is converted to dB with its ends clamped
+ * without the phases. The squares of the box's zeros and poles do not depend
+ * on the frequency, so squaresOf forms them once per box, with its gain. The magnitude is converted to dB with its ends clamped
  * to the positive finite doubles, so the conversion stays finite, and the
  * phase is mapped onto the (-2 pi, 0] branch. Since the logarithm is zero
  * only at one, and widening a value that is not zero by a few ulps never
@@ -93,7 +94,15 @@ public:
 
     NicholsBox nicholsOf(const Interval & gain, const Factors & factors, std::complex<double> p0);
 
-    bool mayReachUnitModulus(LtiSystem * controller, const Interval & wSquared, const Interval & nominalModulus);
+    struct BoxSquares {
+        std::vector<Interval> zeros;
+        std::vector<Interval> poles;
+        Interval gain;
+    };
+
+    BoxSquares squaresOf(LtiSystem * controller);
+
+    bool mayReachUnitModulus(const BoxSquares & box, const Interval & wSquared, const Interval & nominalModulus);
 
     NicholsBox numeratorTermBox(Parameter & zero, double w, std::complex<double> p0);
     NicholsBox denominatorTermBox(Parameter & pole, double w, std::complex<double> p0);

@@ -219,7 +219,8 @@ TEST(NaturalIntervalExtension, TheUnitModulusIsAskedAsTheEnclosureAnswers)
 
         const NicholsBox enclosure = extension.nicholsBox(box.get(), w, p0);
         const bool containsZeroDb = enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0;
-        const bool mayReach = extension.mayReachUnitModulus(box.get(), sqr(Interval(w)), ComplexInterval(p0).magnitude());
+        const bool mayReach = extension.mayReachUnitModulus(extension.squaresOf(box.get()), sqr(Interval(w)),
+                                                            ComplexInterval(p0).magnitude());
         EXPECT_EQ(mayReach, containsZeroDb) << "trial " << trial << ": w " << w << " gain " << gain;
         reaching += containsZeroDb ? 1 : 0;
         ++asked;
