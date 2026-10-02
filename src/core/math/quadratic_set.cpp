@@ -34,22 +34,34 @@ std::pair<double, double> stableRoots(double a, double b, double c, double discr
 
 }
 
-RangeUnion whereNonNegative(double a, double b, double c)
+void whereNonNegative(double a, double b, double c, RangeUnion & set)
 {
-    const RangeUnion positive = RangeUnion::of(0.0, kInfinity);
-
     if (a == 0.0) {
         if (b == 0.0) {
-            return c >= 0.0 ? positive : RangeUnion();
+            if (c >= 0.0) {
+                set.assign(0.0, kInfinity);
+            } else {
+                set.clear();
+            }
+            return;
         }
         const double root = -c / b;
-        return b > 0.0 ? RangeUnion::of(std::max(0.0, root), kInfinity)
-                       : RangeUnion::of(0.0, root);
+        if (b > 0.0) {
+            set.assign(std::max(0.0, root), kInfinity);
+        } else {
+            set.assign(0.0, root);
+        }
+        return;
     }
 
     const double discriminant = b * b - 4.0 * a * c;
     if (discriminant < 0.0) {
-        return a > 0.0 ? positive : RangeUnion();
+        if (a > 0.0) {
+            set.assign(0.0, kInfinity);
+        } else {
+            set.clear();
+        }
+        return;
     }
 
     const auto [r1, r2] = stableRoots(a, b, c, discriminant);
@@ -58,11 +70,20 @@ RangeUnion whereNonNegative(double a, double b, double c)
         if (r1 > 0.0) {
             const double lower[2] = {0.0, std::max(0.0, r2)};
             const double upper[2] = {r1, kInfinity};
-            return RangeUnion::of(lower, upper, 2);
+            set.assign(lower, upper, 2);
+            return;
         }
-        return RangeUnion::of(std::max(0.0, r2), kInfinity);
+        set.assign(std::max(0.0, r2), kInfinity);
+        return;
     }
-    return RangeUnion::of(std::max(0.0, r1), r2);
+    set.assign(std::max(0.0, r1), r2);
+}
+
+RangeUnion whereNonNegative(double a, double b, double c)
+{
+    RangeUnion set;
+    whereNonNegative(a, b, c, set);
+    return set;
 }
 
 void appendWhereNegative(double a, double b, double c, std::vector<double> & lower, std::vector<double> & upper)

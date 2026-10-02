@@ -6,7 +6,8 @@
  * linear and one in seven without a linear term, are compared with a scan of
  * six hundred gains, leaving out the points where the value is too close to
  * zero to tell. A tiny leading coefficient must not lose the root of the
- * linear part beside it.
+ * linear part beside it, and a set refilled with the solution is the set
+ * returned.
  */
 
 #include <gtest/gtest.h>
@@ -43,4 +44,13 @@ TEST(QuadraticSet, EverySignCaseAgreesWithAScan)
 
     EXPECT_TRUE(math::whereNonNegative(1e-6, 2.0, -1.0).contains(0.5000002));
     EXPECT_FALSE(math::whereNonNegative(1e-6, 2.0, -1.0).contains(0.4999));
+
+    RangeUnion refilled = RangeUnion::whole();
+    for (int trial = 0; trial < 2000; ++trial) {
+        const double a = trial % 5 == 0 ? 0.0 : coefficient(generator);
+        const double b = trial % 7 == 0 ? 0.0 : coefficient(generator);
+        const double c = coefficient(generator);
+        math::whereNonNegative(a, b, c, refilled);
+        EXPECT_EQ(refilled.components(), math::whereNonNegative(a, b, c).components()) << "a=" << a << " b=" << b << " c=" << c;
+    }
 }

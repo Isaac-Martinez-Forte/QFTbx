@@ -29,7 +29,12 @@
  * the value. intersectWith() takes one pass over both sets, since both are
  * canonical and the overlaps come out ascending and disjoint, and shiftBy()
  * translates the whole set, which is what carrying a magnitude set from the
- * boundary's frame to the gain's amounts to.
+ * boundary's frame to the gain's amounts to. The searches build and cut these
+ * sets millions of times, so a set is reused rather than built: assign() and
+ * clear() refill it, the intersection with one interval clips the members in
+ * place, the merge of canonical form is done in place, and the intersection
+ * of two sets collects its overlaps in a buffer of the thread and swaps it
+ * in, which leaves the result alone to each thread under OpenMP.
  */
 
 #ifndef QFTBX_RANGE_UNION_H
@@ -87,6 +92,27 @@ public:
         return set;
     }
 
+    void clear() { m_parts.clear(); }
+
+    void assign(double lower, double upper)
+    {
+        m_parts.clear();
+        if (lower <= upper) {
+            m_parts.push_back(Range(lower, upper));
+        }
+    }
+
+    void assign(const double * lower, const double * upper, std::size_t count)
+    {
+        m_parts.clear();
+        for (std::size_t i = 0; i < count; ++i) {
+            if (lower[i] <= upper[i]) {
+                m_parts.push_back(Range(lower[i], upper[i]));
+            }
+        }
+        canonicalise();
+    }
+
     bool isEmpty() const { return m_parts.empty(); }
 
     std::size_t count() const { return m_parts.size(); }
@@ -130,7 +156,9 @@ public:
 
     RangeUnion & intersectWith(const RangeUnion & other)
     {
-        std::vector<Range> parts;
+        static thread_local std::vector<Range> overlaps;
+        std::vector<Range> & parts = overlaps;
+        parts.clear();
         std::size_t i = 0, j = 0;
 
         while (i < m_parts.size() && j < other.m_parts.size()) {
@@ -151,18 +179,35 @@ public:
             }
         }
 
-        m_parts = std::move(parts);
+        m_parts.swap(parts);
         return *this;
     }
 
     RangeUnion & intersectWith(Range range)
     {
-        return intersectWith(of(range));
+        return intersectWith(range.min, range.max);
     }
 
     RangeUnion & intersectWith(double lower, double upper)
     {
-        return intersectWith(of(lower, upper));
+        if (!(lower <= upper)) {
+            m_parts.clear();
+            return *this;
+        }
+        std::size_t kept = 0;
+        for (std::size_t i = 0; i < m_parts.size(); ++i) {
+            const Range part = m_parts[i];
+            const double low = std::max(part.min, lower);
+            const double high = std::min(part.max, upper);
+            if (low <= high) {
+                m_parts[kept++] = Range(low, high);
+            }
+            if (!(part.max < upper)) {
+                break;
+            }
+        }
+        m_parts.resize(kept);
+        return *this;
     }
 
     RangeUnion & shiftBy(double delta)
@@ -183,17 +228,18 @@ private:
                       return a.min < b.min || (a.min == b.min && a.max < b.max);
                   });
 
-        std::vector<Range> merged;
+        std::size_t kept = 0;
 
-        for (const Range & part : m_parts) {
-            if (!merged.empty() && part.min <= merged.back().max) {
-                merged.back().max = std::max(merged.back().max, part.max);
+        for (std::size_t i = 0; i < m_parts.size(); ++i) {
+            const Range part = m_parts[i];
+            if (kept > 0 && part.min <= m_parts[kept - 1].max) {
+                m_parts[kept - 1].max = std::max(m_parts[kept - 1].max, part.max);
             } else {
-                merged.push_back(part);
+                m_parts[kept++] = part;
             }
         }
 
-        m_parts = std::move(merged);
+        m_parts.resize(kept);
     }
 
     std::vector<Range> m_parts;

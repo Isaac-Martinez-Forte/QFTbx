@@ -15,7 +15,7 @@
  * Yaniv 1993): a g^2 + b g + c >= 0. Its solution set on the half-line is
  * empty, an interval, the whole half-line, or two pieces, and this is the
  * one place that case analysis is written: whereNonNegative returns the
- * set, and appendWhereNegative appends the pieces of its complement to two
+ * set, or refills one the caller keeps, and appendWhereNegative appends the pieces of its complement to two
  * vectors of lower and upper ends, which is how the sector verdict of the
  * exact reading collects them without building a set. The roots come from
  * the stable formula, the larger-magnitude one by the quadratic formula and
@@ -29,6 +29,8 @@ namespace qftbx {
 namespace math {
 
 RangeUnion whereNonNegative(double a, double b, double c);
+
+void whereNonNegative(double a, double b, double c, RangeUnion & set);
 
 void appendWhereNegative(double a, double b, double c, std::vector<double> & lower, std::vector<double> & upper);
 
