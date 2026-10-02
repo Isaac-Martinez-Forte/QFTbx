@@ -10,6 +10,7 @@
 
 #include "src/core/loopshaping/common/point_controller.h"
 #include "src/core/loopshaping/common/specification_checker.h"
+#include "src/core/math/line_envelope.h"
 #include "src/core/math/range.h"
 #include "src/core/math/range_union.h"
 #include "src/core/specifications/specification.h"
@@ -103,7 +104,11 @@
  * whose admissible set is not empty: a ladder climbed to its top with
  * neither a confirmation nor a plant to learn from, and the 64 rounds
  * spent. admissibleGainsDb is the same set over the whole cloud, for the
- * tests and for reference.
+ * tests and for reference. The vectors and sets the gain sets are built in,
+ * at every level of the chain from the gains down to the envelopes of the
+ * tracking spread, are kept in the check and reused, which spares their
+ * allocations and means a check answers one call at a time:
+ * admissibleGainsDb is not safe to call from two threads on one check.
  *
  * sectorVerdict is the same geometry asked of a whole box of controllers,
  * given the enclosure of its loop at one frequency, a phase interval and a
@@ -165,7 +170,7 @@ public:
                                     Range gainRange);
 
     RangeUnion admissibleGainsDb(const std::vector<double> & zeros, const std::vector<double> & poles,
-                                 Range gainRange) const;
+                                 Range gainRange);
 
     struct SectorVerdict {
         bool provablyInfeasible = false;
@@ -209,6 +214,23 @@ private:
         std::vector<TrackingPair> pairs;
     };
 
+    struct Scratch {
+        std::vector<math::Line> lines;
+        math::EnvelopeScratch envelope;
+        std::vector<math::EnvelopePiece> nearest;
+        std::vector<math::EnvelopePiece> farthest;
+        std::vector<double> trackingLower;
+        std::vector<double> trackingUpper;
+        RangeUnion trackingPiece;
+        RangeUnion tracking;
+        RangeUnion quadratic;
+        std::vector<std::size_t> everyPlant;
+        RangeUnion magnitudes;
+        std::vector<double> gainLower;
+        std::vector<double> gainUpper;
+        RangeUnion gainParts;
+    };
+
     struct RememberedSector {
         bool valid = false;
         std::size_t workingSize = 0;
@@ -223,15 +245,15 @@ private:
 
     bool admitsFrom(const PointController & point, std::size_t & firstToAsk);
 
-    RangeUnion admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
-                                    const std::vector<std::size_t> & plants) const;
+    void admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
+                              const std::vector<std::size_t> & plants, RangeUnion & allowed);
 
-    RangeUnion trackingMagnitudes(std::size_t frequency, std::complex<double> direction,
-                                  const std::vector<std::size_t> & plants, double boundDb) const;
+    void trackingMagnitudes(std::size_t frequency, std::complex<double> direction,
+                            const std::vector<std::size_t> & plants, double boundDb, RangeUnion & set);
 
     RangeUnion admissibleGainsDbOver(const std::vector<double> & zeros, const std::vector<double> & poles,
                                      Range gainRange,
-                                     const std::vector<std::vector<std::size_t>> * workingSets) const;
+                                     const std::vector<std::vector<std::size_t>> * workingSets);
 
     bool growWorkingSet(std::size_t frequency, const PointController & point);
 
@@ -245,6 +267,7 @@ private:
     std::vector<std::vector<Quotient>> m_quotients;
     std::vector<TrackingPairs> m_pairs;
     std::vector<RememberedSector> m_sectors;
+    Scratch m_scratch;
     std::vector<double> m_forbiddenLower;
     std::vector<double> m_forbiddenUpper;
     std::size_t m_firstToAsk = 0;

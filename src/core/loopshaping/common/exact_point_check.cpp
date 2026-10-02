@@ -38,11 +38,6 @@ double toDb(double g)
     return 20.0 * std::log10(g);
 }
 
-RangeUnion fromParts(const std::vector<double> & lower, const std::vector<double> & upper)
-{
-    return RangeUnion::of(lower.data(), upper.data(), lower.size());
-}
-
 double trackingFactor(double boundDb)
 {
     return std::expm1(boundDb * kLn10 / 10.0);
@@ -204,12 +199,12 @@ SpecificationCheck ExactPointCheck::checkOf(const PointController & point) const
     return check;
 }
 
-RangeUnion ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
-                                                 const std::vector<std::size_t> & plants) const
+void ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::complex<double> direction,
+                                           const std::vector<std::size_t> & plants, RangeUnion & allowed)
 {
     const FrequencyReference & at = m_reference->frequencies()[frequency];
     const std::vector<Quotient> & quotients = m_quotients[frequency];
-    RangeUnion allowed = RangeUnion::of(0.0, kInfinity);
+    allowed.assign(0.0, kInfinity);
 
     const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
     const auto cosine = [&](std::size_t n) { return std::real(std::conj(q[n]) * direction); };
@@ -222,7 +217,8 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::com
         const double boundDb = bound.boundDb - kToleranceDb;
 
         if (bound.type == SpecificationType::TrackingLower) {
-            allowed.intersectWith(trackingMagnitudes(frequency, direction, plants, boundDb));
+            trackingMagnitudes(frequency, direction, plants, boundDb, m_scratch.tracking);
+            allowed.intersectWith(m_scratch.tracking);
             continue;
         }
 
@@ -239,18 +235,18 @@ RangeUnion ExactPointCheck::admissibleMagnitudes(std::size_t frequency, std::com
             const std::optional<Disc> disc = discOf(bound.type, W, output ? std::sqrt(q2) : 0.0, nominalModulus,
                                                     effort ? quotients[n].plantModulus : 0.0);
             if (!disc.has_value()) {
-                return RangeUnion();
+                allowed.clear();
+                return;
             }
             const double s = disc->s, t = disc->t;
-            allowed.intersectWith(math::whereNonNegative(1.0 - s * s, 2.0 * (c - s * t), q2 - t * t));
+            math::whereNonNegative(1.0 - s * s, 2.0 * (c - s * t), q2 - t * t, m_scratch.quadratic);
+            allowed.intersectWith(m_scratch.quadratic);
         }
     }
-
-    return allowed;
 }
 
-RangeUnion ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::complex<double> direction,
-                                               const std::vector<std::size_t> & plants, double boundDb) const
+void ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::complex<double> direction,
+                                         const std::vector<std::size_t> & plants, double boundDb, RangeUnion & set)
 {
     const FrequencyReference & at = m_reference->frequencies()[frequency];
     const std::vector<Quotient> & quotients = m_quotients[frequency];
@@ -260,16 +256,20 @@ RangeUnion ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::compl
     const double dm1 = trackingFactor(boundDb);
     const double d2 = dm1 + 1.0;
 
-    std::vector<math::Line> lines;
-    lines.reserve(plants.size());
+    std::vector<math::Line> & lines = m_scratch.lines;
+    lines.clear();
     for (const std::size_t n : plants) {
         lines.push_back({2.0 * cosine(n), quotients[n].norm, n});
     }
-    math::EnvelopeScratch envelope;
-    std::vector<math::EnvelopePiece> nearest, farthest;
-    math::envelopes(lines, envelope, nearest, farthest);
+    std::vector<math::EnvelopePiece> & nearest = m_scratch.nearest;
+    std::vector<math::EnvelopePiece> & farthest = m_scratch.farthest;
+    math::envelopes(lines, m_scratch.envelope, nearest, farthest);
 
-    std::vector<double> lower, upper;
+    std::vector<double> & lower = m_scratch.trackingLower;
+    std::vector<double> & upper = m_scratch.trackingUpper;
+    lower.clear();
+    upper.clear();
+    RangeUnion & piece = m_scratch.trackingPiece;
     std::size_t i = 0, j = 0;
     double from = 0.0;
     while (i < nearest.size() && j < farthest.size()) {
@@ -279,8 +279,8 @@ RangeUnion ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::compl
         const std::size_t n = nearest[i].index;
         const std::size_t m = farthest[j].index;
 
-        RangeUnion piece = math::whereNonNegative(dm1, 2.0 * (d2 * cosine(n) - cosine(m)),
-                                                  d2 * quotients[n].norm - quotients[m].norm);
+        math::whereNonNegative(dm1, 2.0 * (d2 * cosine(n) - cosine(m)), d2 * quotients[n].norm - quotients[m].norm,
+                               piece);
         piece.intersectWith(from, to);
         for (const Range & part : piece.components()) {
             lower.push_back(part.min);
@@ -294,12 +294,12 @@ RangeUnion ExactPointCheck::trackingMagnitudes(std::size_t frequency, std::compl
         if (nextNearest == to) ++i;
         if (nextFarthest == to) ++j;
     }
-    return fromParts(lower, upper);
+    set.assign(lower.data(), upper.data(), lower.size());
 }
 
 RangeUnion ExactPointCheck::admissibleGainsDbOver(const std::vector<double> & zeros, const std::vector<double> & poles,
                                                   Range gainRange,
-                                                  const std::vector<std::vector<std::size_t>> * workingSets) const
+                                                  const std::vector<std::vector<std::size_t>> * workingSets)
 {
     RangeUnion gains = RangeUnion::of(toDb(gainRange.min), toDb(gainRange.max));
 
@@ -319,27 +319,31 @@ RangeUnion ExactPointCheck::admissibleGainsDbOver(const std::vector<double> & ze
         }
         const double muDb = toDb(mu);
 
-        std::vector<std::size_t> everyPlant;
+        std::vector<std::size_t> & everyPlant = m_scratch.everyPlant;
         if (workingSets == nullptr) {
             everyPlant.resize(at.nominalOverValueSet.size());
             std::iota(everyPlant.begin(), everyPlant.end(), std::size_t(0));
         }
-        const RangeUnion magnitudes = admissibleMagnitudes(f, unit / mu,
-                                                           workingSets == nullptr ? everyPlant : (*workingSets)[f]);
+        RangeUnion & magnitudes = m_scratch.magnitudes;
+        admissibleMagnitudes(f, unit / mu, workingSets == nullptr ? everyPlant : (*workingSets)[f], magnitudes);
 
-        std::vector<double> lower, upper;
+        std::vector<double> & lower = m_scratch.gainLower;
+        std::vector<double> & upper = m_scratch.gainUpper;
+        lower.clear();
+        upper.clear();
         for (const Range & part : magnitudes.components()) {
             lower.push_back(toDb(part.min) - muDb);
             upper.push_back(toDb(part.max) - muDb);
         }
-        gains.intersectWith(fromParts(lower, upper));
+        m_scratch.gainParts.assign(lower.data(), upper.data(), lower.size());
+        gains.intersectWith(m_scratch.gainParts);
     }
 
     return gains;
 }
 
 RangeUnion ExactPointCheck::admissibleGainsDb(const std::vector<double> & zeros, const std::vector<double> & poles,
-                                              Range gainRange) const
+                                              Range gainRange)
 {
     requireUsable();
     return admissibleGainsDbOver(zeros, poles, gainRange, nullptr);
