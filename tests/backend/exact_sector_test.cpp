@@ -12,7 +12,11 @@
  * tracking part of a verdict is built from the working set the gain search
  * grows, and kept between verdicts while that set stands: a check that gave
  * verdicts before its working sets grew gives afterwards, to the bit, the
- * verdicts of one that never gave any before.
+ * verdicts of one that never gave any before. The last verdict of each
+ * frequency is remembered and given again for the same sector while the
+ * working set stands, counted as asked; a sector whose verdict the growth
+ * of the working set changes, asked just before and just after it grows,
+ * gets the new verdict.
  */
 
 #include <gtest/gtest.h>
@@ -175,4 +179,82 @@ TEST(ExactSector, AVerdictAfterTheWorkingSetGrowsIsThatOfAFreshCache)
         }
     }
     EXPECT_GT(grown, 0u) << "the gain searches grew some working set";
+}
+
+TEST(ExactSector, ARememberedVerdictLastsOnlyWhileTheWorkingSetStands)
+{
+    const auto same = [](const ExactPointCheck::SectorVerdict & a, const ExactPointCheck::SectorVerdict & b) {
+        return a.provablyInfeasible == b.provablyInfeasible && a.forbiddenBelowDb == b.forbiddenBelowDb
+               && a.forbiddenAboveDb == b.forbiddenAboveDb;
+    };
+
+    std::size_t changed = 0;
+    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        const std::vector<double> & omega = *project.omega()->values();
+        const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+        ExactPointCheck standing(*project.plant(), structure, omega, project.templates(), specifications);
+        ExactPointCheck grown(*project.plant(), structure, omega, project.templates(), specifications);
+        ExactPointCheck asked(*project.plant(), structure, omega, project.templates(), specifications);
+        ASSERT_TRUE(standing.usable());
+
+        std::mt19937 generator(31);
+        std::vector<std::pair<std::size_t, Sector>> sectors;
+        for (std::size_t f = 0; f < omega.size(); ++f) {
+            for (int trial = 0; trial < 20; ++trial) {
+                sectors.emplace_back(f, randomSector(generator));
+            }
+        }
+        std::vector<std::pair<std::vector<double>, std::vector<double>>> vertices;
+        for (int vertex = 0; vertex < 30; ++vertex) {
+            std::vector<double> zeros, poles;
+            for (const Parameter & z : structure->numerator()) zeros.push_back(drawIn(z, generator));
+            for (const Parameter & q : structure->denominator()) poles.push_back(drawIn(q, generator));
+            vertices.emplace_back(zeros, poles);
+        }
+        const auto grow = [&](ExactPointCheck & check) {
+            for (const auto & [zeros, poles] : vertices) {
+                check.lowestAdmissibleGain(zeros, poles, structure->gain().range());
+            }
+        };
+
+        const std::size_t before = standing.statistics().sectorVerdicts;
+        const auto & [firstFrequency, firstSector] = sectors.front();
+        EXPECT_TRUE(same(standing.sectorVerdict(firstFrequency, firstSector.phase, firstSector.magnitude),
+                         standing.sectorVerdict(firstFrequency, firstSector.phase, firstSector.magnitude)));
+        EXPECT_EQ(standing.statistics().sectorVerdicts, before + 2) << "a remembered verdict still counts as asked";
+
+        grow(grown);
+        std::vector<std::pair<std::size_t, Sector>> picked;
+        std::vector<ExactPointCheck::SectorVerdict> after;
+        for (const auto & [frequency, sector] : sectors) {
+            if (!picked.empty() && picked.back().first == frequency) {
+                continue;
+            }
+            const ExactPointCheck::SectorVerdict old = standing.sectorVerdict(frequency, sector.phase, sector.magnitude);
+            const ExactPointCheck::SectorVerdict fresh = grown.sectorVerdict(frequency, sector.phase, sector.magnitude);
+            if (!same(old, fresh)) {
+                picked.emplace_back(frequency, sector);
+                after.push_back(fresh);
+            }
+        }
+
+        for (const auto & [frequency, sector] : picked) {
+            asked.sectorVerdict(frequency, sector.phase, sector.magnitude);
+        }
+        grow(asked);
+        for (std::size_t k = 0; k < picked.size(); ++k) {
+            const auto & [frequency, sector] = picked[k];
+            EXPECT_TRUE(same(asked.sectorVerdict(frequency, sector.phase, sector.magnitude), after[k]))
+                << name << " frequency " << frequency << ": the verdict from before the working set grew was given again";
+        }
+        changed += picked.size();
+    }
+    EXPECT_GT(changed, 0u) << "some verdict changes as the working set grows";
 }

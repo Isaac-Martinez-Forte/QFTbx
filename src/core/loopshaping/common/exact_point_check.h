@@ -127,7 +127,10 @@
  * plant and of each tracking pair, depend on the frequency alone, so they
  * are computed once, the pairs again only when a working set has grown,
  * and a verdict is products with the cosines and sines of the ends of the
- * phase interval.
+ * phase interval. The last verdict of each frequency is remembered, and
+ * given again when the same sector, to the bit, is asked while the working
+ * set has not grown: MC2 asks it twice of the same projection of a box,
+ * once to read the box and once to cut it.
  *
  * A project whose templates do not cover every design frequency has no
  * reference: the check is then unusable and MC2 refuses to run, as the
@@ -206,6 +209,14 @@ private:
         std::vector<TrackingPair> pairs;
     };
 
+    struct RememberedSector {
+        bool valid = false;
+        std::size_t workingSize = 0;
+        Range phase;
+        Range magnitude;
+        SectorVerdict verdict;
+    };
+
     void requireUsable() const;
 
     std::complex<double> loopAt(const FrequencyReference & at, const PointController & point) const;
@@ -233,6 +244,7 @@ private:
     std::vector<std::size_t> m_referenceOf;
     std::vector<std::vector<Quotient>> m_quotients;
     std::vector<TrackingPairs> m_pairs;
+    std::vector<RememberedSector> m_sectors;
     std::vector<double> m_forbiddenLower;
     std::vector<double> m_forbiddenUpper;
     std::size_t m_firstToAsk = 0;

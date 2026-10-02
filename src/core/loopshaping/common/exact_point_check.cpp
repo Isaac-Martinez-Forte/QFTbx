@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <numeric>
 
@@ -148,6 +149,7 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
         }
         m_quotients.push_back(std::move(quotients));
         m_pairs.emplace_back();
+        m_sectors.emplace_back();
         m_statistics.largestWorkingSet = std::max(m_statistics.largestWorkingSet, seed.size());
         m_working.push_back(std::move(seed));
     }
@@ -456,6 +458,12 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
     ++m_statistics.sectorVerdicts;
 
     const std::size_t f = m_referenceOf[omegaIndex];
+    RememberedSector & remembered = m_sectors[f];
+    if (remembered.valid && remembered.workingSize == m_working[f].size()
+            && std::memcmp(&remembered.phase, &phaseDegrees, sizeof(Range)) == 0
+            && std::memcmp(&remembered.magnitude, &magnitudeDb, sizeof(Range)) == 0) {
+        return remembered.verdict;
+    }
     const FrequencyReference & at = m_reference->frequencies()[f];
     const std::vector<Quotient> & quotients = m_quotients[f];
     const Arc arc(phaseDegrees.min * math::kPi / 180.0, phaseDegrees.max * math::kPi / 180.0);
@@ -534,6 +542,7 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
         verdict.provablyInfeasible = true;
     }
 
+    remembered = {true, m_working[f].size(), phaseDegrees, magnitudeDb, verdict};
     return verdict;
 }
 
