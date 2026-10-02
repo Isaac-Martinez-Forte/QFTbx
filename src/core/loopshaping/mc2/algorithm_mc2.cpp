@@ -146,6 +146,7 @@ void AlgorithmMc2::prepare()
     exactReading = certifier != nullptr;
 
     certificate = LoopShapingStatistics::Certificate();
+    certificate.kept = true;
     certificate.exactPoints = exactReading;
     residueGainInf = std::numeric_limits<double>::infinity();
     unprovenGainInf = std::numeric_limits<double>::infinity();
@@ -430,6 +431,7 @@ void AlgorithmMc2::closeCertificate()
                                             : liveList->first()->getIndex();
     certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf, resolvedGainInf});
     certificate.lowerBoundStrict = std::min(certificate.lowerBound, gridBackedGainInf);
+    certificate.finished = true;
 }
 
 bool AlgorithmMc2::cannotImprove(double gainInf) const
@@ -462,7 +464,8 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
     }
     statistics.certificate = certificate;
     if (family != nullptr) {
-        statistics.certificate.familyPrunes = family->statistics().boxPrunes + family->statistics().nominalBoxPrunes;
+        statistics.certificate.familyPrunes = family->statistics().boxPrunes;
+        statistics.certificate.nominalBoxPrunes = family->statistics().nominalBoxPrunes;
     }
     if (certifier != nullptr) {
         const Certifier::Statistics & funnel = certifier->statistics();
@@ -479,6 +482,8 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.certificate.gainSearches = reading.gainSearches;
         statistics.certificate.exchangeRounds = reading.exchangeRounds;
         statistics.certificate.ladderSteps = reading.ladderSteps;
+        statistics.certificate.laddersExhausted = reading.laddersExhausted;
+        statistics.certificate.roundLimitsReached = reading.roundLimitsReached;
         statistics.certificate.largestWorkingSet = reading.largestWorkingSet;
     }
     return statistics;

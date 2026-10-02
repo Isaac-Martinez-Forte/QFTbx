@@ -394,11 +394,11 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
     GainSearch result;
     ++m_statistics.gainSearches;
 
-    for (std::size_t round = 0; round < kMaxRounds; ++round) {
-        result.rounds = round;
+    bool grew = true;
+    for (std::size_t round = 0; round < kMaxRounds && grew; ++round) {
         const RangeUnion set = admissibleGainsDbOver(zeros, poles, gainRange, &m_working);
 
-        bool grew = false;
+        grew = false;
         for (const Range & component : set.components()) {
             const double lo = dbToLinear(component.min);
             const double hi = dbToLinear(component.max);
@@ -429,9 +429,14 @@ ExactPointCheck::GainSearch ExactPointCheck::lowestAdmissibleGain(const std::vec
             }
         }
 
-        if (!grew) {
-            break;
+        if (grew) {
+            ++result.rounds;
+        } else if (!result.gain.has_value() && !set.isEmpty()) {
+            ++m_statistics.laddersExhausted;
         }
+    }
+    if (grew) {
+        ++m_statistics.roundLimitsReached;
     }
 
     m_statistics.exchangeRounds += result.rounds;

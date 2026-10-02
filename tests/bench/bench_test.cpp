@@ -8,8 +8,8 @@
  * The spread of a sample is its median, mean, deviation and extremes; the
  * summary groups records, leaves warm-ups and failures out of the timings and
  * notices when repetitions disagree on the controller. A certificate with
- * every count set survives its JSON, and so do the infinite lower bounds of
- * a search that left nothing unproven. A run of one case on the ACC'90
+ * every count and flag set survives its JSON, and so do the infinite lower
+ * bounds of a search that left nothing unproven. A run of one case on the ACC'90
  * fixture must leave a complete record that survives its file, with the gain
  * of 0.001 that fixture's goldens pin.
  */
@@ -186,6 +186,8 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
 {
     Record record;
     LoopShapingStatistics::Certificate & c = record.statistics.certificate;
+    c.kept = true;
+    c.finished = true;
     c.exactPoints = true;
     c.lowerBound = 556.5;
     c.lowerBoundStrict = 550.25;
@@ -194,6 +196,7 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     c.unprovenDiscards = 3;
     c.gridBackedPrunes = 4;
     c.familyPrunes = 5;
+    c.nominalBoxPrunes = 101;
     c.provenInfeasible = 6;
     c.columnsOverruled = 7;
     c.certifiedCuts = 8;
@@ -208,10 +211,14 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     c.gainSearches = 17;
     c.exchangeRounds = 18;
     c.ladderSteps = 19;
+    c.laddersExhausted = 102;
+    c.roundLimitsReached = 103;
     c.largestWorkingSet = 20;
 
     const Record back = recordFromJson(toJson(record));
     const LoopShapingStatistics::Certificate & b = back.statistics.certificate;
+    EXPECT_TRUE(b.kept);
+    EXPECT_TRUE(b.finished);
     EXPECT_TRUE(b.exactPoints);
     EXPECT_EQ(b.lowerBound, c.lowerBound);
     EXPECT_EQ(b.lowerBoundStrict, c.lowerBoundStrict);
@@ -220,6 +227,7 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     EXPECT_EQ(b.unprovenDiscards, c.unprovenDiscards);
     EXPECT_EQ(b.gridBackedPrunes, c.gridBackedPrunes);
     EXPECT_EQ(b.familyPrunes, c.familyPrunes);
+    EXPECT_EQ(b.nominalBoxPrunes, c.nominalBoxPrunes);
     EXPECT_EQ(b.provenInfeasible, c.provenInfeasible);
     EXPECT_EQ(b.columnsOverruled, c.columnsOverruled);
     EXPECT_EQ(b.certifiedCuts, c.certifiedCuts);
@@ -234,9 +242,13 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     EXPECT_EQ(b.gainSearches, c.gainSearches);
     EXPECT_EQ(b.exchangeRounds, c.exchangeRounds);
     EXPECT_EQ(b.ladderSteps, c.ladderSteps);
+    EXPECT_EQ(b.laddersExhausted, c.laddersExhausted);
+    EXPECT_EQ(b.roundLimitsReached, c.roundLimitsReached);
     EXPECT_EQ(b.largestWorkingSet, c.largestWorkingSet);
 
     const Record unbounded = recordFromJson(toJson(Record()));
+    EXPECT_FALSE(unbounded.statistics.certificate.kept);
+    EXPECT_FALSE(unbounded.statistics.certificate.finished);
     EXPECT_FALSE(unbounded.statistics.certificate.exactPoints);
     EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBound));
     EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBoundStrict));

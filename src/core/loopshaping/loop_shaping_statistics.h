@@ -14,7 +14,13 @@
  * left a box ambiguous.
  *
  * The certificate is the bookkeeping of what the search threw away without
- * proof. A branch and bound proves optimality only if every region it
+ * proof, kept by the searches that keep one, MC2 alone today: for the
+ * others it says nothing, its bounds infinite only because nothing was
+ * counted. It is read from a run whether it ends with a design, with no
+ * design or with an error, and it is finished when the search reached its
+ * end, with a design or with an empty list; a certificate that is not has
+ * no bounds, since the boxes the search held when it stopped were never
+ * accounted for. A branch and bound proves optimality only if every region it
  * removes is covered by a proof or by a better design; the interval searches
  * remove boxes on the boundary columns of a phase grid, which is not the
  * specification, and prune boxes on the nominal stability of one point of an
@@ -23,8 +29,9 @@
  * verdicts and cuts read off the columns, the grid-backed prunes the boxes
  * the nominal criterion rejected whole on its frequency grid, the family
  * prunes the boxes the interval Routh table proved to destabilise a plant
- * of the sweep, or the nominal plant, for every controller in them, which
- * is a proof and enters no bound, as are the boxes the exact sector verdict
+ * of the sweep for every controller in them, and the nominal box prunes
+ * those it proved to destabilise the nominal plant, each a proof that enters
+ * no bound, as are the boxes the exact sector verdict
  * proved infeasible and the cuts it certified (the columns' verdicts it
  * overruled are counted too), and the residue the boxes dropped
  * with no certified point at the size the search stops at, or with a corner
@@ -38,7 +45,9 @@
  * what the reading costs, and the searches for the best gain at fixed zeros
  * and poles, the rounds in which a working set of plants had to grow, the
  * ladder steps a rounding cost and the largest working set say what its
- * gain costs.
+ * gain costs, and the searches that gave up on a vertex whose admissible set
+ * was not empty, at the top of the ladder or after the last round, what it
+ * missed.
  */
 
 #ifndef QFTBX_LOOPSHAPING_STATISTICS_H
@@ -72,6 +81,8 @@ struct LoopShapingStatistics
     std::vector<std::size_t> ambiguousByFrequency;
 
     struct Certificate {
+        bool kept = false;
+        bool finished = false;
         bool exactPoints = false;
         double lowerBound = std::numeric_limits<double>::infinity();
         double lowerBoundStrict = std::numeric_limits<double>::infinity();
@@ -80,6 +91,7 @@ struct LoopShapingStatistics
         std::size_t unprovenDiscards = 0;
         std::size_t gridBackedPrunes = 0;
         std::size_t familyPrunes = 0;
+        std::size_t nominalBoxPrunes = 0;
         std::size_t provenInfeasible = 0;
         std::size_t columnsOverruled = 0;
         std::size_t certifiedCuts = 0;
@@ -94,6 +106,8 @@ struct LoopShapingStatistics
         std::size_t gainSearches = 0;
         std::size_t exchangeRounds = 0;
         std::size_t ladderSteps = 0;
+        std::size_t laddersExhausted = 0;
+        std::size_t roundLimitsReached = 0;
         std::size_t largestWorkingSet = 0;
     };
     Certificate certificate;

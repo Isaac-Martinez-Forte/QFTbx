@@ -10,7 +10,9 @@
  * reads once per node. A run returns false when the search ends without a
  * solution and throws when the problem itself is wrong, when no feasible
  * point exists or when the token is raised. The settings are applied on
- * every run, so nothing is left over from the previous one.
+ * every run, so nothing is left over from the previous one. What the last
+ * run cost, and the certificate it kept, can be read whether it returned a
+ * design or not.
  */
 
 #ifndef QFTBX_LOOP_SHAPING_STAGE_H
@@ -36,6 +38,9 @@ public:
              const CancellationToken * cancellation = nullptr);
 
     void setSettings(const Settings & settings) { m_settings = settings; }
+
+    LoopShapingStatistics lastStatistics() const
+    { return m_engine != nullptr ? m_engine->statistics() : LoopShapingStatistics(); }
 
 private:
     LoopShaping & engine();

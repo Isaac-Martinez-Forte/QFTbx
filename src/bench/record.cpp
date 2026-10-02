@@ -105,6 +105,7 @@ const CertificateCount kCertificateCounts[] = {
     {"unproven_discards", &LoopShapingStatistics::Certificate::unprovenDiscards},
     {"grid_backed_prunes", &LoopShapingStatistics::Certificate::gridBackedPrunes},
     {"family_prunes", &LoopShapingStatistics::Certificate::familyPrunes},
+    {"nominal_box_prunes", &LoopShapingStatistics::Certificate::nominalBoxPrunes},
     {"proven_infeasible", &LoopShapingStatistics::Certificate::provenInfeasible},
     {"columns_overruled", &LoopShapingStatistics::Certificate::columnsOverruled},
     {"certified_cuts", &LoopShapingStatistics::Certificate::certifiedCuts},
@@ -119,6 +120,8 @@ const CertificateCount kCertificateCounts[] = {
     {"gain_searches", &LoopShapingStatistics::Certificate::gainSearches},
     {"exchange_rounds", &LoopShapingStatistics::Certificate::exchangeRounds},
     {"ladder_steps", &LoopShapingStatistics::Certificate::ladderSteps},
+    {"ladders_exhausted", &LoopShapingStatistics::Certificate::laddersExhausted},
+    {"round_limits_reached", &LoopShapingStatistics::Certificate::roundLimitsReached},
     {"largest_working_set", &LoopShapingStatistics::Certificate::largestWorkingSet},
 };
 
@@ -166,6 +169,8 @@ QJsonObject toJson(const Record & r)
     {
         const LoopShapingStatistics::Certificate & c = r.statistics.certificate;
         QJsonObject certificate;
+        certificate["kept"] = c.kept;
+        certificate["finished"] = c.finished;
         certificate["exact_points"] = c.exactPoints;
         if (std::isfinite(c.lowerBound)) {
             certificate["lower_bound"] = c.lowerBound;
@@ -262,6 +267,8 @@ Record recordFromJson(const QJsonObject & o)
     if (s.contains("certificate")) {
         const QJsonObject certificate = s["certificate"].toObject();
         LoopShapingStatistics::Certificate & c = r.statistics.certificate;
+        c.kept = certificate["kept"].toBool();
+        c.finished = certificate["finished"].toBool();
         c.exactPoints = certificate["exact_points"].toBool();
         c.lowerBound = certificate.contains("lower_bound") ? certificate["lower_bound"].toDouble()
                                                            : std::numeric_limits<double>::infinity();

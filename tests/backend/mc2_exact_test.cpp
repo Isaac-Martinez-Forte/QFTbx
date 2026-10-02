@@ -11,7 +11,10 @@
  * stay ordered and at or below the returned gain, and the gain is pinned to
  * the design the search returns on the machine the pins were taken on. A
  * compiler that fuses other products may land a few ulps away, hence the
- * relative tolerance.
+ * relative tolerance. The certificate is kept and finished with the design;
+ * it is kept, finished and read too when a gain box too low for any design
+ * leaves the search without one, kept but not finished when the run is
+ * cancelled, and not kept at all by another algorithm.
  */
 
 #include <gtest/gtest.h>
@@ -22,8 +25,11 @@
 #include <string>
 
 #include "src/app/project_controller.h"
+#include "src/core/common/exception.h"
 #include "src/core/math/range.h"
+#include "src/core/pipeline/cancellation.h"
 #include "src/core/project/settings.h"
+#include "src/core/system/parameter.h"
 
 using namespace qftbx;
 
@@ -69,6 +75,8 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
     EXPECT_EQ(result->run().pointReading, Settings::Research::PointReading::Exact) << c.name;
 
     const LoopShapingStatistics::Certificate & certificate = result->statistics().certificate;
+    EXPECT_TRUE(certificate.kept) << c.name;
+    EXPECT_TRUE(certificate.finished) << c.name;
     EXPECT_TRUE(certificate.exactPoints) << c.name;
 
     const double gain = result->controller()->gain().nominal();
@@ -87,5 +95,40 @@ INSTANTIATE_TEST_SUITE_P(
     [](const ::testing::TestParamInfo<ExactCase> & info) {
         return std::string(info.param.name);
     });
+
+TEST(Mc2Certificate, ARunWithoutADesignKeepsItsCertificate)
+{
+    ProjectController controller;
+    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "toolbox-2.qft").string());
+    LtiSystem * structure = controller.controllerStructure();
+    ASSERT_NE(structure, nullptr);
+    controller.setControllerStructure(structure->create("low", structure->numerator(), structure->denominator(),
+                                                        Parameter(std::string("k"), Range(1.0, 2.0), 1.0)));
+
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100), InvalidInput);
+
+    const LoopShapingStatistics statistics = controller.lastLoopShapingStatistics();
+    EXPECT_TRUE(statistics.certificate.kept);
+    EXPECT_TRUE(statistics.certificate.finished);
+    EXPECT_TRUE(statistics.certificate.exactPoints);
+    EXPECT_GT(statistics.nodesProcessed, 0u);
+    EXPECT_GT(statistics.milliseconds, 0.0);
+}
+
+TEST(Mc2Certificate, ACancelledRunKeepsAnUnfinishedCertificateAndOtherAlgorithmsKeepNone)
+{
+    ProjectController controller;
+    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "toolbox-2.qft").string());
+    CancellationToken cancelled;
+    cancelled.cancel();
+
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100, 0, &cancelled), Cancelled);
+    EXPECT_TRUE(controller.lastLoopShapingStatistics().certificate.kept);
+    EXPECT_FALSE(controller.lastLoopShapingStatistics().certificate.finished);
+
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100, 0, &cancelled), Cancelled);
+    EXPECT_FALSE(controller.lastLoopShapingStatistics().certificate.kept);
+    EXPECT_FALSE(controller.lastLoopShapingStatistics().certificate.finished);
+}
 
 }

@@ -14,9 +14,10 @@
  * with the old by value, here and nowhere else. Publishing null is refused,
  * since removing a step is not something the pipeline does. A computation in
  * flight has the data to itself and anything that would change it throws
- * meanwhile; the loop shaping runs on a worker and can be cancelled. The
- * controller structure is the controller being designed, not
- * this class. The templates, the contours and the boundaries take the
+ * meanwhile; the loop shaping runs on a worker and can be cancelled, and
+ * what its last run cost, with the certificate it kept, can be read even
+ * when it ended without a design. The controller structure is the
+ * controller being designed, not this class. The templates, the contours and the boundaries take the
  * choices of their dialogs, with the settings giving the defaults, and a
  * project is read whole before the current one is replaced.
  */
@@ -112,6 +113,8 @@ public:
     bool computeLoopShaping(double epsilon, qftbx::LoopShapingAlgorithm algorithm, qftbx::Range plotRange,
                             double pointCount, std::int32_t initialisation = 0,
                             const qftbx::CancellationToken * cancellation = nullptr);
+
+    qftbx::LoopShapingStatistics lastLoopShapingStatistics() const { return m_loopShaping.lastStatistics(); }
 
     void applySettings(const qftbx::Settings & settings);
 

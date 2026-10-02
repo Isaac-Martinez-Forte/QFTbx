@@ -98,7 +98,11 @@
  * exchange converges once per run and the calls after it cost a few
  * quadratics. An exchange that has not settled after 64 rounds gives up on
  * the vertex, which then offers no gain: it costs a candidate, never a
- * proof. admissibleGainsDb is the same set over the whole cloud, for the
+ * proof. The rounds of a search are those in which a working set grew, and
+ * the statistics count apart the two ways a search gives up on a vertex
+ * whose admissible set is not empty: a ladder climbed to its top with
+ * neither a confirmation nor a plant to learn from, and the 64 rounds
+ * spent. admissibleGainsDb is the same set over the whole cloud, for the
  * tests and for reference.
  *
  * sectorVerdict is the same geometry asked of a whole box of controllers,
@@ -126,8 +130,8 @@
  * phase interval.
  *
  * A project whose templates do not cover every design frequency has no
- * reference: the check is then unusable and the caller keeps to the
- * columns, as the verifier reports such a design unverified. checkOf gives
+ * reference: the check is then unusable and MC2 refuses to run, as the
+ * verifier reports such a design unverified. checkOf gives
  * the full list of a point's excesses, for the tests, among them the one
  * that pins the identity with the verifier; the family is not its business.
  */
@@ -174,6 +178,8 @@ public:
         std::size_t gainSearches = 0;
         std::size_t exchangeRounds = 0;
         std::size_t ladderSteps = 0;
+        std::size_t laddersExhausted = 0;
+        std::size_t roundLimitsReached = 0;
         std::size_t largestWorkingSet = 0;
         std::size_t sectorVerdicts = 0;
     };

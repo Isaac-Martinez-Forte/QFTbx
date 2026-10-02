@@ -13,7 +13,9 @@
  * evaluates, once per run, and handed to it with the templates. Each branch
  * states the problem; the cancellation, the settings, the clock and the
  * search are the same for all seven. The cost counters of the run are read
- * from the algorithm and kept with the result.
+ * from the algorithm whether the search returns a design, returns none or
+ * throws, so a run that ends without a design still says what it cost and
+ * what its certificate holds.
  */
 
 #include "src/core/loopshaping/loop_shaping.h"
@@ -54,11 +56,18 @@ bool LoopShaping::run(LtiSystem * plant, LtiSystem * controller, std::vector<dou
         search.setCancellation(m_cancellation);
         search.setSettings(m_settings);
         const auto start = std::chrono::steady_clock::now();
-        solved = search.solve();
+        const auto keepStatistics = [&] {
+            m_statistics = search.statistics();
+            m_statistics.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+        };
+        try {
+            solved = search.solve();
+        } catch (...) {
+            keepStatistics();
+            throw;
+        }
+        keepStatistics();
         if (solved) {
-            LoopShapingStatistics statistics = search.statistics();
-            statistics.milliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
-            m_statistics = std::move(statistics);
             m_controller = search.controllerStructure();
         }
     };
