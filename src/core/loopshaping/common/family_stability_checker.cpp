@@ -7,16 +7,18 @@
  * A verdict multiplies every member's numerator and denominator by the
  * candidate's and asks whether the sum is Hurwitz, and the nominal verdict
  * the same of the nominal plant; the confirmation asks the verifier's
- * criterion the same question of the nominal plant and of every member. A box proof encloses the
- * box's factors in intervals and asks the interval Routh table, bisecting
- * the gain, or every parameter at the nominal plant, until it decides.
+ * criterion the same question of the nominal plant and of every member. A
+ * box proof encloses the box's factors in intervals and asks the interval
+ * Routh table, bisecting the gain, or every parameter at the nominal plant,
+ * until it decides; the products of the factors are formed once per box and
+ * carried down the bisection, and only the side of a root that was split is
+ * formed again.
  */
 
 #include "src/core/loopshaping/common/family_stability_checker.h"
 
 #include <algorithm>
 #include <cmath>
-#include <functional>
 #include <optional>
 #include <vector>
 
@@ -50,13 +52,28 @@ std::vector<Interval> asIntervals(const std::vector<double> & coefficients)
     return intervals;
 }
 
+enum class Split { Gain, Zero, Pole };
+
 struct BoxIntervals {
     LtiSystem::Polynomials corner;
     LtiSystem::SystemType type = LtiSystem::SystemType::ZeroPoleGain;
     std::vector<Interval> zeros;
     std::vector<Interval> poles;
     Interval gain;
+    std::vector<Interval> zeroFactors;
+    std::vector<Interval> poleFactors;
 };
+
+std::vector<Interval> factorProductOf(const std::vector<Interval> & roots, LtiSystem::SystemType type)
+{
+    std::vector<Interval> product{Interval(1.0)};
+    for (const Interval & r : roots) {
+        product = math::intervalPolynomialProduct(
+                    product, type == LtiSystem::SystemType::ZeroPoleGain ? std::vector<Interval>{Interval(1.0), r}
+                                                                          : std::vector<Interval>{Interval(1.0) / r, Interval(1.0)});
+    }
+    return product;
+}
 
 std::optional<BoxIntervals> boxIntervalsOf(LtiSystem * box, LtiSystem & controller)
 {
@@ -90,25 +107,85 @@ std::optional<BoxIntervals> boxIntervalsOf(LtiSystem * box, LtiSystem & controll
         }
     }
     intervals.gain = intervalOf(box->gain());
+    intervals.zeroFactors = factorProductOf(intervals.zeros, type);
+    intervals.poleFactors = factorProductOf(intervals.poles, type);
     return intervals;
 }
 
-std::vector<Interval> factorProductOf(const std::vector<Interval> & roots, LtiSystem::SystemType type)
-{
-    std::vector<Interval> product{Interval(1.0)};
-    for (const Interval & r : roots) {
-        product = math::intervalPolynomialProduct(
-                    product, type == LtiSystem::SystemType::ZeroPoleGain ? std::vector<Interval>{Interval(1.0), r}
-                                                                          : std::vector<Interval>{Interval(1.0) / r, Interval(1.0)});
-    }
-    return product;
-}
 
 double relativeWidth(const Interval & x)
 {
     const double scale = std::max(std::abs(x.lower()), std::abs(x.upper()));
     return scale > 0.0 ? (x.upper() - x.lower()) / scale : 0.0;
 }
+
+struct ProofSearch {
+    const BoxIntervals & box;
+    Bisect bisect;
+    const std::vector<Interval> & plantNumerator;
+    const std::vector<Interval> & plantDenominator;
+    std::vector<Interval> zeros;
+    std::vector<Interval> poles;
+    Interval gain;
+
+    bool provenOn(const std::vector<Interval> & perUnitGain, const std::vector<Interval> & withoutGain, int depth)
+    {
+        std::vector<Interval> perGain = perUnitGain;
+        for (Interval & c : perGain) {
+            c = c * gain;
+        }
+        if (math::provablyNotHurwitz(math::intervalPolynomialSum(withoutGain, perGain))) {
+            return true;
+        }
+        if (depth >= kMaxBisectionDepth) {
+            return false;
+        }
+
+        Interval * widest = &gain;
+        Split split = Split::Gain;
+        if (bisect == Bisect::EveryParameter) {
+            for (Interval & r : zeros) {
+                if (relativeWidth(r) > relativeWidth(*widest)) {
+                    widest = &r;
+                    split = Split::Zero;
+                }
+            }
+            for (Interval & r : poles) {
+                if (relativeWidth(r) > relativeWidth(*widest)) {
+                    widest = &r;
+                    split = Split::Pole;
+                }
+            }
+        }
+        if (!(relativeWidth(*widest) > kNegligibleWidth)) {
+            return false;
+        }
+
+        const auto half = [&] {
+            switch (split) {
+            case Split::Zero:
+                return provenOn(math::intervalPolynomialProduct(plantNumerator, factorProductOf(zeros, box.type)),
+                                withoutGain, depth + 1);
+            case Split::Pole:
+                return provenOn(perUnitGain,
+                                math::intervalPolynomialProduct(plantDenominator, factorProductOf(poles, box.type)),
+                                depth + 1);
+            case Split::Gain:
+                break;
+            }
+            return provenOn(perUnitGain, withoutGain, depth + 1);
+        };
+
+        const Interval whole = *widest;
+        const double middle = 0.5 * (whole.lower() + whole.upper());
+        *widest = Interval(whole.lower(), middle);
+        const bool lower = half();
+        *widest = Interval(middle, whole.upper());
+        const bool proven = lower && half();
+        *widest = whole;
+        return proven;
+    }
+};
 
 bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals & box, Bisect bisect)
 {
@@ -119,49 +196,9 @@ bool provenUnstableWith(const LtiSystem::Polynomials & plant, const BoxIntervals
     const std::vector<Interval> plantNumerator = asIntervals(plant.numerator);
     const std::vector<Interval> plantDenominator = asIntervals(plant.denominator);
 
-    std::vector<Interval> zeros = box.zeros;
-    std::vector<Interval> poles = box.poles;
-    Interval gain = box.gain;
-
-    const std::function<bool (int)> provenOn = [&](int depth) {
-        std::vector<Interval> perGain = math::intervalPolynomialProduct(plantNumerator, factorProductOf(zeros, box.type));
-        for (Interval & c : perGain) {
-            c = c * gain;
-        }
-        const std::vector<Interval> withoutGain =
-                math::intervalPolynomialProduct(plantDenominator, factorProductOf(poles, box.type));
-        if (math::provablyNotHurwitz(math::intervalPolynomialSum(withoutGain, perGain))) {
-            return true;
-        }
-        if (depth >= kMaxBisectionDepth) {
-            return false;
-        }
-
-        Interval * widest = &gain;
-        if (bisect == Bisect::EveryParameter) {
-            for (std::vector<Interval> * roots : {&zeros, &poles}) {
-                for (Interval & r : *roots) {
-                    if (relativeWidth(r) > relativeWidth(*widest)) {
-                        widest = &r;
-                    }
-                }
-            }
-        }
-        if (!(relativeWidth(*widest) > kNegligibleWidth)) {
-            return false;
-        }
-
-        const Interval whole = *widest;
-        const double middle = 0.5 * (whole.lower() + whole.upper());
-        *widest = Interval(whole.lower(), middle);
-        const bool lower = provenOn(depth + 1);
-        *widest = Interval(middle, whole.upper());
-        const bool proven = lower && provenOn(depth + 1);
-        *widest = whole;
-        return proven;
-    };
-
-    return provenOn(0);
+    ProofSearch search{box, bisect, plantNumerator, plantDenominator, box.zeros, box.poles, box.gain};
+    return search.provenOn(math::intervalPolynomialProduct(plantNumerator, box.zeroFactors),
+                           math::intervalPolynomialProduct(plantDenominator, box.poleFactors), 0);
 }
 
 }
