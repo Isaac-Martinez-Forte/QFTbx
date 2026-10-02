@@ -9,8 +9,10 @@
  * be a point; the library functions are the C library's doubles widened by
  * four representable steps either way, at every scale; the floating-point
  * environment is the same before and after, which is what lets the
- * arithmetic run inside OpenMP regions and next to Qt; and a rectangle
- * across the negative real axis keeps a continuous phase.
+ * arithmetic run inside OpenMP regions and next to Qt; a square on one side
+ * of zero is, to the bit, the hull of the squares of its two ends, over
+ * random ends at every scale and the special values among them; and a
+ * rectangle across the negative real axis keeps a continuous phase.
  */
 
 #include <gtest/gtest.h>
@@ -18,6 +20,8 @@
 #include <cfenv>
 #include <cmath>
 #include <complex>
+#include <cstring>
+#include <limits>
 #include <random>
 #include <stdexcept>
 #include <vector>
@@ -32,6 +36,11 @@ namespace {
 bool encloses(const Interval & x, double value)
 {
     return x.lower() <= value && value <= x.upper();
+}
+
+bool sameBits(double a, double b)
+{
+    return std::memcmp(&a, &b, sizeof a) == 0;
 }
 
 }
@@ -217,6 +226,38 @@ TEST(IntervalArithmetic, IntersectionAndHull)
     EXPECT_DOUBLE_EQ(both.upper(), 6.0);
 
     EXPECT_TRUE(Interval(2.0, 1.0).contains(1.5)) << "the bounds may come in either order";
+}
+
+TEST(IntervalArithmetic, ASquareOnOneSideOfZeroIsTheHullOfTheSquaresOfItsEnds)
+{
+    const auto expectTheHull = [](double lo, double hi) {
+        const Interval square = sqr(Interval(lo, hi));
+        const Interval ends = Interval::hull(Interval(lo) * Interval(lo), Interval(hi) * Interval(hi));
+        EXPECT_TRUE(sameBits(square.lower(), ends.lower())) << "[" << lo << ", " << hi << "]";
+        EXPECT_TRUE(sameBits(square.upper(), ends.upper())) << "[" << lo << ", " << hi << "]";
+    };
+
+    const double specials[] = {0.0, -0.0, std::numeric_limits<double>::denorm_min(), 1e-310,
+                               std::numeric_limits<double>::min(), 1e-160, 1.4916681462400413e-154, 1.0, 1e150,
+                               1.3407807929942596e154, 1e200, std::numeric_limits<double>::max(),
+                               std::numeric_limits<double>::infinity()};
+    for (const double a : specials) {
+        for (const double b : specials) {
+            if (a <= b) {
+                expectTheHull(a, b);
+                expectTheHull(-b, -a);
+            }
+        }
+    }
+
+    std::mt19937_64 generator(7);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    for (int trial = 0; trial < 200000; ++trial) {
+        const double lo = std::ldexp(unit(generator), static_cast<int>(generator() % 2100) - 1075);
+        const double hi = (generator() & 3) == 0 ? lo : lo + std::ldexp(unit(generator), static_cast<int>(generator() % 2100) - 1075);
+        expectTheHull(lo, hi);
+        expectTheHull(-hi, -lo);
+    }
 }
 
 TEST(ComplexIntervalArithmetic, MagnitudeAndPhaseOfARectangleEncloseItsPoints)

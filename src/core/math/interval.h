@@ -59,7 +59,9 @@
  * pi is not resolved well enough, and the whole range is returned. tan is
  * monotone between its poles and the whole real line when the interval may
  * hold one. sqr is tight, [0, max] where x straddles zero, where x * x would
- * give a negative lower end. pow(x, y) is exp(y log x), for a strictly
+ * give a negative lower end; on one side of zero it is the square of the end
+ * nearer zero rounded down and that of the farther rounded up, the two of the
+ * four directed products that the hull of the squares of the ends would keep. pow(x, y) is exp(y log x), for a strictly
  * positive x. atan2(y, x) is the argument of the rectangle {x + j y}: the
  * whole turn [-pi, pi] when the rectangle contains the origin; otherwise the
  * argument is continuous over it and monotone along each edge, so its
@@ -121,6 +123,11 @@ inline double widthOf(const Backend & x) { return cxsc::_double(cxsc::diam(x)); 
 inline Backend sqrtOf(const Backend & x) { return cxsc::sqrt(x); }
 inline Backend powerOf(const Backend & x, int n) { return cxsc::power(x, n); }
 inline Backend piOf() { return cxsc::Pi(); }
+inline Backend squaresOf(double nearer, double farther)
+{
+    return cxsc::interval(cxsc::Inf(backend(nearer, nearer) * backend(nearer, nearer)),
+                          cxsc::Sup(backend(farther, farther) * backend(farther, farther)));
+}
 
 #else
 
@@ -133,6 +140,10 @@ inline double widthOf(const Backend & x) { return width(x); }
 inline Backend sqrtOf(const Backend & x) { return sqrt(x); }
 inline Backend powerOf(const Backend & x, int n) { return pow(x, n); }
 inline Backend piOf() { return kv::constants<kv::interval<double>>::pi(); }
+inline Backend squaresOf(double nearer, double farther)
+{
+    return kv::interval<double>(kv::rop<double>::mul_down(nearer, nearer), kv::rop<double>::mul_up(farther, farther));
+}
 
 #endif
 
@@ -348,10 +359,10 @@ public:
         const double hi = x.upper();
 
         if (lo >= 0.0) {
-            return hull(Interval(lo) * Interval(lo), Interval(hi) * Interval(hi));
+            return Interval(detail::squaresOf(lo, hi));
         }
         if (hi <= 0.0) {
-            return hull(Interval(hi) * Interval(hi), Interval(lo) * Interval(lo));
+            return Interval(detail::squaresOf(hi, lo));
         }
 
         const Interval a = Interval(lo) * Interval(lo);
