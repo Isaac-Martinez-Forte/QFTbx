@@ -33,9 +33,13 @@
  * The plants' polynomials are the SweptFamily's, built once, when the
  * checker is, and the nominal plant's beside them. A plant or controller
  * with a delay, one that is not a rational function, or a project with no
- * record of its sweep leaves the checker unusable: isStable and
+ * record of its sweep leaves the family unusable: isStable and
  * isStableByRoots then answer stable, which leaves the caller where it would
- * be without the checker, and the box tests answer nothing proven.
+ * be without the checker, and isBoxUnstable answers nothing proven. The
+ * nominal plant needs no sweep, only rational polynomials and no delay in
+ * the plant or the controller, so isBoxUnstableAtNominal proves boxes also
+ * on the problems whose family was never swept, and with the family gate
+ * off, where the search hands the checker no sweep.
  *
  * isStable is the Routh table per member, tens of microseconds for a family
  * of hundreds, stopping at the first member that fails; the member that

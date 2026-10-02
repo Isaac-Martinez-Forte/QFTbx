@@ -175,7 +175,7 @@ FamilyStabilityChecker::FamilyStabilityChecker(LtiSystem * plant, LtiSystem * co
     m_controller = controller->clone();
     m_family = SweptFamily(*plant, sweep);
 
-    if (m_family.usable()) {
+    if (!hasDelay(*plant)) {
         m_nominal = nominalPolynomials(*plant);
     }
 }

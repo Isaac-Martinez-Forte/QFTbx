@@ -24,7 +24,9 @@
  * starts from the plants that refused the last points asked, so each box is
  * asked after its corner; the same holds with the nominal plant,
  * on the DC motor of Tharewal's example 3.1 and on the magnetic levitation
- * plant, whose poles sit on the imaginary axis. And the gate itself: on the
+ * plant, whose poles sit on the imaginary axis, and the proof at the
+ * nominal plant needs no sweep, proving the same boxes without one, but
+ * proves nothing once the plant has a delay. And the gate itself: on the
  * magnetic levitation problem the search returns a design the family does
  * not accept until it is given the sweep, and then only designs every plant
  * is stable under.
@@ -467,6 +469,44 @@ TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
         EXPECT_EQ(family.statistics().nominalBoxVerdicts, 1500u) << name;
         EXPECT_EQ(family.statistics().nominalBoxPrunes, proven) << name;
     }
+}
+
+TEST(FamilyStabilityGate, TheNominalBoxProofNeedsNoSweepButRefusesADelay)
+{
+    const std::string file = example("dcm-k.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * plant = project.plant();
+    LtiSystem * structure = project.controllerStructure();
+    ASSERT_NE(structure, nullptr);
+
+    FamilyStabilityChecker swept(plant, structure, project.sweepGrids());
+    FamilyStabilityChecker unswept(plant, structure, ParameterGrids());
+    std::unique_ptr<LtiSystem> delayedPlant = plant->create("delayed", plant->numerator(), plant->denominator(),
+                                                            plant->gain(), Parameter(0.01),
+                                                            plant->numeratorString(), plant->denominatorString());
+    FamilyStabilityChecker delayed(delayedPlant.get(), structure, ParameterGrids());
+    ASSERT_TRUE(swept.usable());
+    EXPECT_FALSE(unswept.usable());
+    EXPECT_FALSE(delayed.usable());
+
+    std::mt19937 generator(37);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    std::size_t proven = 0;
+    for (int trial = 0; trial < 300; ++trial) {
+        const double width = std::pow(10.0, -4.0 + 4.0 * unit(generator));
+        std::unique_ptr<LtiSystem> box = randomBox(*structure, width, generator);
+        const bool withSweep = swept.isBoxUnstableAtNominal(box.get());
+        EXPECT_EQ(unswept.isBoxUnstableAtNominal(box.get()), withSweep) << "trial " << trial;
+        EXPECT_FALSE(delayed.isBoxUnstableAtNominal(box.get())) << "trial " << trial;
+        proven += withSweep ? 1 : 0;
+    }
+    EXPECT_GT(proven, 0u);
+    EXPECT_EQ(unswept.statistics().nominalBoxPrunes, proven);
+    EXPECT_EQ(delayed.statistics().nominalBoxVerdicts, 0u);
 }
 
 TEST(FamilyStabilityGate, TheSearchNoLongerReturnsTheUnstableMaglevDesign)
