@@ -9,7 +9,13 @@
  * values otherwise reads a double root at the origin as a pair a little off
  * it. Coefficient recovery samples the function on two circles and accepts
  * only when both agree, which is what separates a polynomial from an entire
- * function such as a delay.
+ * function such as a delay. Its 64 points of the unit circle and the 64 by
+ * 64 phasors of the transform are tabulated once, at run time and with the
+ * expressions that computed them inside the loops, indexed by both indices
+ * rather than by their product modulo 64, since the angle not reduced rounds
+ * otherwise: the tables change no bit, and spare the 4160 sines and cosines
+ * each pass took, which were most of what closing the loop with a swept
+ * family cost.
  */
 
 #include "src/core/math/polynomial.h"
@@ -135,18 +141,48 @@ std::vector<std::complex<double>> polynomialRoots(const std::vector<double> & co
     return roots;
 }
 
+namespace {
+
+constexpr int kSamples = 64;
+
+struct TransformTables {
+    std::vector<std::complex<double>> circle;
+    std::vector<std::complex<double>> phasors;
+
+    TransformTables() : circle(kSamples), phasors(kSamples * kSamples)
+    {
+        for (int j = 0; j < kSamples; ++j) {
+            circle[static_cast<std::size_t>(j)] = std::polar(1.0, 2.0 * kPi * j / kSamples);
+        }
+        for (int k = 0; k < kSamples; ++k) {
+            for (int j = 0; j < kSamples; ++j) {
+                phasors[static_cast<std::size_t>(k * kSamples + j)] = std::polar(1.0, -2.0 * kPi * j * k / kSamples);
+            }
+        }
+    }
+};
+
+const TransformTables & transformTables()
+{
+    static const TransformTables tables;
+    return tables;
+}
+
+}
+
 std::optional<std::vector<double>> polynomialCoefficients(
         const std::function<std::complex<double>(std::complex<double>)> & value, int maxDegree)
 {
-    constexpr int kSamples = 64;
     if (maxDegree < 0 || 2 * (maxDegree + 1) > kSamples) {
         return std::nullopt;
     }
+    const TransformTables & tables = transformTables();
 
     const auto pass = [&](double radius, std::vector<double> & coefficients) -> bool {
         std::vector<std::complex<double>> samples(kSamples);
         for (int j = 0; j < kSamples; ++j) {
-            const std::complex<double> s = std::polar(radius, 2.0 * kPi * j / kSamples);
+            const std::complex<double> & unit = tables.circle[static_cast<std::size_t>(j)];
+            const std::complex<double> s(radius * unit.real(), radius * unit.imag());
             samples[j] = value(s);
             if (!std::isfinite(samples[j].real()) || !std::isfinite(samples[j].imag())) {
                 return false;
@@ -158,7 +194,7 @@ std::optional<std::vector<double>> polynomialCoefficients(
         for (int k = 0; k < kSamples; ++k) {
             std::complex<double> sum(0.0, 0.0);
             for (int j = 0; j < kSamples; ++j) {
-                sum += samples[j] * std::polar(1.0, -2.0 * kPi * j * k / kSamples);
+                sum += samples[j] * tables.phasors[static_cast<std::size_t>(k * kSamples + j)];
             }
             scaled[k] = sum / static_cast<double>(kSamples);
             largest = std::max(largest, std::abs(scaled[k]));
