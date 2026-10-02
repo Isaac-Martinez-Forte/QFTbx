@@ -1,13 +1,3 @@
-#ifndef QFTBX_CLOSED_LOOP_WORST_CASE_H
-#define QFTBX_CLOSED_LOOP_WORST_CASE_H
-
-#include <algorithm>
-#include <complex>
-#include <limits>
-#include <vector>
-
-#include "src/core/templates/cloud_set.h"
-
 /**
  * @file
  * @brief The closed-loop magnitudes a QFT specification bounds, evaluated
@@ -30,12 +20,35 @@
  * (10)); the specification checker evaluates them once, at the loop value of
  * a returned controller, to verify it against the specifications
  * themselves. One definition for both.
+ *
+ * WorstCase holds, in linear units, the worst case of each magnitude over
+ * the value set, and the best case of the tracking magnitude too, since
+ * tracking bounds the spread; with them the distance from \f$ -L_0 \f$ to
+ * the nearest sample point of the value set, the smallest
+ * \f$ |P_0/P + L_0| \f$ met, which the guard near the singular locus needs
+ * (see SingularLocus), and the index of that sample. The quotients
+ * \f$ P_0 / P \f$ do not depend on the loop value, so nominalOverValueSet()
+ * computes them once per frequency: the sweep asks for them at tens of
+ * thousands of grid points. A WorstCaseMask says which magnitudes a caller
+ * wants: the sheet sweep asks only for those the specifications in use at
+ * that frequency need, two of the five on example 2, and stability, sensor
+ * noise and tracking share one. worstCaseAt() evaluates the magnitudes the
+ * mask asks for, leaving the others at their initial values, or all five
+ * when given no mask.
  */
+
+#ifndef QFTBX_CLOSED_LOOP_WORST_CASE_H
+#define QFTBX_CLOSED_LOOP_WORST_CASE_H
+
+#include <algorithm>
+#include <complex>
+#include <limits>
+#include <vector>
+
+#include "src/core/templates/cloud_set.h"
+
 namespace qftbx {
 
-/// The worst case of each magnitude over the value set at one loop value,
-/// and the best case of the tracking magnitude too, since tracking bounds
-/// the spread. Linear units.
 struct WorstCase
 {
     double stabilityNoise = -std::numeric_limits<double>::infinity();
@@ -43,17 +56,10 @@ struct WorstCase
     double outputDisturbance = -std::numeric_limits<double>::infinity();
     double inputDisturbance = -std::numeric_limits<double>::infinity();
     double controlEffort = -std::numeric_limits<double>::infinity();
-    /// The distance from \f$ -L_0 \f$ to the nearest sample point of the
-    /// value set: the smallest \f$ |R + L_0| \f$ met, which is what the
-    /// guard near the singular locus needs (see SingularLocus).
     double nearestSample = std::numeric_limits<double>::infinity();
-    /// The index in the value set of that nearest sample.
     std::size_t nearestIndex = 0;
 };
 
-/// The quotients \f$ P_0 / P \f$ of the value set, computed once per
-/// frequency: they do not depend on the loop value, and the sweep asks for
-/// them at tens of thousands of grid points.
 inline std::vector<std::complex<double>> nominalOverValueSet(std::complex<double> p0,
                                                              const ComplexCloud & valueSet)
 {
@@ -67,9 +73,6 @@ inline std::vector<std::complex<double>> nominalOverValueSet(std::complex<double
     return quotients;
 }
 
-/// Which of the magnitudes a caller wants: the sheet sweep asks only for
-/// the ones the specifications in use at that frequency need, two of the
-/// five on example 2. Stability, sensor noise and tracking share one.
 struct WorstCaseMask
 {
     bool stabilityNoiseTracking = true;
@@ -80,9 +83,6 @@ struct WorstCaseMask
     static WorstCaseMask all() { return WorstCaseMask{}; }
 };
 
-/// The magnitudes the mask asks for, at the loop value L over the value set,
-/// given the nominal plant value and the quotients nominalOverValueSet()
-/// returns. A magnitude not asked for keeps its initial value.
 inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
                              const ComplexCloud & valueSet,
                              const std::vector<std::complex<double>> & nominalOverP,
@@ -120,7 +120,6 @@ inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
     return worst;
 }
 
-/// All five magnitudes.
 inline WorstCase worstCaseAt(std::complex<double> p0, std::complex<double> L,
                              const ComplexCloud & valueSet,
                              const std::vector<std::complex<double>> & nominalOverP)

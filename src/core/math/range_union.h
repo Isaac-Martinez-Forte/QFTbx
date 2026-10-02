@@ -2,12 +2,34 @@
  * @file
  * @brief A finite union of closed intervals, kept in canonical form.
  *
- * The magnitudes a design frequency admits at one phase are a union of
- * intervals, not one interval: a closed boundary leaves two, a multivalued
- * one more, and the intersection over specifications any number. The set
- * keeps its members ascending and disjoint, so the count is the number of
- * components, and intersects, shifts and reads its smallest member without
- * collapsing the branches into their hull.
+ * The magnitudes a design frequency allows the nominal loop to take at one
+ * phase are a union of closed intervals, not an interval: one for an open
+ * boundary, two for a closed one, more for a multivalued one, and the
+ * intersection over the specifications of the frequency can leave any
+ * number of them (BoundaryColumns). A search that has to intersect those
+ * sets over the design frequencies and then take the smallest gain left
+ * cannot hold them in a pair of numbers: a pair collapses the branches into
+ * their hull, and so loses the lower branch of a closed boundary, which is
+ * where the smallest feasible gain often lies. Not to be confused with
+ * Interval, the rounded interval arithmetic of the natural extension: this
+ * is a plain set of reals built out of Range, with no directed rounding, and
+ * it answers set questions, not arithmetic ones.
+ *
+ * Canonical form: the members are ascending, disjoint and non-touching, so
+ * count() is the number of connected components of the set and at() the
+ * i-th of them, ascending. Ends may be infinite. A member given with its
+ * ends inverted is empty and is dropped, which is what makes an
+ * intersection that misses compose as the empty set rather than as a
+ * reversed interval, and touching members are merged, because their union
+ * as closed intervals is connected. A default set is empty and whole() is
+ * the real line. The intervals of a column, which BoundaryColumns hands out
+ * as two parallel arrays, need not be sorted or disjoint: the set is brought
+ * to canonical form either way. minimum() and maximum() are attained and
+ * throw on the empty set, and contains() stops at the first member above
+ * the value. intersectWith() takes one pass over both sets, since both are
+ * canonical and the overlaps come out ascending and disjoint, and shiftBy()
+ * translates the whole set, which is what carrying a magnitude set from the
+ * boundary's frame to the gain's amounts to.
  */
 
 #ifndef QFTBX_RANGE_UNION_H
@@ -23,43 +45,17 @@
 
 namespace qftbx {
 
-/**
- * @brief A finite union of closed real intervals, kept in canonical form.
- *
- * The magnitudes a design frequency allows the nominal loop to take at one
- * phase are a union of closed intervals, not an interval: one for an open
- * boundary, two for a closed one, more for a multivalued one, and the
- * intersection over the specifications of the frequency can leave any
- * number of them (BoundaryColumns). A search that has to intersect those
- * sets over the design frequencies and then take the smallest gain left
- * cannot hold them in a pair of numbers: a pair collapses the branches into
- * their hull, and so loses the lower branch of a closed boundary, which is
- * where the smallest feasible gain often lies.
- *
- * Not to be confused with Interval, the rounded interval arithmetic of the
- * natural extension. This is a plain set of reals built out of Range, with
- * no directed rounding: it answers set questions, not arithmetic ones.
- *
- * Canonical form: the members are ascending, disjoint and non-touching, so
- * count() is the number of connected components of the set and the members
- * are those components. Ends may be infinite. A member given with its ends
- * inverted is empty and is dropped, which is what makes an intersection
- * that misses compose as the empty set rather than as a reversed interval.
- */
 class RangeUnion
 {
 public:
-    /// The empty set.
     RangeUnion() = default;
 
-    /// The whole real line.
     static RangeUnion whole()
     {
         return of(-std::numeric_limits<double>::infinity(),
                   std::numeric_limits<double>::infinity());
     }
 
-    /// One closed interval; empty when the ends are inverted.
     static RangeUnion of(double lower, double upper)
     {
         RangeUnion set;
@@ -76,13 +72,6 @@ public:
         return of(range.min, range.max);
     }
 
-    /**
-     * @brief The union of 'count' intervals held as two parallel arrays,
-     * which is how BoundaryColumns hands out the intervals of a column.
-     *
-     * The arrays need not be sorted or disjoint: the result is brought to
-     * canonical form either way.
-     */
     static RangeUnion of(const double * lower, const double * upper, std::size_t count)
     {
         RangeUnion set;
@@ -100,15 +89,12 @@ public:
 
     bool isEmpty() const { return m_parts.empty(); }
 
-    /// The number of connected components of the set.
     std::size_t count() const { return m_parts.size(); }
 
-    /// The i-th component, ascending.
     const Range & at(std::size_t index) const { return m_parts.at(index); }
 
     const std::vector<Range> & components() const { return m_parts; }
 
-    /// The infimum, which the set attains. Throws when the set is empty.
     double minimum() const
     {
         if (m_parts.empty()) {
@@ -118,7 +104,6 @@ public:
         return m_parts.front().min;
     }
 
-    /// The supremum, which the set attains. Throws when the set is empty.
     double maximum() const
     {
         if (m_parts.empty()) {
@@ -132,7 +117,7 @@ public:
     {
         for (const Range & part : m_parts) {
             if (value < part.min) {
-                return false;   ///< ascending: no later member can hold it
+                return false;
             }
 
             if (value <= part.max) {
@@ -143,12 +128,6 @@ public:
         return false;
     }
 
-    /**
-     * @brief Intersects with another set, in one pass over both.
-     *
-     * Both are canonical, so the overlaps come out ascending and disjoint
-     * and no second pass is needed.
-     */
     RangeUnion & intersectWith(const RangeUnion & other)
     {
         std::vector<Range> parts;
@@ -186,8 +165,6 @@ public:
         return intersectWith(of(lower, upper));
     }
 
-    /// Translates the whole set, which is what carrying a magnitude set
-    /// from the boundary's frame to the gain's amounts to.
     RangeUnion & shiftBy(double delta)
     {
         for (Range & part : m_parts) {
@@ -199,9 +176,6 @@ public:
     }
 
 private:
-    /// Sorts and merges, so the members end up ascending, disjoint and
-    /// non-touching. Touching members are merged because their union as
-    /// closed intervals is connected.
     void canonicalise()
     {
         std::sort(m_parts.begin(), m_parts.end(),

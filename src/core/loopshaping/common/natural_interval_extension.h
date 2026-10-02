@@ -1,30 +1,9 @@
-#ifndef QFTBX_NATURAL_INTERVAL_EXTENSION_H
-#define QFTBX_NATURAL_INTERVAL_EXTENSION_H
-
-#include <complex>
-#include <vector>
-
-#include "src/core/math/interval.h"
-#include "src/core/system/lti_system.h"
-#include "src/core/system/parameter.h"
-#include "src/core/loopshaping/common/point_controller.h"
-
 /**
  * @file
  * @brief The Nichols rectangle of a controller box at one frequency:
- * magnitude in dB and phase in degrees on the (-360, 0] branch.
- */
-namespace qftbx {
-
-struct NicholsBox
-{
-    Interval magnitudeDb;
-    Interval phaseDegrees;
-};
-
-/**
- * @brief Natural interval extension of a controller's frequency response
- * onto the Nichols plane (thesis section 1.2.5).
+ * magnitude in dB and phase in degrees on the (-360, 0] branch, by the
+ * natural interval extension of the controller's frequency response (thesis
+ * section 1.2.5).
  *
  * For a zero-pole-gain controller box
  * \f$ \mathbf{x} = (\mathbf{k}, \mathbf{z}_1 \ldots, \mathbf{p}_1 \ldots) \f$
@@ -42,39 +21,61 @@ struct NicholsBox
  * complex plane whose magnitude and phase ranges are read exactly, and the
  * factors then multiply their magnitudes and add their phases. A product
  * of rectangles instead would grow its shape with every factor, and its
- * phase would have to be read off the corners of the result.
+ * phase would have to be read off the corners of the result. The zero and
+ * pole products of a box or a point at one frequency, its Factors, are the
+ * part of the enclosure that does not depend on the gain: the gain
+ * contractors and the gain bisections project the same zeros and poles with
+ * one gain interval after another, and computing the products once with
+ * factorsOf() and finishing with nicholsOf() gives exactly the enclosures
+ * nicholsBox() gives. The product over no factors, that of a pure-gain
+ * controller, is one. nicholsBox() takes the gain of the box or another one
+ * it is given, and nicholsPoint() encloses a single controller with the same
+ * arithmetic over degenerate intervals. The cutting equations of the
+ * parameters read one term at a time: a numerator factor (jw + z) p0, a
+ * denominator factor p0 / (jw + p), and the gain k p0.
  *
- * A phase set that crosses the branch cut (0/-360 degrees) is not a single
- * interval inside the branch: the enclosure degrades to the whole branch,
- * which is conservative but keeps the containment guarantee.
- *
- * Only ZeroPoleGain controller structures are supported; other structures
- * throw qftbx::InvalidInput rather than be projected as if they were.
+ * The magnitude is converted to dB with its ends clamped to the positive
+ * finite doubles, so the conversion stays finite, and the phase is mapped
+ * onto the (-2 pi, 0] branch. A phase set that crosses the branch cut
+ * (0/-360 degrees) is not a single interval inside the branch: the
+ * enclosure degrades to the whole branch, which is conservative but keeps
+ * the containment guarantee. Only ZeroPoleGain controller structures are
+ * supported; other structures throw qftbx::InvalidInput rather than be
+ * projected as if they were.
  */
+
+#ifndef QFTBX_NATURAL_INTERVAL_EXTENSION_H
+#define QFTBX_NATURAL_INTERVAL_EXTENSION_H
+
+#include <complex>
+#include <vector>
+
+#include "src/core/math/interval.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/system/parameter.h"
+#include "src/core/loopshaping/common/point_controller.h"
+
+namespace qftbx {
+
+struct NicholsBox
+{
+    Interval magnitudeDb;
+    Interval phaseDegrees;
+};
+
 class NaturalIntervalExtension
 {
 public:
-    /// The zero and pole products of a box or a point at one frequency, in
-    /// polar form: the part of the enclosure that does not depend on the
-    /// gain. The gain contractors and the gain bisections project the same
-    /// zeros and poles with one gain interval after another; computing the
-    /// products once and finishing with nicholsOf() gives exactly the
-    /// enclosures nicholsBox() gives.
     struct Factors {
         PolarInterval numerator;
         PolarInterval denominator;
     };
 
-    /// Nichols-plane enclosure of the controller box times the nominal
-    /// plant value p0.
     NicholsBox nicholsBox(LtiSystem * controller, double w, std::complex<double> p0);
 
-    /// The same enclosure with the controller's gain replaced by 'gain'.
     NicholsBox nicholsBox(LtiSystem * controller, double w, std::complex<double> p0,
                           const Interval & gain);
 
-    /// The enclosure of a single controller: the same arithmetic over
-    /// degenerate intervals.
     NicholsBox nicholsPoint(const PointController & point, double w, std::complex<double> p0);
     NicholsBox nicholsPoint(double gain, const std::vector<double> & zeros,
                             const std::vector<double> & poles, double w, std::complex<double> p0);
@@ -82,27 +83,16 @@ public:
     Factors factorsOf(LtiSystem * controller, double w);
     Factors factorsOf(const std::vector<double> & zeros, const std::vector<double> & poles, double w);
 
-    /// Magnitude (dB) and phase (degrees) of gain * numerator * p0 /
-    /// denominator: the enclosure the other projections end with.
     NicholsBox nicholsOf(const Interval & gain, const Factors & factors, std::complex<double> p0);
 
-    /// Per-term enclosures (dB/degrees) used by the parameter cutting
-    /// equations: one numerator factor (jw + z) p0, one denominator factor
-    /// p0 / (jw + p), and the gain k p0.
     NicholsBox numeratorTermBox(Parameter & zero, double w, std::complex<double> p0);
     NicholsBox denominatorTermBox(Parameter & pole, double w, std::complex<double> p0);
     NicholsBox gainTermBox(Parameter & gain, std::complex<double> p0);
 
 private:
-    /// Polar product of the factors (jw + parameter); the neutral value 1
-    /// for an empty vector (a pure-gain controller).
     PolarInterval factorProduct(std::vector<Parameter> & parameters, double w);
     PolarInterval factorProduct(const std::vector<double> & values, double w);
 
-    /// The polar set as a Nichols rectangle: 20 log10 of the magnitude,
-    /// with the endpoints clamped to the positive finite doubles so the
-    /// conversion stays finite, and the phase mapped onto the (-2 pi, 0]
-    /// branch; a set crossing the branch cut yields the whole branch.
     NicholsBox toNichols(const PolarInterval & loop);
 };
 
