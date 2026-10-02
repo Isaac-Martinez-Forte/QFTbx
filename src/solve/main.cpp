@@ -124,6 +124,17 @@ std::string familyText(const qftbx::FamilyStability & family)
     return text.str();
 }
 
+std::string nominalText(const qftbx::NominalStability & nominal)
+{
+    if (!nominal.checked) {
+        return "nominal closed loop not checked";
+    }
+    std::ostringstream text;
+    text << (nominal.stable ? "the nominal closed loop is stable" : "the NOMINAL CLOSED LOOP IS UNSTABLE")
+         << ", worst real part " << nominal.worstRealPart;
+    return text.str();
+}
+
 qftbx::ParameterGrids gridsOf(qftbx::LtiSystem & plant, int points)
 {
     qftbx::ParameterGrids grids;
@@ -350,6 +361,7 @@ int main(int argc, char ** argv)
                       << (check.worstExcessDb > 0.0 ? "A SPECIFICATION IS EXCEEDED" : "every specification met")
                       << "\n"
                       << "family: " << familyText(check.family) << "\n"
+                      << "nominal: " << nominalText(check.nominal) << "\n"
                       << "written to " << options.output << "\n";
         }
 

@@ -286,6 +286,11 @@ Record runCase(const Plan & plan, const Case & c)
                 record.familyUnstable = result->check()->family.unstableMembers;
                 record.familyWorstRealPart = result->check()->family.worstRealPart;
             }
+            if (result->check()->nominal.checked) {
+                record.nominalChecked = true;
+                record.nominalStable = result->check()->nominal.stable;
+                record.nominalWorstRealPart = result->check()->nominal.worstRealPart;
+            }
         }
         record.status = "solved";
     } catch (const std::exception & failure) {

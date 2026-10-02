@@ -349,6 +349,13 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
         } else {
             check.append_attribute("family-not-checked") = familyNotCheckedName(family.notChecked);
         }
+        const NominalStability & nominal = loopShaping->check()->nominal;
+        if (nominal.checked) {
+            check.append_attribute("nominal-stable") = nominal.stable;
+            if (std::isfinite(nominal.worstRealPart)) {
+                check.append_attribute("nominal-worst-real-part") = number(nominal.worstRealPart).c_str();
+            }
+        }
     }
 }
 

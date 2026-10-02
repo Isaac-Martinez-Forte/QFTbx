@@ -18,7 +18,8 @@
  * a loop the nominal criterion approves, its grid missing the crossing of
  * the -180 degree ray near 0.71 rad/s, has its nominal closed-loop poles in
  * the right half-plane, and the Routh table of the nominal plant refuses it
- * before anything else is asked. On the toolbox example, the design the
+ * before anything else is asked; the verifier refuses it too, on the nominal
+ * closed loop alone. On the toolbox example, the design the
  * search returns under the nearest-node reading of the columns, which those
  * columns admit, is refused by the specifications themselves.
  */
@@ -231,6 +232,15 @@ TEST(Certifier, TheNominalRouthRefusesALoopTheNominalCriterionApproves)
     EXPECT_EQ(certifier.statistics().refusedByNominalRouth, 1u);
     EXPECT_EQ(certifier.statistics().refusedByNominalStability, 0u);
     EXPECT_EQ(exact.statistics().verdicts, 0u) << "the specifications were never asked";
+
+    const SpecificationCheck verifier = checkAgainstSpecifications(*systemFromPoint(structure.get(), unstable),
+                                                                   *project.plant(), *omega, project.templates(),
+                                                                   specifications);
+    EXPECT_FALSE(verifier.family.checked);
+    ASSERT_TRUE(verifier.nominal.checked);
+    EXPECT_FALSE(verifier.nominal.stable);
+    EXPECT_NEAR(verifier.nominal.worstRealPart, 2.22, 0.01);
+    EXPECT_FALSE(verifier.satisfied()) << "the verifier refuses it too, with no sweep to close the loop over";
 }
 
 TEST(Certifier, WhatTheNearestColumnAdmitsTheSpecificationRefuses)

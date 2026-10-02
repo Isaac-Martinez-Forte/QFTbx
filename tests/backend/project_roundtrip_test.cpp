@@ -9,7 +9,9 @@
  * Further cases cover what no fixture carries: a reparametrised parameter
  * comes back raw with its expression applied once; a skipped frequency, the
  * plant's description, the settings of the run and the verifier's verdict
- * survive, the verdict with nothing active without its infinite number. A
+ * survive, the nominal closed loop among them, an unstable one read back as
+ * not satisfied, and the verdict with nothing active without its infinite
+ * number. A
  * run written before it recorded its point reading reads as the columns, and
  * a point reading the build does not know is refused. A NaN and an
  * unwritable path are refused.
@@ -330,6 +332,9 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     original.loopShaping()->setRun({qftbx::mc2, 0.05, true, Settings::Research::PointReading::Exact});
     SpecificationCheck check;
     check.worstExcessDb = -1.25;
+    check.nominal.checked = true;
+    check.nominal.stable = true;
+    check.nominal.worstRealPart = -0.71;
     original.loopShaping()->setCheck(check);
 
     ProjectContent content;
@@ -355,6 +360,20 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
     EXPECT_TRUE(reloaded.loopShaping()->check()->satisfied());
     EXPECT_DOUBLE_EQ(reloaded.loopShaping()->check()->worstExcessDb, -1.25);
+    EXPECT_TRUE(reloaded.loopShaping()->check()->nominal.checked);
+    EXPECT_TRUE(reloaded.loopShaping()->check()->nominal.stable);
+    EXPECT_DOUBLE_EQ(reloaded.loopShaping()->check()->nominal.worstRealPart, -0.71);
+
+    SpecificationCheck unstable = check;
+    unstable.nominal.stable = false;
+    unstable.nominal.worstRealPart = 2.22;
+    original.loopShaping()->setCheck(unstable);
+    writer.save(path, content);
+    ProjectReader again;
+    again.load(path);
+    ASSERT_TRUE(again.loopShaping()->check().has_value());
+    EXPECT_FALSE(again.loopShaping()->check()->nominal.stable);
+    EXPECT_FALSE(again.loopShaping()->check()->satisfied()) << "an unstable nominal loop is not satisfied";
 }
 
 TEST(RoundTripSettings, ARunWithoutItsPointReadingReadsTheColumnsAndAnUnknownOneIsRefused)
@@ -427,4 +446,5 @@ TEST(RoundTripSettings, AVerdictWithNoActiveSpecificationIsStillWritten)
     ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
     EXPECT_TRUE(reloaded.loopShaping()->check()->satisfied());
     EXPECT_FALSE(std::isfinite(reloaded.loopShaping()->check()->worstExcessDb));
+    EXPECT_FALSE(reloaded.loopShaping()->check()->nominal.checked) << "a verdict written without the nominal loop";
 }

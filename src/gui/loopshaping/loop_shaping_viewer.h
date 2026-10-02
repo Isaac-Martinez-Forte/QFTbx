@@ -6,7 +6,8 @@
  * one legend row per frequency, the open-loop curve, a marker per design
  * frequency, the controller's coefficients and formula at the digits the
  * user chooses, and the verdict of the check against the specifications,
- * the closed-loop stability of the family included. The plant and the
+ * the closed-loop stability of the family and of the nominal plant
+ * included. The plant and the
  * result are observers on the project; the plot owns the curves and the
  * viewer keeps the containers that tie a frequency's pieces to its legend
  * row. The frequency sweep it plots over is fixed rather than taken from
@@ -65,6 +66,7 @@ private:
     void fillDigitsCombo();
     QString specificationTitle(qftbx::SpecificationType type);
     QString familyText(const qftbx::FamilyStability & family);
+    QString nominalText(const qftbx::NominalStability & nominal);
 
     qftbx::UnionTraces unionTraces;
     std::vector<double> * omega = nullptr;

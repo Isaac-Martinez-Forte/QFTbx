@@ -483,6 +483,13 @@ public:
                 }
                 check.family.notChecked = *known;
             }
+            if (const pugi::xml_attribute stable = checkNode.attribute("nominal-stable")) {
+                check.nominal.checked = true;
+                check.nominal.stable = stable.as_bool();
+                if (checkNode.attribute("nominal-worst-real-part")) {
+                    check.nominal.worstRealPart = realAttribute(checkNode, "nominal-worst-real-part");
+                }
+            }
             result->setCheck(std::move(check));
         }
 

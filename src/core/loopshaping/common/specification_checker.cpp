@@ -6,9 +6,10 @@
  * closed-loop magnitudes the specifications in force there name are bounded
  * in the worst case over the family at that loop value. The excess over a
  * bound is in decibels, and a value that is not a number violates by an
- * infinite amount, so it can never read as satisfied. The tracking band is governed by its lower bound, the upper one
- * only sets the cut height. Every member of the swept family is closed with
- * the controller's numerator and denominator, and a member is stable only
+ * infinite amount, so it can never read as satisfied. The tracking band is
+ * governed by its lower bound, the upper one only sets the cut height. Every
+ * member of the swept family, and the nominal plant, is closed with the
+ * controller's numerator and denominator, and a closed loop is stable only
  * when every root of its characteristic polynomial is strictly in the left
  * half-plane, the tolerance of the axis being the one the roots are
  * computed to.
@@ -248,6 +249,25 @@ FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & contro
     return familyStabilityAt(family, *loop);
 }
 
+NominalStability nominalStabilityOf(LtiSystem & plant, LtiSystem & controller)
+{
+    NominalStability result;
+    if (hasDelay(plant) || hasDelay(controller)) {
+        return result;
+    }
+    const std::optional<LtiSystem::Polynomials> nominalPlant = nominalPolynomials(plant);
+    const std::optional<LtiSystem::Polynomials> loop = nominalPolynomials(controller);
+    if (!nominalPlant.has_value() || !loop.has_value()) {
+        return result;
+    }
+
+    const RootVerdict verdict = rootVerdictOf(characteristicOf(*nominalPlant, *loop));
+    result.checked = true;
+    result.stable = verdict.stable;
+    result.worstRealPart = verdict.worstRealPart;
+    return result;
+}
+
 }
 
 SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
@@ -265,6 +285,7 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
     }
 
     check.family = familyStabilityAt(SweptFamily(plant, sweep == nullptr ? ParameterGrids() : *sweep), controller);
+    check.nominal = nominalStabilityOf(plant, controller);
 
     return check;
 }

@@ -133,8 +133,8 @@ void LoopShapingViewer::showCheck(){
         return;
     }
 
-    const QString family = familyText(check->family);
-    const bool unstable = check->family.unstableMembers > 0;
+    const QString family = familyText(check->family) + nominalText(check->nominal);
+    const bool unstable = check->family.unstableMembers > 0 || (check->nominal.checked && !check->nominal.stable);
 
     if (check->entries.empty()) {
         ui->checkLabel->setToolTip(QString());
@@ -202,6 +202,16 @@ QString LoopShapingViewer::familyText(const qftbx::FamilyStability & family){
     }
     return tr("%1 of the %2 plants are CLOSED-LOOP UNSTABLE (worst real part %3).")
            .arg(family.unstableMembers).arg(family.members).arg(qftbx::shownText(family.worstRealPart));
+}
+
+QString LoopShapingViewer::nominalText(const qftbx::NominalStability & nominal){
+    if (!nominal.checked) {
+        return QString();
+    }
+    if (nominal.stable) {
+        return " " + tr("The nominal closed loop is stable (worst real part %1).").arg(qftbx::shownText(nominal.worstRealPart));
+    }
+    return " " + tr("The NOMINAL CLOSED LOOP IS UNSTABLE (worst real part %1).").arg(qftbx::shownText(nominal.worstRealPart));
 }
 
 QString LoopShapingViewer::specificationTitle(qftbx::SpecificationType type){

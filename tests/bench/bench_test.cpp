@@ -9,7 +9,8 @@
  * summary groups records, leaves warm-ups and failures out of the timings and
  * notices when repetitions disagree on the controller. A certificate with
  * every count and flag set survives its JSON, and so do the infinite lower
- * bounds of a search that left nothing unproven. A run of one case on the ACC'90
+ * bounds of a search that left nothing unproven, and so does the nominal
+ * verdict, a record without one reading as not checked. A run of one case on the ACC'90
  * fixture must leave a complete record that survives its file, with the gain
  * of 0.001 that fixture's goldens pin.
  */
@@ -255,6 +256,22 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBound));
     EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBoundStrict));
     EXPECT_EQ(unbounded.statistics.certificate.largestWorkingSet, 0u);
+}
+
+TEST(BenchmarkRecord, TheNominalVerdictSurvivesItsJson)
+{
+    Record record;
+    record.nominalChecked = true;
+    record.nominalStable = false;
+    record.nominalWorstRealPart = 2.22;
+    const Record back = recordFromJson(toJson(record));
+    EXPECT_TRUE(back.nominalChecked);
+    EXPECT_FALSE(back.nominalStable);
+    EXPECT_EQ(back.nominalWorstRealPart, 2.22);
+
+    const Record unchecked = recordFromJson(toJson(Record()));
+    EXPECT_FALSE(unchecked.nominalChecked);
+    EXPECT_TRUE(std::isnan(unchecked.nominalWorstRealPart));
 }
 
 TEST(BenchmarkMeasurement, ARunOfACaseLeavesACompleteRecord)

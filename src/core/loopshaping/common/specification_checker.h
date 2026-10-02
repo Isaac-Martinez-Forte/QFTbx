@@ -78,8 +78,13 @@
  * belongs to, or why it could not be checked: no record of the sweep, a delay,
  * a plant that is not rational. A pole on the axis is not stability, and at
  * the floor of a gain box over a plant with poles of its own on the axis it is
- * what a minimum-gain search converges to. satisfied() asks for no excess and
- * no unstable plant. A parameter the sweep has no grid for stays at its
+ * what a minimum-gain search converges to. The nominal part closes the loop
+ * with the nominal plant by the same criterion, whether or not the family
+ * was swept, and is checked whenever the plant and the controller are
+ * rational and free of delay: a frequency grid can miss the crossing that
+ * makes a nominal loop unstable, and on a problem with no sweep nothing else
+ * would see it. satisfied() asks for no excess, no unstable plant of the
+ * family and, where it was checked, a stable nominal closed loop. A parameter the sweep has no grid for stays at its
  * nominal value, and a frequency whose value set is empty contributes nothing.
  */
 namespace qftbx {
@@ -106,13 +111,24 @@ struct FamilyStability
     std::vector<std::pair<std::string, double>> worstMember;
 };
 
+struct NominalStability
+{
+    bool checked = false;
+    bool stable = false;
+    double worstRealPart = -std::numeric_limits<double>::infinity();
+};
+
 struct SpecificationCheck
 {
     std::vector<SpecificationExcess> entries;
     double worstExcessDb = -std::numeric_limits<double>::infinity();
     FamilyStability family;
+    NominalStability nominal;
 
-    bool satisfied() const { return !(worstExcessDb > 0.0) && family.unstableMembers == 0; }
+    bool satisfied() const
+    {
+        return !(worstExcessDb > 0.0) && family.unstableMembers == 0 && !(nominal.checked && !nominal.stable);
+    }
 };
 
 struct FrequencyReference

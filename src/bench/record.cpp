@@ -6,8 +6,9 @@
  * git commit compiled in, the interval backend and the load average at the
  * time. A count absent from a record reads as zero; a lower bound that is
  * missing reads as infinity, the bound of a search that left nothing
- * unproven; a worst excess or a worst real part of the family that is
- * missing reads as not-a-number, and a missing load average as -1. The
+ * unproven; a worst excess or a worst real part of the family or of the
+ * nominal loop that is missing reads as not-a-number, a nominal verdict that
+ * is missing as not checked, and a missing load average as -1. The
  * counts of the certificate are written and read from one table, in the
  * order of the certification funnel. The digest of a design is an FNV-1a
  * hash over the exact bits of the gain, the zeros and the poles, so two runs
@@ -213,6 +214,12 @@ QJsonObject toJson(const Record & r)
         result["family_unstable"] = static_cast<qint64>(r.familyUnstable);
         result["family_worst_real_part"] = r.familyWorstRealPart;
     }
+    if (r.nominalChecked) {
+        result["nominal_stable"] = r.nominalStable;
+        if (std::isfinite(r.nominalWorstRealPart)) {
+            result["nominal_worst_real_part"] = r.nominalWorstRealPart;
+        }
+    }
     result["zeros"] = toArray(r.zeros);
     result["poles"] = toArray(r.poles);
     result["digest"] = QString::fromStdString(r.digest);
@@ -299,6 +306,10 @@ Record recordFromJson(const QJsonObject & o)
     r.familyUnstable = static_cast<std::size_t>(result["family_unstable"].toInteger());
     r.familyWorstRealPart = result.contains("family_worst_real_part") ? result["family_worst_real_part"].toDouble()
                                                                       : std::numeric_limits<double>::quiet_NaN();
+    r.nominalChecked = result.contains("nominal_stable");
+    r.nominalStable = result["nominal_stable"].toBool();
+    r.nominalWorstRealPart = result.contains("nominal_worst_real_part") ? result["nominal_worst_real_part"].toDouble()
+                                                                        : std::numeric_limits<double>::quiet_NaN();
     r.zeros = fromArray(result["zeros"].toArray());
     r.poles = fromArray(result["poles"].toArray());
     r.digest = result["digest"].toString().toStdString();

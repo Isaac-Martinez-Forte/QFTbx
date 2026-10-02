@@ -725,6 +725,10 @@
         <source>unknown point reading &apos;%1&apos; (%2)</source>
         <translation>lectura de los puntos desconocida «%1» (%2)</translation>
     </message>
+    <message>
+        <source>Internal error: the design returned under the exact point reading leaves the nominal closed loop unstable (worst real part %1).</source>
+        <translation>Error interno: el diseño devuelto con la lectura exacta de los puntos deja inestable el lazo cerrado nominal (peor parte real %1).</translation>
+    </message>
 </context>
 <context>
     <name>FrequenciesForm</name>
@@ -2057,6 +2061,14 @@ del controlador</translation>
     <message>
         <source>%1 of the %2 plants are CLOSED-LOOP UNSTABLE (worst real part %3).</source>
         <translation>%1 de las %2 plantas son INESTABLES en lazo cerrado (peor parte real %3).</translation>
+    </message>
+    <message>
+        <source>The nominal closed loop is stable (worst real part %1).</source>
+        <translation>El lazo cerrado nominal es estable (peor parte real %1).</translation>
+    </message>
+    <message>
+        <source>The NOMINAL CLOSED LOOP IS UNSTABLE (worst real part %1).</source>
+        <translation>El lazo cerrado nominal es INESTABLE (peor parte real %1).</translation>
     </message>
 </context>
 <context>

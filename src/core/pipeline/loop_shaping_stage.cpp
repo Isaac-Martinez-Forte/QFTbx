@@ -100,6 +100,10 @@ bool LoopShapingStage::run(ProjectData & data, double epsilon,
             throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading does not pass the verifier (worst excess %1 dB, %2 plants unstable).")
                                    .arg(check.worstExcessDb).arg(check.family.unstableMembers));
         }
+        if (check.nominal.checked && !check.nominal.stable) {
+            throw ComputationError(QFTBX_TR("Core", "Internal error: the design returned under the exact point reading leaves the nominal closed loop unstable (worst real part %1).")
+                                   .arg(check.nominal.worstRealPart));
+        }
     }
 
     data.setLoopShapingResult(std::move(result));
