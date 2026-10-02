@@ -447,13 +447,19 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
         return enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0 &&
                enclosure.phaseDegrees.lower() <= -180.0 && enclosure.phaseDegrees.upper() >= -180.0;
     };
+    const std::size_t remembered = m_lastReaching;
+    if (remembered < n && reachesCriticalPoint(remembered)) {
+        return false;
+    }
     for (std::size_t i = 0; i < n; i += 64) {
-        if (reachesCriticalPoint(i)) {
+        if (i != remembered && reachesCriticalPoint(i)) {
+            m_lastReaching = i;
             return false;
         }
     }
     for (std::size_t i = 0; i < n; i += kStride) {
-        if (i % 64 != 0 && reachesCriticalPoint(i)) {
+        if (i % 64 != 0 && i != remembered && reachesCriticalPoint(i)) {
+            m_lastReaching = i;
             return false;
         }
     }

@@ -47,7 +47,12 @@
  * each sample it asks the modulus of the loop over the box first, from the
  * square of the frequency and the modulus of the plant kept with the grid,
  * and the phase only where the modulus may be one, which is the same answer
- * the whole enclosure gives at a fraction of its arc tangents.
+ * the whole enclosure gives at a fraction of its arc tangents. The sample
+ * where the last box reached the critical point is asked first, since the
+ * boxes a search asks about resemble one another; the verdict is the same in
+ * any order, as no sample can fail to answer: a structure the extension
+ * does not project is refused at the first sample asked, whichever it is,
+ * and with a positive frequency no factor jw + x vanishes.
  */
 
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H
@@ -57,6 +62,7 @@
 
 #include <complex>
 #include <cstddef>
+#include <limits>
 #include <unordered_map>
 #include <vector>
 
@@ -140,6 +146,7 @@ private:
     std::vector<double> m_plantIm;
     std::vector<Interval> m_frequencySquares;
     std::vector<Interval> m_plantModuli;
+    std::size_t m_lastReaching = std::numeric_limits<std::size_t>::max();
 
     std::vector<double> m_w;
     std::vector<double> m_re;
