@@ -13,9 +13,12 @@
  * boundary crosses the box its allowed side is down, and on the QFT toolbox
  * example 2 every algorithm returned such a corner at some frequency. So
  * forEachCandidate walks the candidates in order, the anti-blocking corner,
- * the lower corner, the centre and then every corner while there are at most
- * six uncertain parameters, verifiedCornerBy returns the first one a test
- * passes, and verifiedCorner the first the boundaries accept.
+ * the lower corner, the centre and then, while there are at most six
+ * uncertain parameters, every other corner; a caller that recomputes the
+ * gain at the zeros and poles of each candidate, as MC2 does under the exact
+ * reading, walks only the corners of the zeros and poles. verifiedCornerBy
+ * returns the first candidate a test passes, and verifiedCorner the first
+ * the boundaries accept.
  *
  * isEpsilonSmall is the termination test of NT, NK, MC1 and MC: the Nichols
  * rectangle of the box narrower than epsilon, in both coordinates, at every
@@ -87,8 +90,11 @@ inline bool satisfiesBoundaries(const PointController & point, std::vector<doubl
     return true;
 }
 
+enum class CandidateGain { FromTheCorner, Recomputed };
+
 template <class Visit>
-inline bool forEachCandidate(LtiSystem * box, Visit && visit) {
+inline bool forEachCandidate(LtiSystem * box, Visit && visit,
+                             CandidateGain candidateGain = CandidateGain::FromTheCorner) {
 
     for (const bool lower : {false, true}) {
         if (visit(cornerOf(box, lower))) {
@@ -129,8 +135,21 @@ inline bool forEachCandidate(LtiSystem * box, Visit && visit) {
     }
 
     if (uncertain <= 6) {
-        const unsigned corners = 1u << uncertain;
-        for (unsigned mask = 0; mask < corners; ++mask) {
+        unsigned zeroBits = 0;
+        std::size_t index = 0;
+        for (const Parameter & v : numerator) {
+            if (v.isUncertain()) {
+                zeroBits |= 1u << index++;
+            }
+        }
+        const bool walkTheGain = gain.isUncertain() && candidateGain == CandidateGain::FromTheCorner;
+        const std::size_t bits = gain.isUncertain() && !walkTheGain ? uncertain - 1 : uncertain;
+        const unsigned antiBlocking = zeroBits | (walkTheGain ? 1u << (uncertain - 1) : 0u);
+        const unsigned corners = 1u << bits;
+        for (unsigned mask = 1; mask < corners; ++mask) {
+            if (mask == antiBlocking) {
+                continue;
+            }
             if (visit(pointAt([mask](std::size_t i) { return static_cast<int>((mask >> i) & 1u); }))) {
                 return true;
             }

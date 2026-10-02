@@ -743,7 +743,7 @@ std::optional<PointController> AlgorithmMc2::bestEpsilonCandidate(LtiSystem * bo
             }
         }
         return false;
-    });
+    }, CandidateGain::Recomputed);
 
     return best;
 }
