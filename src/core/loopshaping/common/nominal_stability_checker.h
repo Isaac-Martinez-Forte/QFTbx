@@ -123,8 +123,6 @@ private:
 
     std::complex<double> plantAt(double w);
 
-    bool phaseStepExceeded(std::size_t i) const;
-
     std::size_t axisPolesBetween(double lo, double hi) const;
 
     LtiSystem * m_plant;

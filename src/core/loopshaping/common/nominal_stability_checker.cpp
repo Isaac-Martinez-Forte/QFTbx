@@ -63,6 +63,32 @@ int side(double im)
     return im > 0.0 ? 1 : (im < 0.0 ? -1 : 0);
 }
 
+[[gnu::noinline]] double phaseStepThroughZero(double ar, double ai, double br, double bi)
+{
+    double step = std::abs(phaseDegrees(br, bi) - phaseDegrees(ar, ai));
+    if (step > 180.0) {
+        step = 360.0 - step;
+    }
+    return step;
+}
+
+inline bool phaseStepExceeded(double ar, double ai, double br, double bi, double aNorm, double bNorm,
+                              double cosineOfMaxStep, double maxStepDegrees)
+{
+    const double squaredNorms = aNorm * bNorm;
+
+    if (squaredNorms == 0.0) {
+        return phaseStepThroughZero(ar, ai, br, bi) > maxStepDegrees;
+    }
+
+    const double dot = ar * br + ai * bi;
+    const double c = cosineOfMaxStep;
+    if (c >= 0.0) {
+        return dot < 0.0 || dot * dot < c * c * squaredNorms;
+    }
+    return dot < 0.0 && dot * dot > c * c * squaredNorms;
+}
+
 std::uint64_t bitsOf(double value)
 {
     if (value == 0.0) {
@@ -189,27 +215,6 @@ std::complex<double> NominalStabilityChecker::loopAt(const PointController & sha
                                 re * plant.imag() + im * plant.real());
 }
 
-bool NominalStabilityChecker::phaseStepExceeded(std::size_t i) const
-{
-    const double ar = m_re[i], ai = m_im[i], br = m_re[i + 1], bi = m_im[i + 1];
-    const double squaredNorms = (ar * ar + ai * ai) * (br * br + bi * bi);
-
-    if (squaredNorms == 0.0) {
-        double step = std::abs(phaseDegrees(br, bi) - phaseDegrees(ar, ai));
-        if (step > 180.0) {
-            step = 360.0 - step;
-        }
-        return step > m_tolerances.maxPhaseStepDegrees;
-    }
-
-    const double dot = ar * br + ai * bi;
-    const double c = m_cosMaxPhaseStep;
-    if (c >= 0.0) {
-        return dot < 0.0 || dot * dot < c * c * squaredNorms;
-    }
-    return dot < 0.0 && dot * dot > c * c * squaredNorms;
-}
-
 NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const PointController & shape)
 {
     ++m_statistics.profilesComputed;
@@ -248,9 +253,14 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         m_im[i] = m;
     }
 
+    const auto squaredNorm = [&](std::size_t k) { return m_re[k] * m_re[k] + m_im[k] * m_im[k]; };
     int budget = m_tolerances.refinementBudget;
+    double here = n > 0 ? squaredNorm(0) : 0.0;
     for (std::size_t i = 0; i + 1 < m_w.size() && budget > 0;) {
-        if (phaseStepExceeded(i) && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]
+        const double next = squaredNorm(i + 1);
+        if (phaseStepExceeded(m_re[i], m_im[i], m_re[i + 1], m_im[i + 1], here, next, m_cosMaxPhaseStep,
+                              m_tolerances.maxPhaseStepDegrees)
+                && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]
                 && (m_axisPoles.empty() || axisPolesBetween(m_w[i], m_w[i + 1]) == 0)) {
             const double w = std::sqrt(m_w[i] * m_w[i + 1]);
             const std::complex<double> loop = loopAt(shape, sign, w);
@@ -261,6 +271,7 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
             --budget;
         } else {
             ++i;
+            here = next;
         }
     }
 
