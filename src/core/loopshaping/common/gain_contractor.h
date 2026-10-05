@@ -5,8 +5,9 @@
  *
  * Two proofs, in order. The specifications: at each design frequency the
  * magnitude strips the exact sector verdict forbids at every phase of the
- * box's enclosure are carried to the gain in interval arithmetic. The
- * stability: the Routh table over pieces of the gain, with a few plants
+ * box's enclosure, taken whole and not folded onto one turn, are carried to
+ * the gain in interval arithmetic. The stability: the Routh table over
+ * pieces of the gain, with a few plants
  * (FamilyStabilityChecker::shaveUnstableGains), and then the zero exclusion
  * on the imaginary axis where the table stalls. An empty interval discards
  * the box. The strip ends are floating-point roots, as in the search's

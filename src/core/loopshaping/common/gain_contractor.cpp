@@ -74,12 +74,14 @@ bool GainContractor::contractBySpecifications(LtiSystem * box, Range & gains)
     }
 
     for (std::size_t i = 0; i < m_omega.size(); ++i) {
-        const NicholsBox unit = m_extension.nicholsBox(box, m_omega[i], m_nominalPlantValues[i], Interval(1.0));
+        const NaturalIntervalExtension::Factors factors = m_extension.factorsOf(box, m_omega[i]);
+        const NicholsBox unit = m_extension.nicholsOf(Interval(1.0), factors, m_nominalPlantValues[i]);
         const Interval loopDb = Interval(20.0) * log10(Interval(gains.min, gains.max)) + unit.magnitudeDb;
+        const Interval phase = (factors.numerator.phase() + PolarInterval(m_nominalPlantValues[i]).phase()
+                                - factors.denominator.phase()) * Interval(180.0) / Interval::pi();
 
         const ExactPointCheck::SectorVerdict verdict = m_exact.sectorVerdict(
-                    i, Range(unit.phaseDegrees.lower(), unit.phaseDegrees.upper()),
-                    Range(loopDb.lower(), loopDb.upper()));
+                    i, Range(phase.lower(), phase.upper()), Range(loopDb.lower(), loopDb.upper()));
         if (verdict.provablyInfeasible) {
             return false;
         }

@@ -11,7 +11,9 @@
  * controllers, no controller with a gain the shaving removed is stable with
  * every plant of the sweep and the nominal one, and no controller with a
  * gain the whole contraction removed, by the specifications or by the
- * stability, both meets every specification and closes the loop stably. The
+ * stability, both meets every specification and closes the loop stably, and
+ * the specifications contract a box as much as the exact phase and modulus
+ * of its corners allow, also where its phase crosses a whole turn. The
  * zero exclusion proves unstable, on the ACC'90 plant, boxes whose zero and
  * pole nearly cancel, where the Routh table proves nothing; and on problems
  * with stable controllers no box it proves holds one.
@@ -28,6 +30,7 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/app/project_controller.h"
@@ -190,6 +193,95 @@ TEST(GainContractor, NoGainTheContractionRemovesIsADesign)
     }
     EXPECT_GT(removed, 0u);
     EXPECT_GT(emptied, 0u);
+}
+
+TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
+{
+    std::size_t acrossATurn = 0, contractedAcrossATurn = 0;
+    for (const auto & [name, extra] : {std::pair<const char *, const char *>{"msf.qft", "pz"}, {"maglev-lower.qft", "p"}}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * given = project.controllerStructure();
+        std::vector<Parameter> zeros = given->numerator(), poles = given->denominator();
+        for (const char step : std::string(extra)) {
+            (step == 'p' ? poles : zeros).emplace_back(std::string(step == 'p' ? "p" : "z") + "x", Range(0.01, 1000.0), 0.01);
+        }
+        const std::unique_ptr<LtiSystem> structure = given->create(given->name(), zeros, poles, given->gain(), given->delay());
+        std::vector<double> & omega = *project.omega()->values();
+        const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+        ExactPointCheck exact(*project.plant(), structure.get(), omega, project.templates(), specifications);
+        FamilyStabilityChecker family(project.plant(), structure.get(), project.sweepGrids());
+        std::vector<std::complex<double>> nominalPlantValues;
+        for (const double w : omega) {
+            nominalPlantValues.push_back(project.plant()->evaluate(w));
+        }
+        GainContractor contractor(exact, family, omega, nominalPlantValues);
+
+        std::mt19937 generator(61);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        for (int trial = 0; trial < 400; ++trial) {
+            const std::unique_ptr<LtiSystem> box = randomBox(*structure, std::pow(10.0, -1.0 + 2.0 * unit(generator)), generator);
+            Range expected = box->gain().range();
+            bool emptied = false, crosses = false;
+            for (std::size_t i = 0; i < omega.size() && !emptied; ++i) {
+                const double w = omega[i];
+                double phaseLow = std::arg(nominalPlantValues[i]), phaseHigh = phaseLow;
+                double modulusLow = std::abs(nominalPlantValues[i]), modulusHigh = modulusLow;
+                for (Parameter & z : box->numerator()) {
+                    phaseLow += std::atan(w / z.range().max);
+                    phaseHigh += std::atan(w / z.range().min);
+                    modulusLow *= std::hypot(w, z.range().min);
+                    modulusHigh *= std::hypot(w, z.range().max);
+                }
+                for (Parameter & q : box->denominator()) {
+                    phaseLow -= std::atan(w / q.range().min);
+                    phaseHigh -= std::atan(w / q.range().max);
+                    modulusLow /= std::hypot(w, q.range().max);
+                    modulusHigh /= std::hypot(w, q.range().min);
+                }
+                const Range phase(phaseLow * 180.0 / M_PI, phaseHigh * 180.0 / M_PI);
+                const bool turn = phase.max - phase.min < 360.0 && std::floor(phase.max / 360.0) > std::floor(phase.min / 360.0);
+                const double before = expected.min, beforeMax = expected.max;
+                const ExactPointCheck::SectorVerdict verdict = exact.sectorVerdict(
+                            i, phase, Range(20.0 * std::log10(expected.min * modulusLow), 20.0 * std::log10(expected.max * modulusHigh)));
+                if (verdict.provablyInfeasible) {
+                    emptied = true;
+                    break;
+                }
+                if (std::isfinite(verdict.forbiddenBelowDb)) {
+                    expected.min = std::max(expected.min, std::pow(10.0, verdict.forbiddenBelowDb / 20.0) / modulusHigh);
+                }
+                if (std::isfinite(verdict.forbiddenAboveDb)) {
+                    expected.max = std::min(expected.max, std::pow(10.0, verdict.forbiddenAboveDb / 20.0) / modulusLow);
+                }
+                emptied = expected.min > expected.max;
+                crosses = crosses || (turn && (expected.min > before || expected.max < beforeMax));
+            }
+            acrossATurn += crosses ? 1 : 0;
+
+            const GainContractor::Contraction contraction = contractor.contract(box.get());
+            const bool isEmptied = contraction.outcome != GainContractor::Outcome::Unchanged
+                                   && contraction.outcome != GainContractor::Outcome::Contracted;
+            if (emptied) {
+                EXPECT_TRUE(isEmptied) << name << " trial " << trial << ": the specifications leave no gain";
+                contractedAcrossATurn += crosses && isEmptied ? 1 : 0;
+                continue;
+            }
+            if (!isEmptied) {
+                EXPECT_GE(contraction.gains.min, expected.min * (1.0 - 1e-6)) << name << " trial " << trial;
+                EXPECT_LE(contraction.gains.max, expected.max * (1.0 + 1e-6)) << name << " trial " << trial;
+            }
+            contractedAcrossATurn += crosses && (isEmptied || (contraction.gains.min >= expected.min * (1.0 - 1e-6)
+                                                               && contraction.gains.max <= expected.max * (1.0 + 1e-6))) ? 1 : 0;
+        }
+    }
+    std::printf("CONTRACTION across a turn: %zu boxes contracted by a frequency whose phase crosses a whole turn, %zu as much by the contractor\n",
+                acrossATurn, contractedAcrossATurn);
+    EXPECT_GT(acrossATurn, 0u);
 }
 
 TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
