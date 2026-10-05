@@ -10,7 +10,9 @@
  * pieces of the gain, with a few plants
  * (FamilyStabilityChecker::shaveUnstableGains), and then the zero exclusion
  * on the imaginary axis where the table stalls. An empty interval discards
- * the box. The strip ends are floating-point roots, as in the search's
+ * the box. The frequency that emptied the last box is asked first, on a
+ * copy of the gains, since what it proves of the whole interval holds of
+ * any part. The strip ends are floating-point roots, as in the search's
  * cuts, and rest on the 1e-12 dB the certification funnel keeps from every
  * bound.
  */
@@ -20,6 +22,7 @@
 
 #include <complex>
 #include <cstddef>
+#include <limits>
 #include <vector>
 
 #include "src/core/loopshaping/common/exact_point_check.h"
@@ -55,12 +58,14 @@ public:
 
 private:
     bool contractBySpecifications(LtiSystem * box, Range & gains);
+    bool contractAt(LtiSystem * box, std::size_t frequency, Range & gains);
 
     ExactPointCheck & m_exact;
     FamilyStabilityChecker & m_family;
     const std::vector<double> & m_omega;
     const std::vector<std::complex<double>> & m_nominalPlantValues;
     NaturalIntervalExtension m_extension;
+    std::size_t m_lastEmptiedAt = std::numeric_limits<std::size_t>::max();
     Statistics m_statistics;
 };
 

@@ -73,32 +73,44 @@ bool GainContractor::contractBySpecifications(LtiSystem * box, Range & gains)
         return true;
     }
 
-    for (std::size_t i = 0; i < m_omega.size(); ++i) {
-        const NaturalIntervalExtension::Factors factors = m_extension.factorsOf(box, m_omega[i]);
-        const NicholsBox unit = m_extension.nicholsOf(Interval(1.0), factors, m_nominalPlantValues[i]);
-        const Interval loopDb = Interval(20.0) * log10(Interval(gains.min, gains.max)) + unit.magnitudeDb;
-        const Interval phase = (factors.numerator.phase() + PolarInterval(m_nominalPlantValues[i]).phase()
-                                - factors.denominator.phase()) * Interval(180.0) / Interval::pi();
-
-        const ExactPointCheck::SectorVerdict verdict = m_exact.sectorVerdict(
-                    i, Range(phase.lower(), phase.upper()), Range(loopDb.lower(), loopDb.upper()));
-        if (verdict.provablyInfeasible) {
+    if (m_lastEmptiedAt < m_omega.size()) {
+        Range trial = gains;
+        if (!contractAt(box, m_lastEmptiedAt, trial)) {
             return false;
         }
-
-        if (std::isfinite(verdict.forbiddenBelowDb)) {
-            const Interval lowest = linearOf(Interval(verdict.forbiddenBelowDb) - Interval(unit.magnitudeDb.upper()));
-            gains.min = std::max(gains.min, lowest.lower() * (1.0 - kKeptMargin));
-        }
-        if (std::isfinite(verdict.forbiddenAboveDb)) {
-            const Interval highest = linearOf(Interval(verdict.forbiddenAboveDb) - Interval(unit.magnitudeDb.lower()));
-            gains.max = std::min(gains.max, highest.upper() * (1.0 + kKeptMargin));
-        }
-        if (gains.min > gains.max) {
+    }
+    for (std::size_t i = 0; i < m_omega.size(); ++i) {
+        if (!contractAt(box, i, gains)) {
+            m_lastEmptiedAt = i;
             return false;
         }
     }
     return true;
+}
+
+bool GainContractor::contractAt(LtiSystem * box, std::size_t i, Range & gains)
+{
+    const NaturalIntervalExtension::Factors factors = m_extension.factorsOf(box, m_omega[i]);
+    const NicholsBox unit = m_extension.nicholsOf(Interval(1.0), factors, m_nominalPlantValues[i]);
+    const Interval loopDb = Interval(20.0) * log10(Interval(gains.min, gains.max)) + unit.magnitudeDb;
+    const Interval phase = (factors.numerator.phase() + PolarInterval(m_nominalPlantValues[i]).phase()
+                            - factors.denominator.phase()) * Interval(180.0) / Interval::pi();
+
+    const ExactPointCheck::SectorVerdict verdict = m_exact.sectorVerdict(
+                i, Range(phase.lower(), phase.upper()), Range(loopDb.lower(), loopDb.upper()));
+    if (verdict.provablyInfeasible) {
+        return false;
+    }
+
+    if (std::isfinite(verdict.forbiddenBelowDb)) {
+        const Interval lowest = linearOf(Interval(verdict.forbiddenBelowDb) - Interval(unit.magnitudeDb.upper()));
+        gains.min = std::max(gains.min, lowest.lower() * (1.0 - kKeptMargin));
+    }
+    if (std::isfinite(verdict.forbiddenAboveDb)) {
+        const Interval highest = linearOf(Interval(verdict.forbiddenAboveDb) - Interval(unit.magnitudeDb.lower()));
+        gains.max = std::min(gains.max, highest.upper() * (1.0 + kKeptMargin));
+    }
+    return gains.min <= gains.max;
 }
 
 }
