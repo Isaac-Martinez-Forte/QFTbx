@@ -1,7 +1,7 @@
 /**
  * @file
- * @brief The contraction of a box's gain, by the specifications and then by
- * the stability of the plants.
+ * @brief The contraction of a box's gain, by the specifications, then by
+ * the Routh table and then by the zero exclusion.
  */
 
 #include "src/core/loopshaping/common/gain_contractor.h"
@@ -51,6 +51,14 @@ GainContractor::Contraction GainContractor::contract(LtiSystem * box)
         return result;
     }
     result.gains = *stable;
+
+    const std::optional<Range> excluded = m_family.shaveByZeroExclusion(box, result.gains);
+    if (!excluded.has_value()) {
+        ++m_statistics.emptiedByZeroExclusion;
+        result.outcome = Outcome::EmptiedByZeroExclusion;
+        return result;
+    }
+    result.gains = *excluded;
 
     if (result.gains.min > initial.min || result.gains.max < initial.max) {
         ++m_statistics.contracted;

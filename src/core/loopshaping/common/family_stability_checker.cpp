@@ -37,6 +37,12 @@ constexpr double kNegligibleWidth = 1e-9;
 constexpr std::size_t kWorkingPlants = 8;
 constexpr std::size_t kExchangeEvery = 16;
 constexpr double kShaveResolutionDecades = 0.005;
+constexpr double kExclusionResolutionDecades = 0.25;
+constexpr std::size_t kExclusionPlants = 2;
+constexpr double kExclusionCellsPerDecade = 2.0;
+constexpr int kExclusionDepth = 16;
+constexpr long kExclusionBudget = 4000;
+constexpr int kAxisEndSearches = 12;
 constexpr std::size_t kNominalMember = std::numeric_limits<std::size_t>::max();
 
 enum class Bisect { GainOnly, EveryParameter };
@@ -124,7 +130,7 @@ double centreOf(const Interval & x)
 }
 
 template <class Proven>
-std::optional<Range> shaved(Range gains, Proven && provenOn)
+std::optional<Range> shaved(Range gains, double resolutionDecades, Proven && provenOn)
 {
     if (provenOn(gains.min, gains.max)) {
         return std::nullopt;
@@ -135,7 +141,7 @@ std::optional<Range> shaved(Range gains, Proven && provenOn)
 
     double top = gains.max;
     double step = std::log10(gains.max / gains.min) / 2.0;
-    while (step >= kShaveResolutionDecades && top > gains.min) {
+    while (step >= resolutionDecades && top > gains.min) {
         const double lower = std::max(gains.min, top / std::pow(10.0, step));
         if (provenOn(lower, top)) {
             top = lower;
@@ -150,7 +156,7 @@ std::optional<Range> shaved(Range gains, Proven && provenOn)
 
     double bottom = gains.min;
     step = std::log10(top / gains.min) / 2.0;
-    while (step >= kShaveResolutionDecades && bottom < top) {
+    while (step >= resolutionDecades && bottom < top) {
         const double upper = std::min(top, bottom * std::pow(10.0, step));
         if (provenOn(bottom, upper)) {
             bottom = upper;
@@ -163,6 +169,190 @@ std::optional<Range> shaved(Range gains, Proven && provenOn)
         return std::nullopt;
     }
     return Range(bottom, top);
+}
+
+ComplexInterval valueOnAxis(const std::vector<Interval> & coefficients, const Interval & w)
+{
+    const std::size_t degree = coefficients.size() - 1;
+    Interval re(0.0), im(0.0), power(1.0);
+    for (std::size_t e = 0; e <= degree; ++e) {
+        const Interval term = coefficients[degree - e] * power;
+        switch (e % 4) {
+        case 0: re += term; break;
+        case 1: im += term; break;
+        case 2: re -= term; break;
+        default: im -= term; break;
+        }
+        power = power * w;
+    }
+    return ComplexInterval(re, im);
+}
+
+ComplexInterval valueTowardsInfinity(const std::vector<Interval> & coefficients, const Interval & u)
+{
+    const std::size_t degree = coefficients.size() - 1;
+    Interval re(0.0), im(0.0);
+    for (std::size_t e = 0; e <= degree; ++e) {
+        Interval power(1.0);
+        for (std::size_t q = 0; q < degree - e; ++q) {
+            power = power * u;
+        }
+        const Interval term = coefficients[degree - e] * power;
+        switch (e % 4) {
+        case 0: re += term; break;
+        case 1: im += term; break;
+        case 2: re -= term; break;
+        default: im -= term; break;
+        }
+    }
+    return ComplexInterval(re, im);
+}
+
+bool mayHoldAnOddMultipleOfPi(const Interval & angle)
+{
+    const Interval pi = Interval::pi();
+    if (angle.width() >= 2.0 * pi.lower()) {
+        return true;
+    }
+    const double first = std::floor((angle.lower() / pi.upper() - 1.0) / 2.0) - 1.0;
+    const double last = std::ceil((angle.upper() / pi.lower() - 1.0) / 2.0) + 1.0;
+    for (double m = first; m <= last; m += 1.0) {
+        if ((Interval(2.0 * m + 1.0) * pi).intersects(angle)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+struct AxisExclusion {
+    const LtiSystem::Polynomials & plant;
+    const BoxIntervals & box;
+    Interval gain;
+    long budget = kExclusionBudget;
+
+    bool excludedOn(double w1, double w2, int depth)
+    {
+        if (--budget < 0) {
+            return false;
+        }
+        const Interval w(w1, w2);
+        const ComplexInterval numerator = valueOnAxis(asIntervals(plant.numerator), w);
+        const ComplexInterval denominator = valueOnAxis(asIntervals(plant.denominator), w);
+        Interval poleModulus = denominator.magnitude();
+        Interval polePhase = denominator.phase();
+        Interval zeroModulus = numerator.magnitude() * gain;
+        Interval zeroPhase = numerator.phase();
+        for (const Interval & z : box.zeros) {
+            zeroModulus = zeroModulus * sqrt(sqr(w) + sqr(z));
+            zeroPhase = zeroPhase + atan(w / z);
+        }
+        for (const Interval & p : box.poles) {
+            poleModulus = poleModulus * sqrt(sqr(w) + sqr(p));
+            polePhase = polePhase + atan(w / p);
+        }
+        if (poleModulus.upper() < zeroModulus.lower() || zeroModulus.upper() < poleModulus.lower()
+                || !mayHoldAnOddMultipleOfPi(polePhase - zeroPhase)) {
+            return true;
+        }
+        if (depth <= 0) {
+            return false;
+        }
+        const double middle = std::sqrt(w1 * w2);
+        return excludedOn(w1, middle, depth - 1) && excludedOn(middle, w2, depth - 1);
+    }
+};
+
+bool provenUnstableOnAxis(const LtiSystem::Polynomials & plant, const BoxIntervals & box, const Interval & gain,
+                          double & lastFailure)
+{
+    for (const std::vector<Interval> * roots : {&box.zeros, &box.poles}) {
+        for (const Interval & r : *roots) {
+            if (!(r.lower() > 0.0)) {
+                return false;
+            }
+        }
+    }
+
+    std::vector<Interval> centreZeros, centrePoles;
+    for (const Interval & z : box.zeros) centreZeros.emplace_back(centreOf(z));
+    for (const Interval & p : box.poles) centrePoles.emplace_back(centreOf(p));
+    std::vector<Interval> centreGain = math::intervalPolynomialProduct(asIntervals(plant.numerator),
+                                                                       factorProductOf(centreZeros, box.type));
+    const Interval centreK(std::sqrt(gain.lower() * gain.upper()));
+    for (Interval & coefficient : centreGain) {
+        coefficient = coefficient * centreK;
+    }
+    const std::vector<Interval> centre = math::intervalPolynomialSum(
+                math::intervalPolynomialProduct(asIntervals(plant.denominator), factorProductOf(centrePoles, box.type)),
+                centreGain);
+    if (!math::provablyNotHurwitz(centre)) {
+        return false;
+    }
+
+    std::vector<Interval> perGain = math::intervalPolynomialProduct(asIntervals(plant.numerator), box.zeroFactors);
+    for (Interval & coefficient : perGain) {
+        coefficient = coefficient * gain;
+    }
+    const std::vector<Interval> characteristic = math::intervalPolynomialSum(
+                math::intervalPolynomialProduct(asIntervals(plant.denominator), box.poleFactors), perGain);
+    if (characteristic.front().containsZero()) {
+        return false;
+    }
+
+    double lowest = 1e-3;
+    for (const Interval & r : box.zeros) lowest = std::min(lowest, 1e-3 * r.lower());
+    for (const Interval & r : box.poles) lowest = std::min(lowest, 1e-3 * r.lower());
+    bool lowExcluded = false;
+    for (int i = 0; i < kAxisEndSearches && !lowExcluded; ++i) {
+        lowExcluded = !valueOnAxis(characteristic, Interval(0.0, lowest)).containsOrigin();
+        if (!lowExcluded) {
+            lowest /= 10.0;
+        }
+    }
+    double highest = 1e3;
+    for (const Interval & r : box.zeros) highest = std::max(highest, 1e3 * r.upper());
+    for (const Interval & r : box.poles) highest = std::max(highest, 1e3 * r.upper());
+    bool highExcluded = false;
+    for (int i = 0; i < kAxisEndSearches && !highExcluded; ++i) {
+        const Interval u(0.0, (Interval(1.0) / Interval(highest)).upper());
+        highExcluded = !valueTowardsInfinity(characteristic, u).containsOrigin();
+        if (!highExcluded) {
+            highest *= 10.0;
+        }
+    }
+    if (!lowExcluded || !highExcluded) {
+        return false;
+    }
+
+    AxisExclusion exclusion{plant, box, gain};
+    const double decades = std::log10(highest / lowest);
+    const int cells = std::max(1, static_cast<int>(std::ceil(decades * kExclusionCellsPerDecade)));
+    const auto cellAt = [&](int i, double & a, double & b) {
+        a = lowest * std::pow(10.0, decades * i / cells);
+        b = i + 1 == cells ? highest : lowest * std::pow(10.0, decades * (i + 1) / cells);
+    };
+    int first = -1;
+    if (lastFailure > lowest && lastFailure < highest) {
+        first = std::min(cells - 1, std::max(0, static_cast<int>(std::floor(std::log10(lastFailure / lowest)
+                                                                           / decades * cells))));
+        double a, b;
+        cellAt(first, a, b);
+        if (!exclusion.excludedOn(a, b, kExclusionDepth)) {
+            return false;
+        }
+    }
+    for (int i = 0; i < cells; ++i) {
+        if (i == first) {
+            continue;
+        }
+        double a, b;
+        cellAt(i, a, b);
+        if (!exclusion.excludedOn(a, b, kExclusionDepth)) {
+            lastFailure = std::sqrt(a * b);
+            return false;
+        }
+    }
+    return true;
 }
 
 double relativeWidth(const Interval & x)
@@ -424,7 +614,7 @@ std::optional<Range> FamilyStabilityChecker::shaveUnstableGains(LtiSystem * box,
             }
             return false;
         };
-        const std::optional<Range> shavedGains = shaved(left, proven);
+        const std::optional<Range> shavedGains = shaved(left, kShaveResolutionDecades, proven);
         if (!shavedGains.has_value()) {
             return std::nullopt;
         }
@@ -445,6 +635,67 @@ std::optional<Range> FamilyStabilityChecker::shaveUnstableGains(LtiSystem * box,
         addWorkingPlant(*refuser);
     }
     return left;
+}
+
+std::optional<Range> FamilyStabilityChecker::shaveByZeroExclusion(LtiSystem * box, Range gains)
+{
+    if (box == nullptr || box->type() != LtiSystem::SystemType::ZeroPoleGain || !(gains.min > 0.0)) {
+        return gains;
+    }
+    const std::optional<BoxIntervals> intervals = boxIntervalsOf(box, *m_controller);
+    if (!intervals.has_value()) {
+        return gains;
+    }
+
+    PointController centre;
+    for (const Interval & z : intervals->zeros) centre.zeros.push_back(centreOf(z));
+    for (const Interval & p : intervals->poles) centre.poles.push_back(centreOf(p));
+    std::vector<std::size_t> refusing;
+    for (const std::size_t member : m_working) {
+        if (refusing.size() >= kExclusionPlants) {
+            break;
+        }
+        bool refuses = false;
+        for (const double gain : {gains.max, gains.min}) {
+            centre.gain = gain;
+            const std::optional<LtiSystem::Polynomials> loop = m_controller->polynomialsAt(centre.zeros, centre.poles, gain);
+            refuses = refuses || (loop.has_value() && !math::isHurwitz(characteristicOf(workingPlant(member), *loop)));
+        }
+        if (refuses) {
+            refusing.push_back(member);
+        }
+    }
+    if (refusing.empty()) {
+        return gains;
+    }
+
+    return shaved(gains, kExclusionResolutionDecades, [&](double a, double b) {
+        for (const std::size_t member : refusing) {
+            ++m_statistics.axisExclusions;
+            if (provenUnstableOnAxis(workingPlant(member), *intervals, Interval(a, b), m_lastAxisFailure)) {
+                ++m_statistics.axisProofs;
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
+bool FamilyStabilityChecker::isBoxUnstableAtNominalOnAxis(LtiSystem * box)
+{
+    if (!m_nominal.has_value() || box == nullptr || box->type() != LtiSystem::SystemType::ZeroPoleGain
+            || !(box->gain().range().min > 0.0)) {
+        return false;
+    }
+    const std::optional<BoxIntervals> intervals = boxIntervalsOf(box, *m_controller);
+    if (!intervals.has_value()) {
+        return false;
+    }
+    ++m_statistics.axisExclusions;
+    const bool proven = provenUnstableOnAxis(*m_nominal, *intervals, intervals->gain, m_lastAxisFailure);
+    m_statistics.axisProofs += proven ? 1 : 0;
+    m_statistics.nominalAxisPrunes += proven ? 1 : 0;
+    return proven;
 }
 
 const LtiSystem::Polynomials & FamilyStabilityChecker::workingPlant(std::size_t member) const

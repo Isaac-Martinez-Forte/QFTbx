@@ -7,7 +7,8 @@
  * magnitude strips the exact sector verdict forbids at every phase of the
  * box's enclosure are carried to the gain in interval arithmetic. The
  * stability: the Routh table over pieces of the gain, with a few plants
- * (FamilyStabilityChecker::shaveUnstableGains). An empty interval discards
+ * (FamilyStabilityChecker::shaveUnstableGains), and then the zero exclusion
+ * on the imaginary axis where the table stalls. An empty interval discards
  * the box. The strip ends are floating-point roots, as in the search's
  * cuts, and rest on the 1e-12 dB the certification funnel keeps from every
  * bound.
@@ -34,7 +35,7 @@ public:
     GainContractor(ExactPointCheck & exact, FamilyStabilityChecker & family, const std::vector<double> & omega,
                    const std::vector<std::complex<double>> & nominalPlantValues);
 
-    enum class Outcome { Unchanged, Contracted, EmptiedBySpecifications, EmptiedByStability };
+    enum class Outcome { Unchanged, Contracted, EmptiedBySpecifications, EmptiedByStability, EmptiedByZeroExclusion };
 
     struct Contraction {
         Outcome outcome = Outcome::Unchanged;
@@ -47,6 +48,7 @@ public:
         std::size_t contracted = 0;
         std::size_t emptiedBySpecifications = 0;
         std::size_t emptiedByStability = 0;
+        std::size_t emptiedByZeroExclusion = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 

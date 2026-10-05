@@ -27,12 +27,14 @@
  * interval enclosure. So each such removal is counted and the smallest gain
  * it could have held is kept: the unproven discards are the infeasible
  * verdicts and cuts read off the columns, the grid-backed prunes the boxes
- * the nominal criterion rejected whole on its frequency grid, the family
+ * the nominal criterion rejected whole on its frequency grid (under the
+ * contraction of the gain they are kept instead, and counted), the family
  * prunes the boxes the interval Routh table proved to destabilise a plant
  * of the sweep for every controller in them, and the nominal box prunes
  * those it proved to destabilise the nominal plant, each a proof that enters
  * no bound, as are the boxes the contraction of the gain emptied, by the
- * specifications or by the stability of the plants, and the boxes the exact
+ * specifications, the Routh table or the zero exclusion, the boxes the zero
+ * exclusion proved unstable at the nominal plant, and the boxes the exact
  * sector verdict proved infeasible and the cuts it certified (the columns'
  * verdicts it overruled are counted too), and the residue the boxes dropped
  * with no certified point at the size the search stops at, or with a corner
@@ -96,6 +98,9 @@ struct LoopShapingStatistics
         std::size_t contractedBoxes = 0;
         std::size_t emptiedBySpecifications = 0;
         std::size_t emptiedByStability = 0;
+        std::size_t emptiedByZeroExclusion = 0;
+        std::size_t nominalAxisPrunes = 0;
+        std::size_t gridPrunesKept = 0;
         std::size_t provenInfeasible = 0;
         std::size_t columnsOverruled = 0;
         std::size_t certifiedCuts = 0;

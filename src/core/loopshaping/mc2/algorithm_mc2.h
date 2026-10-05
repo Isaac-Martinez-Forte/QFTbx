@@ -148,7 +148,10 @@
  * parameter that is a point is not split, and a box of points counts as
  * epsilon-small. Every box taken has its gain contracted first
  * (GainContractor), in place of the family gate, and a box the sector
- * verdict proves infeasible at its cuts is discarded, both with proofs.
+ * verdict proves infeasible at its cuts is discarded, both with proofs. A
+ * box the nominal criterion finds unstable on its grid is discarded only
+ * when the Routh table or the zero exclusion proves it, and kept otherwise,
+ * so that the strict lower bound is the lower bound.
  */
 namespace qftbx {
 

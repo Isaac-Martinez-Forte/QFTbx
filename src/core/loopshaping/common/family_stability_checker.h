@@ -92,7 +92,13 @@
  * linear factors are asked (zero-pole-gain and time-constant forms).
  *
  * shaveUnstableGains narrows a gain interval by the same table over pieces
- * of the gain, with a working set of up to eight plants.
+ * of the gain, with a working set of up to eight plants. Where the table
+ * stalls, as on a near cancellation of a zero and a pole, the zero exclusion
+ * proves a box unstable instead (shaveByZeroExclusion, and
+ * isBoxUnstableAtNominalOnAxis with the nominal plant): an unstable point of
+ * the box, proven by the table, and a characteristic polynomial that cannot
+ * vanish on the imaginary axis over the box, shown in polar form over pieces
+ * of the frequency, leave every controller of the box unstable.
  *
  * It keeps a clone of the controller structure, since the search gives its
  * own away to the first box of the list.
@@ -118,6 +124,10 @@ public:
 
     std::optional<Range> shaveUnstableGains(LtiSystem * box, Range gains);
 
+    std::optional<Range> shaveByZeroExclusion(LtiSystem * box, Range gains);
+
+    bool isBoxUnstableAtNominalOnAxis(LtiSystem * box);
+
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t nominalVerdicts = 0;
@@ -129,6 +139,9 @@ public:
         std::size_t gainShaves = 0;
         std::size_t gainPiecesProven = 0;
         std::size_t workingSetExchanges = 0;
+        std::size_t axisExclusions = 0;
+        std::size_t axisProofs = 0;
+        std::size_t nominalAxisPrunes = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 
@@ -147,6 +160,7 @@ private:
     std::vector<std::size_t> m_recentRefusers;
     std::vector<std::size_t> m_working;
     std::size_t m_shavesAsked = 0;
+    double m_lastAxisFailure = -1.0;
     Statistics m_statistics;
 };
 

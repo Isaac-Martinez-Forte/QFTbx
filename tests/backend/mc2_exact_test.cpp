@@ -17,7 +17,11 @@
  * cancelled, and not kept at all by another algorithm. With the contraction
  * of the gain, the first-order plant with a delay, whose search split one
  * degenerate parameter for ever, ends in a few thousand boxes with a design
- * the verifier accepts.
+ * the verifier accepts; and two problems without a design end with a proof
+ * of it. The ACC'90 benchmark, whose Routh table with the nominal plant asks
+ * for k < 40.5 where the box starts at k = 1000, and the unstable maglev
+ * with a second pole, which without the contraction ends with boxes
+ * discarded on the sweep alone.
  */
 
 #include <gtest/gtest.h>
@@ -26,6 +30,7 @@
 #include <filesystem>
 #include <ostream>
 #include <string>
+#include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/common/exception.h"
@@ -150,6 +155,55 @@ TEST(Mc2GainContraction, TheDelayedFirstOrderPlantEndsWithADesign)
     EXPECT_TRUE(result->check()->satisfied()) << "worst excess " << result->check()->worstExcessDb << " dB";
     EXPECT_LT(result->statistics().nodesProcessed, 50000u);
     EXPECT_LE(result->statistics().certificate.lowerBound, result->controller()->gain().nominal());
+}
+
+TEST(Mc2GainContraction, TheAcc90BenchmarkEndsWithAProofThatNoDesignExists)
+{
+    ProjectController controller;
+    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "acc90.qft").string());
+    ASSERT_GE(controller.controllerStructure()->gain().range().min, 1000.0);
+    Settings settings;
+    settings.research.mc2GainContraction = true;
+    controller.applySettings(settings);
+
+    EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100), InvalidInput);
+
+    const LoopShapingStatistics & statistics = controller.lastLoopShapingStatistics();
+    ASSERT_TRUE(statistics.certificate.finished);
+    EXPECT_EQ(statistics.certificate.residueNodes, 0u);
+    EXPECT_EQ(statistics.certificate.unprovenDiscards, 0u);
+    EXPECT_EQ(statistics.certificate.gridBackedPrunes, 0u) << "a box was discarded without a proof";
+    EXPECT_LT(statistics.nodesProcessed, 1000u);
+}
+
+TEST(Mc2GainContraction, TheUnstableMaglevWithASecondPoleEndsWithAProofThatNoDesignExists)
+{
+    for (const bool contraction : {false, true}) {
+        ProjectController controller;
+        controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "maglev-upper.qft").string());
+        LtiSystem * structure = controller.controllerStructure();
+        ASSERT_NE(structure, nullptr);
+        std::vector<Parameter> poles = structure->denominator();
+        poles.emplace_back(std::string("p2"), Range(0.01, 1000.0), 0.01);
+        controller.setControllerStructure(structure->create(structure->name(), structure->numerator(), poles,
+                                                            structure->gain(), structure->delay()));
+        Settings settings;
+        settings.research.mc2GainContraction = contraction;
+        controller.applySettings(settings);
+
+        EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100), InvalidInput);
+
+        const LoopShapingStatistics::Certificate & certificate = controller.lastLoopShapingStatistics().certificate;
+        ASSERT_TRUE(certificate.finished);
+        EXPECT_EQ(certificate.residueNodes, 0u);
+        EXPECT_EQ(certificate.unprovenDiscards, 0u);
+        if (contraction) {
+            EXPECT_EQ(certificate.gridBackedPrunes, 0u) << "a box was discarded without a proof";
+            EXPECT_GT(certificate.emptiedByZeroExclusion, 0u);
+        } else {
+            EXPECT_GT(certificate.gridBackedPrunes, 0u);
+        }
+    }
 }
 
 }

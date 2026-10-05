@@ -214,7 +214,8 @@ bool AlgorithmMc2::solve()
         if (contractor != nullptr && node->system()->gain().isUncertain()) {
             const GainContractor::Contraction contraction = contractor->contract(node->system());
             if (contraction.outcome == GainContractor::Outcome::EmptiedBySpecifications
-                    || contraction.outcome == GainContractor::Outcome::EmptiedByStability) {
+                    || contraction.outcome == GainContractor::Outcome::EmptiedByStability
+                    || contraction.outcome == GainContractor::Outcome::EmptiedByZeroExclusion) {
                 continue;
             }
             if (contraction.outcome == GainContractor::Outcome::Contracted) {
@@ -388,9 +389,17 @@ bool AlgorithmMc2::pruneUnstableBox(McSearchNode & node, double gainInf)
         return false;
     }
 
-    if (!exactReading || !family->isBoxUnstableAtNominal(node.system())) {
-        discardGridBacked(gainInf);
+    if (exactReading && family->isBoxUnstableAtNominal(node.system())) {
+        return true;
     }
+    if (gainContraction) {
+        if (family->isBoxUnstableAtNominalOnAxis(node.system())) {
+            return true;
+        }
+        ++certificate.gridPrunesKept;
+        return false;
+    }
+    discardGridBacked(gainInf);
     return true;
 }
 
@@ -494,10 +503,12 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.certificate.contractedBoxes = contractor->statistics().contracted;
         statistics.certificate.emptiedBySpecifications = contractor->statistics().emptiedBySpecifications;
         statistics.certificate.emptiedByStability = contractor->statistics().emptiedByStability;
+        statistics.certificate.emptiedByZeroExclusion = contractor->statistics().emptiedByZeroExclusion;
     }
     if (family != nullptr) {
         statistics.certificate.familyPrunes = family->statistics().boxPrunes;
         statistics.certificate.nominalBoxPrunes = family->statistics().nominalBoxPrunes;
+        statistics.certificate.nominalAxisPrunes = family->statistics().nominalAxisPrunes;
     }
     if (certifier != nullptr) {
         const Certifier::Statistics & funnel = certifier->statistics();

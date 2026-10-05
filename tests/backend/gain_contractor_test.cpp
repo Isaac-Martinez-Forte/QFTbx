@@ -11,12 +11,16 @@
  * controllers, no controller with a gain the shaving removed is stable with
  * every plant of the sweep and the nominal one, and no controller with a
  * gain the whole contraction removed, by the specifications or by the
- * stability, both meets every specification and closes the loop stably.
+ * stability, both meets every specification and closes the loop stably. The
+ * zero exclusion proves unstable, on the ACC'90 plant, boxes whose zero and
+ * pole nearly cancel, where the Routh table proves nothing; and on problems
+ * with stable controllers no box it proves holds one.
  */
 
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdio>
 #include <complex>
 #include <cstddef>
 #include <filesystem>
@@ -168,7 +172,8 @@ TEST(GainContractor, NoGainTheContractionRemovesIsADesign)
             const Range gains = box->gain().range();
             const GainContractor::Contraction contraction = contractor.contract(box.get());
             const bool isEmptied = contraction.outcome == GainContractor::Outcome::EmptiedBySpecifications
-                                   || contraction.outcome == GainContractor::Outcome::EmptiedByStability;
+                                   || contraction.outcome == GainContractor::Outcome::EmptiedByStability
+                                   || contraction.outcome == GainContractor::Outcome::EmptiedByZeroExclusion;
             emptied += isEmptied ? 1 : 0;
             const std::vector<double> sampled = isEmptied
                     ? std::vector<double>{gains.min, std::sqrt(gains.min * gains.max), gains.max}
@@ -185,4 +190,81 @@ TEST(GainContractor, NoGainTheContractionRemovesIsADesign)
     }
     EXPECT_GT(removed, 0u);
     EXPECT_GT(emptied, 0u);
+}
+
+TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
+{
+    const std::string file = example("acc90.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * structure = project.controllerStructure();
+    ASSERT_EQ(structure->numerator().size(), 1u);
+    ASSERT_EQ(structure->denominator().size(), 1u);
+    FamilyStabilityChecker family(project.plant(), structure, ParameterGrids());
+
+    std::mt19937 generator(53);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    std::size_t routhProven = 0, onlyOnAxis = 0, sampled = 0;
+    for (int trial = 0; trial < 300; ++trial) {
+        const double centre = std::pow(10.0, -1.0 + 3.0 * unit(generator));
+        const double offset = 1.0 + std::pow(10.0, -4.0 + 3.0 * unit(generator));
+        const double width = std::pow(10.0, -4.0 + 2.0 * unit(generator));
+        const double gain = std::pow(10.0, 3.0 + 4.0 * unit(generator));
+        const std::unique_ptr<LtiSystem> box = structure->create(
+                    "box", {Parameter(std::string("z"), Range(centre, centre * (1.0 + width)), centre)},
+                    {Parameter(std::string("p"), Range(centre * offset, centre * offset * (1.0 + width)), centre * offset)},
+                    Parameter(std::string("k"), Range(gain, gain * 2.0), gain));
+        if (family.isBoxUnstableAtNominal(box.get())) {
+            ++routhProven;
+            continue;
+        }
+        if (!family.isBoxUnstableAtNominalOnAxis(box.get())) {
+            continue;
+        }
+        ++onlyOnAxis;
+        for (int point = 0; point < 20; ++point) {
+            EXPECT_FALSE(family.isStableAtNominal(pointInside(*box, generator))) << "trial " << trial;
+            ++sampled;
+        }
+    }
+    std::printf("ZERO-EXCLUSION acc90: %zu boxes proven by the Routh table, %zu by the zero exclusion alone, %zu points sampled\n",
+                routhProven, onlyOnAxis, sampled);
+    EXPECT_GT(onlyOnAxis, 0u);
+}
+
+TEST(ZeroExclusion, NoBoxItProvesHoldsAStableController)
+{
+    std::size_t proven = 0, holdingStable = 0;
+    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft", "toolbox-2.qft", "maglev-upper.qft", "dcm-k.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        FamilyStabilityChecker family(project.plant(), structure, ParameterGrids());
+
+        std::mt19937 generator(59);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        for (int trial = 0; trial < 300; ++trial) {
+            const std::unique_ptr<LtiSystem> box = randomBox(*structure, std::pow(10.0, -3.0 + 3.0 * unit(generator)), generator);
+            const bool isProven = family.isBoxUnstableAtNominalOnAxis(box.get());
+            proven += isProven ? 1 : 0;
+            std::size_t stable = 0;
+            for (int point = 0; point < 20; ++point) {
+                stable += family.isStableAtNominal(pointInside(*box, generator)) ? 1 : 0;
+            }
+            holdingStable += stable > 0 ? 1 : 0;
+            EXPECT_FALSE(isProven && stable > 0) << name << " trial " << trial << ": " << stable
+                                                 << " stable controllers in a box proven unstable";
+        }
+    }
+    std::printf("ZERO-EXCLUSION published: %zu boxes proven unstable, %zu holding a stable controller\n",
+                proven, holdingStable);
+    EXPECT_GT(proven, 0u);
+    EXPECT_GT(holdingStable, 0u);
 }
