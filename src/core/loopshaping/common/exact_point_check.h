@@ -132,10 +132,14 @@
  * plant and of each tracking pair, depend on the frequency alone, so they
  * are computed once, the pairs again only when a working set has grown,
  * and a verdict is products with the cosines and sines of the ends of the
- * phase interval. The last verdict of each frequency is remembered, and
- * given again when the same sector, to the bit, is asked while the working
- * set has not grown: MC2 asks it twice of the same projection of a box,
- * once to read the box and once to cut it.
+ * phase interval. A plant whose quadratic has positive leading and constant
+ * terms can only be negative when the whole interval lies within an angle,
+ * its own, of the direction opposite to it, so those plants are kept sorted
+ * by direction and a verdict visits, besides the others, only the ones in
+ * that window around the opposite of the interval. The last verdict of
+ * each frequency is remembered, and given again when the same sector, to
+ * the bit, is asked while the working set has not grown: MC2 asks it twice
+ * of the same projection of a box, once to read the box and once to cut it.
  *
  * A project whose templates do not cover every design frequency has no
  * reference: the check is then unusable and MC2 refuses to run, as the
@@ -209,9 +213,27 @@ private:
         double constant;
     };
 
+    struct WindowedPlantEntry {
+        double angle;
+        std::size_t index;
+    };
+
+    struct PlantWindow {
+        std::vector<std::size_t> always;
+        std::vector<double> angles;
+        std::vector<std::size_t> byAngle;
+        double halfWidth = 0.0;
+
+        void sortByAngle(std::vector<WindowedPlantEntry> & windowed);
+
+        template <class Visit>
+        void visit(double from, double to, Visit && visitPlant) const;
+    };
+
     struct TrackingPairs {
         std::size_t workingSize = 0;
         std::vector<TrackingPair> pairs;
+        PlantWindow window;
     };
 
     struct Scratch {
@@ -257,7 +279,7 @@ private:
 
     bool growWorkingSet(std::size_t frequency, const PointController & point);
 
-    const std::vector<TrackingPair> & trackingPairs(std::size_t frequency, std::size_t bound);
+    const TrackingPairs & trackingPairs(std::size_t frequency, std::size_t bound);
 
     std::unique_ptr<LtiSystem> m_controller;
     std::optional<SpecificationReference> m_reference;
@@ -265,6 +287,7 @@ private:
     std::vector<std::vector<std::size_t>> m_hull;
     std::vector<std::size_t> m_referenceOf;
     std::vector<std::vector<Quotient>> m_quotients;
+    std::vector<std::vector<PlantWindow>> m_windows;
     std::vector<TrackingPairs> m_pairs;
     std::vector<RememberedSector> m_sectors;
     Scratch m_scratch;

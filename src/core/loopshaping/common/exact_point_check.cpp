@@ -101,6 +101,21 @@ struct Arc {
     }
 };
 
+constexpr double kWindowMargin = 1e-6;
+constexpr double kNearZero = 1e-9;
+
+double directionOf(double cosine, double sine)
+{
+    const double angle = std::atan2(sine, cosine);
+    return angle > -math::kPi ? angle : math::kPi;
+}
+
+double halfWidthOf(double modulus, double a, double c, double shift)
+{
+    const double kappa = (shift - std::sqrt(a * c)) / modulus;
+    return std::acos(std::clamp(-kappa, -1.0, 1.0));
+}
+
 double largestOver(double a, double b, double c, double g1, double g2)
 {
     double largest = std::max(a * g1 * g1 + b * g1 + c, a * g2 * g2 + b * g2 + c);
@@ -113,6 +128,44 @@ double largestOver(double a, double b, double c, double g1, double g2)
     return largest;
 }
 
+}
+
+void ExactPointCheck::PlantWindow::sortByAngle(std::vector<WindowedPlantEntry> & windowed)
+{
+    std::sort(windowed.begin(), windowed.end(),
+              [](const WindowedPlantEntry & x, const WindowedPlantEntry & y) { return x.angle < y.angle; });
+    angles.clear();
+    byAngle.clear();
+    for (const WindowedPlantEntry & entry : windowed) {
+        angles.push_back(entry.angle);
+        byAngle.push_back(entry.index);
+    }
+}
+
+template <class Visit>
+void ExactPointCheck::PlantWindow::visit(double from, double to, Visit && visitPlant) const
+{
+    for (const std::size_t n : always) {
+        visitPlant(n);
+    }
+    const double width = 2.0 * halfWidth - (to - from);
+    if (byAngle.empty() || !(width > 0.0)) {
+        return;
+    }
+    double low = to - math::kPi - halfWidth;
+    low -= 2.0 * math::kPi * std::floor((low + math::kPi) / (2.0 * math::kPi));
+    const double high = low + width;
+    const auto between = [&](double first, double last) {
+        const auto begin = std::lower_bound(angles.begin(), angles.end(), first);
+        const auto end = std::upper_bound(begin, angles.end(), last);
+        for (auto it = begin; it != end; ++it) {
+            visitPlant(byAngle[static_cast<std::size_t>(it - angles.begin())]);
+        }
+    };
+    between(low, high);
+    if (high > math::kPi) {
+        between(-math::kPi, high - 2.0 * math::kPi);
+    }
 }
 
 ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, const std::vector<double> & omega,
@@ -142,6 +195,34 @@ ExactPointCheck::ExactPointCheck(LtiSystem & plant, LtiSystem * controller, cons
             quotients.push_back({modulus, std::cos(angle), std::sin(angle), std::norm(qn),
                                   std::abs((*at.valueSet)[n])});
         }
+        std::vector<PlantWindow> windows(at.bounds.size());
+        for (std::size_t k = 0; k < at.bounds.size(); ++k) {
+            const FrequencyReference::Bound & bound = at.bounds[k];
+            if (bound.type == SpecificationType::TrackingLower) {
+                continue;
+            }
+            const double W = dbToLinear(bound.boundDb);
+            const double nominalModulus = std::abs(at.nominalPlant);
+            PlantWindow & window = windows[k];
+            std::vector<WindowedPlantEntry> windowed;
+            for (std::size_t n = 0; n < quotients.size(); ++n) {
+                const Quotient & quotient = quotients[n];
+                const std::optional<Disc> disc = discOf(bound.type, W, quotient.modulus, nominalModulus, quotient.plantModulus);
+                if (!disc.has_value()) {
+                    continue;
+                }
+                const double a = 1.0 - disc->s * disc->s, c = quotient.norm - disc->t * disc->t;
+                if (!(a > kNearZero) || !(c > kNearZero * quotient.norm) || !(quotient.modulus > 0.0)) {
+                    window.always.push_back(n);
+                    continue;
+                }
+                window.halfWidth = std::max(window.halfWidth, halfWidthOf(quotient.modulus, a, c, disc->s * disc->t));
+                windowed.push_back({directionOf(quotient.cosine, quotient.sine), n});
+            }
+            window.halfWidth += kWindowMargin;
+            window.sortByAngle(windowed);
+        }
+        m_windows.push_back(std::move(windows));
         m_quotients.push_back(std::move(quotients));
         m_pairs.emplace_back();
         m_sectors.emplace_back();
@@ -471,7 +552,8 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
     }
     const FrequencyReference & at = m_reference->frequencies()[f];
     const std::vector<Quotient> & quotients = m_quotients[f];
-    const Arc arc(phaseDegrees.min * math::kPi / 180.0, phaseDegrees.max * math::kPi / 180.0);
+    const double from = phaseDegrees.min * math::kPi / 180.0, to = phaseDegrees.max * math::kPi / 180.0;
+    const Arc arc(from, to);
     const double g1 = dbToLinear(magnitudeDb.min);
     const double g2 = dbToLinear(magnitudeDb.max);
 
@@ -484,38 +566,41 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
         const FrequencyReference::Bound & bound = at.bounds[k];
         if (bound.type == SpecificationType::TrackingLower) {
             const double dm1 = trackingFactor(bound.boundDb);
-            for (const TrackingPair & pair : trackingPairs(f, k)) {
+            const TrackingPairs & tracking = trackingPairs(f, k);
+            tracking.window.visit(from, to, [&](std::size_t n) {
+                const TrackingPair & pair = tracking.pairs[n];
                 const double rho = pair.modulus * arc.largestCosine(pair.cosine, pair.sine);
                 const double a = dm1, b = 2.0 * rho, c = pair.constant;
                 if (a > 0.0 && b >= 0.0 && c >= 0.0) {
-                    continue;
+                    return;
                 }
                 if (largestOver(a, b, c, g1, g2) < 0.0) {
                     verdict.provablyInfeasible = true;
                 }
                 math::appendWhereNegative(a, b, c, lower, upper);
-            }
+            });
             continue;
         }
 
         const double W = dbToLinear(bound.boundDb);
         const double nominalModulus = std::abs(at.nominalPlant);
-        for (const Quotient & quotient : quotients) {
+        m_windows[f][k].visit(from, to, [&](std::size_t n) {
+            const Quotient & quotient = quotients[n];
             const std::optional<Disc> disc = discOf(bound.type, W, quotient.modulus, nominalModulus, quotient.plantModulus);
             if (!disc.has_value()) {
-                continue;
+                return;
             }
             const double s = disc->s, t = disc->t;
             const double cmax = quotient.modulus * arc.largestCosine(quotient.cosine, quotient.sine);
             const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = quotient.norm - t * t;
             if (a > 0.0 && b >= 0.0 && c >= 0.0) {
-                continue;
+                return;
             }
             if (largestOver(a, b, c, g1, g2) < 0.0) {
                 verdict.provablyInfeasible = true;
             }
             math::appendWhereNegative(a, b, c, lower, upper);
-        }
+        });
     }
 
     if (!lower.empty()) {
@@ -557,12 +642,12 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
     return verdict;
 }
 
-const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPairs(std::size_t frequency, std::size_t bound)
+const ExactPointCheck::TrackingPairs & ExactPointCheck::trackingPairs(std::size_t frequency, std::size_t bound)
 {
     TrackingPairs & cached = m_pairs[frequency];
     const std::vector<std::size_t> & working = m_working[frequency];
     if (cached.workingSize == working.size()) {
-        return cached.pairs;
+        return cached;
     }
 
     const FrequencyReference & at = m_reference->frequencies()[frequency];
@@ -578,8 +663,28 @@ const std::vector<ExactPointCheck::TrackingPair> & ExactPointCheck::trackingPair
             cached.pairs.push_back({std::abs(w), std::cos(angle), std::sin(angle), d2 * std::norm(q[j]) - std::norm(q[n])});
         }
     }
+
+    const double dm1 = trackingFactor(at.bounds[bound].boundDb);
+    cached.window = PlantWindow();
+    std::vector<WindowedPlantEntry> windowed;
+    std::size_t index = 0;
+    for (const std::size_t n : m_hull[frequency]) {
+        for (const std::size_t j : working) {
+            const TrackingPair & pair = cached.pairs[index];
+            const double scale = d2 * std::norm(q[j]) + std::norm(q[n]);
+            if (!(dm1 > kNearZero) || !(pair.constant > kNearZero * scale) || !(pair.modulus > 0.0)) {
+                cached.window.always.push_back(index);
+            } else {
+                cached.window.halfWidth = std::max(cached.window.halfWidth, halfWidthOf(pair.modulus, dm1, pair.constant, 0.0));
+                windowed.push_back({directionOf(pair.cosine, pair.sine), index});
+            }
+            ++index;
+        }
+    }
+    cached.window.halfWidth += kWindowMargin;
+    cached.window.sortByAngle(windowed);
     cached.workingSize = working.size();
-    return cached.pairs;
+    return cached;
 }
 
 }
