@@ -1,0 +1,188 @@
+/**
+ * @file
+ * @brief The contraction of a box's gain removes only gains it can prove
+ * wrong.
+ *
+ * The Routh table over pieces of the gain shaves the ceiling of a stable
+ * plant to its stability limit, 1/(s(s+1)(s+2)) with a pure gain being
+ * stable below 6, and raises the floor of an unstable one, 1/(s-1) needing
+ * a gain above 1, each to within the resolution of the pieces and never
+ * past the limit. On the published problems, over random boxes of
+ * controllers, no controller with a gain the shaving removed is stable with
+ * every plant of the sweep and the nominal one, and no controller with a
+ * gain the whole contraction removed, by the specifications or by the
+ * stability, both meets every specification and closes the loop stably.
+ */
+
+#include <gtest/gtest.h>
+
+#include <cmath>
+#include <complex>
+#include <cstddef>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <random>
+#include <string>
+#include <vector>
+
+#include "src/app/project_controller.h"
+#include "src/core/loopshaping/common/exact_point_check.h"
+#include "src/core/loopshaping/common/family_stability_checker.h"
+#include "src/core/loopshaping/common/gain_contractor.h"
+#include "src/core/math/range.h"
+#include "src/core/specifications/specification_record.h"
+#include "src/core/system/parameter.h"
+#include "src/core/system/zero_pole_gain.h"
+#include "tests/backend/published_problems.h"
+
+using namespace qftbx;
+using namespace qftbx_tests;
+
+namespace {
+
+std::unique_ptr<LtiSystem> plantWithPoles(const std::vector<double> & poles)
+{
+    std::vector<Parameter> denominator;
+    for (const double pole : poles) {
+        denominator.emplace_back(pole);
+    }
+    return std::make_unique<ZeroPoleGain>(std::string("plant"), std::vector<Parameter>{}, denominator,
+                                          Parameter(1.0), Parameter(0.0));
+}
+
+std::unique_ptr<LtiSystem> pureGain(Range gains)
+{
+    return std::make_unique<ZeroPoleGain>(std::string("gain"), std::vector<Parameter>{}, std::vector<Parameter>{},
+                                          Parameter(std::string("k"), gains, gains.min), Parameter(0.0));
+}
+
+std::vector<double> removedGains(Range box, Range kept, std::mt19937 & generator)
+{
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    std::vector<double> gains;
+    for (int k = 0; k < 5; ++k) {
+        if (box.min < kept.min) {
+            gains.push_back(box.min * std::pow(kept.min / box.min, unit(generator) * 0.999));
+        }
+        if (kept.max < box.max) {
+            gains.push_back(box.max * std::pow(kept.max / box.max, unit(generator) * 0.999));
+        }
+    }
+    return gains;
+}
+
+}
+
+TEST(GainShave, TheRouthTableShavesTheCeilingOfAStablePlant)
+{
+    const std::unique_ptr<LtiSystem> plant = plantWithPoles({0.0, 1.0, 2.0});
+    const std::unique_ptr<LtiSystem> structure = pureGain(Range(1.0, 100.0));
+    FamilyStabilityChecker family(plant.get(), structure.get(), ParameterGrids());
+
+    const std::optional<Range> left = family.shaveUnstableGains(structure.get(), Range(1.0, 100.0));
+    ASSERT_TRUE(left.has_value());
+    EXPECT_EQ(left->min, 1.0);
+    EXPECT_GE(left->max, 6.0) << "a stable gain was removed";
+    EXPECT_LE(left->max, 6.0 * std::pow(10.0, 0.01));
+}
+
+TEST(GainShave, TheRouthTableRaisesTheFloorOfAnUnstablePlant)
+{
+    const std::unique_ptr<LtiSystem> plant = plantWithPoles({-1.0});
+    const std::unique_ptr<LtiSystem> structure = pureGain(Range(0.01, 100.0));
+    FamilyStabilityChecker family(plant.get(), structure.get(), ParameterGrids());
+
+    const std::optional<Range> left = family.shaveUnstableGains(structure.get(), Range(0.01, 100.0));
+    ASSERT_TRUE(left.has_value());
+    EXPECT_LE(left->min, 1.0) << "a stable gain was removed";
+    EXPECT_GE(left->min, std::pow(10.0, -0.01));
+    EXPECT_EQ(left->max, 100.0);
+
+    EXPECT_FALSE(family.shaveUnstableGains(structure.get(), Range(0.01, 0.5)).has_value())
+        << "every gain below 1 is unstable";
+}
+
+TEST(GainShave, NoGainTheShavingRemovesIsStable)
+{
+    std::size_t removed = 0;
+    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+        ASSERT_TRUE(family.usable());
+
+        std::mt19937 generator(43);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        for (int trial = 0; trial < 200; ++trial) {
+            const std::unique_ptr<LtiSystem> box = randomBox(*structure, std::pow(10.0, -2.0 + 2.0 * unit(generator)), generator);
+            const Range gains = box->gain().range();
+            family.isStable(pointInside(*box, generator));
+            const std::optional<Range> left = family.shaveUnstableGains(box.get(), gains);
+            const Range kept = left.has_value() ? *left : Range(gains.max, gains.max);
+            const std::vector<double> sampled = left.has_value() ? removedGains(gains, kept, generator)
+                                                                 : std::vector<double>{gains.min, gains.max};
+            for (const double gain : sampled) {
+                PointController point = pointInside(*box, generator);
+                point.gain = gain;
+                EXPECT_FALSE(family.isStable(point) && family.isStableAtNominal(point))
+                    << name << " trial " << trial << ": the removed gain " << gain << " is stable";
+                ++removed;
+            }
+        }
+    }
+    EXPECT_GT(removed, 0u);
+}
+
+TEST(GainContractor, NoGainTheContractionRemovesIsADesign)
+{
+    std::size_t removed = 0;
+    std::size_t emptied = 0;
+    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "toolbox-1.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        std::vector<double> & omega = *project.omega()->values();
+        const SpecificationSet specifications = toSpecificationSet(*project.specifications());
+        ExactPointCheck exact(*project.plant(), structure, omega, project.templates(), specifications);
+        FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+        std::vector<std::complex<double>> nominalPlantValues;
+        for (const double w : omega) {
+            nominalPlantValues.push_back(project.plant()->evaluate(w));
+        }
+        GainContractor contractor(exact, family, omega, nominalPlantValues);
+
+        std::mt19937 generator(47);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        for (int trial = 0; trial < 150; ++trial) {
+            const std::unique_ptr<LtiSystem> box = randomBox(*structure, std::pow(10.0, -2.0 + 2.0 * unit(generator)), generator);
+            const Range gains = box->gain().range();
+            const GainContractor::Contraction contraction = contractor.contract(box.get());
+            const bool isEmptied = contraction.outcome == GainContractor::Outcome::EmptiedBySpecifications
+                                   || contraction.outcome == GainContractor::Outcome::EmptiedByStability;
+            emptied += isEmptied ? 1 : 0;
+            const std::vector<double> sampled = isEmptied
+                    ? std::vector<double>{gains.min, std::sqrt(gains.min * gains.max), gains.max}
+                    : removedGains(gains, contraction.gains, generator);
+            for (const double gain : sampled) {
+                PointController point = pointInside(*box, generator);
+                point.gain = gain;
+                const bool meets = exact.checkOf(point).worstExcessDb <= 0.0;
+                EXPECT_FALSE(meets && family.isStable(point) && family.isStableAtNominal(point))
+                    << name << " trial " << trial << ": the removed gain " << gain << " is a design";
+                ++removed;
+            }
+        }
+    }
+    EXPECT_GT(removed, 0u);
+    EXPECT_GT(emptied, 0u);
+}

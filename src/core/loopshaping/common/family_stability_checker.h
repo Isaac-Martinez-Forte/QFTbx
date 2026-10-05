@@ -8,6 +8,7 @@
 
 #include "src/core/loopshaping/common/point_controller.h"
 #include "src/core/loopshaping/common/swept_family.h"
+#include "src/core/math/range.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/parameter_grids.h"
 
@@ -90,6 +91,9 @@
  * proves a third of them. Only structures whose polynomials are products of
  * linear factors are asked (zero-pole-gain and time-constant forms).
  *
+ * shaveUnstableGains narrows a gain interval by the same table over pieces
+ * of the gain, with a working set of up to eight plants.
+ *
  * It keeps a clone of the controller structure, since the search gives its
  * own away to the first box of the list.
  */
@@ -112,6 +116,8 @@ public:
 
     bool isBoxUnstableAtNominal(LtiSystem * box);
 
+    std::optional<Range> shaveUnstableGains(LtiSystem * box, Range gains);
+
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t nominalVerdicts = 0;
@@ -120,16 +126,27 @@ public:
         std::size_t boxPrunes = 0;
         std::size_t nominalBoxVerdicts = 0;
         std::size_t nominalBoxPrunes = 0;
+        std::size_t gainShaves = 0;
+        std::size_t gainPiecesProven = 0;
+        std::size_t workingSetExchanges = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 
 private:
     void rememberRefuser(std::size_t member);
 
+    const LtiSystem::Polynomials & workingPlant(std::size_t member) const;
+
+    void addWorkingPlant(std::size_t member);
+
+    std::optional<std::size_t> refuserOutsideWorkingSet(const PointController & point);
+
     std::unique_ptr<LtiSystem> m_controller;
     SweptFamily m_family;
     std::optional<LtiSystem::Polynomials> m_nominal;
     std::vector<std::size_t> m_recentRefusers;
+    std::vector<std::size_t> m_working;
+    std::size_t m_shavesAsked = 0;
     Statistics m_statistics;
 };
 

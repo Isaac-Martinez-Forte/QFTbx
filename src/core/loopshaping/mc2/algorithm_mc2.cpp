@@ -152,6 +152,10 @@ void AlgorithmMc2::prepare()
 
     exactReading = certifier != nullptr;
     gainContraction = exactReading && m_settings.research.mc2GainContraction;
+    contractor.reset();
+    if (gainContraction) {
+        contractor = std::make_unique<GainContractor>(*exact, *family, *omega, nominalPlantValues);
+    }
 
     certificate = LoopShapingStatistics::Certificate();
     certificate.kept = true;
@@ -206,11 +210,23 @@ bool AlgorithmMc2::solve()
         }
 
         node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
-        const double gainInf = node->system()->gain().range().min;
 
-        if (exactReading && family->isBoxUnstable(node->system())) {
+        if (contractor != nullptr && node->system()->gain().isUncertain()) {
+            const GainContractor::Contraction contraction = contractor->contract(node->system());
+            if (contraction.outcome == GainContractor::Outcome::EmptiedBySpecifications
+                    || contraction.outcome == GainContractor::Outcome::EmptiedByStability) {
+                continue;
+            }
+            if (contraction.outcome == GainContractor::Outcome::Contracted) {
+                node->setSystem(replaceParameter(node->system(), 0, contraction.gains));
+                if (cannotImprove(contraction.gains.min)) {
+                    continue;
+                }
+            }
+        } else if (exactReading && family->isBoxUnstable(node->system())) {
             continue;
         }
+        const double gainInf = node->system()->gain().range().min;
 
         Step step = resolveFeasibleHead(*node);
         if (step == Step::Designed) {
@@ -474,6 +490,11 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.stabilityProfiles = stability->statistics().profilesComputed;
     }
     statistics.certificate = certificate;
+    if (contractor != nullptr) {
+        statistics.certificate.contractedBoxes = contractor->statistics().contracted;
+        statistics.certificate.emptiedBySpecifications = contractor->statistics().emptiedBySpecifications;
+        statistics.certificate.emptiedByStability = contractor->statistics().emptiedByStability;
+    }
     if (family != nullptr) {
         statistics.certificate.familyPrunes = family->statistics().boxPrunes;
         statistics.certificate.nominalBoxPrunes = family->statistics().nominalBoxPrunes;

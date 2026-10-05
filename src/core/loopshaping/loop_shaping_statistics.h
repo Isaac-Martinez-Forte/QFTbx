@@ -31,9 +31,10 @@
  * prunes the boxes the interval Routh table proved to destabilise a plant
  * of the sweep for every controller in them, and the nominal box prunes
  * those it proved to destabilise the nominal plant, each a proof that enters
- * no bound, as are the boxes the exact sector verdict
- * proved infeasible and the cuts it certified (the columns' verdicts it
- * overruled are counted too), and the residue the boxes dropped
+ * no bound, as are the boxes the contraction of the gain emptied, by the
+ * specifications or by the stability of the plants, and the boxes the exact
+ * sector verdict proved infeasible and the cuts it certified (the columns'
+ * verdicts it overruled are counted too), and the residue the boxes dropped
  * with no certified point at the size the search stops at, or with a corner
  * the nominal criterion refused. lowerBound is the smallest gain any of them
  * or any box still alive could hold, lowerBoundStrict counts the grid-backed
@@ -92,6 +93,9 @@ struct LoopShapingStatistics
         std::size_t gridBackedPrunes = 0;
         std::size_t familyPrunes = 0;
         std::size_t nominalBoxPrunes = 0;
+        std::size_t contractedBoxes = 0;
+        std::size_t emptiedBySpecifications = 0;
+        std::size_t emptiedByStability = 0;
         std::size_t provenInfeasible = 0;
         std::size_t columnsOverruled = 0;
         std::size_t certifiedCuts = 0;

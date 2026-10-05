@@ -11,6 +11,7 @@
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
 #include "src/core/loopshaping/common/certifier.h"
+#include "src/core/loopshaping/common/gain_contractor.h"
 #include "src/core/loopshaping/common/common_functions.h"
 #include "src/core/loopshaping/common/depth_accounting.h"
 #include "src/core/loopshaping/common/exact_point_check.h"
@@ -141,17 +142,13 @@
  * (research.mc2-reading = columns), the search is what it was, bit for bit,
  * and the certificate is bookkeeping alone.
  *
- * With the contraction of the gain (research.mc2.gain-contraction, under the
- * exact reading only) the search changes how it bisects and what it
- * discards. The widest parameter is measured on its own factor, without the
- * nominal plant value: with it, a factor whose phase falls on the cut of the
- * Nichols branch measures the whole turn, and the search split that
- * parameter down to a single double and then returned two copies of the same
- * box, on six of the hardest problems most of the live boxes. A parameter
- * whose range is a point to 1e-12 is not split, and a box all of whose
- * parameters are points is resolved as an epsilon-small box, whatever its
- * projection measures. And a box whose sector verdict proves it infeasible
- * at some frequency is discarded when its cuts are made, as a proof.
+ * With research.mc2.gain-contraction (exact reading only) the widest
+ * parameter is measured without the nominal plant, whose phase could put a
+ * factor on the branch cut and have a degenerate parameter split for ever; a
+ * parameter that is a point is not split, and a box of points counts as
+ * epsilon-small. Every box taken has its gain contracted first
+ * (GainContractor), in place of the family gate, and a box the sector
+ * verdict proves infeasible at its cuts is discarded, both with proofs.
  */
 namespace qftbx {
 
@@ -353,6 +350,7 @@ private:
     std::unique_ptr<FamilyStabilityChecker> family;
     std::unique_ptr<ExactPointCheck> exact;
     std::unique_ptr<Certifier> certifier;
+    std::unique_ptr<GainContractor> contractor;
 
     bool exactReading = false;
     bool gainContraction = false;

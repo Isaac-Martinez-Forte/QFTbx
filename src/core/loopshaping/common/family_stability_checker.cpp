@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <optional>
 #include <vector>
 
@@ -33,6 +34,10 @@ namespace {
 constexpr std::size_t kRecentRefusers = 4;
 constexpr int kMaxBisectionDepth = 12;
 constexpr double kNegligibleWidth = 1e-9;
+constexpr std::size_t kWorkingPlants = 8;
+constexpr std::size_t kExchangeEvery = 16;
+constexpr double kShaveResolutionDecades = 0.005;
+constexpr std::size_t kNominalMember = std::numeric_limits<std::size_t>::max();
 
 enum class Bisect { GainOnly, EveryParameter };
 
@@ -112,6 +117,53 @@ std::optional<BoxIntervals> boxIntervalsOf(LtiSystem * box, LtiSystem & controll
     return intervals;
 }
 
+
+double centreOf(const Interval & x)
+{
+    return x.lower() > 0.0 ? std::sqrt(x.lower() * x.upper()) : x.midpoint();
+}
+
+template <class Proven>
+std::optional<Range> shaved(Range gains, Proven && provenOn)
+{
+    if (provenOn(gains.min, gains.max)) {
+        return std::nullopt;
+    }
+    if (!(gains.min > 0.0) || !(gains.min < gains.max)) {
+        return gains;
+    }
+
+    double top = gains.max;
+    double step = std::log10(gains.max / gains.min) / 2.0;
+    while (step >= kShaveResolutionDecades && top > gains.min) {
+        const double lower = std::max(gains.min, top / std::pow(10.0, step));
+        if (provenOn(lower, top)) {
+            top = lower;
+            step *= 2.0;
+        } else {
+            step /= 2.0;
+        }
+    }
+    if (!(top > gains.min)) {
+        return std::nullopt;
+    }
+
+    double bottom = gains.min;
+    step = std::log10(top / gains.min) / 2.0;
+    while (step >= kShaveResolutionDecades && bottom < top) {
+        const double upper = std::min(top, bottom * std::pow(10.0, step));
+        if (provenOn(bottom, upper)) {
+            bottom = upper;
+            step *= 2.0;
+        } else {
+            step /= 2.0;
+        }
+    }
+    if (!(bottom < top)) {
+        return std::nullopt;
+    }
+    return Range(bottom, top);
+}
 
 double relativeWidth(const Interval & x)
 {
@@ -215,6 +267,9 @@ FamilyStabilityChecker::FamilyStabilityChecker(LtiSystem * plant, LtiSystem * co
 
     if (!hasDelay(*plant)) {
         m_nominal = nominalPolynomials(*plant);
+    }
+    if (m_nominal.has_value()) {
+        m_working.push_back(kNominalMember);
     }
 }
 
@@ -323,6 +378,112 @@ bool FamilyStabilityChecker::isBoxUnstableAtNominal(LtiSystem * box)
         return true;
     }
     return false;
+}
+
+std::optional<Range> FamilyStabilityChecker::shaveUnstableGains(LtiSystem * box, Range gains)
+{
+    if (box == nullptr || (m_working.empty() && m_recentRefusers.empty())) {
+        return gains;
+    }
+    const std::optional<BoxIntervals> intervals = boxIntervalsOf(box, *m_controller);
+    if (!intervals.has_value()) {
+        return gains;
+    }
+
+    ++m_statistics.gainShaves;
+    for (auto refuser = m_recentRefusers.rbegin(); refuser != m_recentRefusers.rend(); ++refuser) {
+        if (std::find(m_working.begin(), m_working.end(), *refuser) == m_working.end()) {
+            addWorkingPlant(*refuser);
+        }
+    }
+
+    Range left = gains;
+    for (int round = 0; round < 2; ++round) {
+        struct Closed {
+            std::vector<Interval> perUnitGain;
+            std::vector<Interval> withoutGain;
+        };
+        std::vector<Closed> closed;
+        closed.reserve(m_working.size());
+        for (const std::size_t member : m_working) {
+            const LtiSystem::Polynomials & plant = workingPlant(member);
+            closed.push_back({math::intervalPolynomialProduct(asIntervals(plant.numerator), intervals->zeroFactors),
+                              math::intervalPolynomialProduct(asIntervals(plant.denominator), intervals->poleFactors)});
+        }
+        const auto proven = [&](double a, double b) {
+            const Interval gain(a, b);
+            for (const Closed & loop : closed) {
+                std::vector<Interval> perGain = loop.perUnitGain;
+                for (Interval & coefficient : perGain) {
+                    coefficient = coefficient * gain;
+                }
+                if (math::provablyNotHurwitz(math::intervalPolynomialSum(loop.withoutGain, perGain))) {
+                    ++m_statistics.gainPiecesProven;
+                    return true;
+                }
+            }
+            return false;
+        };
+        const std::optional<Range> shavedGains = shaved(left, proven);
+        if (!shavedGains.has_value()) {
+            return std::nullopt;
+        }
+        left = *shavedGains;
+
+        if (round == 1 || (m_shavesAsked++ % kExchangeEvery) != 0) {
+            break;
+        }
+        PointController centre;
+        centre.gain = left.max;
+        for (const Interval & z : intervals->zeros) centre.zeros.push_back(centreOf(z));
+        for (const Interval & p : intervals->poles) centre.poles.push_back(centreOf(p));
+        const std::optional<std::size_t> refuser = refuserOutsideWorkingSet(centre);
+        if (!refuser.has_value()) {
+            break;
+        }
+        ++m_statistics.workingSetExchanges;
+        addWorkingPlant(*refuser);
+    }
+    return left;
+}
+
+const LtiSystem::Polynomials & FamilyStabilityChecker::workingPlant(std::size_t member) const
+{
+    return member == kNominalMember ? *m_nominal : m_family.member(member);
+}
+
+void FamilyStabilityChecker::addWorkingPlant(std::size_t member)
+{
+    const auto known = std::find(m_working.begin(), m_working.end(), member);
+    if (known != m_working.end()) {
+        m_working.erase(known);
+    }
+    m_working.insert(m_working.begin(), member);
+    if (m_working.size() > kWorkingPlants) {
+        m_working.pop_back();
+    }
+}
+
+std::optional<std::size_t> FamilyStabilityChecker::refuserOutsideWorkingSet(const PointController & point)
+{
+    const std::optional<LtiSystem::Polynomials> loop = m_controller->polynomialsAt(point.zeros, point.poles, point.gain);
+    if (!loop.has_value()) {
+        return std::nullopt;
+    }
+    const auto outside = [&](std::size_t member) {
+        return std::find(m_working.begin(), m_working.end(), member) == m_working.end();
+    };
+    if (m_nominal.has_value() && outside(kNominalMember) && !math::isHurwitz(characteristicOf(*m_nominal, *loop))) {
+        return kNominalMember;
+    }
+    if (m_family.usable()) {
+        for (std::size_t member = 0; member < m_family.size(); ++member) {
+            if (outside(member) && !math::isHurwitz(characteristicOf(m_family.member(member), *loop))) {
+                return member;
+            }
+        }
+    }
+    return std::nullopt;
 }
 
 void FamilyStabilityChecker::rememberRefuser(std::size_t member)

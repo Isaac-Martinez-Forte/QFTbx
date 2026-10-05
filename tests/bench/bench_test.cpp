@@ -198,6 +198,9 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     c.gridBackedPrunes = 4;
     c.familyPrunes = 5;
     c.nominalBoxPrunes = 101;
+    c.contractedBoxes = 105;
+    c.emptiedBySpecifications = 106;
+    c.emptiedByStability = 107;
     c.provenInfeasible = 6;
     c.columnsOverruled = 7;
     c.certifiedCuts = 8;
@@ -230,6 +233,9 @@ TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
     EXPECT_EQ(b.gridBackedPrunes, c.gridBackedPrunes);
     EXPECT_EQ(b.familyPrunes, c.familyPrunes);
     EXPECT_EQ(b.nominalBoxPrunes, c.nominalBoxPrunes);
+    EXPECT_EQ(b.contractedBoxes, c.contractedBoxes);
+    EXPECT_EQ(b.emptiedBySpecifications, c.emptiedBySpecifications);
+    EXPECT_EQ(b.emptiedByStability, c.emptiedByStability);
     EXPECT_EQ(b.provenInfeasible, c.provenInfeasible);
     EXPECT_EQ(b.columnsOverruled, c.columnsOverruled);
     EXPECT_EQ(b.certifiedCuts, c.certifiedCuts);
