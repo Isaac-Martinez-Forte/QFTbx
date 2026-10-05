@@ -487,6 +487,9 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
             for (const TrackingPair & pair : trackingPairs(f, k)) {
                 const double rho = pair.modulus * arc.largestCosine(pair.cosine, pair.sine);
                 const double a = dm1, b = 2.0 * rho, c = pair.constant;
+                if (a > 0.0 && b >= 0.0 && c >= 0.0) {
+                    continue;
+                }
                 if (largestOver(a, b, c, g1, g2) < 0.0) {
                     verdict.provablyInfeasible = true;
                 }
@@ -505,6 +508,9 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
             const double s = disc->s, t = disc->t;
             const double cmax = quotient.modulus * arc.largestCosine(quotient.cosine, quotient.sine);
             const double a = 1.0 - s * s, b = 2.0 * (cmax - s * t), c = quotient.norm - t * t;
+            if (a > 0.0 && b >= 0.0 && c >= 0.0) {
+                continue;
+            }
             if (largestOver(a, b, c, g1, g2) < 0.0) {
                 verdict.provablyInfeasible = true;
             }
