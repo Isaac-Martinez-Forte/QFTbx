@@ -140,6 +140,18 @@
  * among the research settings to compare with the published formulation
  * (research.mc2-reading = columns), the search is what it was, bit for bit,
  * and the certificate is bookkeeping alone.
+ *
+ * With the contraction of the gain (research.mc2.gain-contraction, under the
+ * exact reading only) the search changes how it bisects and what it
+ * discards. The widest parameter is measured on its own factor, without the
+ * nominal plant value: with it, a factor whose phase falls on the cut of the
+ * Nichols branch measures the whole turn, and the search split that
+ * parameter down to a single double and then returned two copies of the same
+ * box, on six of the hardest problems most of the live boxes. A parameter
+ * whose range is a point to 1e-12 is not split, and a box all of whose
+ * parameters are points is resolved as an epsilon-small box, whatever its
+ * projection measures. And a box whose sector verdict proves it infeasible
+ * at some frequency is discarded when its cuts are made, as a proof.
  */
 namespace qftbx {
 
@@ -249,7 +261,7 @@ private:
 
     bool analyse(McSearchNode * node, NodeAnalysis & out);
     bool isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis);
-    void improveNode(McSearchNode * node, NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
+    bool improveNode(McSearchNode * node, NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
 
     /**
      * @brief The exact set of gains admissible with these zeros and poles,
@@ -300,7 +312,7 @@ private:
     bool accepts(const PointController & point);
 
     void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
-    void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis);
+    bool infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis);
 
     qftbx::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                     const std::vector<FeasibleThreshold> & thresholds);
@@ -343,6 +355,7 @@ private:
     std::unique_ptr<Certifier> certifier;
 
     bool exactReading = false;
+    bool gainContraction = false;
     Settings::Research::McStrategies strategies;
     double phaseGridStep = 0;
     Range initialGainRange;

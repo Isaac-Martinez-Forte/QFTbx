@@ -32,7 +32,8 @@
  * working; the benchmark and the command-line solver read both. The
  * strategies of the thesis are switched apart for MC of the thesis, all of
  * them on, and for MC2, without the feasible magnitude cut, the configuration
- * measured best for it.
+ * measured best for it. The contraction of the gain of every box MC2 takes
+ * under the exact reading is a switch of its own, off by default.
  */
 
 #ifndef QFTBX_SETTINGS_H
@@ -162,6 +163,8 @@ struct Settings {
             strategies.feasibleMagnitude = false;
             return strategies;
         }();
+
+        bool mc2GainContraction = false;
 
         bool conservativeColumnsInForce() const
         {

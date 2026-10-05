@@ -391,6 +391,8 @@ const std::vector<Binding> & bindings()
          flag([](Settings & into) -> bool & { return into.research.mc2.bestGain; })},
         {"research.mc2.tree-bisection",
          flag([](Settings & into) -> bool & { return into.research.mc2.treeBisection; })},
+        {"research.mc2.gain-contraction",
+         flag([](Settings & into) -> bool & { return into.research.mc2GainContraction; })},
     };
 
     return table;

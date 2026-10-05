@@ -39,6 +39,13 @@ Range phaseRangeOf(const NicholsBox & projection)
     return Range(projection.phaseDegrees.lower(), projection.phaseDegrees.upper());
 }
 
+bool splittable(const Parameter & parameter)
+{
+    const Range range = parameter.range();
+    return parameter.isUncertain()
+           && range.width() > 1e-12 * std::max(std::abs(range.min), std::abs(range.max));
+}
+
 void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
                    std::vector<double> & zeros, std::vector<double> & poles)
 {
@@ -144,6 +151,7 @@ void AlgorithmMc2::prepare()
     }
 
     exactReading = certifier != nullptr;
+    gainContraction = exactReading && m_settings.research.mc2GainContraction;
 
     certificate = LoopShapingStatistics::Certificate();
     certificate.kept = true;
@@ -373,7 +381,10 @@ bool AlgorithmMc2::pruneUnstableBox(McSearchNode & node, double gainInf)
 void AlgorithmMc2::expand(McSearchNode & node, NodeAnalysis & analysis)
 {
     std::vector<FeasibleThreshold> thresholds;
-    improveNode(&node, analysis, thresholds);
+    if (!improveNode(&node, analysis, thresholds)) {
+        ++certificate.provenInfeasible;
+        return;
+    }
 
     if (cannotImprove(node.system()->gain().range().min)) {
         return;
@@ -549,11 +560,11 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
     return true;
 }
 
-void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
+bool AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
                                std::vector<FeasibleThreshold> & thresholds)
 {
     if (!node->cutsEnabled()) {
-        return;
+        return true;
     }
 
     const bool bestGainFound = strategies.bestGain && bestGainSearch(node);
@@ -562,8 +573,9 @@ void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
     }
 
     if (strategies.infeasibleMagnitude || strategies.infeasiblePhase) {
-        infeasibleCuts(node, analysis);
+        return infeasibleCuts(node, analysis);
     }
+    return true;
 }
 
 bool AlgorithmMc2::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
@@ -575,6 +587,16 @@ bool AlgorithmMc2::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 
 bool AlgorithmMc2::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
 {
+    if (gainContraction) {
+        LtiSystem * box = node->system();
+        bool anySplittable = splittable(box->gain());
+        for (const Parameter & z : box->numerator()) anySplittable = anySplittable || splittable(z);
+        for (const Parameter & p : box->denominator()) anySplittable = anySplittable || splittable(p);
+        if (!anySplittable) {
+            return true;
+        }
+    }
+
     for (std::size_t i = 0; i < omega->size(); ++i) {
         const NicholsBox box = analysis.projection.at(i).has_value()
                 ? *analysis.projection.at(i)
@@ -932,7 +954,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
     }
 }
 
-void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis)
+bool AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis)
 {
     LtiSystem * v = node->system();
 
@@ -958,6 +980,9 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
             const NicholsBox & projection = *analysis.projection.at(i);
             const Range boxMag = magnitudeRangeOf(projection);
             const ExactPointCheck::SectorVerdict sector = exact->sectorVerdict(i, phaseRangeOf(projection), boxMag);
+            if (gainContraction && sector.provablyInfeasible) {
+                return false;
+            }
             if (sector.forbiddenBelowDb > boxMag.min && std::isfinite(sector.forbiddenBelowDb)) {
                 cut = cutBelowBoundary(bounds, std::pow(10.0, sector.forbiddenBelowDb / 20.0), w, p0) || cut;
             }
@@ -996,7 +1021,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
     }
 
     if (!cut) {
-        return;
+        return true;
     }
 
     if (exactReading) {
@@ -1005,6 +1030,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
         discardUnproven(v->gain().range().min);
     }
     node->setSystem(boxFromBounds(v, bounds));
+    return true;
 }
 
 qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_t parameter, double point)
@@ -1037,7 +1063,10 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
-    const std::complex<double> p0 = nominalPlantValues.at(mainFrequency);
+    const std::complex<double> p0 = gainContraction ? std::complex<double>(1.0, 0.0) : nominalPlantValues.at(mainFrequency);
+    const auto considered = [&](const Parameter & parameter) {
+        return parameter.isUncertain() && (!gainContraction || splittable(parameter));
+    };
 
     std::int32_t best = -1;
     double bestValue = -1.0;
@@ -1062,18 +1091,18 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
         }
     };
 
-    if (box->gain().isUncertain()) {
+    if (considered(box->gain())) {
         consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
     for (std::size_t j = 0; j < box->numerator().size(); ++j) {
-        if (box->numerator()[j].isUncertain()) {
+        if (considered(box->numerator()[j])) {
             consider(j + 1, conversion->numeratorTermBox(box->numerator()[j], w, p0), false);
         }
     }
 
     for (std::size_t j = 0; j < box->denominator().size(); ++j) {
-        if (box->denominator()[j].isUncertain()) {
+        if (considered(box->denominator()[j])) {
             consider(j + 1 + box->numerator().size(),
                      conversion->denominatorTermBox(box->denominator()[j], w, p0), false);
         }

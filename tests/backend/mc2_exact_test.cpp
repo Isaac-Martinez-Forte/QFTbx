@@ -14,7 +14,10 @@
  * relative tolerance. The certificate is kept and finished with the design;
  * it is kept, finished and read too when a gain box too low for any design
  * leaves the search without one, kept but not finished when the run is
- * cancelled, and not kept at all by another algorithm.
+ * cancelled, and not kept at all by another algorithm. With the contraction
+ * of the gain, the first-order plant with a delay, whose search split one
+ * degenerate parameter for ever, ends in a few thousand boxes with a design
+ * the verifier accepts.
  */
 
 #include <gtest/gtest.h>
@@ -129,6 +132,24 @@ TEST(Mc2Certificate, ACancelledRunKeepsAnUnfinishedCertificateAndOtherAlgorithms
     EXPECT_THROW(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100, 0, &cancelled), Cancelled);
     EXPECT_FALSE(controller.lastLoopShapingStatistics().certificate.kept);
     EXPECT_FALSE(controller.lastLoopShapingStatistics().certificate.finished);
+}
+
+TEST(Mc2GainContraction, TheDelayedFirstOrderPlantEndsWithADesign)
+{
+    ProjectController controller;
+    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "fopdt.qft").string());
+    Settings settings;
+    settings.research.mc2GainContraction = true;
+    controller.applySettings(settings);
+
+    ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mc2, Range(1e-9, 10.0), 100));
+
+    const LoopShapingResult * result = controller.loopShapingResult();
+    ASSERT_NE(result, nullptr);
+    ASSERT_TRUE(result->check().has_value());
+    EXPECT_TRUE(result->check()->satisfied()) << "worst excess " << result->check()->worstExcessDb << " dB";
+    EXPECT_LT(result->statistics().nodesProcessed, 50000u);
+    EXPECT_LE(result->statistics().certificate.lowerBound, result->controller()->gain().nominal());
 }
 
 }
