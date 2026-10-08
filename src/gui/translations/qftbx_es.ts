@@ -99,7 +99,7 @@
     </message>
     <message>
         <source>The left edge of the Nichols grid, in degrees. A boundary is only computed inside the window.</source>
-        <translation>El borde izquierdo de la rejilla de Nichols, en grados. Una frontera sólo se calcula dentro de la ventana.</translation>
+        <translation>El borde izquierdo de la rejilla de Nichols, en grados. Un boundary sólo se calcula dentro de la ventana.</translation>
     </message>
     <message>
         <source>The right edge of the Nichols grid, in degrees.</source>
@@ -107,7 +107,7 @@
     </message>
     <message>
         <source>How many phases the grid is cut at. More points give a finer boundary and cost proportionally more.</source>
-        <translation>En cuántas fases se corta la rejilla. Más puntos dan una frontera más fina y cuestan proporcionalmente más.</translation>
+        <translation>En cuántas fases se corta la rejilla. Más puntos dan un boundary más fino y cuestan proporcionalmente más.</translation>
     </message>
     <message>
         <source>The bottom of the Nichols grid, in dB.</source>
@@ -123,11 +123,11 @@
     </message>
     <message>
         <source>Sweep the CONTOUR of each template: far fewer points, and the same boundary wherever the contour closed.</source>
-        <translation>Barrer el CONTORNO de cada plantilla: muchísimos menos puntos, y la misma frontera allí donde el contorno cerró.</translation>
+        <translation>Barrer el CONTORNO de cada template: muchísimos menos puntos, y el mismo boundary allí donde el contorno cerró.</translation>
     </message>
     <message>
         <source>Sweep the whole template. Slower, and what to use where no contour closed.</source>
-        <translation>Barrer la plantilla entera. Más lento, y lo que hay que usar donde ningún contorno cerró.</translation>
+        <translation>Barrer el template entero. Más lento, y lo que hay que usar donde ningún contorno cerró.</translation>
     </message>
     <message>
         <source>Sweep the grid on the GPU.</source>
@@ -139,11 +139,11 @@
     </message>
     <message>
         <source>A finite number to write in place of infinity when the boundaries are exported. It takes no part in the computation; empty means none.</source>
-        <translation>Un número finito que escribir en lugar del infinito al exportar las fronteras. No interviene en el cálculo; vacío significa ninguno.</translation>
+        <translation>Un número finito que escribir en lugar del infinito al exportar los boundaries. No interviene en el cálculo; vacío significa ninguno.</translation>
     </message>
     <message>
         <source>Computes one boundary per design frequency over this grid.</source>
-        <translation>Calcula una frontera por cada frecuencia de diseño sobre esta rejilla.</translation>
+        <translation>Calcula un boundary por cada frecuencia de diseño sobre esta rejilla.</translation>
     </message>
 </context>
 <context>
@@ -627,11 +627,11 @@
     </message>
     <message>
         <source>Boundary columns over different phase grids cannot be intersected: %1 columns from %2 step %3 against %4 columns from %5 step %6.</source>
-        <translation>No se pueden intersectar columnas de fronteras sobre rejillas de fase distintas: %1 columnas desde %2 con paso %3 frente a %4 columnas desde %5 con paso %6.</translation>
+        <translation>No se pueden intersectar columnas de boundaries sobre rejillas de fase distintas: %1 columnas desde %2 con paso %3 frente a %4 columnas desde %5 con paso %6.</translation>
     </message>
     <message>
         <source>The specification check needs a value set for every design frequency: %1 given for %2 frequencies.</source>
-        <translation>La comprobación de las especificaciones necesita una plantilla por cada frecuencia de diseño: se dan %1 para %2 frecuencias.</translation>
+        <translation>La comprobación de las especificaciones necesita un template por cada frecuencia de diseño: se dan %1 para %2 frecuencias.</translation>
     </message>
     <message>
         <source>The tracking check needs both tracking specifications (T_L and T_U).</source>
@@ -639,11 +639,11 @@
     </message>
     <message>
         <source>There are no templates to propose an epsilon for.</source>
-        <translation>No hay plantillas para las que proponer un épsilon.</translation>
+        <translation>No hay templates para los que proponer un épsilon.</translation>
     </message>
     <message>
         <source>The contour did not close at %1 with the epsilon given. A larger epsilon or a denser template closes it; or let the whole template stand in for the contour (templates dialog, or the setting algorithms.whole-template-if-no-contour).</source>
-        <translation>El contorno no cerró en %1 con el épsilon dado. Un épsilon mayor o una plantilla más densa lo cierran; o deje que la plantilla entera haga de contorno (diálogo de plantillas, o el ajuste algorithms.whole-template-if-no-contour).</translation>
+        <translation>El contorno no cerró en %1 con el épsilon dado. Un épsilon mayor o un template más denso lo cierran; o deje que el template entero haga de contorno (diálogo de templates, o el ajuste algorithms.whole-template-if-no-contour).</translation>
     </message>
     <message>
         <source>The decibels per degree of the Nichols metric must be a finite positive number.</source>
@@ -802,7 +802,7 @@
     </message>
     <message>
         <source>Applies the frequencies. Changing them throws away the templates and everything computed from them.</source>
-        <translation>Aplica las frecuencias. Cambiarlas tira las plantillas y todo lo calculado a partir de ellas.</translation>
+        <translation>Aplica las frecuencias. Cambiarlas tira los templates y todo lo calculado a partir de ellos.</translation>
     </message>
 </context>
 <context>
@@ -908,7 +908,7 @@
     </message>
     <message>
         <source>Kalla and Nataraj: the specifications written as interval constraints on the controller parameters and solved by branch and prune. It needs no boundaries at all.</source>
-        <translation>Kalla y Nataraj: las especificaciones escritas como restricciones intervalares sobre los parámetros del controlador y resueltas por ramificación y poda. No necesita fronteras.</translation>
+        <translation>Kalla y Nataraj: las especificaciones escritas como restricciones intervalares sobre los parámetros del controlador y resueltas por ramificación y poda. No necesita boundaries.</translation>
     </message>
     <message>
         <source>The local search of NK starts at the centre of the box.</source>
@@ -1080,7 +1080,7 @@ del controlador</translation>
     </message>
     <message>
         <source>What the specifications and the templates leave the nominal loop, on the Nichols plane. Needs both.</source>
-        <translation>Lo que las especificaciones y las plantillas le dejan al lazo nominal, en el plano de Nichols. Necesita las dos.</translation>
+        <translation>Lo que las especificaciones y los templates le dejan al lazo nominal, en el plano de Nichols. Necesita los dos.</translation>
     </message>
     <message>
         <source>The shape of the controller and the freedom the search is given. Needs the boundaries.</source>
@@ -1088,7 +1088,7 @@ del controlador</translation>
     </message>
     <message>
         <source>The search itself: the controller that clears every boundary. Needs the structure.</source>
-        <translation>La búsqueda en sí: el controlador que respeta todas las fronteras. Necesita la estructura.</translation>
+        <translation>La búsqueda en sí: el controlador que respeta todos los boundaries. Necesita la estructura.</translation>
     </message>
     <message>
         <source>How far down the seven phases the project has got.</source>
@@ -1401,7 +1401,7 @@ del controlador</translation>
     </message>
     <message>
         <source>Applies the list. The boundaries are computed from it.</source>
-        <translation>Aplica la lista. Las fronteras se calculan a partir de ella.</translation>
+        <translation>Aplica la lista. Los boundaries se calculan a partir de ella.</translation>
     </message>
 </context>
 <context>
@@ -1420,11 +1420,11 @@ del controlador</translation>
     </message>
     <message>
         <source>Set every epsilon to the least value at which the contour of its template closes, and recompute the contours.</source>
-        <translation>Pone en cada épsilon el menor valor con el que cierra el contorno de su plantilla, y recalcula los contornos.</translation>
+        <translation>Pone en cada épsilon el menor valor con el que cierra el contorno de su template, y recalcula los contornos.</translation>
     </message>
     <message>
         <source>Show templates</source>
-        <translation>Ver las plantillas</translation>
+        <translation>Ver los templates</translation>
     </message>
     <message>
         <source>Hide contour</source>
@@ -1436,11 +1436,11 @@ del controlador</translation>
     </message>
     <message>
         <source>Shows or hides the templates themselves, behind their contours.</source>
-        <translation>Enseña u oculta las plantillas, detrás de sus contornos.</translation>
+        <translation>Enseña u oculta los templates, detrás de sus contornos.</translation>
     </message>
     <message>
         <source>Shows or hides the contour of each template.</source>
-        <translation>Enseña u oculta el contorno de cada plantilla.</translation>
+        <translation>Enseña u oculta el contorno de cada template.</translation>
     </message>
     <message>
         <source>Walks the contours again with the epsilon each frequency has in the list.</source>
@@ -1503,11 +1503,11 @@ del controlador</translation>
     </message>
     <message>
         <source>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</source>
-        <translation>Un valor, o uno por frecuencia de diseño. Se rellena con el menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están arriba.</translation>
+        <translation>Un valor, o uno por frecuencia de diseño. Se rellena con el menor épsilon con el que cierra el contorno de cada template, sobre las mallas tal como están arriba.</translation>
     </message>
     <message>
         <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</source>
-        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada plantilla, en el plano elegido abajo.</translation>
+        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada template, en el plano elegido abajo.</translation>
     </message>
     <message>
         <source>Propose</source>
@@ -1515,11 +1515,11 @@ del controlador</translation>
     </message>
     <message>
         <source>Where the contour walk does not close with the epsilon given, use the whole template as its contour at that frequency: always safe, only slower, and marked in the viewer. Unchecked, the computation stops and names the frequency instead.</source>
-        <translation>Donde el recorrido del contorno no cierre con el épsilon dado, usar la plantilla entera como su contorno en esa frecuencia: siempre seguro, sólo más lento, y marcado en el visor. Sin marcar, el cálculo se detiene y nombra la frecuencia.</translation>
+        <translation>Donde el recorrido del contorno no cierre con el épsilon dado, usar el template entero como su contorno en esa frecuencia: siempre seguro, sólo más lento, y marcado en el visor. Sin marcar, el cálculo se detiene y nombra la frecuencia.</translation>
     </message>
     <message>
         <source>Use the whole template where the contour does not close</source>
-        <translation>Usar la plantilla entera donde el contorno no cierra</translation>
+        <translation>Usar el template entero donde el contorno no cierra</translation>
     </message>
     <message>
         <source>Epsilon in:</source>
@@ -1527,7 +1527,7 @@ del controlador</translation>
     </message>
     <message>
         <source>The plane the epsilon of the contour is measured in. Nichols: degrees and decibels, one epsilon serves every template. Complex plane: the historical reading, in the units of the plant&apos;s response.</source>
-        <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todas las plantillas. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
+        <translation>El plano en que se mide el épsilon del contorno. Nichols: grados y decibelios, un solo épsilon sirve para todos los templates. Plano complejo: la lectura histórica, en las unidades de la respuesta de la planta.</translation>
     </message>
     <message>
         <source>Nichols (degrees, dB)</source>
@@ -1547,7 +1547,7 @@ del controlador</translation>
     </message>
     <message>
         <source>How the contour of each template is extracted. The walk of Nordin is the historical epsilon-hull and can fail to close. The alpha-shape is the same boundary by its definition, edge by edge: it always closes and returns every component and hole, and the proposed epsilon is then the least that keeps the template connected.</source>
-        <translation>Cómo se extrae el contorno de cada plantilla. El recorrido de Nordin es el ε-hull histórico y puede no cerrar. El α-shape es la misma frontera por su definición, arista a arista: siempre cierra y devuelve todas las componentes, y el épsilon propuesto es entonces el menor que mantiene conectada la plantilla.</translation>
+        <translation>Cómo se extrae el contorno de cada template. El recorrido de Nordin es el ε-hull histórico y puede no cerrar. El α-shape es el mismo contorno por su definición, arista a arista: siempre cierra y devuelve todas las componentes, y el épsilon propuesto es entonces el menor que mantiene conectado el template.</translation>
     </message>
     <message>
         <source>Epsilon-hull walk (Nordin)</source>
@@ -1559,7 +1559,7 @@ del controlador</translation>
     </message>
     <message>
         <source>With exactly two uncertain parameters, sweep only the border of the parameter box: as many evaluations as the interior grid would cost, spent on the four edges, since the worst case of every specification over a template lies on its border. The template is then a closed curve and its contour is taken by the alpha-shape. Unavailable with one or with three or more uncertain parameters.</source>
-        <translation>Con exactamente dos parámetros inciertos, barrer sólo el borde de la caja de parámetros: tantas evaluaciones como costaría la malla interior, gastadas en las cuatro aristas, porque el peor caso de toda especificación sobre una plantilla está en su borde. La plantilla es entonces una curva cerrada y su contorno lo toma el α-shape. No disponible con uno o con tres o más parámetros inciertos.</translation>
+        <translation>Con exactamente dos parámetros inciertos, barrer sólo el borde de la caja de parámetros: tantas evaluaciones como costaría la malla interior, gastadas en las cuatro aristas, porque el peor caso de toda especificación sobre un template está en su borde. El template es entonces una curva cerrada y su contorno lo toma el α-shape. No disponible con uno o con tres o más parámetros inciertos.</translation>
     </message>
     <message>
         <source>Sweep only the border of the parameter box (two parameters)</source>
@@ -1591,7 +1591,7 @@ del controlador</translation>
     </message>
     <message>
         <source>How many values each uncertain parameter takes. A template has one point per COMBINATION of them, so this multiplies: five parameters at ten values each are a hundred thousand points per frequency.</source>
-        <translation>Cuántos valores toma cada parámetro incierto. Una plantilla tiene un punto por cada COMBINACIÓN de ellos, así que esto multiplica: cinco parámetros a diez valores cada uno son cien mil puntos por frecuencia.</translation>
+        <translation>Cuántos valores toma cada parámetro incierto. Un template tiene un punto por cada COMBINACIÓN de ellos, así que esto multiplica: cinco parámetros a diez valores cada uno son cien mil puntos por frecuencia.</translation>
     </message>
     <message>
         <source>The parameters of the numerator.</source>
@@ -1603,7 +1603,7 @@ del controlador</translation>
     </message>
     <message>
         <source>Draw the templates on the Nichols plane, phase against magnitude.</source>
-        <translation>Dibujar las plantillas en el plano de Nichols, fase contra magnitud.</translation>
+        <translation>Dibujar los templates en el plano de Nichols, fase contra magnitud.</translation>
     </message>
     <message>
         <source>Draw them on the complex plane.</source>
@@ -1619,7 +1619,7 @@ del controlador</translation>
     </message>
     <message>
         <source>Sweeps the family at every design frequency: the templates and the contour of each one.</source>
-        <translation>Barre la familia en cada frecuencia de diseño: las plantillas y el contorno de cada una.</translation>
+        <translation>Barre la familia en cada frecuencia de diseño: los templates y el contorno de cada uno.</translation>
     </message>
 </context>
 <context>
@@ -1974,15 +1974,15 @@ del controlador</translation>
     </message>
     <message>
         <source>Not checked against the specifications (no templates to check over).</source>
-        <translation>Sin comprobar contra las especificaciones (no hay plantillas sobre las que comprobar).</translation>
+        <translation>Sin comprobar contra las especificaciones (no hay templates sobre los que comprobar).</translation>
     </message>
     <message>
         <source>Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.</source>
-        <translation>Cumple todas las especificaciones sobre la plantilla: la más ajustada en w = %1 rad/s, %2, %3 dB de margen.</translation>
+        <translation>Cumple todas las especificaciones sobre el template: la más ajustada en w = %1 rad/s, %2, %3 dB de margen.</translation>
     </message>
     <message>
         <source>EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.</source>
-        <translation>INCUMPLE una especificación sobre la plantilla: w = %1 rad/s, %2, por %3 dB.</translation>
+        <translation>INCUMPLE una especificación sobre el template: w = %1 rad/s, %2, por %3 dB.</translation>
     </message>
     <message>
         <source>w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB
@@ -2028,11 +2028,11 @@ del controlador</translation>
     </message>
     <message>
         <source>Satisfies every specification over the template, by %1 dB.</source>
-        <translation>Cumple todas las especificaciones sobre la plantilla, por %1 dB.</translation>
+        <translation>Cumple todas las especificaciones sobre el template, por %1 dB.</translation>
     </message>
     <message>
         <source>EXCEEDS a specification over the template by %1 dB.</source>
-        <translation>INCUMPLE una especificación sobre la plantilla por %1 dB.</translation>
+        <translation>INCUMPLE una especificación sobre el template por %1 dB.</translation>
     </message>
     <message>
         <source>all</source>
@@ -2040,7 +2040,7 @@ del controlador</translation>
     </message>
     <message>
         <source>Closed-loop stability of the family not checked: the project has no record of the sweep; recompute the templates.</source>
-        <translation>Estabilidad en lazo cerrado de la familia sin comprobar: el proyecto no guarda el barrido; recalcule las plantillas.</translation>
+        <translation>Estabilidad en lazo cerrado de la familia sin comprobar: el proyecto no guarda el barrido; recalcule los templates.</translation>
     </message>
     <message>
         <source>Closed-loop stability of the family not checked: the loop has a delay.</source>
@@ -2534,11 +2534,11 @@ contorno</translation>
     </message>
     <message>
         <source>no contour: whole template shown</source>
-        <translation>sin contorno: se muestra la plantilla entera</translation>
+        <translation>sin contorno: se muestra el template entero</translation>
     </message>
     <message>
         <source>No contour closed at this epsilon, so the whole template stands in for it here. A larger epsilon, or a denser sweep, closes it.</source>
-        <translation>Ningún contorno cerró con este épsilon, así que aquí la plantilla entera hace de contorno. Un épsilon mayor, o un barrido más denso, lo cierra.</translation>
+        <translation>Ningún contorno cerró con este épsilon, así que aquí el template entero hace de contorno. Un épsilon mayor, o un barrido más denso, lo cierra.</translation>
     </message>
     <message>
         <source>needs %1 (gap %2%)</source>
@@ -2546,7 +2546,7 @@ contorno</translation>
     </message>
     <message>
         <source>The least epsilon at which this template&apos;s contour closes is %1 (it is connected from %2); the largest gap between its points is %3% of its size. Above a few per cent the sweep is coarse: more points per parameter, not a larger epsilon.</source>
-        <translation>El menor épsilon con el que cierra el contorno de esta plantilla es %1 (está conectada desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
+        <translation>El menor épsilon con el que cierra el contorno de este template es %1 (está conectado desde %2); el hueco mayor entre sus puntos es el %3 % de su tamaño. Por encima de unos pocos por ciento el barrido es escaso: más puntos por parámetro, no un épsilon mayor.</translation>
     </message>
     <message>
         <source>phase (degrees)</source>
@@ -2566,7 +2566,7 @@ contorno</translation>
     </message>
     <message>
         <source>The epsilon of this frequency: the diameter of the hull the contour of this template is walked with. Recompute walks the contours again with it.</source>
-        <translation>El épsilon de esta frecuencia: el diámetro de la envoltura con la que se recorre el contorno de esta plantilla. Recalcular recorre otra vez los contornos con él.</translation>
+        <translation>El épsilon de esta frecuencia: el diámetro de la envoltura con la que se recorre el contorno de este template. Recalcular recorre otra vez los contornos con él.</translation>
     </message>
 </context>
 <context>
@@ -2646,7 +2646,7 @@ contorno</translation>
     <message>
         <source>The least epsilon at which the contour of each template closes, over the grids as entered; below the connecting value the template splits. The gap is the largest distance between neighbouring points of the template as a share of its size: above a few per cent the sweep is coarse and asks for more points, not a larger epsilon.
 %1</source>
-        <translation>El menor épsilon con el que cierra el contorno de cada plantilla, sobre las mallas tal como están; por debajo del valor de conexión la plantilla se parte. El hueco es la mayor distancia entre puntos vecinos de la plantilla como fracción de su tamaño: por encima de unos pocos por ciento el barrido es escaso y pide más puntos, no un épsilon mayor.
+        <translation>El menor épsilon con el que cierra el contorno de cada template, sobre las mallas tal como están; por debajo del valor de conexión el template se parte. El hueco es la mayor distancia entre puntos vecinos del template como fracción de su tamaño: por encima de unos pocos por ciento el barrido es escaso y pide más puntos, no un épsilon mayor.
 %1</translation>
     </message>
     <message>
@@ -2725,7 +2725,7 @@ contorno</translation>
     </message>
     <message>
         <source>The smallest value &quot;%1&quot; takes. The templates are swept over the whole interval.</source>
-        <translation>El menor valor que toma &quot;%1&quot;. Las plantillas se barren sobre todo el intervalo.</translation>
+        <translation>El menor valor que toma &quot;%1&quot;. Los templates se barren sobre todo el intervalo.</translation>
     </message>
     <message>
         <source>The largest value &quot;%1&quot; takes.</source>

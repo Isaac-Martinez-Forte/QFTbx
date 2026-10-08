@@ -260,11 +260,6 @@ bool AlgorithmMr::solve(){
     }
 }
 
-std::size_t AlgorithmMr::peakLiveNodes() const
-{
-    return liveList != nullptr ? liveList->peakSize() : 0;
-}
-
 LoopShapingStatistics AlgorithmMr::statistics() const
 {
     LoopShapingStatistics statistics;

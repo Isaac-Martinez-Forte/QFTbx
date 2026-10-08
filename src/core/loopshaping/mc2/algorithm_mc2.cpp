@@ -474,11 +474,6 @@ bool AlgorithmMc2::cannotImprove(double gainInf) const
     return exactReading ? gainInf >= bestCertifiedGain : gainInf > bestCertifiedGain;
 }
 
-std::size_t AlgorithmMc2::peakLiveNodes() const
-{
-    return liveList != nullptr ? liveList->peakSize() : 0;
-}
-
 LoopShapingStatistics AlgorithmMc2::statistics() const
 {
     LoopShapingStatistics statistics;

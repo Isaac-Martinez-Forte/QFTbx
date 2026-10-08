@@ -15,7 +15,8 @@
  * unstable, one that straddles the limit or lies below it is not, and no
  * controller sampled in a proven box is stable; the same with the nominal
  * plant, which needs no sweep and proves nothing once the plant has a
- * delay. And the gate: on the magnetic levitation problem the search
+ * delay, and the same for a controller in time-constant form. And the
+ * gate: on the magnetic levitation problem the search
  * returns only designs every plant is stable under once it has the sweep.
  */
 
@@ -456,6 +457,62 @@ TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
         EXPECT_EQ(family.statistics().nominalBoxVerdicts, 1500u) << name;
         EXPECT_EQ(family.statistics().nominalBoxPrunes, proven) << name;
     }
+}
+
+TEST(FamilyStabilityGate, ATimeConstantBoxProvenUnstableHoldsNoController)
+{
+    std::size_t proven = 0, provenWithFamily = 0, holdingAStableOne = 0;
+    for (const char * name : {"dcm-k.qft", "maglev-lower.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * given = project.controllerStructure();
+        ASSERT_NE(given, nullptr);
+        TimeConstantGain structure("tc", given->numerator(), given->denominator(), given->gain(), Parameter(0.0));
+        LtiSystem * plant = project.plant();
+        FamilyStabilityChecker family(plant, &structure, project.sweepGrids());
+        ASSERT_TRUE(family.usable());
+
+        const std::optional<LtiSystem::Polynomials> nominal = nominalPolynomials(*plant);
+        ASSERT_TRUE(nominal.has_value());
+        std::unique_ptr<LtiSystem> controller = structure.clone();
+        const auto stableWith = [&](const LtiSystem::Polynomials & plantPolynomials, const PointController & point) {
+            const std::optional<LtiSystem::Polynomials> loop = controller->polynomialsAt(point.zeros, point.poles, point.gain);
+            return math::isHurwitz(characteristicOf(plantPolynomials, *loop));
+        };
+
+        std::mt19937 generator(41);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+        for (int trial = 0; trial < 600; ++trial) {
+            std::unique_ptr<LtiSystem> box = randomBox(structure, std::pow(10.0, -4.0 + 4.0 * unit(generator)), generator);
+            ASSERT_EQ(box->type(), LtiSystem::SystemType::TimeConstantGain);
+            const bool atNominal = family.isBoxUnstableAtNominal(box.get());
+            rememberTheRefusersOf(family, pointInside(*box, generator));
+            const bool withFamily = family.isBoxUnstable(box.get());
+            proven += atNominal ? 1 : 0;
+            provenWithFamily += withFamily ? 1 : 0;
+
+            bool anyStable = false;
+            for (int point = 0; point < 20; ++point) {
+                const PointController inside = pointInside(*box, generator);
+                const bool stable = stableWith(*nominal, inside);
+                anyStable = anyStable || stable;
+                EXPECT_FALSE(atNominal && stable) << name << " trial " << trial
+                                                  << ": a controller inside a box proven unstable at the nominal plant is stable";
+                EXPECT_FALSE(withFamily && family.isStable(inside))
+                    << name << " trial " << trial << ": a controller inside a box proven unstable with the family is stable";
+            }
+            holdingAStableOne += anyStable ? 1 : 0;
+        }
+    }
+    std::printf("TIME-CONSTANT-BOX %zu boxes proven unstable at the nominal plant, %zu with the family, %zu holding a stable one\n",
+                proven, provenWithFamily, holdingAStableOne);
+    EXPECT_GT(proven, 0u);
+    EXPECT_GT(provenWithFamily, 0u);
+    EXPECT_GT(holdingAStableOne, 0u);
 }
 
 TEST(FamilyStabilityGate, TheNominalBoxProofNeedsNoSweepButRefusesADelay)

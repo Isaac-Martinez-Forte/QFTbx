@@ -83,7 +83,7 @@ double designedGain(const Strategies & strategies, std::size_t * peakNodes = nul
     const bool solved = mc.solve();
 
     if (peakNodes != nullptr) {
-        *peakNodes = mc.peakLiveNodes();
+        *peakNodes = mc.statistics().peakLiveNodes;
     }
 
     if (!solved) {
