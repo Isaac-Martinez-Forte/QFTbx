@@ -1,14 +1,13 @@
 /**
  * @file
- * @brief Algorithm MC2: the thesis algorithm with the corrections documented in its class.
+ * @brief Algorithm MC2, step by step.
  *
- * The loop is that of section 5.4 without the execution stages: a live list
- * ordered by ascending gain infimum, the prune variable C with a strict
- * comparison, the cutting and bisection strategies of the pseudocode, and
- * the certified solution of MG returned when the space is exhausted. The
- * controller parameters are viewed as the thesis vector x, gain first. The
- * gain of a returned corner is whatever the anti-blocking rule chooses.
- * Termination, the verified corner and cancellation are as in NT.
+ * solve() takes the box of least gain from the list, contracts its gain,
+ * reads it against the boundaries at every design frequency, certifies its
+ * corner or the candidates of an epsilon-small box through the funnel,
+ * discards it when its instability is proven, and otherwise cuts and
+ * bisects it; what is removed without a proof goes to the certificate.
+ * What the search is and why is in algorithm_mc2.h.
  */
 
 #include <algorithm>
