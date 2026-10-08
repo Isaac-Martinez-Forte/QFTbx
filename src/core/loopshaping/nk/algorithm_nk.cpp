@@ -120,11 +120,6 @@ bool AlgorithmNk::solve(){
     }
 }
 
-std::size_t AlgorithmNk::peakLiveNodes() const
-{
-    return liveList != nullptr ? liveList->peakSize() : 0;
-}
-
 LoopShapingStatistics AlgorithmNk::statistics() const
 {
     LoopShapingStatistics statistics;

@@ -108,11 +108,6 @@ bool AlgorithmMc1::solve()
     }
 }
 
-std::size_t AlgorithmMc1::peakLiveNodes() const
-{
-    return liveList != nullptr ? liveList->peakSize() : 0;
-}
-
 LoopShapingStatistics AlgorithmMc1::statistics() const
 {
     LoopShapingStatistics statistics;

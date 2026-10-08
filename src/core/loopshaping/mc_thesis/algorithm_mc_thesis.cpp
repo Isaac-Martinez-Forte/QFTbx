@@ -259,11 +259,6 @@ bool AlgorithmMcThesis::solve()
     }
 }
 
-std::size_t AlgorithmMcThesis::peakLiveNodes() const
-{
-    return liveList != nullptr ? liveList->peakSize() : 0;
-}
-
 LoopShapingStatistics AlgorithmMcThesis::statistics() const
 {
     LoopShapingStatistics statistics;

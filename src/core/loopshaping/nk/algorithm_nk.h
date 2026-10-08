@@ -69,8 +69,6 @@ public:
 
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    std::size_t peakLiveNodes() const;
-
     LoopShapingStatistics statistics() const;
 
 private:
