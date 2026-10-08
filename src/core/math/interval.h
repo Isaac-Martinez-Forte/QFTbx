@@ -2,91 +2,37 @@
  * @file
  * @brief The interval arithmetic of the toolbox.
  *
- * Three types, and the only ones the rest of the code sees:
+ * Three types, the only ones the rest of the code sees: Interval, a closed
+ * real interval with outward rounding and rigorous elementary functions;
+ * ComplexInterval, a rectangle of the complex plane, whose magnitude() and
+ * phase() are rigorous readings of it; and PolarInterval, a magnitude and a
+ * phase interval, in which products and quotients keep their shape, so the
+ * loop k P0 prod(jw + z) / prod(jw + p) is assembled in polar form.
  *
- * - Interval: a closed real interval [lower, upper], with the four
- *   operations rounded outwards and the elementary functions enclosed
- *   rigorously. It is what the HC4 filter of algorithm MR propagates and
- *   what every magnitude and phase is made of.
- * - ComplexInterval: a rectangle of the complex plane, Re and Im
- *   intervals. Sums and scalar products are exact in shape here; its
- *   magnitude() and phase() are rigorous readings of the rectangle.
- * - PolarInterval: a magnitude interval and a phase interval. Products and
- *   quotients are exact in shape here, which is why the loop transmission
- *   L0 = k P0 prod(jw + z) / prod(jw + p) is assembled in polar form: the
- *   thesis (section 1.2.5) writes the natural interval extension as sums
- *   of 20 log|.| and sums of atan(w/.), and multiplying rectangles would
- *   inflate the enclosure with every factor.
+ * The arithmetic underneath is kv (3rd-party/kv), by default, in its
+ * rounding-emulation mode, or C-XSC, chosen at configuration time
+ * (QFTBX_INTERVAL_BACKEND) and confined to detail::Backend, which supplies
+ * the four operations, the square root, the integer power and pi.
+ * Everything else is written here over those, so the two give the same
+ * enclosures up to rounding.
  *
- * The arithmetic underneath is one of two libraries, chosen at
- * configuration time (QFTBX_INTERVAL_BACKEND) and confined to
- * detail::Backend: kv, Masahide Kashiwagi's verified computation library
- * (3rd-party/kv), by default, in its rounding-emulation mode, where the
- * directed roundings come from error-free transformations and the
- * floating-point rounding mode is never touched; or C-XSC, fetched from
- * its repository, which switches the rounding mode around each operation
- * and needs -frounding-math. The backend supplies the four operations,
- * the square root, the integer power and pi; everything else is written
- * here over those, so both give the same enclosures up to rounding, and a
- * disagreement between them beyond that is a bug in one of them. kv's
- * functions are friends of kv::interval, found by argument-dependent lookup
- * only, hence the wrappers in detail.
+ * The exponential, the logarithms and the trigonometric functions and their
+ * inverses take the C library's values widened by four ulps on each side
+ * (detail::kLibraryUlps), twice the largest error glibc lists for them. The
+ * monotone ones take the values at the ends; sin and cos add the extremes
+ * +1 and -1 wherever a maximum or a minimum lies inside, located with the
+ * enclosure of pi; tan is the whole line where the interval may hold a
+ * pole. sqr is tight, [0, max] where x straddles zero. atan2 is the
+ * argument of the rectangle: the whole turn when it contains the origin,
+ * otherwise taken at its corners, and continuous past pi when it crosses
+ * the negative real axis. pi() and e() are enclosures of the constants.
  *
- * The exponential, the logarithms, the trigonometric functions and their
- * inverses, which the projection of every controller box and the constraint
- * trees of MR call for every factor of every box, take the C library's
- * values widened by detail::kLibraryUlps ulps on each side instead of either
- * library's series, whose enclosures cost some microseconds each where the
- * library takes nanoseconds. glibc's table of known maximum errors (manual,
- * "Known Maximum Errors in Math Functions") lists at most two ulps for these
- * functions on x86_64, with the stated goal of results "within a few ulp";
- * four ulps double the largest listed bound, and four ulps of a phase in
- * radians or of a magnitude in dB are far below anything the algorithms
- * resolve. The widening is an integer step on the magnitude of the bit
- * pattern, since the doubles are ordered as their bit patterns read as
- * sign-and-magnitude integers; values too close to zero to take the step,
- * and non-finite ones, go through nextafter.
- *
- * The monotone functions take the library's values at the ends: the
- * exponential, whose overflowing end is infinite, the logarithms, the arc
- * tangent, asin and acos. sin and cos add the extremes +1 and -1 wherever a
- * maximum or a minimum lies inside; the extremes sit at (k + 1/2) pi and at
- * k pi, each located with the enclosure of pi, so a rounding near one can
- * only add an extreme, never miss it. The candidates k run from
- * floor(lower / pi - offset) to ceil(upper / pi - offset), which the rounding
- * of the quotient cannot move by more than one for arguments below
- * detail::kLargestReducedArgument; beyond it the position of a multiple of
- * pi is not resolved well enough, and the whole range is returned. tan is
- * monotone between its poles and the whole real line when the interval may
- * hold one. sqr is tight, [0, max] where x straddles zero, where x * x would
- * give a negative lower end; on one side of zero it is the square of the end
- * nearer zero rounded down and that of the farther rounded up, the two of the
- * four directed products that the hull of the squares of the ends would keep. pow(x, y) is exp(y log x), for a strictly
- * positive x. atan2(y, x) is the argument of the rectangle {x + j y}: the
- * whole turn [-pi, pi] when the rectangle contains the origin; otherwise the
- * argument is continuous over it and monotone along each edge, so its
- * extremes sit at the corners, each asked once: a side whose two ends have
- * the same bits, as the factor jw + z of a real zero has, is one end, and a
- * point is one corner, with +0 and -0 told apart. A rectangle crossing the
- * negative real axis is measured from that axis and turned by pi, so the
- * result runs continuously past pi instead of splitting at the cut. pi() and e() are
- * enclosures of the constants, not their nearest doubles; an Interval given
- * its ends in either order takes them in order, and width() is rounded
- * upwards.
- *
- * A domain error throws std::domain_error in both backends: the square root
- * of an interval reaching below zero, the logarithm of one that is not
- * strictly positive, asin or acos of one leaving [-1, 1], a division by an
- * interval containing zero, a negative integer power of one, and a negative
- * magnitude given to a PolarInterval. The magnitude of a ComplexInterval
- * runs from the distance of the origin to the rectangle to the distance to
- * its farthest corner, and its phase is continuous: it may reach past pi
- * when the rectangle crosses the negative real axis and is the whole turn
- * when it contains the origin. The phase of a PolarInterval is not reduced
- * modulo a turn: a product adds phases as they come, so a long product can
- * span more than 2 pi, and the caller maps it onto whatever branch it works
- * on. A negative scale turns the phase by pi, and a scale straddling zero
- * takes the hull of the phase and the phase turned by pi.
+ * A domain error throws std::domain_error in both backends. The phase of a
+ * ComplexInterval is continuous and may reach past pi; that of a
+ * PolarInterval is not reduced modulo a turn, so a long product can span
+ * more than 2 pi and the caller maps it onto its branch. A negative scale
+ * turns the phase by pi, and a scale straddling zero takes the hull of
+ * both.
  */
 
 #ifndef QFTBX_MATH_INTERVAL_H

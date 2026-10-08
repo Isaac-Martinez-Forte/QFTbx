@@ -5,52 +5,27 @@
  * natural interval extension of the controller's frequency response (thesis
  * section 1.2.5).
  *
- * For a zero-pole-gain controller box
- * \f$ \mathbf{x} = (\mathbf{k}, \mathbf{z}_1 \ldots, \mathbf{p}_1 \ldots) \f$
- * and a nominal plant value \f$ p_0 = P_0(j\omega) \f$, nicholsBox() encloses
+ * For a zero-pole-gain controller box and a nominal plant value
+ * \f$ p_0 = P_0(j\omega) \f$, nicholsBox() encloses
  * \f$ L_0(j\omega, x) = k \, p_0 \prod_i (j\omega + z_i) / \prod_j (j\omega + p_j) \f$
- * for every instance \f$ x \in \mathbf{x} \f$ by interval arithmetic:
- * magnitude \f$ 20 \log_{10} |L_0| \f$ (dB) and phase \f$ \angle L_0 \f$
- * mapped onto the \f$ (-360^\circ, 0] \f$ Nichols branch. The fundamental
- * theorem of interval analysis guarantees the enclosure, which every
- * interval loop-shaping algorithm relies on to classify parameter boxes as
- * feasible, ambiguous or infeasible.
+ * for every instance of the box, which is what the interval algorithms
+ * classify boxes with. The product is assembled in polar form: each factor
+ * \f$ j\omega + \mathbf{z} \f$ is a horizontal segment whose magnitude and
+ * phase ranges are exact, and the factors multiply their magnitudes and add
+ * their phases. The zero and pole products, the Factors, do not depend on
+ * the gain: factorsOf() computes them once and nicholsOf() finishes them
+ * with a gain interval, exactly as nicholsBox() does. nicholsPoint()
+ * encloses one controller, and the three term boxes are the single factors
+ * the cutting equations read.
  *
- * The product is assembled in polar form, as the thesis writes it: each
- * factor \f$ j\omega + \mathbf{z} \f$ is a horizontal segment of the
- * complex plane whose magnitude and phase ranges are read exactly, and the
- * factors then multiply their magnitudes and add their phases. A product
- * of rectangles instead would grow its shape with every factor, and its
- * phase would have to be read off the corners of the result. The zero and
- * pole products of a box or a point at one frequency, its Factors, are the
- * part of the enclosure that does not depend on the gain: the gain
- * contractors and the gain bisections project the same zeros and poles with
- * one gain interval after another, and computing the products once with
- * factorsOf() and finishing with nicholsOf() gives exactly the enclosures
- * nicholsBox() gives. The product over no factors, that of a pure-gain
- * controller, is one. nicholsBox() takes the gain of the box or another one
- * it is given, and nicholsPoint() encloses a single controller with the same
- * arithmetic over degenerate intervals. The cutting equations of the
- * parameters read one term at a time: a numerator factor (jw + z) p0, a
- * denominator factor p0 / (jw + p), and the gain k p0.
- *
- * The modulus and the phase of the loop are computed apart, by the very
- * operations the polar product would apply to each, so mayReachUnitModulus
- * can ask whether the modulus over a box may be one at a frequency, given
- * the square of the frequency and the modulus of the nominal plant there,
- * from the moduli of the factors alone, and answer as the enclosure would,
- * without the phases. The squares of the box's zeros and poles do not depend
- * on the frequency, so squaresOf forms them once per box, with its gain. The magnitude is converted to dB with its ends clamped
- * to the positive finite doubles, so the conversion stays finite, and the
- * phase is mapped onto the (-2 pi, 0] branch. Since the logarithm is zero
- * only at one, and widening a value that is not zero by a few ulps never
- * crosses zero, the clamped modulus contains one exactly when the decibels
- * contain zero. A phase set that crosses the branch cut
- * (0/-360 degrees) is not a single interval inside the branch: the
- * enclosure degrades to the whole branch, which is conservative but keeps
- * the containment guarantee. Only ZeroPoleGain controller structures are
- * supported; other structures throw qftbx::InvalidInput rather than be
- * projected as if they were.
+ * mayReachUnitModulus asks whether the modulus over a box may be one at a
+ * frequency from the moduli of the factors alone, as the enclosure would
+ * answer, with the squares of the box's parameters formed once by
+ * squaresOf. The magnitude is converted to dB with its ends clamped to the
+ * positive finite doubles, and the phase is mapped onto the (-2 pi, 0]
+ * branch; a phase that crosses the cut at 0/-360 degrees becomes the whole
+ * branch. Only zero-pole-gain structures are supported, and others throw
+ * qftbx::InvalidInput.
  */
 
 #ifndef QFTBX_NATURAL_INTERVAL_EXTENSION_H

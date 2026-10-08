@@ -3,45 +3,30 @@
  * @brief Operations on controller boxes shared by the interval algorithms.
  *
  * pointFromBox builds a corner of a box as a controller, and
- * satisfiesBoundaries asks the boundaries about one controller at every design
- * frequency, projected by the same interval extension the search uses. An
- * epsilon-small ambiguous box ends the search with a point of it (Tharewal
- * 2005, Remark 3.1; QFTbx thesis sec. 3.1), and the anti-blocking rule picks
- * the corner that moves the projection towards the allowed side when that side
- * is up: maximum gain and zeros, and minimum poles, which push the projection
- * down. That is a guess about the boundary, not a certificate: where a closed
- * boundary crosses the box its allowed side is down, and on the QFT toolbox
- * example 2 every algorithm returned such a corner at some frequency. So
- * forEachCandidate walks the candidates in order, the anti-blocking corner,
- * the lower corner, the centre and then, while there are at most six
- * uncertain parameters, every other corner; a caller that recomputes the
- * gain at the zeros and poles of each candidate, as MC2 does under the exact
- * reading, walks only the corners of the zeros and poles. verifiedCornerBy
- * returns the first candidate a test passes, and verifiedCorner the first
- * the boundaries accept.
+ * satisfiesBoundaries asks the boundaries about one controller at every
+ * design frequency. An epsilon-small ambiguous box ends the search with a
+ * point of it (Tharewal 2005, Remark 3.1; QFTbx thesis sec. 3.1), and the
+ * anti-blocking corner (maximum gain and zeros, minimum poles) is a guess,
+ * not a certificate: forEachCandidate walks it, the lower corner, the centre
+ * and, with at most six uncertain parameters, every other corner, or only
+ * the corners of the zeros and poles for a caller that recomputes the gain.
+ * verifiedCornerBy returns the first candidate a test passes, and
+ * verifiedCorner the first the boundaries accept.
  *
  * isEpsilonSmall is the termination test of NT, NK, MC1 and MC: the Nichols
- * rectangle of the box narrower than epsilon, in both coordinates, at every
- * design frequency. Their papers place the accuracy on the loop transmission
- * they return, so it is measured there and scales with the plant's modulus;
- * MR measures it on the parameters (AlgorithmMr::isParameterBoxSmall).
- * bisectWidestParameter splits the widest uncertain parameter at its middle,
- * which is how NT, NK, MR and MC1 branch; MC of the thesis and MC2 measure
- * the widest on the projection of the box, and MC3 splits a zero or a pole on
- * a logarithmic scale, each in its own bisect(). BisectionResult holds the two
- * halves for whoever receives them.
+ * rectangle of the box narrower than epsilon in both coordinates at every
+ * design frequency. bisectWidestParameter splits the widest uncertain
+ * parameter at its middle, as NT, NK, MR and MC1 branch.
  *
- * ParameterBounds holds the bounds of a box as the Quick Solution equations
- * (quick_solution.h) read and write them, the fixed parameters at their
- * nominal at both ends, and boxFromBounds writes them back. The four cuts
- * apply those equations: cutBelowBoundary (NK sec. 3.3, steps 3-8), with the
- * strip under B_min certainly forbidden, raises the infimum of the gain and
- * of every zero and lowers the supremum of every pole, sequentially on the
- * latest values; cutAboveBoundary is its mirror over B_max; cutRightOfPhase
- * and cutLeftOfPhase (thesis 4.1.2) cut on the phase strips, the zeros and
- * the poles moving opposite ends. capGain caps the gain range of a box at the
- * prune variable C (MC1 step 3bis.(b), thesis 5.4.3), and nominalPhase puts
- * the nominal plant phase on the (-2 pi, 0] branch of the Nichols boxes.
+ * ParameterBounds holds the bounds of a box as the Quick Solution
+ * equations (quick_solution.h) read and write them, and boxFromBounds writes
+ * them back. cutBelowBoundary (NK sec. 3.3, steps 3-8) raises the infimum of
+ * the gain and of every zero and lowers the supremum of every pole under
+ * the strip below B_min; cutAboveBoundary is its mirror over B_max;
+ * cutRightOfPhase and cutLeftOfPhase (thesis 4.1.2) cut on the phase
+ * strips. capGain caps the gain of a box at the prune variable C (MC1 step
+ * 3bis.(b), thesis 5.4.3), and nominalPhase puts the nominal plant phase on
+ * the (-2 pi, 0] branch.
  */
 
 #ifndef QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H

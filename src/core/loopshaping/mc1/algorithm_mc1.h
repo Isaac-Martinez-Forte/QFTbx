@@ -22,41 +22,33 @@
 
 /**
  * @file
- * @brief Algorithm MC of the 2021 paper: the NT/NK branch & bound
+ * @brief Algorithm MC of the 2021 paper: the NT/NK branch and bound
  * accelerated with the QS2 parameter box reduction.
  *
- * Martinez-Forte and Cervera, "Accelerated quantitative
- * feedback theory interval automatic loop shaping algorithm", Int. J.
- * Robust Nonlinear Control 31, 2021, DOI 10.1002/rnc.5499): the NT/NK
- * interval branch & bound accelerated with the QS2 parameter box
- * reduction, which adds to NK's Quick Solution two information sources:
+ * Martinez-Forte and Cervera, "Accelerated quantitative feedback theory
+ * interval automatic loop shaping algorithm", Int. J. Robust Nonlinear
+ * Control 31, 2021, DOI 10.1002/rnc.5499. QS2 adds to NK's Quick Solution
+ * two sources of information:
  *
- * - Stage 2, phase information: when a vertical strip of the box's
- *   Nichols rectangle is certainly forbidden, the phase monotonicity of
- *   every zero/pole term yields closed-form cuts (quick_solution.h), the
- *   horizontal counterpart of the magnitude cuts of stage 1 (= NK's QS).
- * - Stage 3, feasible boxes information: the largest upper subrange
- *   [k_f, sup k] of the gain whose box is certainly feasible at every
- *   design frequency yields a CERTIFIED solution with gain k_f. Its
- *   infimum feeds the prune variable C of the paper's step 3bis: boxes
- *   whose gain infimum cannot improve C are discarded, and every new
- *   box's gain range is capped at C (step 3bis.(b)).
+ * - Stage 2, phase: when a vertical strip of the box's Nichols rectangle
+ *   is certainly forbidden, the monotonicity of every zero and pole term
+ *   gives closed-form cuts (quick_solution.h), the counterpart of the
+ *   magnitude cuts of stage 1, NK's Quick Solution.
+ * - Stage 3, feasible boxes: the largest upper subrange [k_f, sup k] of the
+ *   gain whose box is certainly feasible at every design frequency gives a
+ *   certified solution with gain k_f, which feeds the prune variable C of
+ *   step 3bis: a box whose gain cannot improve C is discarded, and every
+ *   new box's gain is capped at C.
  *
- * Deviations from the paper:
- * - The paper inserts the feasible box z' into the live list as a triple
- *   and splits the remainder u = z - z'; here z' is realised as the
- *   certified controller behind C: the capped boxes ARE u, and the
- *   certified point is returned when the search exhausts the list
- *   without finding anything better. Same prune, same fallback, no
- *   duplicate list entries.
- * - Stage 3 finds k_f by logarithmic bisection over the feasibility test
- *   (the paper leaves the search method unspecified); for closed
- *   boundaries feasibility is not monotonic in k_f, so the bisection may
- *   miss a certificate (never accepts a false one).
- * - The returned point must pass the nominal closed-loop stability
- *   criterion (NominalStabilityChecker), as in NT and NK, and an
- *   ambiguous box whose members are all unstable is discarded at
- *   classification (isBoxUnstable, as in NT).
+ * The feasible box of the paper is kept as the certified controller behind
+ * C, returned when the list is exhausted without anything better, and the
+ * capped boxes are the remainder: the same prune, with no duplicate list
+ * entries. Stage 3 finds k_f by logarithmic bisection over the feasibility
+ * test; for closed boundaries feasibility is not monotonic in k_f, so the
+ * bisection may miss a certificate but never accepts a false one. The
+ * returned point passes the nominal stability criterion, and an ambiguous
+ * box whose members are all unstable is discarded, as in NT. The
+ * cancellation token has to outlive solve().
  */
 namespace qftbx {
 
@@ -67,44 +59,19 @@ public:
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
-    /**
-     * @brief Installs the flag the search reads once per node.
-     *
-     * A pointer, and null by default: a caller that never cancels - every
-     * test that drives this algorithm directly - carries on unchanged. The
-     * token has to outlive solve().
-     */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
-    /**
-     * @brief The values the user may have changed.
-     *
-     * The whole struct rather than one setter per value: what an algorithm
-     * needs from it is copied here, once, before solve() - so the hot path
-     * reads a member and never a configuration lookup. Not calling it leaves
-     * the compiled defaults, which is what every existing caller does.
-     */
     void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
 
-    /**
-     * @brief The grids the plant family was swept over, by parameter name:
-     * what the search closes the loop with before it returns a design.
-     *
-     * Empty leaves the check out, which is what a project with no record of
-     * its sweep gets.
-     */
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
     bool solve();
 
-    /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
     std::size_t peakLiveNodes() const;
 
-    /// What the run cost, read from the algorithm's own counters.
     LoopShapingStatistics statistics() const;
 
 private:
@@ -132,17 +99,13 @@ private:
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    /// Prune variable C of the paper's step 3bis: gain and controller of
-    /// the best certified feasible solution found by QS2 stage 3.
     double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
     std::unique_ptr<LtiSystem> designedController;
 
-    /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    /// Copied whole and read as fields; the defaults are the compiled ones.
     qftbx::Settings m_settings;
 
 };

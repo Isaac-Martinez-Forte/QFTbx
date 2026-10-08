@@ -3,54 +3,28 @@
  * @brief What a loop-shaping run cost, as counted by the algorithm itself,
  * and what it can claim.
  *
- * The counts are what the algorithms already keep for their own purposes,
- * read out at the end: they cost nothing and change no result. The wall time
- * of the search; the most nodes the live list held at once, which is what a
- * run costs in memory and what the node budget is sized from; the nodes
- * taken from the head; the boxes classified against the boundaries and how
- * the verdicts split, the ambiguous ones being the boxes that had to be
- * bisected again; the nominal stability verdicts asked and the profiles they
- * needed; the nodes by depth of the tree and how often each design frequency
- * left a box ambiguous.
+ * The counts are those the algorithms keep for their own purposes, read
+ * out at the end: the time of the search, the most nodes alive at once,
+ * the nodes taken, the boxes classified and how the verdicts split, the
+ * nominal stability verdicts and profiles, the nodes by depth and how
+ * often each design frequency left a box ambiguous.
  *
- * The certificate is the bookkeeping of what the search threw away without
- * proof, kept by the searches that keep one, MC2 alone today: for the
- * others it says nothing, its bounds infinite only because nothing was
- * counted. It is read from a run whether it ends with a design, with no
- * design or with an error, and it is finished when the search reached its
- * end, with a design or with an empty list; a certificate that is not has
- * no bounds, since the boxes the search held when it stopped were never
- * accounted for. A branch and bound proves optimality only if every region it
- * removes is covered by a proof or by a better design; the interval searches
- * remove boxes on the boundary columns of a phase grid, which is not the
- * specification, and prune boxes on the nominal stability of one point of an
- * interval enclosure. So each such removal is counted and the smallest gain
- * it could have held is kept: the unproven discards are the infeasible
- * verdicts and cuts read off the columns, the grid-backed prunes the boxes
- * the nominal criterion rejected whole on its frequency grid (under the
- * contraction of the gain they are kept instead, and counted), the family
- * prunes the boxes the interval Routh table proved to destabilise a plant
- * of the sweep for every controller in them, and the nominal box prunes
- * those it proved to destabilise the nominal plant, each a proof that enters
- * no bound, as are the boxes the contraction of the gain emptied, by the
- * specifications, the Routh table or the zero exclusion, the boxes the zero
- * exclusion proved unstable at the nominal plant, and the boxes the exact
- * sector verdict proved infeasible and the cuts it certified (the columns'
- * verdicts it overruled are counted too), and the residue the boxes dropped
- * with no certified point at the size the search stops at, or with a corner
- * the nominal criterion refused. lowerBound is the smallest gain any of them
- * or any box still alive could hold, lowerBoundStrict counts the grid-backed
- * prunes too, and the returned gain is the upper bound; the optimum of the
- * problem posed lies between them, and infinity means nothing was left
- * unproven. Under the exact point reading the candidates asked of the
- * certification funnel, where each refusal fell, how often the best design
- * improved and how many passes over a value set the exact check made say
- * what the reading costs, and the searches for the best gain at fixed zeros
- * and poles, the rounds in which a working set of plants had to grow, the
- * ladder steps a rounding cost and the largest working set say what its
- * gain costs, and the searches that gave up on a vertex whose admissible set
- * was not empty, at the top of the ladder or after the last round, what it
- * missed.
+ * The certificate, kept by MC2 alone, is the bookkeeping of what the
+ * search removed. A branch and bound proves optimality only if every
+ * region it removes is covered by a proof or by a better design, so each
+ * removal without a proof is counted with the smallest gain it could have
+ * held: the discards read off the boundary columns, the boxes the nominal
+ * criterion rejected on its grid, and the residue dropped with no
+ * certified point. The removals with a proof, by the Routh table, the zero
+ * exclusion, the exact sector verdict or the contraction of the gain, are
+ * counted and enter no bound. lowerBound is the smallest gain an unproven
+ * removal or a live box could hold, lowerBoundStrict counts the grid's
+ * rejections too, and the returned gain is the upper bound; infinity means
+ * nothing was left unproven. A certificate is finished when the search
+ * reached its end, and one that is not has no bounds. The rest counts what
+ * the exact reading costs: the refusals of the funnel, the improvements of
+ * the best design, the gain searches with their rounds and ladder steps,
+ * and the vertices they gave up on.
  */
 
 #ifndef QFTBX_LOOPSHAPING_STATISTICS_H

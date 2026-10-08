@@ -3,52 +3,32 @@
  * @brief The closed-loop magnitudes a QFT specification bounds, evaluated
  * over a value set at one loop value.
  *
- * Every specification of the toolbox is a bound on the magnitude of one
- * closed-loop transfer function, taken in the worst case over the plant
- * family; the tracking specification bounds the spread between the worst
- * and the best case of the same magnitude. With the nominal loop
- * \f$ L_0 = G P_0 \f$ and a plant \f$ P \f$ of the family, the loop of that
- * plant is \f$ L = L_0 P / P_0 \f$, and the five magnitudes read
+ * Every specification bounds the magnitude of one closed-loop transfer
+ * function in the worst case over the plant family, and tracking bounds the
+ * spread between its worst and best case. With the nominal loop
+ * \f$ L_0 = G P_0 \f$ and a plant \f$ P \f$ of the family, \f$ L = L_0 P / P_0 \f$
+ * and the magnitudes read
  *
  * - stability and sensor noise: \f$ |L / (1 + L)| = |L_0 / (P_0/P + L_0)| \f$,
  * - output disturbance: \f$ |1 / (1 + L)| = |(P_0/P) / (P_0/P + L_0)| \f$,
  * - input disturbance: \f$ |P / (1 + L)| = |P_0 / (P_0/P + L_0)| \f$,
  * - control effort: \f$ |G / (1 + L)| = |(L_0 / P) / (P_0/P + L_0)| \f$.
  *
- * The boundary sweep evaluates these at every grid point of the Nichols
- * chart to build its sheets (Moreno, Banos and Berenguel 2006, equation
- * (10)); the specification checker evaluates them once, at the loop value of
- * a returned controller, to verify it against the specifications
- * themselves. One definition for both.
+ * The boundary sweep evaluates them at every grid point of the Nichols
+ * chart (Moreno, Banos and Berenguel 2006, equation (10)) and the
+ * specification checker at the loop value of a returned controller: one
+ * definition for both. WorstCase holds, in linear units, the worst case of
+ * each magnitude and the best case of tracking, the smallest
+ * \f$ |P_0/P + L_0| \f$ met and the index of that sample (see SingularLocus).
+ * nominalOverValueSet() computes the quotients \f$ P_0 / P \f$ once per
+ * frequency, and a WorstCaseMask says which magnitudes a caller wants.
  *
- * WorstCase holds, in linear units, the worst case of each magnitude over
- * the value set, and the best case of the tracking magnitude too, since
- * tracking bounds the spread; with them the distance from \f$ -L_0 \f$ to
- * the nearest sample point of the value set, the smallest
- * \f$ |P_0/P + L_0| \f$ met, which the guard near the singular locus needs
- * (see SingularLocus), and the index of that sample. The quotients
- * \f$ P_0 / P \f$ do not depend on the loop value, so nominalOverValueSet()
- * computes them once per frequency: the sweep asks for them at tens of
- * thousands of grid points. A WorstCaseMask says which magnitudes a caller
- * wants: the sheet sweep asks only for those the specifications in use at
- * that frequency need, two of the five on example 2, and stability, sensor
- * noise and tracking share one. worstCaseAt() evaluates the magnitudes the
- * mask asks for, leaving the others at their initial values, or all five
- * when given no mask.
- *
- * Each magnitude is an extreme of a modulus over the plants, and a modulus
- * is ordered as its square: the stability, sensor noise and input
- * disturbance cases are at the smallest |P_0/P + L_0|, the best tracking
- * case at the largest, the output disturbance at the largest
- * |P_0/P|^2 / |P_0/P + L_0|^2 and the control effort at the smallest
- * |P|^2 |P_0/P + L_0|^2. So worstCaseAt finds those extremes first with
- * squares alone, no root and no complex division, and evaluates the
- * expressions above only at the plants within 1e-10, relatively, of each
- * extreme. Their rounding is a few ulps, far inside that margin, so the
- * extremes, and the index of the nearest sample, are those of evaluating
- * every plant, to the bit. Where a square could leave [1e-290, 1e290], or
- * is not finite, the margin no longer holds and every plant is evaluated,
- * as detail::worstCaseEverywhere does.
+ * Each magnitude is an extreme of a modulus over the plants, ordered as its
+ * square, so worstCaseAt finds the extremes with squares alone and
+ * evaluates the expressions above only at the plants within 1e-10,
+ * relatively, of each; the result is that of evaluating every plant, to the
+ * bit. Where a square could leave [1e-290, 1e290] or is not finite, every
+ * plant is evaluated (detail::worstCaseEverywhere).
  */
 
 #ifndef QFTBX_CLOSED_LOOP_WORST_CASE_H

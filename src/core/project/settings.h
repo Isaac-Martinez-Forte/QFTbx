@@ -2,38 +2,27 @@
  * @file
  * @brief The values a user may change without recompiling.
  *
- * Plain fields with the compiled defaults, grouped the way the file is, and
- * not a map looked up by name: some are read once per node of an interval
- * search, where a string lookup would cost a hundred times the value. Whoever
- * needs one copies it when constructed, so the hot path reads a member. The
- * settings are loaded once at startup and immutable afterwards, which is
- * what makes them safe next to OpenMP and the search's worker thread. A
- * setting is a value with a defensible range; the mathematical and
- * structural constants of the method are not here, since writing them down
- * would configure nothing and break the program.
+ * Plain fields with the compiled defaults, not a map looked up by name:
+ * some are read once per node of a search, so whoever needs one copies it
+ * when constructed. The settings are loaded once at startup and immutable
+ * afterwards. The constants of the method are not settings.
  *
  * The groups, in the same order here, in the table that reads them, in the
  * example file and in the guide: the interface; the record; the limits,
- * which only refuse input and so change no result; what the interval search
- * may spend; the defaults of the dialogs; the resolution of the nominal
- * stability check, which trades time against how often the check can decide
- * and never touches the criterion; and the figures that come from the
- * published algorithms, the group to be careful with because a value changed
- * there changes what the program computes. Each key, its default and its
- * range is described in docs/CONFIGURATION.md. The tests never take a value
- * from a settings file: each builds its own settings, so a value set in one
- * can never change what a test means.
+ * which only refuse input; what the interval search may spend; the
+ * defaults of the dialogs; the resolution of the nominal stability check;
+ * and the figures that come from the published algorithms, which change
+ * what the program computes. docs/CONFIGURATION.md describes each key. The
+ * tests build their own settings and never read a file.
  *
  * Research holds what is not for a user: the variants that reproduce the
- * published algorithms and the switches the measurements of the method turn,
- * read from a file of their own, qftbx-research.conf, found as qftbx.conf is
- * (QFTBX_RESEARCH_CONFIG, the working directory, ~/.config/qftbx). Each file
- * takes only its own keys, and their defaults are the program's own way of
- * working; the benchmark and the command-line solver read both. The
- * strategies of the thesis are switched apart for MC of the thesis, all of
- * them on, and for MC2, without the feasible magnitude cut, the configuration
- * measured best for it. The contraction of the gain of every box MC2 takes
- * under the exact reading is a switch of its own, off by default.
+ * published algorithms and the switches the measurements turn, read from a
+ * file of their own, qftbx-research.conf, found as qftbx.conf is
+ * (QFTBX_RESEARCH_CONFIG, the working directory, ~/.config/qftbx). Each
+ * file takes only its own keys, the benchmark and the command-line solver
+ * read both, and the defaults are the program's own way of working: MC2
+ * reads the points exactly, contracts the gain of every box and goes
+ * without the feasible magnitude cut.
  */
 
 #ifndef QFTBX_SETTINGS_H

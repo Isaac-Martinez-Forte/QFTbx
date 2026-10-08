@@ -13,34 +13,18 @@
  * @brief The one funnel a candidate passes before it leaves a search or
  * prunes it.
  *
- * Under the exact point reading a controller may become the design the
- * search returns, or the best design so far that cuts every box above its
- * gain, only through this: every plant of the sweep stable by the Routh
- * table, the nominal plant stable by the same table, the nominal closed loop
- * stable by the nominal criterion, the specifications themselves over the
- * whole template at its own loop value (ExactPointCheck), and then the
- * nominal plant and the same plants by the roots with the verifier's
- * tolerance. The nominal table catches what the grid of the nominal
- * criterion can miss, at the cost of one table. The funnel leaves
- * at the first refusal, and the Routh table goes first because it is the
- * cheapest question and, wherever the gain the specifications need lies
- * beyond the family's stability limit, it turns away nearly every
- * candidate the search asks about directly; the specifications cost a pass
- * over every value set, and the roots are asked only of what the three
- * have accepted. The last step exists because the Routh table and the roots
- * disagree within the tolerance the roots are computed to, and a design
- * accepted by one and refused by the other would be returned and then
- * rejected by the verifier; on the DC motor the optimum sits exactly in
- * that band.
- *
- * So whatever comes out of certify the verifier accepts, on the
- * specifications and on the family, by construction; and nothing the search
- * prunes with can be refused afterwards. A point the exact gain search
- * produced was admitted by the specifications on its way out, and the
- * caller hands it to certifyAdmitted, which spares the pass over the value
- * sets and asks everything else. The counts say how
- * many candidates were asked and where each refusal fell, which is what the
- * cost of the exact reading is measured by.
+ * Under the exact point reading a controller becomes the design returned,
+ * or the best design so far, only through this, in order: every plant of
+ * the sweep stable by the Routh table, the nominal plant stable by the same
+ * table, the nominal closed loop stable by the nominal criterion, the
+ * specifications themselves over the whole template at its own loop value
+ * (ExactPointCheck), and the nominal plant and the same plants by the roots
+ * with the verifier's tolerance. It leaves at the first refusal, the
+ * cheapest questions first; the roots settle the band where the table and
+ * the verifier's tolerance disagree. So whatever certify accepts the
+ * verifier accepts, by construction. certifyAdmitted skips the
+ * specifications for a point the exact gain search already admitted. The
+ * counts say how many candidates were asked and where each refusal fell.
  */
 namespace qftbx {
 

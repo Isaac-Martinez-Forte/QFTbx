@@ -3,39 +3,25 @@
  * @brief Abstract base of every LTI system the toolbox handles, and the
  * nominal values, polynomials and closed loops taken from one.
  *
- * Both the plant and the controller structure are systems: a numerator, a
+ * The plant and the controller structure are both systems: a numerator, a
  * denominator, a gain and a pure delay, each a possibly uncertain parameter
- * held by value, so there is no ownership to transfer or share, and the
- * concrete subclasses fix the mathematical form (SystemType, whose values are
- * written to .qft files and must keep their order). create is the virtual
- * constructor, building a system of the same type from parameter values, and
- * clone copies a whole system; both hand the new one to the caller. A system
- * evaluates at s = j omega from its nominal values (evaluate) or from
- * coefficient values given in the order of its parameter vectors (valueAt),
- * in direct complex arithmetic, only a free form evaluating an expression
- * tree; a name that appears more than once is one variable and takes one
- * value. polesAt names the poles for given values, which is what the
- * stability criterion asks of a plant, directly for the forms that name them,
- * from the roots of the denominator for the polynomial form, and from the
- * polynomial a free-form denominator evaluates to, answering nothing when it
- * is not a polynomial in s; nominalPoles is polesAt at the nominal values.
- * polynomialsAt gives the numerator and the denominator as real polynomials,
- * highest degree first, the gain folded into the numerator and the delay left
- * out, or nothing when either is not a polynomial.
+ * held by value, with the mathematical form fixed by the concrete subclass
+ * (SystemType, whose values are written to .qft files and keep their
+ * order). create and clone build a new system for the caller. evaluate and
+ * valueAt evaluate at s = j omega from the nominal values or from given
+ * coefficients; polesAt and nominalPoles name the poles; polynomialsAt
+ * gives the numerator and denominator as real polynomials, highest degree
+ * first, with the gain in the numerator and the delay left out, or nothing
+ * when they are not polynomials.
  *
- * The description says what a plant is in the user's words; it is saved with
- * the project and left out of sameAs, the value equality that tells a real
- * change from a dialog accepted without an edit. sameAs is not virtual: it
- * compares the dynamic type and then everything a system is made of, its name,
- * the textual numerator and denominator, through which a free form takes part
- * with its expressions, and the four parameter groups. It errs on the side of
- * "different", because a wrong "equal" keeps the templates computed for
- * another plant while a wrong "different" costs one recomputation.
+ * sameAs is the value equality that tells a real change from a dialog
+ * accepted without an edit: the dynamic type, the name, the textual
+ * numerator and denominator and the four parameter groups, but not the
+ * description. It errs on the side of different, since a wrong equal would
+ * keep the templates of another plant.
  *
- * nominalValues takes the nominal of each parameter, nominalPolynomials the
- * polynomials of a system at its nominal values, hasDelay says whether a
- * system has a delay, and characteristicOf closes a loop, N_P N_C + D_P D_C,
- * summing the two products once they are formed.
+ * nominalValues, nominalPolynomials and hasDelay read a system, and
+ * characteristicOf closes a loop, N_P N_C + D_P D_C.
  */
 
 #ifndef QFTBX_LTI_SYSTEM_H

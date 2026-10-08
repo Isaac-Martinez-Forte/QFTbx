@@ -4,56 +4,33 @@
  * Nyquist criterion on the Nichols chart.
  *
  * The criterion is Cohen, Chait and Yaniv's (Int. J. Robust and Nonlinear
- * Control, 1994), the one the Matlab QFT Toolbox applies. For a nominal loop
- * \f$ L_0 = C P_0 \f$ the closed loop is stable if and only if the net number
- * of signed crossings of the rays \f$ \angle L_0 \equiv -180^\circ,\ |L_0| > 0\ dB \f$
- * over positive frequencies is \f$ P/2 \f$, half the right half-plane poles of
- * the nominal plant: Nyquist's \f$ N = -P \f$ read on the Nichols chart. The
- * boundaries alone do not exclude loops that encircle the critical point, so
- * the interval algorithms complete their feasibility test with this check on
- * one point of each bounds-feasible box (the boundary crossing principle,
- * Tharewal 2005 sec. 3.3.5).
+ * Control, 1994), the one the Matlab QFT Toolbox applies: the closed loop
+ * of \f$ L_0 = C P_0 \f$ is stable if and only if the net number of signed
+ * crossings of the rays \f$ \angle L_0 \equiv -180^\circ,\ |L_0| > 0\ dB \f$
+ * over positive frequencies is \f$ P/2 \f$, half the right half-plane poles
+ * of the nominal plant. The interval algorithms ask it of one point of
+ * each bounds-feasible box (the boundary crossing principle, Tharewal 2005
+ * sec. 3.3.5).
  *
  * \f$ P \f$ is asked of the plant once, and a plant that cannot place its
- * poles is refused rather than assumed stable. The nominal verdict carries to
- * the family only while every member has the same \f$ P \f$, which the template
- * sweep checks. Poles of the plant on the imaginary axis are an input: there
- * the loop passes through infinity and its phase falls by 180 degrees per pole,
- * the indentation of the Nyquist contour, and the frequencies where that
- * happens come from the plant's own poles, not from the samples. A loop that
- * starts on a ray at a finite magnitude (an odd number of real unstable poles,
- * a negative static gain) counts half a crossing towards its departure side.
- * Two integrators put it on the ray at infinite magnitude, where the
- * indentation around the origin reaches the ray from the higher phase: a loop
- * leaving towards the higher phase does not cross it, one leaving towards the
- * lower phase crosses it whole. The start is read off the low-frequency
- * asymptote \f$ A (j\omega)^m \f$ from the polynomials of the plant and the
- * controller, not off the first sample, which sits a fraction of a degree off
- * the ray: read that way, the ACC'90 double integrator was approved with every
- * closed-loop pole in the right half-plane.
+ * poles is refused. Poles on the imaginary axis are an input: there the
+ * phase falls by 180 degrees per pole. A loop that starts on a ray at a
+ * finite magnitude counts half a crossing towards its departure side; with
+ * two integrators it starts on the ray at infinite magnitude, and only a
+ * loop leaving towards the lower phase crosses it. The start is read off
+ * the low-frequency asymptote of the polynomials, not off the first sample.
  *
- * The nominal plant is sampled once on a logarithmic grid three decades beyond
- * the design frequencies, refined wherever the loop phase turns faster than
- * the unwrapping tolerance; a verdict that cannot be decided counts as
- * unstable. The phase does not depend on the gain and the gain scales every
- * magnitude alike, so everything gain-independent - the refinement, the ray
- * crossings with their magnitude at unit gain, the start, the last sample - is
- * computed once per set of zeros and poles into a cached Profile, and a verdict
- * for a gain is a pass over its few crossings. A profile needs no arc tangent
- * per sample: the phase step is a dot product and a crossing a change of sign.
- * isBoxUnstable rejects a whole box when one member is unstable and the box's
- * interval enclosure keeps the critical point out at one sample in eight of
- * the base grid, since the crossing count then cannot change inside it. At
- * each sample it asks the modulus of the loop over the box first, from the
- * square of the frequency and the modulus of the plant kept with the grid,
- * and the phase only where the modulus may be one, which is the same answer
- * the whole enclosure gives at a fraction of its arc tangents, with the
- * squares of the box's parameters formed once per box. The sample where the
- * last box reached the critical point is asked first, since the boxes a
- * search asks about resemble one another; the verdict is the same in any
- * order, as no sample can fail to answer: a structure the extension does
- * not project is refused before any sample is asked, and with a positive
- * frequency no factor jw + x vanishes.
+ * The nominal plant is sampled once on a logarithmic grid three decades
+ * beyond the design frequencies, refined where the loop phase turns fast;
+ * a verdict that cannot be decided counts as unstable. The phase does not
+ * depend on the gain, so the crossings, with their magnitude at unit gain,
+ * are computed once per set of zeros and poles into a cached Profile, and
+ * a verdict for a gain is a pass over them. isBoxUnstable rejects a whole
+ * box when one member is unstable and the box's enclosure keeps the
+ * critical point out at one sample in eight of the base grid; it asks the
+ * modulus of the loop first and the phase only where the modulus may be
+ * one, starting at the sample where the last box reached the critical
+ * point.
  */
 
 #ifndef QFTBX_NOMINAL_STABILITY_CHECKER_H

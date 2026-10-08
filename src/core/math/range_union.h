@@ -2,39 +2,23 @@
  * @file
  * @brief A finite union of closed intervals, kept in canonical form.
  *
- * The magnitudes a design frequency allows the nominal loop to take at one
- * phase are a union of closed intervals, not an interval: one for an open
- * boundary, two for a closed one, more for a multivalued one, and the
- * intersection over the specifications of the frequency can leave any
- * number of them (BoundaryColumns). A search that has to intersect those
- * sets over the design frequencies and then take the smallest gain left
- * cannot hold them in a pair of numbers: a pair collapses the branches into
- * their hull, and so loses the lower branch of a closed boundary, which is
- * where the smallest feasible gain often lies. Not to be confused with
- * Interval, the rounded interval arithmetic of the natural extension: this
- * is a plain set of reals built out of Range, with no directed rounding, and
- * it answers set questions, not arithmetic ones.
+ * The magnitudes a design frequency allows at one phase are a union of
+ * intervals, one for an open boundary, two for a closed one, more for a
+ * multivalued one; a pair of numbers would lose the lower branch of a
+ * closed boundary, where the smallest feasible gain often lies. This is a
+ * plain set of reals built out of Range, with no directed rounding, unlike
+ * Interval.
  *
- * Canonical form: the members are ascending, disjoint and non-touching, so
- * count() is the number of connected components of the set and at() the
- * i-th of them, ascending. Ends may be infinite. A member given with its
- * ends inverted is empty and is dropped, which is what makes an
- * intersection that misses compose as the empty set rather than as a
- * reversed interval, and touching members are merged, because their union
- * as closed intervals is connected. A default set is empty and whole() is
- * the real line. The intervals of a column, which BoundaryColumns hands out
- * as two parallel arrays, need not be sorted or disjoint: the set is brought
- * to canonical form either way. minimum() and maximum() are attained and
- * throw on the empty set, and contains() stops at the first member above
- * the value. intersectWith() takes one pass over both sets, since both are
- * canonical and the overlaps come out ascending and disjoint, and shiftBy()
- * translates the whole set, which is what carrying a magnitude set from the
- * boundary's frame to the gain's amounts to. The searches build and cut these
- * sets millions of times, so a set is reused rather than built: assign() and
- * clear() refill it, the intersection with one interval clips the members in
- * place, the merge of canonical form is done in place, and the intersection
- * of two sets collects its overlaps in a buffer of the thread and swaps it
- * in, which leaves the result alone to each thread under OpenMP.
+ * The members are ascending, disjoint and non-touching, so count() is the
+ * number of connected components. Ends may be infinite; a member given
+ * with its ends inverted is empty and dropped, and touching members merge.
+ * A default set is empty and whole() is the real line. minimum() and
+ * maximum() throw on the empty set. intersectWith() is one pass over both
+ * sets, and shiftBy() translates the set, as carrying magnitudes to the
+ * gain's frame does. A set is reused rather than built: assign() and
+ * clear() refill it and the operations work in place, the intersection of
+ * two sets through a buffer of the thread, which keeps it safe under
+ * OpenMP.
  */
 
 #ifndef QFTBX_RANGE_UNION_H

@@ -26,56 +26,43 @@
 
 /**
  * @file
- * @brief Algorithm MC of the QFTbx thesis: the NT/NK branch & bound with
- * every strategy of chapter 4.
+ * @brief Algorithm MC of the QFTbx thesis: the NT/NK branch and bound with
+ * every strategy of chapter 4, assembled as the pseudocode of chapter 5
+ * prescribes.
  *
- * Thesis chapters 4 and 5: the NT/NK interval
- * branch & bound extended with every strategy of chapter 4, assembled as
- * the pseudocode of chapter 5 prescribes:
+ * - QSInv (5.1.1): the certainly infeasible subranges of every parameter
+ *   are cut with NK's magnitude equations and the phase equations of sec.
+ *   4.1.2 (quick_solution.h).
+ * - QSFact (5.1.2): the certainly feasible subranges, per frequency, with
+ *   the same equations at the opposite corner and boundary extreme; the
+ *   subrange feasible at every frequency is split off as a feasible node,
+ *   and the per-frequency thresholds (MM/MF) feed the tree bisection. It
+ *   runs only when MG finds nothing.
+ * - MG (5.2): the best gain with the other parameters at the corner of
+ *   largest controller magnitude, intersecting the per-frequency feasible
+ *   gain thresholds: a point solution that feeds the prune variable C
+ *   (5.4.3).
+ * - Tree bisection (5.3): the box is split at the stored threshold that
+ *   covers the largest fraction of its range, and the feasible child is
+ *   marked feasible for that frequency (the node history).
+ * - Execution stages (4.4): INICIAL, area bisection, until no projected box
+ *   spans the whole phase width; INTERMEDIA, tree bisection, until a full
+ *   pass of the cuts produces nothing; FINAL, cuts off, bisection by the
+ *   wider of magnitude and phase.
  *
- * - QSInv (thesis 5.1.1): the certainly infeasible subranges of every
- *   controller parameter are cut away with the closed-form magnitude
- *   equations of NK's Quick Solution and the phase equations of thesis
- *   sec. 4.1.2 (quick_solution.h), on whichever sides of the projected
- *   box the boundary certifies as forbidden.
- * - QSFact (thesis 5.1.2): the certainly FEASIBLE subranges of every
- *   parameter, per design frequency, with the same equations evaluated at
- *   the opposite corner and the opposite boundary extreme (B_max/C_min/
- *   C_max). The subrange feasible at EVERY frequency is split off the box
- *   and enters the live list as a feasible node (UM/UF); the per-frequency
- *   thresholds (MM/MF) feed the tree bisection.
- * - MG (thesis 5.2): the best-gain search fixes the other parameters at
- *   the corner that maximises the controller magnitude (zeros sup, poles
- *   inf) and intersects the per-frequency feasible gain thresholds,
- *   yielding a point solution with a potentially much lower gain than the
- *   box-certified one. It feeds the prune variable C. QSFact runs only
- *   when MG finds nothing (thesis 5.1.2, they overlap in purpose).
- * - Tree bisection (thesis 5.3): in the intermediate stage the box is
- *   split at the stored per-frequency feasible threshold covering the
- *   largest fraction of its variable's range; the feasible child is
- *   marked feasible for that frequency, and the mark (node history)
- *   skips its feasibility test from then on.
- * - Execution stages (thesis 4.4): INICIAL (area bisection) until no
- *   projected box spans the full phase width; INTERMEDIA (tree bisection)
- *   until a full pass of MG/QSFact/QSInv produces nothing; FINAL (cuts
- *   disabled, bisection by the wider of magnitude/phase).
+ * Each strategy has its own switch (Strategies, from the research
+ * settings), all on by default, for the case studies of chapter 6; none
+ * changes the answer, since each discards only boxes it has certified.
  *
- * Deviations from the thesis:
- * - MG's certified gain and the feasible nodes must pass the nominal
- *   closed-loop stability criterion (NominalStabilityChecker), as in
- *   NT, NK, MR and MC1; MG's candidate is verified against the
- *   feasibility test before it may prune (the closed form alone relies
- *   on strip geometry). An ambiguous box whose members are all unstable
- *   is discarded when popped (isBoxUnstable, as in NT).
- * - When the live list empties with a certified MG solution standing,
- *   that solution is returned (the thesis pseudocode would report "no
- *   solution" while holding one in C).
- * - The thesis writes |B_min| in the equations of sec. 4.1.1 where its
- *   text prescribes B_max, states in MG (algorithm 5.3) k_f as the
- *   subs(z,...) box where only the corner point is certified, and the
- *   QSInv comment says the fixed corner "maximises" the phase
- *   contribution where the assignments minimise it: the implementations
- *   here follow the sound readings.
+ * MG's gain and the feasible nodes pass the nominal stability criterion
+ * (NominalStabilityChecker), and MG's candidate the feasibility test before
+ * it may prune; an ambiguous box whose members are all unstable is
+ * discarded, as in NT; and a standing MG solution is returned when the
+ * list empties. Where the thesis is inconsistent the equations follow the
+ * sound reading: B_max where sec. 4.1.1 writes B_min, the corner point and
+ * not the box as MG's certified result, and the fixed corner of QSInv as
+ * the one that minimises the phase. The cancellation token has to outlive
+ * solve().
  */
 namespace qftbx {
 
@@ -83,26 +70,14 @@ class AlgorithmMcThesis
 {
 public:
 
-    /**
-     * @brief Runtime switches for the thesis strategies, one each.
-     *
-     * The chapter-6 case studies exercise every improvement alone and in
-     * combination, so each one can be disabled independently without
-     * rebuilding. All enabled is the thesis MC; everything disabled is the
-     * bare branch & bound with area bisection. None of them changes the
-     * answer - each only discards boxes it has certified cannot hold a
-     * better one - which is what mc_thesis_strategies_test asserts. By
-     * decision they are not exposed in the interface: a user has no reason
-     * to disable a proof.
-     */
     struct Strategies {
-        bool infeasibleMagnitude = true;   ///< QSInv, magnitude cuts (NK's QS)
-        bool infeasiblePhase = true;   ///< QSInv, phase cuts (thesis 4.1.2)
-        bool feasibleMagnitude = true;   ///< QSFact, magnitude (thesis 4.1.1)
-        bool feasiblePhase = true;   ///< QSFact, phase
-        bool bestGain = true;   ///< MG (thesis 4.3)
-        bool treeBisection = true;   ///< thesis 4.2.4
-        bool stages = true;   ///< thesis 4.4 (off: always INTERMEDIA)
+        bool infeasibleMagnitude = true;
+        bool infeasiblePhase = true;
+        bool feasibleMagnitude = true;
+        bool feasiblePhase = true;
+        bool bestGain = true;
+        bool treeBisection = true;
+        bool stages = true;
     };
 
     void setStrategies(const Strategies & s);
@@ -110,70 +85,38 @@ public:
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
-    /**
-     * @brief Installs the flag the search reads once per node.
-     *
-     * A pointer, and null by default: a caller that never cancels - every
-     * test that drives this algorithm directly - carries on unchanged. The
-     * token has to outlive solve().
-     */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
-    /**
-     * @brief The values the user may have changed.
-     *
-     * The whole struct rather than one setter per value: what an algorithm
-     * needs from it is copied here, once, before solve() - so the hot path
-     * reads a member and never a configuration lookup. Not calling it leaves
-     * the compiled defaults, which is what every existing caller does.
-     */
-    /// Keeps the settings and takes the strategy switches from them
-    /// (Settings::Algorithms::mc); a later setStrategies() overrides.
     void setSettings(const qftbx::Settings & settings);
 
-    /**
-     * @brief The grids the plant family was swept over, by parameter name:
-     * what the search closes the loop with before it returns a design.
-     *
-     * Empty leaves the check out, which is what a project with no record of
-     * its sweep gets.
-     */
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
     bool solve();
 
-    /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
     std::size_t peakLiveNodes() const;
 
-    /// What the run cost, read from the algorithm's own counters.
     LoopShapingStatistics statistics() const;
 
 private:
 
-    /// One certainly feasible per-frequency threshold of one parameter
-    /// (thesis MM/MF): cutting the range at 'threshold' leaves the side
-    /// named by 'upperSide' feasible for frequency 'freqIndex'.
     struct FeasibleThreshold {
-        std::int32_t parameter;   ///< 0 = gain, 1..nz = zero, nz+1.. = pole
+        std::int32_t parameter;
         std::size_t freqIndex;
         double threshold;
-        bool upperSide;   ///< true: [threshold, sup] is the feasible part
-        double fraction;   ///< |feasible part| / |range|
+        bool upperSide;
+        double fraction;
     };
 
-    /// Detection results of one node, one entry per design frequency
-    /// (empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
-        std::vector<std::optional<NicholsBox>> projection;   ///< the Nichols box itself
-        std::vector<Range> boxMag;   ///< dB edges of the projected box
-        std::vector<Range> boxPhase;   ///< degree edges
+        std::vector<std::optional<NicholsBox>> projection;
+        std::vector<Range> boxMag;
+        std::vector<Range> boxPhase;
         qftbx::BoxFlag flag = qftbx::feasible;
-        std::size_t mainFrequency = 0;   ///< largest ambiguous projected area
+        std::size_t mainFrequency = 0;
         bool anyFullPhaseWidth = false;
     };
 
@@ -216,8 +159,6 @@ private:
     std::unique_ptr<OrderedList> liveList;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    /// Prune variable C (thesis 5.4.3): gain and controller of the best
-    /// certified solution found by MG.
     double bestCertifiedGain = 0;
     std::unique_ptr<LtiSystem> bestCertifiedController;
 
@@ -232,10 +173,8 @@ private:
     bool hasUncertainZeros = false;
     bool hasUncertainPoles = false;
 
-    /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    /// Copied whole and read as fields; the defaults are the compiled ones.
     qftbx::Settings m_settings;
 
 };

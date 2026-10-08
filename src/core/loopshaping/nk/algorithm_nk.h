@@ -23,31 +23,31 @@
 
 /**
  * @file
- * @brief Algorithm NK: the NT branch & bound with Quick Solution cuts,
+ * @brief Algorithm NK: the NT branch and bound with Quick Solution cuts,
  * local optimisation and constraint propagation.
  *
- * Paluri/Nataraj and Kubal, "Automatic loop shaping in QFT
- * using hybrid optimization and constraint propagation techniques",
- * Int. J. Robust Nonlinear Control 17:251-264, 2007): the NT branch &
- * bound extended with
+ * Paluri/Nataraj and Kubal, "Automatic loop shaping in QFT using hybrid
+ * optimization and constraint propagation techniques", Int. J. Robust
+ * Nonlinear Control 17:251-264, 2007. The NT branch and bound extended
+ * with
  *
  * - Quick Solution (sec. 3.3): before a box enters the live list, the
  *   certainly infeasible subranges of the gain, every zero and every pole
- *   are cut off with the closed-form monotonicity equations (see
- *   quick_solution.h), applied per design frequency with the latest
- *   updated values.
- * - Local optimization (sec. 3.2): a coordinate-pattern search launched
+ *   are cut off with the closed-form monotonicity equations
+ *   (quick_solution.h), per design frequency, on the latest values.
+ * - Local optimisation (sec. 3.2): a coordinate-pattern search launched
  *   from the leading box when its gain infimum differs by more than 10%
  *   from every previous launch point; a feasible local solution prunes
- *   every node whose gain infimum cannot beat it, clips the gain range of
- *   new boxes, and stands in as the answer if the list ever empties.
+ *   every node whose gain infimum cannot beat it, caps the gain of new
+ *   boxes, and stands as the answer if the list empties. Its starting point
+ *   comes from the interface, never at random, and the numeric values of
+ *   its enumeration are the interface's.
  *
- * The feasibility test is completed with the nominal closed-loop
- * stability check (zeros of 1 + L0, demanded by the paper's problem
- * formulation), implemented on the Nichols chart by the Cohen-Chait-Yaniv
- * criterion (NominalStabilityChecker), on the returned point and, over a
- * whole ambiguous box whose enclosure excludes the critical point, at
- * classification (isBoxUnstable, as in NT).
+ * Nominal closed-loop stability is checked with the Cohen-Chait-Yaniv
+ * criterion on the Nichols chart (NominalStabilityChecker), on the returned
+ * point and, over a whole ambiguous box whose enclosure excludes the
+ * critical point, at classification (isBoxUnstable, as in NT). The
+ * cancellation token has to outlive solve().
  */
 namespace qftbx {
 
@@ -58,50 +58,23 @@ public:
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                    double epsilon, std::int32_t initialisation);
 
-    /**
-     * @brief Installs the flag the search reads once per node.
-     *
-     * A pointer, and null by default: a caller that never cancels - every
-     * test that drives this algorithm directly - carries on unchanged. The
-     * token has to outlive solve().
-     */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
-    /**
-     * @brief The values the user may have changed.
-     *
-     * The whole struct rather than one setter per value: what an algorithm
-     * needs from it is copied here, once, before solve() - so the hot path
-     * reads a member and never a configuration lookup. Not calling it leaves
-     * the compiled defaults, which is what every existing caller does.
-     */
     void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
 
-    /**
-     * @brief The grids the plant family was swept over, by parameter name:
-     * what the search closes the loop with before it returns a design.
-     *
-     * Empty leaves the check out, which is what a project with no record of
-     * its sweep gets.
-     */
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
     bool solve();
 
-    /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
     std::size_t peakLiveNodes() const;
 
-    /// What the run cost, read from the algorithm's own counters.
     LoopShapingStatistics statistics() const;
 
 private:
 
-    /// Starting point of the local search. No random option: the result has
-    /// to be reproducible. The numeric values are the GUI contract.
     enum StartingPoint {Centre = 0, Extremes = 1};
 
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
@@ -135,20 +108,14 @@ private:
     std::unique_ptr<LtiSystem> designedController;
     std::unique_ptr<LtiSystem> prototype;
 
-    /// Local optimization state: the best certified feasible gain (prunes
-    /// the tree), its controller point, and the previous launch points of
-    /// the 10% decision rule.
     double bestLocalGain = 0;
     std::unique_ptr<LtiSystem> bestLocalController;
     std::vector<double> launchGains;
 
-    /// Starting-point strategy of the local search, from the GUI.
     StartingPoint m_start = Centre;
 
-    /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    /// Copied whole and read as fields; the defaults are the compiled ones.
     qftbx::Settings m_settings;
 
 };

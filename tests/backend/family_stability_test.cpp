@@ -1,35 +1,22 @@
 /**
  * @file
- * @brief The verifier closes the loop with every plant of the sweep.
+ * @brief The verifier closes the loop with every plant of the sweep, and the
+ * interval Routh table proves boxes of controllers unstable.
  *
- * The four plant forms give the same polynomials their evaluation does, and
- * the Routh table in interval arithmetic proves non-Hurwitz exactly the
- * interval polynomials every member of which fails, leaving undecided those
- * that hold a Hurwitz member or put zero inside a pivot; the swept family
- * walks the sweep in the order of the templates, first grid fastest, names
- * each member by its values, and says why it cannot be walked; the magnetic
- * levitation benchmark tells apart the design that stabilises the
- * whole family from the one the specifications alone let through (42 of the
- * 121 plants unstable, the case that made the check necessary); the ACC'90
- * benchmark, where the minimum-gain answer is the floor of the gain box,
- * shows that a pole on the imaginary axis is not stability; a project
- * without a sweep record, a loop with a delay and a plant that is not
- * rational are reported as not checked and never approved as stable. A box
- * of controllers wholly beyond the Routh limit of the DC motor's worst plant
- * is proven unstable by the interval Routh table, one that straddles the
- * limit, or lies below it, is not, and no controller sampled inside a box the
- * table proves unstable is stable, by the table for fifty of them and by the
- * roots too for the first five, while the design the battery returned on
- * the first toolbox example lies in no box it can prove; the box proof
- * starts from the plants that refused the last points asked, so each box is
- * asked after its corner; the same holds with the nominal plant,
- * on the DC motor of Tharewal's example 3.1 and on the magnetic levitation
- * plant, whose poles sit on the imaginary axis, and the proof at the
- * nominal plant needs no sweep, proving the same boxes without one, but
- * proves nothing once the plant has a delay. And the gate itself: on the
- * magnetic levitation problem the search returns a design the family does
- * not accept until it is given the sweep, and then only designs every plant
- * is stable under.
+ * The four plant forms give the polynomials their evaluation gives, and the
+ * interval Routh table proves non-Hurwitz exactly the families every member
+ * of which fails. The swept family walks the sweep in the order of the
+ * templates and says why it cannot be walked. On the magnetic levitation
+ * benchmark the check tells the design that stabilises the whole family
+ * from one the specifications alone let through; on ACC'90 a pole on the
+ * imaginary axis is not stability; a project without a sweep, a delay and a
+ * plant that is not rational are reported unchecked, never stable. A box
+ * wholly beyond the Routh limit of the DC motor's worst plant is proven
+ * unstable, one that straddles the limit or lies below it is not, and no
+ * controller sampled in a proven box is stable; the same with the nominal
+ * plant, which needs no sweep and proves nothing once the plant has a
+ * delay. And the gate: on the magnetic levitation problem the search
+ * returns only designs every plant is stable under once it has the sweep.
  */
 
 #include <gtest/gtest.h>
