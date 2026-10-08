@@ -2,10 +2,40 @@
  * @file
  * @brief Computation of the QFT boundaries of a plant on the Nichols plane.
  *
- * Declares the engine that evaluates the closed-loop specification sheets on
- * the Nichols grid from the template contours, traces their level curves at
- * the specification height, labels the allowed side, merges the curves of
- * each frequency and reads the columns the loop shaping searches over.
+ * For every design frequency \f$\omega\f$ and every grid point
+ * \f$L = m\,e^{j\theta}\f$ of the Nichols window, the engine sweeps the
+ * template \f$\{P\}\f$ and builds one sheet per specification family from
+ * the closed-loop magnitudes in dB, with \f$P_0\f$ the nominal plant:
+ *
+ * \f[
+ *   D_{stab}   = \max_P \left|\frac{L}{P_0/P + L}\right|, \quad
+ *   D_{track}  = \max_P |T| - \min_P |T|, \quad
+ *   D_{out}    = \max_P \left|\frac{P_0/P}{P_0/P + L}\right|, \quad
+ *   D_{in}     = \max_P \left|\frac{P_0}{P_0/P + L}\right|, \quad
+ *   D_{ce}     = \max_P \left|\frac{L/P}{P_0/P + L}\right|
+ * \f]
+ *
+ * Each sheet is cut at its specification bound (ContourTracer); the level
+ * curves are the boundaries, each labelled with its allowed side, and the
+ * 1D union (BoundaryUnion1D) merges them into the worst-case boundary per
+ * frequency. The same cut read column by column gives the allowed
+ * magnitude intervals the search classifies against (BoundaryColumns).
+ * Reference: I. Martínez Forte, final-year project, boundary computation
+ * chapter.
+ *
+ * Frequencies are in rad/s, phases in degrees and magnitudes in dB; the
+ * caller keeps the frequency vector, and invalid specification records
+ * throw InvalidInput. The templates are the epsilon-hull contours or the
+ * full clouds, which the guard near the singular locus (SingularLocus), on
+ * by default, reads differently; the CUDA path, in CUDA builds only, skips
+ * that guard. Closed-form columns, off by default, read the five magnitude
+ * specifications exactly instead of off their sheets, which the curves
+ * still use; tracking keeps the sheet's columns, and so does a cloud,
+ * whose guard has no closed form. The export infinity, negative when not
+ * given, is a finite stand-in for formats that cannot carry one and never
+ * enters the sweep, which is IEEE throughout. A cancellation flag is read
+ * once per frequency; a cancelled computation throws Cancelled and keeps
+ * nothing. boundaryData() is a snapshot by value.
  */
 
 #ifndef QFTBX_BOUNDARY_ENGINE_H
@@ -35,32 +65,6 @@
 
 namespace qftbx {
 
-/**
- * @brief Computes the QFT boundaries of a plant on the Nichols plane.
- *
- * For every design frequency \f$\omega\f$ and every grid point
- * \f$L = m\,e^{j\theta}\f$ of the Nichols window, the engine sweeps the
- * template \f$\{P\}\f$ and evaluates the closed-loop magnitudes (in dB)
- *
- * \f[
- *   D_{stab}   = \max_P \left|\frac{L}{P_0/P + L}\right|, \quad
- *   D_{track}  = \max_P |T| - \min_P |T|, \quad
- *   D_{out}    = \max_P \left|\frac{P_0/P}{P_0/P + L}\right|, \quad
- *   D_{in}     = \max_P \left|\frac{P_0}{P_0/P + L}\right|, \quad
- *   D_{ce}     = \max_P \left|\frac{L/P}{P_0/P + L}\right|
- * \f]
- *
- * building one sheet per specification family. Each sheet is then cut at
- * its specification bound (ContourTracer): the level curves are the
- * boundaries, each labelled with the side of the allowed region, and the 1D
- * union (BoundaryUnion1D) merges all specifications into the worst-case
- * boundary per frequency. The same cut read column by column gives the
- * allowed magnitude intervals the search classifies against
- * (BoundaryColumns).
- *
- * Reference: I. Martínez Forte, final-year project, boundary computation
- * chapter (sheet construction, contour cut and 1D union).
- */
 class BoundaryEngine
 {
 public:
@@ -68,72 +72,29 @@ public:
     BoundaryEngine(const BoundaryEngine &) = delete;
     BoundaryEngine & operator=(const BoundaryEngine &) = delete;
 
-    /**
-    * @brief Computes the boundaries of every design frequency.
-    *
-    * @param omega design frequencies (rad/s); the vector stays owned by the caller.
-    * @param plant nominal plant \f$P_0\f$.
-    * @param templates one value set per design frequency (full cloud or contour).
-    * @param templatesAreContours whether 'templates' are the epsilon-hull
-    *        contours (ordered closed walks, one per frequency) or the full
-    *        clouds. Near the singular locus the sweep guards its sample
-    *        differently for each; see SingularLocus. The CUDA path does not
-    *        apply that guard.
-    * @param specifications the seven specification records; validated
-    *        on entry (throws qftbx::InvalidInput on invalid used records).
-    * @param phaseRange, phaseCount Nichols window phase axis (degrees).
-    * @param magnitudeRange, magnitudeCount Nichols window magnitude axis (dB).
-    * @param exportInfinity finite stand-in for infinity when the results are
-    * EXPORTED (thesis ch. 7: a compatibility value for formats that cannot
-    * carry an infinity); < 0 means "none given". It never takes part in the
-    * sweep, which is IEEE throughout.
-    * @param cuda compute the sheets on the GPU (CUDA builds only).
-    */
     void compute(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
                  bool templatesAreContours,
                  const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange,
                  std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
 
-    /// Whether the sweep guards its sample near the singular locus (see
-    /// SingularLocus): on by default, which is step 2 of Moreno, Banos and
-    /// Berenguel's algorithm 2.1 with the border between samples covered as
-    /**
-     * @brief Installs the flag that asks the computation to stop.
-     *
-     * Read once per design frequency, which is what the outer loop works
-     * at: a frequency that has not started is skipped and what has been
-     * computed is thrown away with a qftbx::Cancelled. Null - the default -
-     * means a computation nobody can give up on.
-     */
     void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
 
     void setSingularLocusGuard(bool on) { m_guardSingularLocus = on; }
     bool singularLocusGuard() const { return m_guardSingularLocus; }
 
-    /// Read the columns of the five magnitude specifications in closed form
-    /// (ClosedFormColumns) instead of off their sheets: exact in magnitude,
-    /// no window. Tracking keeps its sheet; the sheets are still computed
-    /// for the traced curves; and a cloud keeps the sheet's columns, since
-    /// its guard has no closed form. Off by default.
     void setClosedFormColumns(bool on) { m_closedFormColumns = on; }
     bool closedFormColumns() const { return m_closedFormColumns; }
 
-    /// A snapshot of the results, by value.
     BoundaryData boundaryData();
 
 private:
-    /// The flag the computation reads once per frequency.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
     SpecificationSet m_specifications;
-    /// Whether the value sets swept are the epsilon-hull contours (ordered
-    /// walks) or the full clouds: the guard near the singular locus reads
-    /// them differently (see SingularLocus).
     bool m_templatesAreContours = false;
     bool m_guardSingularLocus = true;
     bool m_closedFormColumns = false;
 
-    /// Clears the previous run's results.
     void releaseResults();
 
     void computeFrequencies(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
@@ -150,8 +111,6 @@ private:
                         std::complex<double> p0, const ComplexCloud & valueSet,
                         std::size_t index, double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
 
-    /// The allowed magnitude intervals per phase column of one specification,
-    /// read off its sheet at the cut height (BoundaryColumns::fromSheet).
     BoundaryColumns sheetColumns(const BoundarySheet & sheet, double thresholdDb) const;
 
     TraceSet traceBoundary(double thresholdDb, const BoundarySheet & sheet,

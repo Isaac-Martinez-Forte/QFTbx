@@ -2159,7 +2159,7 @@ TEST_F(GuiSmoke, ZZEjemploCompleto)
     project.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     qftbx::Settings settings;
-    settings.algorithms.conservativeBoundaryColumns = true;
+    settings.research.conservativeColumns = true;
     project.applySettings(settings);
 
     const bool designed = project.computeLoopShaping(0.5, qftbx::mc2,
@@ -2438,7 +2438,6 @@ TEST_F(GuiSmoke, TheLoopFormShowsWhatProducedTheDesign)
 
     EXPECT_TRUE(child<QRadioButton>(&dialog, "mc2Radio")->isChecked());
     EXPECT_EQ(child<QLineEdit>(&dialog, "epsilonEdit")->text(), QString("0.02"));
-    EXPECT_TRUE(child<QCheckBox>(&dialog, "conservativeColumnsCheck")->isChecked());
 }
 
 TEST_F(GuiSmoke, OpeningAProjectDrawsWhatItCarries)

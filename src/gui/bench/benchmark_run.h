@@ -1,6 +1,7 @@
 /**
  * @file
- * @brief The benchmark runner as driven from the interface, on its own thread.
+ * @brief The benchmark runner as driven from the interface, on its own
+ * thread.
  *
  * Declares the object that runs a benchmark plan through the worker
  * processes without blocking the window: the runner goes on a standard
@@ -8,7 +9,15 @@
  * handlers the window installed are called. Handlers are plain callbacks,
  * one listener each; the crossing of threads is the one thing Qt's event
  * queue is used for. Also locates the worker program, next to the
- * application or on the path, with an override for tests.
+ * application or on the path, with an override for tests; it is empty when
+ * the program is nowhere.
+ *
+ * start() throws qftbx::InvalidInput when a run is in progress or the
+ * worker program cannot be found; the plan's file at planPath must stay
+ * there, since the worker processes read it. cancel() kills the running
+ * cases, which are reported as cancelled, and the done handler is still
+ * called, with the number of failed cases and the error that ended the run
+ * early, empty when none did.
  */
 
 #ifndef QFTBX_GUI_BENCH_BENCHMARK_RUN_H
@@ -28,16 +37,6 @@
 
 namespace qftbx {
 
-/**
- * @brief The benchmark runner driven from the interface: the run on a
- * thread of its own, its events delivered on the GUI thread.
- *
- * The runner blocks while it keeps the worker processes going, so it runs
- * on a std::thread; every event it reports is copied and posted to this
- * object's thread, where the handlers the window installed are called.
- * Plain callbacks, one listener each, as everywhere else in the GUI; the
- * crossing of threads is the one thing Qt's event queue is used for.
- */
 class BenchmarkRun : public QObject
 {
     Q_OBJECT
@@ -48,26 +47,16 @@ public:
 
     using StartedHandler = std::function<void (const bench::Case & c)>;
     using FinishedHandler = std::function<void (const bench::Case & c, const bench::Record & record)>;
-    /// The run is over: how many cases failed, and the error that ended it
-    /// early, empty when none did.
     using DoneHandler = std::function<void (std::size_t failures, const QString & error)>;
 
     void setHandlers(StartedHandler started, FinishedHandler finished, DoneHandler done);
 
     bool isRunning() const { return m_running.load(); }
 
-    /// Starts the plan, whose file is at planPath (the worker processes
-    /// read it). Throws qftbx::InvalidInput when a run is in progress or the
-    /// worker program cannot be found.
     void start(const bench::Plan & plan, const QString & planPath, int jobs);
 
-    /// Asks the run to stop; the running cases are killed and reported as
-    /// cancelled, and the done handler is still called.
     void cancel();
 
-    /// The benchmark tool next to the application, or on the path; empty
-    /// when it is nowhere. A program set with setWorkerProgram() takes
-    /// precedence: how a test names the tool of its own build tree.
     static QString workerProgram();
     static void setWorkerProgram(const QString & program);
 

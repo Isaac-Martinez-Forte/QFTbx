@@ -109,7 +109,7 @@ TEST(AlphaShape, TheEngineClosesAtTheConnectingEpsilonAndMarksNothing)
     ProjectController controller;
     {
         qftbx::Settings published;
-        published.algorithms.conservativeBoundaryColumns = false;
+        published.research.conservativeColumns = false;
         controller.applySettings(published);
     }
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
@@ -148,12 +148,12 @@ TEST(AlphaShape, TheBoundariesFromTheAlphaShapeMatchTheWalksOnExampleTwo)
         ProjectController controller;
         {
             qftbx::Settings published;
-            published.algorithms.conservativeBoundaryColumns = false;
+            published.research.conservativeColumns = false;
             controller.applySettings(published);
         }
     {
         qftbx::Settings published;
-        published.algorithms.conservativeBoundaryColumns = false;
+        published.research.conservativeColumns = false;
         controller.applySettings(published);
     }
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));

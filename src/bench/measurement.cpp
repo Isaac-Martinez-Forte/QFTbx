@@ -10,7 +10,9 @@
  * same keys and the same ranges apply as in the application. The memory
  * limit of the plan becomes an address-space limit on the process before the
  * project is loaded. A refusal whose message names an infeasible problem is
- * recorded as such rather than as an error.
+ * recorded as such rather than as an error, and a run that ends without a
+ * design, refused or in an error of the computation, keeps its counters and
+ * its certificate.
  */
 
 #include "src/bench/measurement.h"
@@ -235,7 +237,7 @@ Record runCase(const Plan & plan, const Case & c)
         std::string failure;
         try {
             solved = controller.computeLoopShaping(c.epsilon, c.algorithm, Range(1e-9, 10.0), 100);
-        } catch (const InvalidInput & refused) {
+        } catch (const Exception & refused) {
             failure = refused.what();
         }
 
@@ -252,6 +254,10 @@ Record runCase(const Plan & plan, const Case & c)
             record.peakMemoryBytes = peakResidentBytes();
         }
 
+        if (plan.measures.counters) {
+            record.statistics = controller.lastLoopShapingStatistics();
+        }
+
         if (!failure.empty()) {
             record.status = failure.find("No feasible solution") != std::string::npos ? "infeasible" : "error";
             record.message = failure;
@@ -264,9 +270,6 @@ Record runCase(const Plan & plan, const Case & c)
         }
 
         LoopShapingResult * result = controller.loopShapingResult();
-        if (plan.measures.counters) {
-            record.statistics = result->statistics();
-        }
         LtiSystem * designed = result->controller();
         record.gain = designed->gain().range().min;
         for (Parameter & zero : designed->numerator()) {
@@ -282,6 +285,11 @@ Record runCase(const Plan & plan, const Case & c)
                 record.familyMembers = result->check()->family.members;
                 record.familyUnstable = result->check()->family.unstableMembers;
                 record.familyWorstRealPart = result->check()->family.worstRealPart;
+            }
+            if (result->check()->nominal.checked) {
+                record.nominalChecked = true;
+                record.nominalStable = result->check()->nominal.stable;
+                record.nominalWorstRealPart = result->check()->nominal.worstRealPart;
             }
         }
         record.status = "solved";

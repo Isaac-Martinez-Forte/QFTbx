@@ -1,8 +1,10 @@
 #ifndef QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
 #define QFTBX_LOOPSHAPING_MC_SEARCH_NODE_H
 
-#include <map>
+#include <cstddef>
 #include <memory>
+#include <optional>
+#include <vector>
 
 #include "src/core/system/lti_system.h"
 #include "src/core/loopshaping/common/search_node.h"
@@ -12,20 +14,22 @@
  * @file
  * @brief Live-list node of the MC family: a SearchNode plus the node
  * history of thesis sec. 4.4.4 - the execution stage, the cut switch and
- * the design frequencies the node is certified feasible at.
+ * the design frequencies the node is certified feasible at - and, for a
+ * feasible slab, the verdict its corner received when the slab was made,
+ * so that the corner is not asked again when the node is taken.
  *
- * Shared by MC of the thesis and by MC2, which carry the same history.
- *
- * The node holds its frequency map by value, so every child of a
- * bisection receives a copy for free.
+ * Shared by MC of the thesis, which uses the whole history, and by MC2,
+ * which has no stages and alone asks for the corner verdict. The feasible
+ * frequencies are kept by their index, and a child of a bisection inherits
+ * the history of its parent whole. McBisectionResult holds the two
+ * children of a bisection for whoever receives them, to be inserted in the
+ * live list or dropped.
  */
 namespace qftbx {
 
 class McSearchNode : public SearchNode {
 
 public:
-
-    McSearchNode() = default;
 
     McSearchNode(double index, std::unique_ptr<LtiSystem> system,
                  qftbx::BoxFlag flags = qftbx::ambiguous);
@@ -36,17 +40,25 @@ public:
     void setStage(Stage e);
     Stage stage() const;
 
-    void markFrequencyFeasible(double position, double frequency);
-    bool isFrequencyFeasible(double key) const;
-    void setFeasibleFrequencies(std::map<double, double> frequencies);
-    const std::map<double, double> & feasibleFrequencies() const;
+    void markFrequencyFeasible(std::size_t frequency);
+    bool isFrequencyFeasible(std::size_t frequency) const;
 
-protected:
+    void inheritHistoryFrom(const McSearchNode & parent);
 
-    bool enabled = true;
-    Stage value = Stage::Initial;
+    void setCornerVerdict(bool certified);
+    std::optional<bool> cornerVerdict() const;
 
-    std::map<double, double> m_feasibleFrequencies;
+private:
+
+    bool m_cutsEnabled = true;
+    Stage m_stage = Stage::Initial;
+    std::vector<char> m_feasibleAt;
+    std::optional<bool> m_cornerVerdict;
+};
+
+struct McBisectionResult {
+    std::unique_ptr<McSearchNode> t1;
+    std::unique_ptr<McSearchNode> t2;
 };
 
 }

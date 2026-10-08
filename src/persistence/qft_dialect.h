@@ -6,16 +6,17 @@
  * a tag without the other following. A file has three parts in the order a
  * reader meets them: the inputs the user described, the settings each
  * computation was run with, and the results. The version this build writes
- * is the only one it reads. Algorithms are stored by name rather than by
- * position, so a file still says which algorithm produced a design after
- * another one is added to the list.
+ * (kVersion) is the only one it reads; any other is refused rather than
+ * read with its sections missing. Algorithms are stored by name rather than
+ * by position, so a file still says which algorithm produced a design after
+ * another one is added to the list; algorithmFromName gives nothing for a
+ * name this build does not have. The file also names why the verifier left
+ * the family's stability unchecked. Internal to src/persistence, shared by
+ * the reader and the writer.
  */
 
 #ifndef QFTBX_QFT_DIALECT_H
 #define QFTBX_QFT_DIALECT_H
-
-/// Internal to src/persistence: the tag names of the .qft dialects, shared by
-/// the reader and the writer.
 
 #include "src/core/loopshaping/loop_shaping_types.h"
 
@@ -26,18 +27,7 @@
 
 namespace qftbx {
 
-/**
- * @brief The tag names of the .qft format, shared by the reader and the
- * writer so the two cannot drift apart.
- *
- * One table even though there is one dialect: that is what it is for. One
- * place names the format, and neither side can rename a tag without the
- * other following.
- */
 struct Tags {
-    /// The three parts of a project file, in the order a reader meets them:
-    /// what the user described, what each computation was run with, and what
-    /// came out of it, so a file reads down the page.
     const char * inputs;
     const char * settings;
     const char * results;
@@ -99,9 +89,6 @@ struct Tags {
     const char * doiAttribute;
 };
 
-/// The version this build writes. A file that says anything else is refused:
-/// the sections moved in 4, and reading a 3 as a 4 finds the inputs missing
-/// rather than misplaced.
 inline constexpr int kVersion = 4;
 
 inline const Tags kV4 = {
@@ -122,8 +109,6 @@ inline const Tags kV4 = {
     "doi",
 };
 
-/// Why the verifier left the family's closed-loop stability unchecked, as the
-/// file says it.
 inline const char * familyNotCheckedName(FamilyStability::NotChecked why)
 {
     switch (why) {
@@ -143,9 +128,6 @@ inline std::optional<FamilyStability::NotChecked> familyNotCheckedFromName(const
     return std::nullopt;
 }
 
-/// The name the file gives each algorithm. The enum is positional and a
-/// name is not: a project written today still says which algorithm produced
-/// it after one more is added to the list.
 inline const char * algorithmName(LoopShapingAlgorithm algorithm)
 {
     switch (algorithm) {
@@ -161,8 +143,6 @@ inline const char * algorithmName(LoopShapingAlgorithm algorithm)
     return "nt";
 }
 
-/// The algorithm a name stands for, or nothing when the file names one this
-/// build does not have.
 inline std::optional<LoopShapingAlgorithm> algorithmFromName(const std::string & name)
 {
     for (const LoopShapingAlgorithm algorithm : {nt, nk, mr, mc1, mc_thesis, mc2, mc3}) {

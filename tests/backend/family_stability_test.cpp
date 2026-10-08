@@ -1,39 +1,55 @@
 /**
  * @file
- * @brief The verifier closes the loop with every plant of the sweep.
+ * @brief The verifier closes the loop with every plant of the sweep, and the
+ * interval Routh table proves boxes of controllers unstable.
  *
- * The four plant forms give the same polynomials their evaluation does; the
- * magnetic levitation benchmark tells apart the design that stabilises the
- * whole family from the one the specifications alone let through (42 of the
- * 121 plants unstable, the case that made the check necessary); the ACC'90
- * benchmark, where the minimum-gain answer is the floor of the gain box,
- * shows that a pole on the imaginary axis is not stability; a project
- * without a sweep record, a loop with a delay and a plant that is not
- * rational are reported as not checked and never approved as stable. And
- * the gate itself: on the magnetic levitation problem the search returns a
- * design the family does not accept until it is given the sweep, and then
- * only designs every plant is stable under.
+ * The four plant forms give the polynomials their evaluation gives, and the
+ * interval Routh table proves non-Hurwitz exactly the families every member
+ * of which fails. The swept family walks the sweep in the order of the
+ * templates and says why it cannot be walked. On the magnetic levitation
+ * benchmark the check tells the design that stabilises the whole family
+ * from one the specifications alone let through; on ACC'90 a pole on the
+ * imaginary axis is not stability; a project without a sweep, a delay and a
+ * plant that is not rational are reported unchecked, never stable. A box
+ * wholly beyond the Routh limit of the DC motor's worst plant is proven
+ * unstable, one that straddles the limit or lies below it is not, and no
+ * controller sampled in a proven box is stable; the same with the nominal
+ * plant, which needs no sweep and proves nothing once the plant has a
+ * delay. And the gate: on the magnetic levitation problem the search
+ * returns only designs every plant is stable under once it has the sweep.
  */
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <complex>
+#include <cstdio>
 #include <filesystem>
+#include <memory>
+#include <optional>
+#include <random>
 #include <string>
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/core/loopshaping/common/family_stability_checker.h"
 #include "src/core/loopshaping/common/specification_checker.h"
+#include "src/core/loopshaping/common/swept_family.h"
+#include "src/core/loopshaping/mc3/algorithm_mc3.h"
+#include "src/core/math/interval.h"
+#include "src/core/math/interval_polynomial.h"
 #include "src/core/math/polynomial.h"
+#include "src/core/math/range.h"
 #include "src/core/math/sequences.h"
 #include "src/core/specifications/specification_record.h"
 #include "src/core/system/free_form.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/time_constant_gain.h"
 #include "src/core/system/zero_pole_gain.h"
-#include "src/core/loopshaping/mc3/algorithm_mc3.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
+using namespace qftbx_tests;
 
 namespace {
 
@@ -64,9 +80,9 @@ void expectPolynomialsMatchEvaluation(LtiSystem & system)
     }
 }
 
-std::string example(const char * name)
+void rememberTheRefusersOf(FamilyStabilityChecker & family, const PointController & point)
 {
-    return (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
+    family.isStable(point);
 }
 
 ParameterGrids gridsOf(LtiSystem & plant, std::size_t points)
@@ -85,12 +101,22 @@ ParameterGrids gridsOf(LtiSystem & plant, std::size_t points)
 
 }
 
-TEST(PolynomialArithmetic, ProductAndSumHighestDegreeFirst)
+TEST(IntervalRouth, ProvesNonHurwitzOnlyWhatEveryMemberFails)
 {
-    EXPECT_EQ(math::polynomialProduct({1.0, 2.0}, {1.0, 3.0}), (std::vector<double>{1.0, 5.0, 6.0}));
-    EXPECT_EQ(math::polynomialProduct({}, {1.0, 3.0}), (std::vector<double>{1.0, 3.0}));
-    EXPECT_EQ(math::polynomialSum({1.0, 2.0, 3.0}, {4.0, 5.0}), (std::vector<double>{1.0, 6.0, 8.0}));
-    EXPECT_EQ(math::polynomialSum({4.0, 5.0}, {1.0, 2.0, 3.0}), (std::vector<double>{1.0, 6.0, 8.0}));
+    using math::provablyNotHurwitz;
+    EXPECT_FALSE(provablyNotHurwitz({1.0, 3.0, 2.0})) << "(s + 1)(s + 2) is Hurwitz";
+    EXPECT_TRUE(provablyNotHurwitz({1.0, -1.0, 1.0})) << "a negative coefficient";
+    EXPECT_TRUE(provablyNotHurwitz({1.0, 0.0, 1.0})) << "a zero coefficient: roots on the axis";
+    EXPECT_TRUE(provablyNotHurwitz({1.0, 1.0, 1.0, 2.0})) << "positive coefficients, b c < a d";
+    EXPECT_FALSE(provablyNotHurwitz({1.0, 2.0, 3.0, 1.0})) << "positive coefficients, b c > a d";
+    EXPECT_FALSE(provablyNotHurwitz({-1.0, -3.0, -2.0})) << "the same Hurwitz polynomial with its sign flipped";
+
+    EXPECT_TRUE(provablyNotHurwitz({Interval(1.0), Interval(1.0), Interval(0.5, 1.5), Interval(2.0)}))
+            << "every member has c < 2";
+    EXPECT_FALSE(provablyNotHurwitz({Interval(1.0), Interval(1.0), Interval(0.5, 3.0), Interval(2.0)}))
+            << "members with c > 2 are Hurwitz: nothing is proven";
+    EXPECT_FALSE(provablyNotHurwitz({Interval(-1.0, 1.0), Interval(3.0), Interval(2.0)}))
+            << "a leading coefficient of no definite sign";
 }
 
 TEST(PlantPolynomials, EveryFormAgreesWithItsEvaluation)
@@ -120,6 +146,67 @@ TEST(PlantPolynomials, EveryFormAgreesWithItsEvaluation)
 
     FreeForm delayed("delayed", none, none, Parameter(1.0), Parameter(0.0), std::string("1"), std::string("s+exp(-s)"));
     EXPECT_FALSE(delayed.polynomialsAt({}, {}, 1.0).has_value());
+}
+
+TEST(SweptFamily, MembersWalkTheSweepFirstGridFastest)
+{
+    const std::string file = example("maglev-lower.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    const ParameterGrids sweep = gridsOf(*project.plant(), 11);
+    const std::vector<double> & a = sweep.at("a");
+    const std::vector<double> & k = sweep.at("k");
+
+    const SweptFamily family(*project.plant(), sweep);
+    ASSERT_TRUE(family.usable());
+    ASSERT_EQ(family.size(), 121u);
+
+    for (std::size_t i = 0; i < family.size(); ++i) {
+        const std::vector<std::pair<std::string, double>> values = family.valuesOf(i);
+        ASSERT_EQ(values.size(), 2u) << "member " << i;
+        EXPECT_EQ(values[0].first, "a");
+        EXPECT_EQ(values[0].second, a[i % 11]) << "member " << i;
+        EXPECT_EQ(values[1].first, "k");
+        EXPECT_EQ(values[1].second, k[i / 11]) << "member " << i;
+
+        const std::optional<LtiSystem::Polynomials> direct = project.plant()->polynomialsAt({}, {a[i % 11]}, k[i / 11]);
+        ASSERT_TRUE(direct.has_value());
+        EXPECT_EQ(family.member(i).numerator, direct->numerator) << "member " << i;
+        EXPECT_EQ(family.member(i).denominator, direct->denominator) << "member " << i;
+    }
+}
+
+TEST(SweptFamily, WhyItCannotBeWalked)
+{
+    const std::string file = example("maglev-lower.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem & plant = *project.plant();
+    const ParameterGrids sweep = gridsOf(plant, 3);
+
+    EXPECT_EQ(SweptFamily(plant, ParameterGrids()).state(), SweptFamily::State::NoSweepRecord);
+    EXPECT_EQ(SweptFamily().state(), SweptFamily::State::NoSweepRecord);
+
+    std::vector<Parameter> none;
+    ZeroPoleGain delayed("delayed", none, none, Parameter(1.0), Parameter(0.2));
+    EXPECT_EQ(SweptFamily(delayed, sweep).state(), SweptFamily::State::Delay);
+
+    FreeForm transcendental("transcendental", none, none, Parameter(1.0), Parameter(0.0),
+                            std::string("1"), std::string("s+exp(-s)"));
+    EXPECT_EQ(SweptFamily(transcendental, sweep).state(), SweptFamily::State::NotRational);
+
+    ParameterGrids unrelated;
+    unrelated["x"] = {1.0, 2.0};
+    const SweptFamily nominalOnly(plant, unrelated);
+    EXPECT_TRUE(nominalOnly.usable()) << "a sweep that names none of the plant's parameters walks the nominal plant";
+    EXPECT_EQ(nominalOnly.size(), 1u);
+    EXPECT_TRUE(nominalOnly.valuesOf(0).empty());
 }
 
 TEST(FamilyStability, TheMaglevDesignsAreToldApart)
@@ -213,6 +300,200 @@ TEST(FamilyStability, APoleOnTheAxisIsNotStability)
                                                                       specifications, &sweep);
     EXPECT_EQ(stabilising.family.unstableMembers, 0u) << "a lead below the resonance does stabilise the family";
     EXPECT_LT(stabilising.family.worstRealPart, -1e-3);
+}
+
+TEST(FamilyStabilityGate, ABoxBeyondTheRouthLimitIsProvenUnstable)
+{
+    const std::string file = example("dcm-T33.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * structure = project.controllerStructure();
+    ASSERT_NE(structure, nullptr);
+    FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+    ASSERT_TRUE(family.usable());
+
+    const auto box = [&](Range gain, Range zero, Range pole) {
+        return structure->create("box", {Parameter(std::string("z1"), zero, zero.min)},
+                                 {Parameter(std::string("p1"), pole, pole.min)},
+                                 Parameter(std::string("k"), gain, gain.min), Parameter(0.0));
+    };
+
+    EXPECT_FALSE(family.isStable({45.0, {1000.0}, {466.5}})) << "a gain above the Routh limit of a = 1, k = 10";
+    EXPECT_TRUE(family.isStable({40.0, {1000.0}, {466.5}}));
+
+    std::unique_ptr<LtiSystem> beyond = box(Range(45.0, 50.0), Range(999.0, 1000.0), Range(466.0, 467.0));
+    EXPECT_TRUE(family.isBoxUnstable(beyond.get())) << "every controller of the box destabilises the worst plant";
+
+    std::unique_ptr<LtiSystem> crossing = box(Range(40.5, 41.5), Range(999.0, 1000.0), Range(466.0, 467.0));
+    EXPECT_FALSE(family.isBoxUnstable(crossing.get())) << "the box straddles the limit: nothing is proven";
+
+    std::unique_ptr<LtiSystem> below = box(Range(1.0, 2.0), Range(999.0, 1000.0), Range(466.0, 467.0));
+    EXPECT_FALSE(family.isBoxUnstable(below.get())) << "every controller of the box is stable";
+
+    std::unique_ptr<LtiSystem> wide = box(Range(0.01, 1000.0), Range(0.01, 1000.0), Range(0.01, 1000.0));
+    EXPECT_FALSE(family.isBoxUnstable(wide.get())) << "the initial box holds stable controllers";
+
+    EXPECT_EQ(family.statistics().boxVerdicts, 4u);
+    EXPECT_EQ(family.statistics().boxPrunes, 1u);
+}
+
+TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
+{
+    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        ASSERT_NE(structure, nullptr);
+        FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+        ASSERT_TRUE(family.usable());
+
+        std::mt19937 generator(17);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+
+        std::size_t proven = 0, sampled = 0;
+        for (int trial = 0; trial < 400; ++trial) {
+            const double width = std::pow(10.0, -3.0 + 3.0 * unit(generator));
+            std::unique_ptr<LtiSystem> box = randomBox(*structure, width, generator);
+            rememberTheRefusersOf(family, cornerOf(box.get(), true));
+            if (!family.isBoxUnstable(box.get())) {
+                continue;
+            }
+            ++proven;
+            for (int point = 0; point < 50; ++point) {
+                const PointController inside = pointInside(*box, generator);
+                EXPECT_FALSE(family.isStable(inside)) << name << " trial " << trial << ": a controller inside a proven box is stable";
+                if (point < 5) {
+                    EXPECT_FALSE(family.isStableByRoots(inside)) << name << " trial " << trial;
+                }
+                ++sampled;
+            }
+        }
+        std::printf("FAMILY-BOX %-13s %zu of 400 random boxes proven unstable, %zu controllers sampled inside\n", name, proven, sampled);
+        EXPECT_GT(proven, 0u) << name;
+    }
+}
+
+TEST(FamilyStabilityGate, TheDesignTheBatteryReturnedLiesInNoProvenBox)
+{
+    const std::string file = example("toolbox-1.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * structure = project.controllerStructure();
+    FamilyStabilityChecker family(project.plant(), structure, project.sweepGrids());
+    rememberTheRefusersOf(family, {70.0, {1000.0}, {154.4}});
+    const PointController returned{50.76606550592597, {974.9780649705508}, {130.90456263300797}};
+    std::unique_ptr<LtiSystem> design = structure->create("design", {Parameter(std::string("z1"), Range(974.9, 975.1), 974.9)},
+                                                          {Parameter(std::string("p1"), Range(130.9, 130.91), 130.9)},
+                                                          Parameter(std::string("k"), Range(50.766, 50.77), 50.766), Parameter(0.0));
+    EXPECT_TRUE(family.isStable(returned)) << "the design the battery returned stabilises the family by Routh";
+    EXPECT_TRUE(family.isStableByRoots(returned)) << "and by the roots";
+    EXPECT_FALSE(family.isBoxUnstable(design.get())) << "a box holding that design cannot be proven unstable";
+}
+
+TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
+{
+    for (const char * name : {"dcm-k.qft", "maglev-lower.qft"}) {
+        const std::string file = example(name);
+        if (!std::filesystem::exists(file)) {
+            GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+        }
+        ProjectController project;
+        project.load(file);
+        LtiSystem * structure = project.controllerStructure();
+        ASSERT_NE(structure, nullptr);
+        LtiSystem * plant = project.plant();
+        FamilyStabilityChecker family(plant, structure, project.sweepGrids());
+        ASSERT_TRUE(family.usable());
+
+        const std::optional<LtiSystem::Polynomials> nominal = nominalPolynomials(*plant);
+        ASSERT_TRUE(nominal.has_value());
+        std::unique_ptr<LtiSystem> controller = structure->clone();
+        const auto stableAtNominal = [&](const PointController & point) {
+            const std::optional<LtiSystem::Polynomials> loop = controller->polynomialsAt(point.zeros, point.poles, point.gain);
+            return math::isHurwitz(characteristicOf(*nominal, *loop));
+        };
+
+        std::mt19937 generator(23);
+        std::uniform_real_distribution<double> unit(0.0, 1.0);
+
+        std::size_t proven = 0, sampled = 0, holdingAStableOne = 0, provenOfThose = 0;
+        for (int trial = 0; trial < 1500; ++trial) {
+            const double width = std::pow(10.0, -4.0 + 4.0 * unit(generator));
+            std::unique_ptr<LtiSystem> box = randomBox(*structure, width, generator);
+            const bool isProven = family.isBoxUnstableAtNominal(box.get());
+            proven += isProven ? 1 : 0;
+
+            bool anyStable = false;
+            for (int point = 0; point < 20; ++point) {
+                const PointController inside = pointInside(*box, generator);
+                const bool stable = stableAtNominal(inside);
+                anyStable = anyStable || stable;
+                if (isProven) {
+                    EXPECT_FALSE(stable) << name << " trial " << trial << ": a controller inside a box proven unstable at the nominal plant is stable";
+                    ++sampled;
+                }
+            }
+            if (anyStable) {
+                ++holdingAStableOne;
+                provenOfThose += isProven ? 1 : 0;
+            }
+        }
+        std::printf("NOMINAL-BOX %-16s %zu of 1500 random boxes proven unstable at the nominal plant, %zu controllers sampled inside; "
+                    "%zu boxes hold a stable one, %zu of them proven\n", name, proven, sampled, holdingAStableOne, provenOfThose);
+        EXPECT_GT(proven, 0u) << name;
+        EXPECT_GT(holdingAStableOne, 0u) << name;
+        EXPECT_EQ(provenOfThose, 0u) << name;
+        EXPECT_EQ(family.statistics().nominalBoxVerdicts, 1500u) << name;
+        EXPECT_EQ(family.statistics().nominalBoxPrunes, proven) << name;
+    }
+}
+
+TEST(FamilyStabilityGate, TheNominalBoxProofNeedsNoSweepButRefusesADelay)
+{
+    const std::string file = example("dcm-k.qft");
+    if (!std::filesystem::exists(file)) {
+        GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
+    }
+    ProjectController project;
+    project.load(file);
+    LtiSystem * plant = project.plant();
+    LtiSystem * structure = project.controllerStructure();
+    ASSERT_NE(structure, nullptr);
+
+    FamilyStabilityChecker swept(plant, structure, project.sweepGrids());
+    FamilyStabilityChecker unswept(plant, structure, ParameterGrids());
+    std::unique_ptr<LtiSystem> delayedPlant = plant->create("delayed", plant->numerator(), plant->denominator(),
+                                                            plant->gain(), Parameter(0.01),
+                                                            plant->numeratorString(), plant->denominatorString());
+    FamilyStabilityChecker delayed(delayedPlant.get(), structure, ParameterGrids());
+    ASSERT_TRUE(swept.usable());
+    EXPECT_FALSE(unswept.usable());
+    EXPECT_FALSE(delayed.usable());
+
+    std::mt19937 generator(37);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    std::size_t proven = 0;
+    for (int trial = 0; trial < 300; ++trial) {
+        const double width = std::pow(10.0, -4.0 + 4.0 * unit(generator));
+        std::unique_ptr<LtiSystem> box = randomBox(*structure, width, generator);
+        const bool withSweep = swept.isBoxUnstableAtNominal(box.get());
+        EXPECT_EQ(unswept.isBoxUnstableAtNominal(box.get()), withSweep) << "trial " << trial;
+        EXPECT_FALSE(delayed.isBoxUnstableAtNominal(box.get())) << "trial " << trial;
+        proven += withSweep ? 1 : 0;
+    }
+    EXPECT_GT(proven, 0u);
+    EXPECT_EQ(unswept.statistics().nominalBoxPrunes, proven);
+    EXPECT_EQ(delayed.statistics().nominalBoxVerdicts, 0u);
 }
 
 TEST(FamilyStabilityGate, TheSearchNoLongerReturnsTheUnstableMaglevDesign)

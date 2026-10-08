@@ -2,12 +2,23 @@
  * @file
  * @brief A finite union of closed intervals, kept in canonical form.
  *
- * The magnitudes a design frequency admits at one phase are a union of
- * intervals, not one interval: a closed boundary leaves two, a multivalued
- * one more, and the intersection over specifications any number. The set
- * keeps its members ascending and disjoint, so the count is the number of
- * components, and intersects, shifts and reads its smallest member without
- * collapsing the branches into their hull.
+ * The magnitudes a design frequency allows at one phase are a union of
+ * intervals, one for an open boundary, two for a closed one, more for a
+ * multivalued one; a pair of numbers would lose the lower branch of a
+ * closed boundary, where the smallest feasible gain often lies. This is a
+ * plain set of reals built out of Range, with no directed rounding, unlike
+ * Interval.
+ *
+ * The members are ascending, disjoint and non-touching, so count() is the
+ * number of connected components. Ends may be infinite; a member given
+ * with its ends inverted is empty and dropped, and touching members merge.
+ * A default set is empty and whole() is the real line. minimum() and
+ * maximum() throw on the empty set. intersectWith() is one pass over both
+ * sets, and shiftBy() translates the set, as carrying magnitudes to the
+ * gain's frame does. A set is reused rather than built: assign() and
+ * clear() refill it and the operations work in place, the intersection of
+ * two sets through a buffer of the thread, which keeps it safe under
+ * OpenMP.
  */
 
 #ifndef QFTBX_RANGE_UNION_H
@@ -23,43 +34,17 @@
 
 namespace qftbx {
 
-/**
- * @brief A finite union of closed real intervals, kept in canonical form.
- *
- * The magnitudes a design frequency allows the nominal loop to take at one
- * phase are a union of closed intervals, not an interval: one for an open
- * boundary, two for a closed one, more for a multivalued one, and the
- * intersection over the specifications of the frequency can leave any
- * number of them (BoundaryColumns). A search that has to intersect those
- * sets over the design frequencies and then take the smallest gain left
- * cannot hold them in a pair of numbers: a pair collapses the branches into
- * their hull, and so loses the lower branch of a closed boundary, which is
- * where the smallest feasible gain often lies.
- *
- * Not to be confused with Interval, the rounded interval arithmetic of the
- * natural extension. This is a plain set of reals built out of Range, with
- * no directed rounding: it answers set questions, not arithmetic ones.
- *
- * Canonical form: the members are ascending, disjoint and non-touching, so
- * count() is the number of connected components of the set and the members
- * are those components. Ends may be infinite. A member given with its ends
- * inverted is empty and is dropped, which is what makes an intersection
- * that misses compose as the empty set rather than as a reversed interval.
- */
 class RangeUnion
 {
 public:
-    /// The empty set.
     RangeUnion() = default;
 
-    /// The whole real line.
     static RangeUnion whole()
     {
         return of(-std::numeric_limits<double>::infinity(),
                   std::numeric_limits<double>::infinity());
     }
 
-    /// One closed interval; empty when the ends are inverted.
     static RangeUnion of(double lower, double upper)
     {
         RangeUnion set;
@@ -76,13 +61,6 @@ public:
         return of(range.min, range.max);
     }
 
-    /**
-     * @brief The union of 'count' intervals held as two parallel arrays,
-     * which is how BoundaryColumns hands out the intervals of a column.
-     *
-     * The arrays need not be sorted or disjoint: the result is brought to
-     * canonical form either way.
-     */
     static RangeUnion of(const double * lower, const double * upper, std::size_t count)
     {
         RangeUnion set;
@@ -98,17 +76,35 @@ public:
         return set;
     }
 
+    void clear() { m_parts.clear(); }
+
+    void assign(double lower, double upper)
+    {
+        m_parts.clear();
+        if (lower <= upper) {
+            m_parts.push_back(Range(lower, upper));
+        }
+    }
+
+    void assign(const double * lower, const double * upper, std::size_t count)
+    {
+        m_parts.clear();
+        for (std::size_t i = 0; i < count; ++i) {
+            if (lower[i] <= upper[i]) {
+                m_parts.push_back(Range(lower[i], upper[i]));
+            }
+        }
+        canonicalise();
+    }
+
     bool isEmpty() const { return m_parts.empty(); }
 
-    /// The number of connected components of the set.
     std::size_t count() const { return m_parts.size(); }
 
-    /// The i-th component, ascending.
     const Range & at(std::size_t index) const { return m_parts.at(index); }
 
     const std::vector<Range> & components() const { return m_parts; }
 
-    /// The infimum, which the set attains. Throws when the set is empty.
     double minimum() const
     {
         if (m_parts.empty()) {
@@ -118,7 +114,6 @@ public:
         return m_parts.front().min;
     }
 
-    /// The supremum, which the set attains. Throws when the set is empty.
     double maximum() const
     {
         if (m_parts.empty()) {
@@ -132,7 +127,7 @@ public:
     {
         for (const Range & part : m_parts) {
             if (value < part.min) {
-                return false;   ///< ascending: no later member can hold it
+                return false;
             }
 
             if (value <= part.max) {
@@ -143,15 +138,11 @@ public:
         return false;
     }
 
-    /**
-     * @brief Intersects with another set, in one pass over both.
-     *
-     * Both are canonical, so the overlaps come out ascending and disjoint
-     * and no second pass is needed.
-     */
     RangeUnion & intersectWith(const RangeUnion & other)
     {
-        std::vector<Range> parts;
+        static thread_local std::vector<Range> overlaps;
+        std::vector<Range> & parts = overlaps;
+        parts.clear();
         std::size_t i = 0, j = 0;
 
         while (i < m_parts.size() && j < other.m_parts.size()) {
@@ -172,22 +163,37 @@ public:
             }
         }
 
-        m_parts = std::move(parts);
+        m_parts.swap(parts);
         return *this;
     }
 
     RangeUnion & intersectWith(Range range)
     {
-        return intersectWith(of(range));
+        return intersectWith(range.min, range.max);
     }
 
     RangeUnion & intersectWith(double lower, double upper)
     {
-        return intersectWith(of(lower, upper));
+        if (!(lower <= upper)) {
+            m_parts.clear();
+            return *this;
+        }
+        std::size_t kept = 0;
+        for (std::size_t i = 0; i < m_parts.size(); ++i) {
+            const Range part = m_parts[i];
+            const double low = std::max(part.min, lower);
+            const double high = std::min(part.max, upper);
+            if (low <= high) {
+                m_parts[kept++] = Range(low, high);
+            }
+            if (!(part.max < upper)) {
+                break;
+            }
+        }
+        m_parts.resize(kept);
+        return *this;
     }
 
-    /// Translates the whole set, which is what carrying a magnitude set
-    /// from the boundary's frame to the gain's amounts to.
     RangeUnion & shiftBy(double delta)
     {
         for (Range & part : m_parts) {
@@ -199,9 +205,6 @@ public:
     }
 
 private:
-    /// Sorts and merges, so the members end up ascending, disjoint and
-    /// non-touching. Touching members are merged because their union as
-    /// closed intervals is connected.
     void canonicalise()
     {
         std::sort(m_parts.begin(), m_parts.end(),
@@ -209,17 +212,18 @@ private:
                       return a.min < b.min || (a.min == b.min && a.max < b.max);
                   });
 
-        std::vector<Range> merged;
+        std::size_t kept = 0;
 
-        for (const Range & part : m_parts) {
-            if (!merged.empty() && part.min <= merged.back().max) {
-                merged.back().max = std::max(merged.back().max, part.max);
+        for (std::size_t i = 0; i < m_parts.size(); ++i) {
+            const Range part = m_parts[i];
+            if (kept > 0 && part.min <= m_parts[kept - 1].max) {
+                m_parts[kept - 1].max = std::max(m_parts[kept - 1].max, part.max);
             } else {
-                merged.push_back(part);
+                m_parts[kept++] = part;
             }
         }
 
-        m_parts = std::move(merged);
+        m_parts.resize(kept);
     }
 
     std::vector<Range> m_parts;

@@ -140,7 +140,8 @@ cell coarser.
 `point-count`, and the verifier's verdict on the design:
 
     <check satisfied="true" worst-excess-db="-1.25"
-           family-members="625" family-unstable="0" family-worst-real-part="-0.65"/>
+           family-members="625" family-unstable="0" family-worst-real-part="-0.65"
+           nominal-stable="true" nominal-worst-real-part="-0.71"/>
 
 The worst excess over any active specification, in decibels, measured over
 the full value sets and not over the boundaries the search worked against;
@@ -150,11 +151,17 @@ is not stored - it is derivable from what the file already carries - and
 frequency. The three `family-*` attributes are the closed loop with every
 plant of the sweep: how many plants, how many of them are closed-loop
 unstable, and the largest real part of a closed-loop pole over all of them.
-`satisfied` is true only when no specification is exceeded and no plant is
-unstable. When the family could not be checked they are replaced by
+When the family could not be checked they are replaced by
 `family-not-checked`, one of `no-sweep-record` (the templates came from a
 file without `<sweep>`), `delay` (the loop has a delay, so its
-characteristic equation is not a polynomial) or `not-rational`.
+characteristic equation is not a polynomial) or `not-rational`. The two
+`nominal-*` attributes are the closed loop with the nominal plant, which
+needs no sweep: whether it is stable, and the largest real part of its
+closed-loop poles. They are absent when the loop has a delay or is not
+rational, and in files written before the nominal loop was checked.
+`satisfied` is true only when no specification is exceeded, no plant of the
+family is unstable and the nominal closed loop, where it was checked, is
+stable.
 
 ## Reading a file by hand
 

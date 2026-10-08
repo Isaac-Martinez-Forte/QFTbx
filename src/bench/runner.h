@@ -19,7 +19,14 @@
  * running as the plan's jobs say, kills the ones that exceed the timeout
  * and writes a record for every case that left none behind. When every
  * case is done it gathers the records into one JSON Lines file and the
- * summary tables next to it.
+ * summary tables next to it: `output/name.jsonl`, `name-summary.csv` and
+ * `.md`.
+ *
+ * run() calls the worker as PROGRAM case PLAN-FILE CASE-INDEX, takes the
+ * plan's jobs when given 0, and returns how many cases did not end solved
+ * or infeasible; a Finished event carries the record the case left.
+ * cancel() may be called from another thread: no new case starts and the
+ * running ones are killed.
  */
 namespace qftbx::bench {
 
@@ -31,7 +38,6 @@ public:
         enum class Kind { Started, Finished, Message };
         Kind kind = Kind::Message;
         const Case * c = nullptr;
-        /// For Finished: the record the case left.
         const Record * record = nullptr;
         std::size_t done = 0;
         std::size_t total = 0;
@@ -40,23 +46,15 @@ public:
     };
     using Listener = std::function<void(const Event &)>;
 
-    /// @param workerProgram the executable that runs one case:
-    ///        PROGRAM case PLAN-FILE CASE-INDEX.
-    /// @param jobs processes at once; 0 takes the plan's value.
-    /// @return the number of cases that did not end solved or infeasible.
     std::size_t run(const Plan & plan, const std::string & planPath, const std::string & workerProgram,
                     int jobs, const Listener & listener);
 
-    /// Asks the run to stop: no new case starts, the running ones are
-    /// killed. Callable from another thread.
     void cancel() { m_cancel.store(true); }
 
 private:
     std::atomic<bool> m_cancel{false};
 };
 
-/// Gathers the records of a plan into `output/name.jsonl` and writes the
-/// summary tables `output/name-summary.csv` and .md.
 void gather(const Plan & plan);
 
 }

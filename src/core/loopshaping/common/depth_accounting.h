@@ -2,10 +2,12 @@
  * @file
  * @brief Accounting of where in the search tree the nodes are.
  *
- * One row per depth and the frequencies that make boxes ambiguous. Depth is
- * read off the box as the number of halvings that separate it from the
- * initial box, summed over its parameters, so a cut counts as a fraction of
- * a level. It measures and decides nothing, off the hot path.
+ * One row per depth and the frequencies that make boxes ambiguous. Nodes
+ * carry no depth: it is read off the box as the number of halvings that
+ * separate it from the initial box, the log2 of the width ratio of each
+ * variable parameter summed and rounded, so a cut that does not halve
+ * counts as a fraction of a level. It measures and decides nothing, off
+ * the hot path.
  */
 
 #ifndef QFTBX_LOOPSHAPING_DEPTH_ACCOUNTING_H
@@ -21,19 +23,6 @@
 
 namespace qftbx {
 
-/**
- * @brief Where in the search tree the nodes are, and what they are found to
- * be: one row per depth, and the frequencies that make boxes ambiguous.
- *
- * Things to keep in mind:
- * - Nodes carry no depth; it is read off the box itself as the number of
- *   halvings that separate it from the initial box, summed over the
- *   variable parameters: log2 of the width ratio per parameter, rounded.
- *   A cut that shrinks a parameter without halving it counts as a fraction
- *   of a level, which is what it is.
- * - It measures; it decides nothing. Off the hot path: a few logarithms per
- *   node against thousands of interval operations.
- */
 class DepthAccounting
 {
 public:

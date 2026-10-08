@@ -4,10 +4,15 @@
  *
  * The environment names the host, the operating system, the compiler, the
  * git commit compiled in, the interval backend and the load average at the
- * time. Fields absent from a record read as zero, and a worst excess that is
- * missing reads as not-a-number. The digest of a design is an FNV-1a hash
- * over the exact bits of the gain, the zeros and the poles, so two runs agree
- * only when their results are identical to the last bit.
+ * time. A count absent from a record reads as zero; a lower bound that is
+ * missing reads as infinity, the bound of a search that left nothing
+ * unproven; a worst excess or a worst real part of the family or of the
+ * nominal loop that is missing reads as not-a-number, a nominal verdict that
+ * is missing as not checked, and a missing load average as -1. The
+ * counts of the certificate are written and read from one table, in the
+ * order of the certification funnel. The digest of a design is an FNV-1a
+ * hash over the exact bits of the gain, the zeros and the poles, so two runs
+ * agree only when their results are identical to the last bit.
  */
 
 #include "src/bench/record.h"
@@ -90,6 +95,44 @@ std::vector<double> fromArray(const QJsonArray & array)
     return values;
 }
 
+struct CertificateCount {
+    const char * key;
+    std::size_t LoopShapingStatistics::Certificate::* member;
+};
+
+const CertificateCount kCertificateCounts[] = {
+    {"residue_nodes", &LoopShapingStatistics::Certificate::residueNodes},
+    {"epsilon_resolved", &LoopShapingStatistics::Certificate::epsilonResolved},
+    {"unproven_discards", &LoopShapingStatistics::Certificate::unprovenDiscards},
+    {"grid_backed_prunes", &LoopShapingStatistics::Certificate::gridBackedPrunes},
+    {"family_prunes", &LoopShapingStatistics::Certificate::familyPrunes},
+    {"nominal_box_prunes", &LoopShapingStatistics::Certificate::nominalBoxPrunes},
+    {"contracted_boxes", &LoopShapingStatistics::Certificate::contractedBoxes},
+    {"emptied_by_specifications", &LoopShapingStatistics::Certificate::emptiedBySpecifications},
+    {"emptied_by_stability", &LoopShapingStatistics::Certificate::emptiedByStability},
+    {"emptied_by_zero_exclusion", &LoopShapingStatistics::Certificate::emptiedByZeroExclusion},
+    {"nominal_axis_prunes", &LoopShapingStatistics::Certificate::nominalAxisPrunes},
+    {"grid_prunes_kept", &LoopShapingStatistics::Certificate::gridPrunesKept},
+    {"proven_infeasible", &LoopShapingStatistics::Certificate::provenInfeasible},
+    {"columns_overruled", &LoopShapingStatistics::Certificate::columnsOverruled},
+    {"certified_cuts", &LoopShapingStatistics::Certificate::certifiedCuts},
+    {"sector_verdicts", &LoopShapingStatistics::Certificate::sectorVerdicts},
+    {"certifications", &LoopShapingStatistics::Certificate::certifications},
+    {"refused_by_routh", &LoopShapingStatistics::Certificate::refusedByRouth},
+    {"refused_by_nominal_routh", &LoopShapingStatistics::Certificate::refusedByNominalRouth},
+    {"refused_by_nominal_stability", &LoopShapingStatistics::Certificate::refusedByNominalStability},
+    {"refused_by_specifications", &LoopShapingStatistics::Certificate::refusedBySpecifications},
+    {"refused_by_roots", &LoopShapingStatistics::Certificate::refusedByRoots},
+    {"incumbent_updates", &LoopShapingStatistics::Certificate::incumbentUpdates},
+    {"kernel_passes", &LoopShapingStatistics::Certificate::kernelPasses},
+    {"gain_searches", &LoopShapingStatistics::Certificate::gainSearches},
+    {"exchange_rounds", &LoopShapingStatistics::Certificate::exchangeRounds},
+    {"ladder_steps", &LoopShapingStatistics::Certificate::ladderSteps},
+    {"ladders_exhausted", &LoopShapingStatistics::Certificate::laddersExhausted},
+    {"round_limits_reached", &LoopShapingStatistics::Certificate::roundLimitsReached},
+    {"largest_working_set", &LoopShapingStatistics::Certificate::largestWorkingSet},
+};
+
 }
 
 QJsonObject toJson(const Record & r)
@@ -131,6 +174,23 @@ QJsonObject toJson(const Record & r)
     s["boxes_ambiguous"] = static_cast<qint64>(r.statistics.boxesAmbiguous);
     s["stability_verdicts"] = static_cast<qint64>(r.statistics.stabilityVerdicts);
     s["stability_profiles"] = static_cast<qint64>(r.statistics.stabilityProfiles);
+    {
+        const LoopShapingStatistics::Certificate & c = r.statistics.certificate;
+        QJsonObject certificate;
+        certificate["kept"] = c.kept;
+        certificate["finished"] = c.finished;
+        certificate["exact_points"] = c.exactPoints;
+        if (std::isfinite(c.lowerBound)) {
+            certificate["lower_bound"] = c.lowerBound;
+        }
+        if (std::isfinite(c.lowerBoundStrict)) {
+            certificate["lower_bound_strict"] = c.lowerBoundStrict;
+        }
+        for (const CertificateCount & count : kCertificateCounts) {
+            certificate[count.key] = static_cast<qint64>(c.*count.member);
+        }
+        s["certificate"] = certificate;
+    }
     if (!r.statistics.byDepth.empty()) {
         QJsonArray depth;
         for (std::size_t d = 0; d < r.statistics.byDepth.size(); ++d) {
@@ -159,6 +219,12 @@ QJsonObject toJson(const Record & r)
         result["family_members"] = static_cast<qint64>(r.familyMembers);
         result["family_unstable"] = static_cast<qint64>(r.familyUnstable);
         result["family_worst_real_part"] = r.familyWorstRealPart;
+    }
+    if (r.nominalChecked) {
+        result["nominal_stable"] = r.nominalStable;
+        if (std::isfinite(r.nominalWorstRealPart)) {
+            result["nominal_worst_real_part"] = r.nominalWorstRealPart;
+        }
     }
     result["zeros"] = toArray(r.zeros);
     result["poles"] = toArray(r.poles);
@@ -212,6 +278,20 @@ Record recordFromJson(const QJsonObject & o)
     r.statistics.boxesAmbiguous = static_cast<std::size_t>(s["boxes_ambiguous"].toInteger());
     r.statistics.stabilityVerdicts = static_cast<std::size_t>(s["stability_verdicts"].toInteger());
     r.statistics.stabilityProfiles = static_cast<std::size_t>(s["stability_profiles"].toInteger());
+    if (s.contains("certificate")) {
+        const QJsonObject certificate = s["certificate"].toObject();
+        LoopShapingStatistics::Certificate & c = r.statistics.certificate;
+        c.kept = certificate["kept"].toBool();
+        c.finished = certificate["finished"].toBool();
+        c.exactPoints = certificate["exact_points"].toBool();
+        c.lowerBound = certificate.contains("lower_bound") ? certificate["lower_bound"].toDouble()
+                                                           : std::numeric_limits<double>::infinity();
+        c.lowerBoundStrict = certificate.contains("lower_bound_strict") ? certificate["lower_bound_strict"].toDouble()
+                                                                        : std::numeric_limits<double>::infinity();
+        for (const CertificateCount & count : kCertificateCounts) {
+            c.*count.member = static_cast<std::size_t>(certificate[count.key].toInteger());
+        }
+    }
     for (const QJsonValue & v : s["by_depth"].toArray()) {
         const QJsonObject entry = v.toObject();
         LoopShapingStatistics::DepthRow row;
@@ -232,6 +312,10 @@ Record recordFromJson(const QJsonObject & o)
     r.familyUnstable = static_cast<std::size_t>(result["family_unstable"].toInteger());
     r.familyWorstRealPart = result.contains("family_worst_real_part") ? result["family_worst_real_part"].toDouble()
                                                                       : std::numeric_limits<double>::quiet_NaN();
+    r.nominalChecked = result.contains("nominal_stable");
+    r.nominalStable = result["nominal_stable"].toBool();
+    r.nominalWorstRealPart = result.contains("nominal_worst_real_part") ? result["nominal_worst_real_part"].toDouble()
+                                                                        : std::numeric_limits<double>::quiet_NaN();
     r.zeros = fromArray(result["zeros"].toArray());
     r.poles = fromArray(result["poles"].toArray());
     r.digest = result["digest"].toString().toStdString();

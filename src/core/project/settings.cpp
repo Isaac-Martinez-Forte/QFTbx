@@ -6,11 +6,16 @@
  * comments from '#' or ';' to the end of the line. A table binds each known
  * key to the field it sets and the range it accepts, and is also what tells
  * an unknown key, which is kept as a warning so a file from a later version
- * still starts. A value is parsed as a whole string and never becomes zero
+ * still starts. Each key is named once there, and the reader of each entry
+ * is handed it for its messages; the 0/1 switches share one reader. A value is parsed as a whole string and never becomes zero
  * when it is not a number; fractions are refused where a whole number is
  * wanted, duplicates are refused, and a ratio tolerance must be strictly
  * above one so a bisection can end. Writing one key edits the file in place,
- * keeping every other line as the person left it.
+ * keeping every other line as the person left it. The research keys, those
+ * of the [research] section, are read from qftbx-research.conf when the
+ * settings are loaded, and only there: each file reports the other's keys as
+ * unknown. A file read on its own, as the benchmark and the command-line
+ * solver read theirs, takes both.
  */
 
 #include "src/core/common/record.h"
@@ -29,7 +34,50 @@
 
 namespace qftbx {
 
+const char * pointReadingName(Settings::Research::PointReading reading)
+{
+    switch (reading) {
+    case Settings::Research::PointReading::Exact:   return "exact";
+    case Settings::Research::PointReading::Columns: break;
+    }
+    return "columns";
+}
+
 namespace {
+
+constexpr Settings::Research::PointReading kPointReadings[] = {
+    Settings::Research::PointReading::Columns, Settings::Research::PointReading::Exact};
+
+}
+
+std::optional<Settings::Research::PointReading> pointReadingFromName(const std::string & name)
+{
+    for (const Settings::Research::PointReading reading : kPointReadings) {
+        if (name == pointReadingName(reading)) {
+            return reading;
+        }
+    }
+    return std::nullopt;
+}
+
+std::string pointReadingChoices()
+{
+    std::string choices;
+    for (const Settings::Research::PointReading reading : kPointReadings) {
+        choices += choices.empty() ? "" : " or ";
+        choices += pointReadingName(reading);
+    }
+    return choices;
+}
+
+namespace {
+
+std::optional<Settings::Research::BoundaryGuide> boundaryGuideFromName(const std::string & name)
+{
+    if (name == "nearest")      return Settings::Research::BoundaryGuide::Nearest;
+    if (name == "conservative") return Settings::Research::BoundaryGuide::Conservative;
+    return std::nullopt;
+}
 
 std::string trimmed(const std::string & text)
 {
@@ -60,11 +108,6 @@ bool wholeStringIsReal(const std::string & text, double & value)
     return true;
 }
 
-struct Binding {
-    const char * key;
-    std::function<void (const std::string & text, std::int64_t line,
-                        Settings & into)> apply;
-};
 
 [[noreturn]] void refuse(const std::string & key, std::int64_t line,
                          const std::string & wanted)
@@ -101,6 +144,22 @@ double wholeIn(const std::string & text, const std::string & key,
     return value;
 }
 
+using Apply = std::function<void (const std::string & text, const std::string & key,
+                                  std::int64_t line, Settings & into)>;
+
+struct Binding {
+    const char * key;
+    Apply apply;
+};
+
+template <typename Field>
+Apply flag(Field field)
+{
+    return [field](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+        field(into) = wholeIn(text, key, line, 0.0, 1.0) != 0.0;
+    };
+}
+
 std::string languageIn(const std::string & text, const std::string & key, std::int64_t line)
 {
     if (text == "system") {
@@ -125,274 +184,234 @@ std::string languageIn(const std::string & text, const std::string & key, std::i
 const std::vector<Binding> & bindings()
 {
     static const std::vector<Binding> table = {
-        {"limits.max-grid-cells",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.limits.maxGridCells = static_cast<std::int64_t>(
-                 wholeIn(text, "limits.max-grid-cells", line, 4.0, 1.0e15));
-         }},
-        {"limits.max-template-points",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.limits.maxTemplatePoints =
-                 wholeIn(text, "limits.max-template-points", line, 1.0, 1.0e12);
-         }},
-        {"limits.max-frequency-count",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.limits.maxFrequencyCount = static_cast<std::int32_t>(
-                 wholeIn(text, "limits.max-frequency-count", line, 1.0,
-                         static_cast<double>(std::numeric_limits<std::int32_t>::max())));
-         }},
-        {"limits.max-magnitude",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.limits.maxMagnitude =
-                 realIn(text, "limits.max-magnitude", line, 1.0, 1.0e300);
-         }},
-        {"stability.base-grid-points",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.stability.baseGridPoints = static_cast<std::int32_t>(
-                 wholeIn(text, "stability.base-grid-points", line, 10.0, 1.0e7));
-         }},
-        {"stability.decades-beyond",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.stability.decadesBeyond =
-                 realIn(text, "stability.decades-beyond", line, 0.0, 20.0);
-         }},
-        {"stability.max-phase-step-degrees",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.stability.maxPhaseStepDegrees =
-                 realIn(text, "stability.max-phase-step-degrees", line, 0.1, 180.0);
-         }},
-        {"stability.refinement-budget",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.stability.refinementBudget = static_cast<std::int32_t>(
-                 wholeIn(text, "stability.refinement-budget", line, 1.0, 1.0e9));
-         }},
-
         {"interface.language",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.interface.language = languageIn(text, "interface.language", line);
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.interface.language = languageIn(text, key, line);
          }},
-
-        {"interface.canvas",
-         [](const std::string & text, std::int64_t, Settings & into) {
-             into.interface.canvas = text;
-         }},
-
         {"interface.theme",
-         [](const std::string & text, std::int64_t line, Settings & into) {
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              if (text != "system" && text != "light" && text != "dark") {
-                 throw ParseError(QFTBX_TR("Core", "interface.theme must be system, light or dark: '%1'").arg(text),
-                                  line);
+                 refuse(key, line, "system, light or dark, not \"" + text + "\"");
              }
              into.interface.theme = text;
          }},
-
         {"interface.digits",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.interface.digits = static_cast<std::int32_t>(
-                 wholeIn(text, "interface.digits", line, 1.0, 17.0));
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.interface.digits = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 17.0));
          }},
-
+        {"interface.canvas",
+         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
+             into.interface.canvas = text;
+         }},
         {"interface.window",
-         [](const std::string & text, std::int64_t, Settings & into) {
+         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
              into.interface.window = text;
          }},
 
         {"log.enabled",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.log.enabled = wholeIn(text, "log.enabled", line, 0.0, 1.0) != 0.0;
-         }},
+         flag([](Settings & into) -> bool & { return into.log.enabled; })},
         {"log.path",
-         [](const std::string & text, std::int64_t, Settings & into) {
+         [](const std::string & text, const std::string &, std::int64_t, Settings & into) {
              into.log.path = text;
          }},
         {"log.size-limit-kilobytes",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.log.sizeLimitKilobytes = static_cast<std::int32_t>(
-                 wholeIn(text, "log.size-limit-kilobytes", line, 16.0, 1048576.0));
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.log.sizeLimitKilobytes = static_cast<std::int32_t>(wholeIn(text, key, line, 16.0, 1048576.0));
          }},
 
-        {"algorithms.template-representatives",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.templateRepresentatives = static_cast<std::int32_t>(
-                 wholeIn(text, "algorithms.template-representatives", line, 2.0, 1000.0));
+        {"limits.max-grid-cells",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.limits.maxGridCells = static_cast<std::int64_t>(wholeIn(text, key, line, 4.0, 1.0e15));
          }},
-        {"algorithms.max-narrowing-passes",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.maxNarrowingPasses = static_cast<std::int32_t>(
-                 wholeIn(text, "algorithms.max-narrowing-passes", line, 1.0, 1000.0));
+        {"limits.max-template-points",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.limits.maxTemplatePoints = wholeIn(text, key, line, 1.0, 1.0e12);
          }},
-        {"algorithms.mr-nichols-epsilon",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mrNicholsEpsilon =
-                 wholeIn(text, "algorithms.mr-nichols-epsilon", line, 0.0, 1.0) != 0.0;
+        {"limits.max-frequency-count",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.limits.maxFrequencyCount = static_cast<std::int32_t>(
+                 wholeIn(text, key, line, 1.0,
+                         static_cast<double>(std::numeric_limits<std::int32_t>::max())));
          }},
-        {"algorithms.conservative-boundary-columns",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.conservativeBoundaryColumns =
-                 wholeIn(text, "algorithms.conservative-boundary-columns", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.family-stability-gate",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.familyStabilityGate =
-                 wholeIn(text, "algorithms.family-stability-gate", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.whole-template-if-no-contour",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.wholeTemplateIfNoContour =
-                 wholeIn(text, "algorithms.whole-template-if-no-contour", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.alpha-shape-contour",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.alphaShapeContour =
-                 wholeIn(text, "algorithms.alpha-shape-contour", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.border-sweep",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.borderSweep =
-                 wholeIn(text, "algorithms.border-sweep", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.closed-form-columns",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.closedFormColumns =
-                 wholeIn(text, "algorithms.closed-form-columns", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.infeasible-magnitude",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.infeasibleMagnitude = wholeIn(text, "algorithms.mc.infeasible-magnitude", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.infeasible-phase",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.infeasiblePhase = wholeIn(text, "algorithms.mc.infeasible-phase", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.feasible-magnitude",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.feasibleMagnitude = wholeIn(text, "algorithms.mc.feasible-magnitude", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.feasible-phase",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.feasiblePhase = wholeIn(text, "algorithms.mc.feasible-phase", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.best-gain",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.bestGain = wholeIn(text, "algorithms.mc.best-gain", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.tree-bisection",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.treeBisection = wholeIn(text, "algorithms.mc.tree-bisection", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.mc.stages",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.mc.stages = wholeIn(text, "algorithms.mc.stages", line, 0.0, 1.0) != 0.0;
-         }},
-        {"algorithms.local-search-budget",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.localSearchBudget = static_cast<std::int32_t>(
-                 wholeIn(text, "algorithms.local-search-budget", line, 1.0, 1.0e7));
-         }},
-        {"algorithms.gain-tolerance",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.gainTolerance =
-                 realIn(text, "algorithms.gain-tolerance", line, 1.0000001, 10.0);
-         }},
-        {"algorithms.certified-gain-tolerance",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.algorithms.certifiedGainTolerance =
-                 realIn(text, "algorithms.certified-gain-tolerance", line, 1.0000001, 10.0);
-         }},
-
-        {"defaults.boundary-grid.phase-start",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.phaseStart =
-                 realIn(text, "defaults.boundary-grid.phase-start", line, -3600.0, 3600.0);
-         }},
-        {"defaults.boundary-grid.phase-end",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.phaseEnd =
-                 realIn(text, "defaults.boundary-grid.phase-end", line, -3600.0, 3600.0);
-         }},
-        {"defaults.boundary-grid.phase-points",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.phasePoints = static_cast<std::int32_t>(
-                 wholeIn(text, "defaults.boundary-grid.phase-points", line, 2.0, 1.0e6));
-         }},
-        {"defaults.boundary-grid.magnitude-start",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.magnitudeStart =
-                 realIn(text, "defaults.boundary-grid.magnitude-start", line, -1000.0, 1000.0);
-         }},
-        {"defaults.boundary-grid.magnitude-end",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.magnitudeEnd =
-                 realIn(text, "defaults.boundary-grid.magnitude-end", line, -1000.0, 1000.0);
-         }},
-        {"defaults.boundary-grid.magnitude-points",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.magnitudePoints = static_cast<std::int32_t>(
-                 wholeIn(text, "defaults.boundary-grid.magnitude-points", line, 2.0, 1.0e6));
-         }},
-
-        {"defaults.boundary-grid.from-cloud",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.boundariesFromCloud =
-                 wholeIn(text, "defaults.boundary-grid.from-cloud", line, 0.0, 1.0) != 0.0;
-         }},
-
-        {"defaults.templates.point-count",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.templatePointCount = static_cast<std::int32_t>(
-                 wholeIn(text, "defaults.templates.point-count", line, 1.0, 1.0e6));
-         }},
-
-        {"defaults.templates.epsilon-in-nichols",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.epsilonInNichols =
-                 wholeIn(text, "defaults.templates.epsilon-in-nichols", line, 0.0, 1.0) != 0.0;
-         }},
-        {"defaults.templates.db-per-degree",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.dbPerDegree =
-                 realIn(text, "defaults.templates.db-per-degree", line, 1.0e-6, 1.0e6);
-         }},
-        {"defaults.loop-shaping.start",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.loopStart =
-                 realIn(text, "defaults.loop-shaping.start", line, 1.0e-300, 1.0e300);
-         }},
-        {"defaults.loop-shaping.end",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.loopEnd =
-                 realIn(text, "defaults.loop-shaping.end", line, 1.0e-300, 1.0e300);
-         }},
-        {"defaults.loop-shaping.point-count",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.defaults.loopPointCount = static_cast<std::int32_t>(
-                 wholeIn(text, "defaults.loop-shaping.point-count", line, 2.0, 1.0e6));
+        {"limits.max-magnitude",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.limits.maxMagnitude = realIn(text, key, line, 1.0, 1.0e300);
          }},
 
         {"search.max-live-nodes",
-         [](const std::string & text, std::int64_t line, Settings & into) {
-             into.search.maxLiveNodes = static_cast<std::size_t>(
-                 wholeIn(text, "search.max-live-nodes", line, 1.0, 1.0e15));
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.search.maxLiveNodes = static_cast<std::size_t>(wholeIn(text, key, line, 1.0, 1.0e15));
          }},
+
+        {"defaults.boundary-grid.phase-start",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.phaseStart = realIn(text, key, line, -3600.0, 3600.0);
+         }},
+        {"defaults.boundary-grid.phase-end",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.phaseEnd = realIn(text, key, line, -3600.0, 3600.0);
+         }},
+        {"defaults.boundary-grid.phase-points",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.phasePoints = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
+         }},
+        {"defaults.boundary-grid.magnitude-start",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.magnitudeStart = realIn(text, key, line, -1000.0, 1000.0);
+         }},
+        {"defaults.boundary-grid.magnitude-end",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.magnitudeEnd = realIn(text, key, line, -1000.0, 1000.0);
+         }},
+        {"defaults.boundary-grid.magnitude-points",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.magnitudePoints = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
+         }},
+        {"defaults.boundary-grid.from-cloud",
+         flag([](Settings & into) -> bool & { return into.defaults.boundariesFromCloud; })},
+        {"defaults.templates.point-count",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.templatePointCount = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1.0e6));
+         }},
+        {"defaults.templates.epsilon-in-nichols",
+         flag([](Settings & into) -> bool & { return into.defaults.epsilonInNichols; })},
+        {"defaults.templates.db-per-degree",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.dbPerDegree = realIn(text, key, line, 1.0e-6, 1.0e6);
+         }},
+        {"defaults.loop-shaping.start",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.loopStart = realIn(text, key, line, 1.0e-300, 1.0e300);
+         }},
+        {"defaults.loop-shaping.end",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.loopEnd = realIn(text, key, line, 1.0e-300, 1.0e300);
+         }},
+        {"defaults.loop-shaping.point-count",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.defaults.loopPointCount = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1.0e6));
+         }},
+
+        {"stability.base-grid-points",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.stability.baseGridPoints = static_cast<std::int32_t>(wholeIn(text, key, line, 10.0, 1.0e7));
+         }},
+        {"stability.decades-beyond",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.stability.decadesBeyond = realIn(text, key, line, 0.0, 20.0);
+         }},
+        {"stability.max-phase-step-degrees",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.stability.maxPhaseStepDegrees = realIn(text, key, line, 0.1, 180.0);
+         }},
+        {"stability.refinement-budget",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.stability.refinementBudget = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1.0e9));
+         }},
+
+        {"algorithms.template-representatives",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.algorithms.templateRepresentatives = static_cast<std::int32_t>(wholeIn(text, key, line, 2.0, 1000.0));
+         }},
+        {"algorithms.max-narrowing-passes",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.algorithms.maxNarrowingPasses = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1000.0));
+         }},
+        {"algorithms.mr-nichols-epsilon",
+         flag([](Settings & into) -> bool & { return into.algorithms.mrNicholsEpsilon; })},
+        {"algorithms.whole-template-if-no-contour",
+         flag([](Settings & into) -> bool & { return into.algorithms.wholeTemplateIfNoContour; })},
+        {"algorithms.alpha-shape-contour",
+         flag([](Settings & into) -> bool & { return into.algorithms.alphaShapeContour; })},
+        {"algorithms.border-sweep",
+         flag([](Settings & into) -> bool & { return into.algorithms.borderSweep; })},
+        {"algorithms.closed-form-columns",
+         flag([](Settings & into) -> bool & { return into.algorithms.closedFormColumns; })},
+        {"algorithms.local-search-budget",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.algorithms.localSearchBudget = static_cast<std::int32_t>(wholeIn(text, key, line, 1.0, 1.0e7));
+         }},
+        {"algorithms.gain-tolerance",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.algorithms.gainTolerance = realIn(text, key, line, 1.0000001, 10.0);
+         }},
+        {"algorithms.certified-gain-tolerance",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             into.algorithms.certifiedGainTolerance = realIn(text, key, line, 1.0000001, 10.0);
+         }},
+
+        {"research.mc2-reading",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             const std::optional<Settings::Research::PointReading> reading = pointReadingFromName(text);
+             if (!reading.has_value()) {
+                 refuse(key, line, pointReadingChoices() + ", not \"" + text + "\"");
+             }
+             into.research.mc2Reading = *reading;
+         }},
+        {"research.columns",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             if (text != "conservative" && text != "nearest") {
+                 refuse(key, line, "conservative or nearest, not \"" + text + "\"");
+             }
+             into.research.conservativeColumns = text == "conservative";
+         }},
+        {"research.family-gate",
+         flag([](Settings & into) -> bool & { return into.research.familyGate; })},
+        {"research.exact-guide",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             const std::optional<Settings::Research::BoundaryGuide> guide = boundaryGuideFromName(text);
+             if (!guide.has_value()) {
+                 refuse(key, line, "nearest or conservative, not \"" + text + "\"");
+             }
+             into.research.exactGuide = *guide;
+         }},
+        {"research.mc.infeasible-magnitude",
+         flag([](Settings & into) -> bool & { return into.research.mc.infeasibleMagnitude; })},
+        {"research.mc.infeasible-phase",
+         flag([](Settings & into) -> bool & { return into.research.mc.infeasiblePhase; })},
+        {"research.mc.feasible-magnitude",
+         flag([](Settings & into) -> bool & { return into.research.mc.feasibleMagnitude; })},
+        {"research.mc.feasible-phase",
+         flag([](Settings & into) -> bool & { return into.research.mc.feasiblePhase; })},
+        {"research.mc.best-gain",
+         flag([](Settings & into) -> bool & { return into.research.mc.bestGain; })},
+        {"research.mc.tree-bisection",
+         flag([](Settings & into) -> bool & { return into.research.mc.treeBisection; })},
+        {"research.mc.stages",
+         flag([](Settings & into) -> bool & { return into.research.mc.stages; })},
+        {"research.mc2.infeasible-magnitude",
+         flag([](Settings & into) -> bool & { return into.research.mc2.infeasibleMagnitude; })},
+        {"research.mc2.infeasible-phase",
+         flag([](Settings & into) -> bool & { return into.research.mc2.infeasiblePhase; })},
+        {"research.mc2.feasible-magnitude",
+         flag([](Settings & into) -> bool & { return into.research.mc2.feasibleMagnitude; })},
+        {"research.mc2.feasible-phase",
+         flag([](Settings & into) -> bool & { return into.research.mc2.feasiblePhase; })},
+        {"research.mc2.best-gain",
+         flag([](Settings & into) -> bool & { return into.research.mc2.bestGain; })},
+        {"research.mc2.tree-bisection",
+         flag([](Settings & into) -> bool & { return into.research.mc2.treeBisection; })},
+        {"research.mc2.gain-contraction",
+         flag([](Settings & into) -> bool & { return into.research.mc2GainContraction; })},
     };
 
     return table;
 }
 
-std::string environmentPath()
+std::string environmentPath(const char * variable)
 {
-    const char * named = std::getenv("QFTBX_CONFIG");
+    const char * named = std::getenv(variable);
     return named != nullptr ? std::string(named) : std::string();
 }
 
-std::string homePath()
+std::string homePath(const char * file)
 {
     const char * home = std::getenv("HOME");
     if (home == nullptr) {
         return std::string();
     }
 
-    return std::string(home) + "/.config/qftbx/qftbx.conf";
+    return std::string(home) + "/.config/qftbx/" + file;
 }
 
 bool readable(const std::string & path)
@@ -407,15 +426,21 @@ bool readable(const std::string & path)
 
 }
 
-Settings readSettings(const std::string & path)
+namespace {
+
+enum class Scope { User, Research, Both };
+
+bool isResearchKey(const std::string & key)
+{
+    return key.rfind("research.", 0) == 0;
+}
+
+void readInto(const std::string & path, Scope scope, Settings & settings)
 {
     std::ifstream file(path);
     if (!file.good()) {
         throw FileError(QFTBX_TR("Core", "the settings file cannot be read: %1").arg(path));
     }
-
-    Settings settings;
-    settings.source = path;
 
     std::string section;
     std::string line;
@@ -472,20 +497,29 @@ Settings readSettings(const std::string & path)
                                             return key == binding.key;
                                         });
 
-        if (found == table.end()) {
+        const bool inScope = scope == Scope::Both || (scope == Scope::Research) == isResearchKey(key);
+        if (found == table.end() || !inScope) {
             settings.unknownKeys.push_back(key);
             continue;
         }
 
-        found->apply(value, number, settings);
+        found->apply(value, key, number, settings);
     }
+}
 
+}
+
+Settings readSettings(const std::string & path)
+{
+    Settings settings;
+    settings.source = path;
+    readInto(path, Scope::Both, settings);
     return settings;
 }
 
 std::string userSettingsPath()
 {
-    return homePath();
+    return homePath("qftbx.conf");
 }
 
 void writeSetting(const std::string & path, const std::string & key, const std::string & value)
@@ -600,18 +634,37 @@ void openRecord(const Settings & settings)
 
 Settings loadSettings()
 {
-    const std::string named = environmentPath();
-    if (!named.empty()) {
-        return readSettings(named);
-    }
+    Settings settings;
 
-    for (const std::string & candidate : {std::string("qftbx.conf"), homePath()}) {
-        if (readable(candidate)) {
-            return readSettings(candidate);
+    const std::string named = environmentPath("QFTBX_CONFIG");
+    if (!named.empty()) {
+        settings.source = named;
+        readInto(named, Scope::User, settings);
+    } else {
+        for (const std::string & candidate : {std::string("qftbx.conf"), userSettingsPath()}) {
+            if (readable(candidate)) {
+                settings.source = candidate;
+                readInto(candidate, Scope::User, settings);
+                break;
+            }
         }
     }
 
-    return Settings();
+    const std::string research = environmentPath("QFTBX_RESEARCH_CONFIG");
+    if (!research.empty()) {
+        settings.researchSource = research;
+        readInto(research, Scope::Research, settings);
+    } else {
+        for (const std::string & candidate : {std::string("qftbx-research.conf"), homePath("qftbx-research.conf")}) {
+            if (readable(candidate)) {
+                settings.researchSource = candidate;
+                readInto(candidate, Scope::Research, settings);
+                break;
+            }
+        }
+    }
+
+    return settings;
 }
 
 }

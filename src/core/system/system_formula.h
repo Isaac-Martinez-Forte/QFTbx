@@ -3,12 +3,15 @@
  * @brief A system written as the transfer function it is, for a reader.
  *
  * Declares the functions that turn a system, or one parameter, into a
- * formula that can be drawn or turned into LaTeX. Each family is written
+ * formula that can be drawn or turned into LaTeX, the shape of what
+ * LtiSystem::expression() gives as one line of text. Each family is written
  * as its own literature writes it: zeros and poles as factors, time
  * constants as 1 + s/a, polynomials by descending powers, the free form as
  * the two expressions the user typed. An uncertain coefficient is shown by
- * its name or by the interval it stands for, two readings worth having side
- * by side; a fixed one at the requested significant digits.
+ * its name, the plant as it was described, or by the interval it stands
+ * for, the plant the design works over; a fixed one by its nominal value
+ * at the requested significant digits. hasUncertainty() says whether the
+ * two readings differ at all.
  */
 
 #ifndef QFTBX_SYSTEM_FORMULA_H
@@ -21,39 +24,13 @@ namespace qftbx {
 class LtiSystem;
 class Parameter;
 
-/**
- * @brief A system written as the transfer function it is, for a reader.
- *
- * Each family is written the way its own literature writes it: the zeros
- * and poles as factors, the time constants as 1 + s/a, the polynomials by
- * descending powers, the free form as the two expressions the user typed.
- * An uncertain coefficient appears as its NAME - that is the whole point of
- * an uncertain coefficient - and a fixed one as its value at 'digits'
- * significant digits.
- *
- * What LtiSystem::expression() gives as a line of text, given as a shape
- * that can be drawn or turned into LaTeX; the one-line text remains for the
- * places that want one line and nothing else.
- */
-/**
- * @brief How an uncertain coefficient is written: by the NAME the user gave
- * it, or by the INTERVAL that name stands for.
- *
- * Two readings of the same system, and both are worth having side by side:
- * the first is the plant as it was described, the second is the plant the
- * design actually works over.
- */
 enum class ShowUncertain { ByName, ByRange };
 
 Formula formulaOf(LtiSystem & system, int digits, ShowUncertain how = ShowUncertain::ByName);
 
-/// One parameter as it is shown: its name or its interval when uncertain,
-/// its nominal value when fixed.
 Formula formulaOf(Parameter & parameter, int digits,
                   ShowUncertain how = ShowUncertain::ByName);
 
-/// Whether any coefficient of the system is uncertain, which is whether the
-/// two readings above say anything different.
 bool hasUncertainty(LtiSystem & system);
 
 }

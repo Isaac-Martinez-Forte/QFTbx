@@ -15,29 +15,23 @@
  * Three parallel tables with one ROW per polynomial slot, in the order the
  * forms fill them (numerator, denominator, gain, delay) and one entry per
  * coefficient: the values, the expressions the user typed, and whether each
- * coefficient is an uncertain parameter.
+ * coefficient is an uncertain parameter. An UncertainTable is aligned with
+ * its CoefficientTable.
  *
- * By value, so that no caller carries a helper to walk and free them.
+ * By value, so that no caller carries a helper to walk and free them. The
+ * texts are QString and not std::string on purpose: the rows are filled
+ * from line edits and read back into them all over the forms, so the
+ * conversion belongs where the core is entered, not here.
  */
-
-/// The texts of one polynomial slot's coefficients.
-///
-/// QString and not std::string, having tried it the other way: these rows
-/// are filled from QLineEdits and read back into them all over the forms,
-/// so std::string moved the conversion to a hundred widget calls to save it
-/// at eight core calls. The seam belongs where the core is entered.
 
 namespace qftbx {
 
 using CoefficientRow = std::vector<QString>;
 
-/// The slots of one system, in form order.
 using CoefficientTable = std::vector<CoefficientRow>;
 
-/// Whether each coefficient of one slot is an uncertain parameter.
 using UncertainRow = std::vector<bool>;
 
-/// The uncertainty flags of one system, aligned with a CoefficientTable.
 using UncertainTable = std::vector<UncertainRow>;
 
 }

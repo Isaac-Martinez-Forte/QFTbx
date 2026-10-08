@@ -2,9 +2,16 @@
  * @file
  * @brief The union of the per-specification boundaries of one frequency.
  *
- * Merges the curves of each design frequency into the single boundary the
- * chart shows and the search reads, working phase bucket by phase bucket
- * on the Nichols grid.
+ * Merges the curves of each design frequency into the single worst-case
+ * boundary the chart shows and the search reads, working phase bucket by
+ * phase bucket on the Nichols grid. The traces of the first specification
+ * seed the running union; each further specification is merged against it
+ * by bucketing both curves by phase and keeping, per phase, only the
+ * points that remain binding: the most restrictive magnitude, honouring
+ * whether the allowed region of each curve lies above or below it. The
+ * result is a flat point set per frequency (unionVectors) and the same
+ * points bucketed by phase, sorted ascending by magnitude and deduplicated
+ * (unionBuckets), the layout the .qft file stores.
  */
 
 #ifndef QFTBX_BOUNDARY_UNION_1D_H
@@ -20,21 +27,6 @@
 
 namespace qftbx {
 
-/**
- * @brief Merges the per-specification boundaries of each design frequency
- * into a single worst-case boundary.
- *
- * For every frequency the traces of the first specification seed the running
- * union; each further specification is merged against it by bucketing both
- * curves by phase and keeping, per phase, only the points that remain
- * binding (the most restrictive magnitude, honouring whether the allowed
- * region of each curve lies above or below it). The result is exposed as a
- * flat point set per frequency (unionVectors) and bucketed by phase, sorted
- * ascending by magnitude and deduplicated (unionBuckets) - the layout the
- * .qft files have always stored.
- *
- * @author Moisés Frutos Plaza
- */
 class BoundaryUnion1D
 {
 public:

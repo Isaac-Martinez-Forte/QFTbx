@@ -37,10 +37,10 @@ bool AlgorithmNk::solve(){
 
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.research.conservativeColumns);
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
     family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
-                                                     m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
+                                                     m_settings.research.familyGate ? m_sweep : ParameterGrids());
 
     bestLocalGain = std::numeric_limits<double>::infinity();
     bestLocalController.reset();

@@ -10,12 +10,19 @@
  * number of components, the one-pass intersection, the shift, and the worked
  * case of the best-gain formalisation, where the smallest admissible gain lies
  * in the lower branch, 22 dB below the one a single-crossing formula returns.
+ * A set refilled, clipped and intersected in place is, to the bit, the one a
+ * plain reference builds by intersecting every member with every member,
+ * sorting and merging, over random sets whose ends include both zeros,
+ * infinities and not-a-number.
  */
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
+#include <random>
 #include <stdexcept>
 #include <vector>
 
@@ -26,6 +33,63 @@ using namespace qftbx;
 namespace {
 
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
+
+std::vector<Range> canonical(std::vector<Range> parts)
+{
+    std::sort(parts.begin(), parts.end(), [](const Range & a, const Range & b) {
+        return a.min < b.min || (a.min == b.min && a.max < b.max);
+    });
+    std::vector<Range> merged;
+    for (const Range & part : parts) {
+        if (!merged.empty() && part.min <= merged.back().max) {
+            merged.back().max = std::max(merged.back().max, part.max);
+        } else {
+            merged.push_back(part);
+        }
+    }
+    return merged;
+}
+
+std::vector<Range> members(const std::vector<double> & lower, const std::vector<double> & upper)
+{
+    std::vector<Range> parts;
+    for (std::size_t i = 0; i < lower.size(); ++i) {
+        if (lower[i] <= upper[i]) {
+            parts.push_back(Range(lower[i], upper[i]));
+        }
+    }
+    return canonical(parts);
+}
+
+std::vector<Range> overlapsOf(const std::vector<Range> & a, const std::vector<Range> & b)
+{
+    std::vector<Range> parts;
+    for (const Range & x : a) {
+        for (const Range & y : b) {
+            const double low = std::max(x.min, y.min);
+            const double high = std::min(x.max, y.max);
+            if (low <= high) {
+                parts.push_back(Range(low, high));
+            }
+        }
+    }
+    return canonical(parts);
+}
+
+bool sameBits(const RangeUnion & set, const std::vector<Range> & reference)
+{
+    if (set.components().size() != reference.size()) {
+        return false;
+    }
+    for (std::size_t i = 0; i < reference.size(); ++i) {
+        const Range & a = set.components()[i];
+        const Range & b = reference[i];
+        if (std::memcmp(&a.min, &b.min, sizeof(double)) != 0 || std::memcmp(&a.max, &b.max, sizeof(double)) != 0) {
+            return false;
+        }
+    }
+    return true;
+}
 
 }
 
@@ -189,4 +253,56 @@ TEST(RangeUnion, TheSmallestAdmissibleGainCanLieInTheLowerBranch)
 
     EXPECT_DOUBLE_EQ(kUpperBranch / kFeasible, std::pow(10.0, 22.0 / 20.0));
     EXPECT_LT(kFeasible, kUpperBranch);
+}
+
+TEST(RangeUnion, ASetReusedInPlaceIsTheOneAPlainReferenceBuilds)
+{
+    std::mt19937_64 generator(5);
+    std::uniform_real_distribution<double> unit(-10.0, 10.0);
+    const auto value = [&]() {
+        switch (generator() % 12) {
+        case 0: return kInfinity;
+        case 1: return -kInfinity;
+        case 2: return 0.0;
+        case 3: return -0.0;
+        case 4: return std::numeric_limits<double>::quiet_NaN();
+        default: return std::round(unit(generator) * 4.0) / 4.0;
+        }
+    };
+    const auto ends = [&](std::size_t count, std::vector<double> & lower, std::vector<double> & upper) {
+        lower.resize(count);
+        upper.resize(count);
+        for (std::size_t i = 0; i < count; ++i) {
+            lower[i] = value();
+            upper[i] = value();
+        }
+    };
+
+    RangeUnion reused;
+    RangeUnion other;
+    std::vector<double> la, ua, lb, ub;
+    for (int trial = 0; trial < 200000; ++trial) {
+        ends(generator() % 6, la, ua);
+        ends(generator() % 6, lb, ub);
+        const std::vector<Range> a = members(la, ua);
+        const std::vector<Range> b = members(lb, ub);
+
+        reused.assign(la.data(), ua.data(), la.size());
+        other.assign(lb.data(), ub.data(), lb.size());
+        ASSERT_TRUE(sameBits(reused, a)) << "trial " << trial;
+        ASSERT_TRUE(sameBits(RangeUnion::of(la.data(), ua.data(), la.size()), a)) << "trial " << trial;
+
+        reused.intersectWith(other);
+        EXPECT_TRUE(sameBits(reused, overlapsOf(a, b))) << "trial " << trial;
+
+        const double lo = value(), hi = value();
+        reused.assign(la.data(), ua.data(), la.size());
+        reused.intersectWith(lo, hi);
+        EXPECT_TRUE(sameBits(reused, overlapsOf(a, members({lo}, {hi})))) << "trial " << trial;
+
+        reused.assign(lo, hi);
+        EXPECT_TRUE(sameBits(reused, members({lo}, {hi}))) << "trial " << trial;
+        reused.clear();
+        EXPECT_TRUE(reused.isEmpty());
+    }
 }

@@ -7,9 +7,12 @@
  * warm-up, and a step sequence grows the base structure by a zero or a pole.
  * The spread of a sample is its median, mean, deviation and extremes; the
  * summary groups records, leaves warm-ups and failures out of the timings and
- * notices when repetitions disagree on the controller. A run of one case on
- * the ACC'90 fixture must leave a complete record that survives its file,
- * with the gain of 1000 that fixture's goldens pin.
+ * notices when repetitions disagree on the controller. A certificate with
+ * every count and flag set survives its JSON, and so do the infinite lower
+ * bounds of a search that left nothing unproven, and so does the nominal
+ * verdict, a record without one reading as not checked. A run of one case on the ACC'90
+ * fixture must leave a complete record that survives its file, with the gain
+ * of 0.001 that fixture's goldens pin.
  */
 
 #include <gtest/gtest.h>
@@ -178,6 +181,109 @@ TEST(BenchmarkSummary, GroupsRecordsAndLeavesWarmUpsAndFailuresOut)
     EXPECT_TRUE(a.countersAgree);
     EXPECT_EQ(a.statistics.peakLiveNodes, 7u);
     EXPECT_NE(markdownTable(aggregates).find("NO"), std::string::npos);
+}
+
+TEST(BenchmarkRecord, TheCertificateSurvivesItsJson)
+{
+    Record record;
+    LoopShapingStatistics::Certificate & c = record.statistics.certificate;
+    c.kept = true;
+    c.finished = true;
+    c.exactPoints = true;
+    c.lowerBound = 556.5;
+    c.lowerBoundStrict = 550.25;
+    c.residueNodes = 1;
+    c.epsilonResolved = 2;
+    c.unprovenDiscards = 3;
+    c.gridBackedPrunes = 4;
+    c.familyPrunes = 5;
+    c.nominalBoxPrunes = 101;
+    c.contractedBoxes = 105;
+    c.emptiedBySpecifications = 106;
+    c.emptiedByStability = 107;
+    c.emptiedByZeroExclusion = 108;
+    c.nominalAxisPrunes = 109;
+    c.gridPrunesKept = 110;
+    c.provenInfeasible = 6;
+    c.columnsOverruled = 7;
+    c.certifiedCuts = 8;
+    c.sectorVerdicts = 9;
+    c.certifications = 10;
+    c.refusedByRouth = 11;
+    c.refusedByNominalRouth = 104;
+    c.refusedByNominalStability = 12;
+    c.refusedBySpecifications = 13;
+    c.refusedByRoots = 14;
+    c.incumbentUpdates = 15;
+    c.kernelPasses = 16;
+    c.gainSearches = 17;
+    c.exchangeRounds = 18;
+    c.ladderSteps = 19;
+    c.laddersExhausted = 102;
+    c.roundLimitsReached = 103;
+    c.largestWorkingSet = 20;
+
+    const Record back = recordFromJson(toJson(record));
+    const LoopShapingStatistics::Certificate & b = back.statistics.certificate;
+    EXPECT_TRUE(b.kept);
+    EXPECT_TRUE(b.finished);
+    EXPECT_TRUE(b.exactPoints);
+    EXPECT_EQ(b.lowerBound, c.lowerBound);
+    EXPECT_EQ(b.lowerBoundStrict, c.lowerBoundStrict);
+    EXPECT_EQ(b.residueNodes, c.residueNodes);
+    EXPECT_EQ(b.epsilonResolved, c.epsilonResolved);
+    EXPECT_EQ(b.unprovenDiscards, c.unprovenDiscards);
+    EXPECT_EQ(b.gridBackedPrunes, c.gridBackedPrunes);
+    EXPECT_EQ(b.familyPrunes, c.familyPrunes);
+    EXPECT_EQ(b.nominalBoxPrunes, c.nominalBoxPrunes);
+    EXPECT_EQ(b.contractedBoxes, c.contractedBoxes);
+    EXPECT_EQ(b.emptiedBySpecifications, c.emptiedBySpecifications);
+    EXPECT_EQ(b.emptiedByStability, c.emptiedByStability);
+    EXPECT_EQ(b.emptiedByZeroExclusion, c.emptiedByZeroExclusion);
+    EXPECT_EQ(b.nominalAxisPrunes, c.nominalAxisPrunes);
+    EXPECT_EQ(b.gridPrunesKept, c.gridPrunesKept);
+    EXPECT_EQ(b.provenInfeasible, c.provenInfeasible);
+    EXPECT_EQ(b.columnsOverruled, c.columnsOverruled);
+    EXPECT_EQ(b.certifiedCuts, c.certifiedCuts);
+    EXPECT_EQ(b.sectorVerdicts, c.sectorVerdicts);
+    EXPECT_EQ(b.certifications, c.certifications);
+    EXPECT_EQ(b.refusedByRouth, c.refusedByRouth);
+    EXPECT_EQ(b.refusedByNominalRouth, c.refusedByNominalRouth);
+    EXPECT_EQ(b.refusedByNominalStability, c.refusedByNominalStability);
+    EXPECT_EQ(b.refusedBySpecifications, c.refusedBySpecifications);
+    EXPECT_EQ(b.refusedByRoots, c.refusedByRoots);
+    EXPECT_EQ(b.incumbentUpdates, c.incumbentUpdates);
+    EXPECT_EQ(b.kernelPasses, c.kernelPasses);
+    EXPECT_EQ(b.gainSearches, c.gainSearches);
+    EXPECT_EQ(b.exchangeRounds, c.exchangeRounds);
+    EXPECT_EQ(b.ladderSteps, c.ladderSteps);
+    EXPECT_EQ(b.laddersExhausted, c.laddersExhausted);
+    EXPECT_EQ(b.roundLimitsReached, c.roundLimitsReached);
+    EXPECT_EQ(b.largestWorkingSet, c.largestWorkingSet);
+
+    const Record unbounded = recordFromJson(toJson(Record()));
+    EXPECT_FALSE(unbounded.statistics.certificate.kept);
+    EXPECT_FALSE(unbounded.statistics.certificate.finished);
+    EXPECT_FALSE(unbounded.statistics.certificate.exactPoints);
+    EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBound));
+    EXPECT_TRUE(std::isinf(unbounded.statistics.certificate.lowerBoundStrict));
+    EXPECT_EQ(unbounded.statistics.certificate.largestWorkingSet, 0u);
+}
+
+TEST(BenchmarkRecord, TheNominalVerdictSurvivesItsJson)
+{
+    Record record;
+    record.nominalChecked = true;
+    record.nominalStable = false;
+    record.nominalWorstRealPart = 2.22;
+    const Record back = recordFromJson(toJson(record));
+    EXPECT_TRUE(back.nominalChecked);
+    EXPECT_FALSE(back.nominalStable);
+    EXPECT_EQ(back.nominalWorstRealPart, 2.22);
+
+    const Record unchecked = recordFromJson(toJson(Record()));
+    EXPECT_FALSE(unchecked.nominalChecked);
+    EXPECT_TRUE(std::isnan(unchecked.nominalWorstRealPart));
 }
 
 TEST(BenchmarkMeasurement, ARunOfACaseLeavesACompleteRecord)

@@ -2,28 +2,25 @@
  * @file
  * @brief Checking a designed controller against every specification.
  *
- * At each design frequency the nominal loop is evaluated and the five
- * closed-loop magnitudes are bounded in the worst case over the family at
- * that loop value. The excess over a bound is in decibels, and a value that
- * is not finite violates by an infinite amount, so it can never read as
- * satisfied. The tracking band is governed by its lower bound, the upper one
- * only sets the cut height. The family is walked as the cartesian product of
- * the sweep grids of the plant's uncertain parameters, by name, so a name
- * the plant uses twice takes one value; every member's characteristic
- * polynomial is built from the plant's and the controller's numerator and
- * denominator, and a member is stable only when every root of it is
- * strictly in the left half-plane, the tolerance of the axis being the one
- * the roots are computed to.
+ * At each design frequency the nominal loop is evaluated and the
+ * closed-loop magnitudes the specifications in force there name are bounded
+ * in the worst case over the family at that loop value. The excess over a
+ * bound is in decibels, and a value that is not a number violates by an
+ * infinite amount, so it can never read as satisfied. The tracking band is
+ * governed by its lower bound, the upper one only sets the cut height. Every
+ * member of the swept family, and the nominal plant, is closed with the
+ * controller's numerator and denominator, and a closed loop is stable only
+ * when every root of its characteristic polynomial is strictly in the left
+ * half-plane, the tolerance of the axis being the one the roots are
+ * computed to.
  */
 
 #include "src/core/loopshaping/common/specification_checker.h"
 
 #include <algorithm>
 #include <cmath>
-#include <complex>
-#include <limits>
+#include <optional>
 
-#include "src/core/boundaries/closed_loop_worst_case.h"
 #include "src/core/common/exception.h"
 #include "src/core/math/polynomial.h"
 
@@ -49,135 +46,43 @@ void record(SpecificationCheck & check, std::size_t index, double omega, Specifi
     check.worstExcessDb = std::max(check.worstExcessDb, excess);
 }
 
-std::vector<double> nominalsOf(std::vector<Parameter> & parameters)
+double valueOf(const WorstCase & worst, SpecificationType type)
 {
-    std::vector<double> values;
-    values.reserve(parameters.size());
-    for (const Parameter & parameter : parameters) {
-        values.push_back(parameter.nominal());
+    switch (type) {
+    case SpecificationType::TrackingLower:
+        return linearToDb(worst.stabilityNoise) - linearToDb(worst.trackingMin);
+    case SpecificationType::Stability:
+    case SpecificationType::SensorNoise:
+        return linearToDb(worst.stabilityNoise);
+    case SpecificationType::OutputDisturbance:
+        return linearToDb(worst.outputDisturbance);
+    case SpecificationType::InputDisturbance:
+        return linearToDb(worst.inputDisturbance);
+    case SpecificationType::ControlEffort:
+        return linearToDb(worst.controlEffort);
+    case SpecificationType::TrackingUpper:
+        break;
     }
-    return values;
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
-bool hasDelay(LtiSystem & system)
+FamilyStability::NotChecked reasonOf(SweptFamily::State state)
 {
-    return system.delay().isUncertain() || system.delay().nominal() != 0.0;
-}
-
-FamilyStability familyStability(LtiSystem & controller, LtiSystem & plant, const ParameterGrids * sweep)
-{
-    FamilyStability family;
-
-    if (sweep == nullptr || sweep->empty()) {
-        family.notChecked = FamilyStability::NotChecked::NoSweepRecord;
-        return family;
+    switch (state) {
+    case SweptFamily::State::Delay:       return FamilyStability::NotChecked::Delay;
+    case SweptFamily::State::NotRational: return FamilyStability::NotChecked::NotRational;
+    case SweptFamily::State::NoSweepRecord:
+    case SweptFamily::State::Usable:
+        break;
     }
-    if (hasDelay(plant) || hasDelay(controller)) {
-        family.notChecked = FamilyStability::NotChecked::Delay;
-        return family;
-    }
-
-    const std::optional<LtiSystem::Polynomials> loop =
-            controller.polynomialsAt(nominalsOf(controller.numerator()), nominalsOf(controller.denominator()),
-                                     controller.gain().nominal());
-    if (!loop.has_value()) {
-        family.notChecked = FamilyStability::NotChecked::NotRational;
-        return family;
-    }
-
-    std::vector<std::string> names;
-    std::vector<const std::vector<double> *> grids;
-    const auto sweptBy = [&](const Parameter & parameter) {
-        if (!parameter.isUncertain()) {
-            return;
-        }
-        const auto grid = sweep->find(parameter.name());
-        if (grid == sweep->end() || grid->second.empty()
-                || std::find(names.begin(), names.end(), parameter.name()) != names.end()) {
-            return;
-        }
-        names.push_back(parameter.name());
-        grids.push_back(&grid->second);
-    };
-    for (const Parameter & parameter : plant.numerator()) { sweptBy(parameter); }
-    for (const Parameter & parameter : plant.denominator()) { sweptBy(parameter); }
-    sweptBy(plant.gain());
-
-    std::size_t members = 1;
-    for (const std::vector<double> * grid : grids) {
-        members *= grid->size();
-    }
-
-    std::vector<double> numerator = nominalsOf(plant.numerator());
-    std::vector<double> denominator = nominalsOf(plant.denominator());
-    double gain = plant.gain().nominal();
-    std::vector<double> digit(names.size());
-
-    const auto valueOf = [&](const Parameter & parameter, double nominal) {
-        for (std::size_t j = 0; j < names.size(); ++j) {
-            if (names[j] == parameter.name()) {
-                return digit[j];
-            }
-        }
-        return nominal;
-    };
-
-    for (std::size_t member = 0; member < members; ++member) {
-        std::size_t rest = member;
-        for (std::size_t j = 0; j < grids.size(); ++j) {
-            digit[j] = (*grids[j])[rest % grids[j]->size()];
-            rest /= grids[j]->size();
-        }
-        for (std::size_t c = 0; c < numerator.size(); ++c) {
-            numerator[c] = valueOf(plant.numerator()[c], plant.numerator()[c].nominal());
-        }
-        for (std::size_t c = 0; c < denominator.size(); ++c) {
-            denominator[c] = valueOf(plant.denominator()[c], plant.denominator()[c].nominal());
-        }
-        gain = valueOf(plant.gain(), plant.gain().nominal());
-
-        const std::optional<LtiSystem::Polynomials> member_ = plant.polynomialsAt(numerator, denominator, gain);
-        if (!member_.has_value()) {
-            family.notChecked = FamilyStability::NotChecked::NotRational;
-            return family;
-        }
-
-        const std::vector<double> characteristic =
-                math::polynomialSum(math::polynomialProduct(member_->numerator, loop->numerator),
-                                    math::polynomialProduct(member_->denominator, loop->denominator));
-        const std::vector<std::complex<double>> roots = math::polynomialRoots(characteristic);
-
-        double realPart = -std::numeric_limits<double>::infinity();
-        double largest = 0.0;
-        for (const std::complex<double> & root : roots) {
-            realPart = std::max(realPart, root.real());
-            largest = std::max(largest, std::abs(root));
-        }
-        if (roots.empty() || realPart > -1e-7 * largest) {
-            ++family.unstableMembers;
-        }
-        if (realPart > family.worstRealPart) {
-            family.worstRealPart = realPart;
-            family.worstMember.clear();
-            for (std::size_t j = 0; j < names.size(); ++j) {
-                family.worstMember.emplace_back(names[j], digit[j]);
-            }
-        }
-    }
-
-    family.checked = true;
-    family.notChecked = FamilyStability::NotChecked::No;
-    family.members = members;
-    return family;
+    return FamilyStability::NotChecked::NoSweepRecord;
 }
 
 }
 
-SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
-                                              const std::vector<double> & omega,
-                                              const CloudSet & templates,
-                                              const SpecificationSet & specifications,
-                                              const ParameterGrids * sweep)
+SpecificationReference::SpecificationReference(LtiSystem & plant, const std::vector<double> & omega,
+                                               const CloudSet & templates,
+                                               const SpecificationSet & specifications)
 {
     if (templates.size() < omega.size()) {
         throw InvalidInput(QFTBX_TR("Core", "The specification check needs a value set for every design frequency: %1 given for %2 frequencies.")
@@ -192,7 +97,7 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
     const Specification & inputDisturbance = specifications.at(SpecificationType::InputDisturbance);
     const Specification & controlEffort = specifications.at(SpecificationType::ControlEffort);
 
-    SpecificationCheck check;
+    m_frequencies.reserve(omega.size());
 
     for (std::size_t i = 0; i < omega.size(); ++i) {
         const double w = omega[i];
@@ -202,41 +107,185 @@ SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem 
             continue;
         }
 
-        const std::complex<double> p0 = plant.evaluate(w);
-        const std::complex<double> L0 = controller.evaluate(w) * p0;
-        const WorstCase worst = worstCaseAt(p0, L0, valueSet, nominalOverValueSet(p0, valueSet));
+        FrequencyReference at;
+        at.index = i;
+        at.omega = w;
+        at.nominalPlant = plant.evaluate(w);
+        at.valueSet = &valueSet;
+        at.nominalOverValueSet = nominalOverValueSet(at.nominalPlant, valueSet);
 
         if (trackingLower.appliesAt(w)) {
             if (!trackingUpper.used()) {
                 throw InvalidInput(QFTBX_TR("Core", "The tracking check needs both tracking specifications (T_L and T_U)."));
             }
-            record(check, i, w, SpecificationType::TrackingLower,
-                   linearToDb(worst.stabilityNoise) - linearToDb(worst.trackingMin),
-                   specifications.trackingSpreadDb(w));
+            at.bounds.push_back({SpecificationType::TrackingLower, specifications.trackingSpreadDb(w)});
         }
         if (stability.appliesAt(w)) {
-            record(check, i, w, SpecificationType::Stability,
-                   linearToDb(worst.stabilityNoise), stability.boundDb(w));
+            at.bounds.push_back({SpecificationType::Stability, stability.boundDb(w)});
         }
         if (sensorNoise.appliesAt(w)) {
-            record(check, i, w, SpecificationType::SensorNoise,
-                   linearToDb(worst.stabilityNoise), sensorNoise.boundDb(w));
+            at.bounds.push_back({SpecificationType::SensorNoise, sensorNoise.boundDb(w)});
         }
         if (outputDisturbance.appliesAt(w)) {
-            record(check, i, w, SpecificationType::OutputDisturbance,
-                   linearToDb(worst.outputDisturbance), outputDisturbance.boundDb(w));
+            at.bounds.push_back({SpecificationType::OutputDisturbance, outputDisturbance.boundDb(w)});
         }
         if (inputDisturbance.appliesAt(w)) {
-            record(check, i, w, SpecificationType::InputDisturbance,
-                   linearToDb(worst.inputDisturbance), inputDisturbance.boundDb(w));
+            at.bounds.push_back({SpecificationType::InputDisturbance, inputDisturbance.boundDb(w)});
         }
         if (controlEffort.appliesAt(w)) {
-            record(check, i, w, SpecificationType::ControlEffort,
-                   linearToDb(worst.controlEffort), controlEffort.boundDb(w));
+            at.bounds.push_back({SpecificationType::ControlEffort, controlEffort.boundDb(w)});
+        }
+
+        at.mask.stabilityNoiseTracking = false;
+        at.mask.outputDisturbance = false;
+        at.mask.inputDisturbance = false;
+        at.mask.controlEffort = false;
+        for (const FrequencyReference::Bound & bound : at.bounds) {
+            switch (bound.type) {
+            case SpecificationType::TrackingLower:
+            case SpecificationType::Stability:
+            case SpecificationType::SensorNoise:
+                at.mask.stabilityNoiseTracking = true;
+                break;
+            case SpecificationType::OutputDisturbance:
+                at.mask.outputDisturbance = true;
+                break;
+            case SpecificationType::InputDisturbance:
+                at.mask.inputDisturbance = true;
+                break;
+            case SpecificationType::ControlEffort:
+                at.mask.controlEffort = true;
+                break;
+            case SpecificationType::TrackingUpper:
+                break;
+            }
+        }
+
+        m_frequencies.push_back(std::move(at));
+    }
+}
+
+void FrequencyReference::recordExcesses(std::complex<double> loop, SpecificationCheck & check) const
+{
+    const WorstCase worst = worstCaseAt(nominalPlant, loop, *valueSet, nominalOverValueSet, mask);
+
+    for (const Bound & bound : bounds) {
+        record(check, index, omega, bound.type, valueOf(worst, bound.type), bound.boundDb);
+    }
+}
+
+double FrequencyReference::worstExcessAt(std::complex<double> loop) const
+{
+    const WorstCase worst = worstCaseAt(nominalPlant, loop, *valueSet, nominalOverValueSet, mask);
+
+    double worstExcess = -std::numeric_limits<double>::infinity();
+    for (const Bound & bound : bounds) {
+        worstExcess = std::max(worstExcess, excessOf(valueOf(worst, bound.type), bound.boundDb));
+    }
+    return worstExcess;
+}
+
+RootVerdict rootVerdictOf(const std::vector<double> & characteristic)
+{
+    const std::vector<std::complex<double>> roots = math::polynomialRoots(characteristic);
+
+    RootVerdict verdict;
+    double largest = 0.0;
+    for (const std::complex<double> & root : roots) {
+        verdict.worstRealPart = std::max(verdict.worstRealPart, root.real());
+        largest = std::max(largest, std::abs(root));
+    }
+    verdict.stable = !roots.empty() && !(verdict.worstRealPart > -1e-7 * largest);
+    return verdict;
+}
+
+FamilyStability familyStabilityAt(const SweptFamily & family, const LtiSystem::Polynomials & loop)
+{
+    FamilyStability result;
+
+    if (!family.usable()) {
+        result.notChecked = reasonOf(family.state());
+        return result;
+    }
+
+    for (std::size_t member = 0; member < family.size(); ++member) {
+        const RootVerdict verdict = rootVerdictOf(characteristicOf(family.member(member), loop));
+        if (!verdict.stable) {
+            ++result.unstableMembers;
+        }
+        if (verdict.worstRealPart > result.worstRealPart) {
+            result.worstRealPart = verdict.worstRealPart;
+            result.worstMember = family.valuesOf(member);
         }
     }
 
-    check.family = familyStability(controller, plant, sweep);
+    result.checked = true;
+    result.notChecked = FamilyStability::NotChecked::No;
+    result.members = family.size();
+    return result;
+}
+
+namespace {
+
+FamilyStability familyStabilityAt(const SweptFamily & family, LtiSystem & controller)
+{
+    FamilyStability result;
+
+    if (family.state() == SweptFamily::State::NoSweepRecord) {
+        result.notChecked = FamilyStability::NotChecked::NoSweepRecord;
+        return result;
+    }
+    if (family.state() == SweptFamily::State::Delay || hasDelay(controller)) {
+        result.notChecked = FamilyStability::NotChecked::Delay;
+        return result;
+    }
+
+    const std::optional<LtiSystem::Polynomials> loop = nominalPolynomials(controller);
+    if (!loop.has_value()) {
+        result.notChecked = FamilyStability::NotChecked::NotRational;
+        return result;
+    }
+
+    return familyStabilityAt(family, *loop);
+}
+
+NominalStability nominalStabilityOf(LtiSystem & plant, LtiSystem & controller)
+{
+    NominalStability result;
+    if (hasDelay(plant) || hasDelay(controller)) {
+        return result;
+    }
+    const std::optional<LtiSystem::Polynomials> nominalPlant = nominalPolynomials(plant);
+    const std::optional<LtiSystem::Polynomials> loop = nominalPolynomials(controller);
+    if (!nominalPlant.has_value() || !loop.has_value()) {
+        return result;
+    }
+
+    const RootVerdict verdict = rootVerdictOf(characteristicOf(*nominalPlant, *loop));
+    result.checked = true;
+    result.stable = verdict.stable;
+    result.worstRealPart = verdict.worstRealPart;
+    return result;
+}
+
+}
+
+SpecificationCheck checkAgainstSpecifications(LtiSystem & controller, LtiSystem & plant,
+                                              const std::vector<double> & omega,
+                                              const CloudSet & templates,
+                                              const SpecificationSet & specifications,
+                                              const ParameterGrids * sweep)
+{
+    const SpecificationReference reference(plant, omega, templates, specifications);
+
+    SpecificationCheck check;
+
+    for (const FrequencyReference & at : reference.frequencies()) {
+        at.recordExcesses(controller.evaluate(at.omega) * at.nominalPlant, check);
+    }
+
+    check.family = familyStabilityAt(SweptFamily(plant, sweep == nullptr ? ParameterGrids() : *sweep), controller);
+    check.nominal = nominalStabilityOf(plant, controller);
 
     return check;
 }

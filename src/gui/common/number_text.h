@@ -1,13 +1,17 @@
 /**
  * @file
- * @brief Reals as text for fields and labels, at full precision or at the shown digits.
+ * @brief Reals as text for fields and labels, at full precision or at the
+ * shown digits.
  *
- * Both go through the project's one formatter. A number the user types or
- * that goes to a file keeps every digit, the shortest text that reads back
- * to the same double, so reopening a form does not round what the file
- * holds. A number the user only reads, a gain off an optimisation or a
- * coefficient inside a drawn formula, is shown at a global count of
- * significant digits that the settings may change.
+ * Both go through the project's one formatter, qftbx::text::number, and
+ * never QString::number(), which keeps six significant digits. A number the
+ * user types or that goes to a file keeps every digit (numberText()), the
+ * shortest text that reads back to the same double, so reopening a form
+ * does not round what the file holds. A number the user only reads, a gain
+ * off an optimisation or a coefficient inside a drawn formula, is shown by
+ * shownText() at a global count of significant digits, four unless the
+ * settings change it through setShownDigits(); one global, because it is
+ * one answer for the whole interface.
  */
 
 #ifndef QFTBX_GUI_NUMBER_TEXT_H
@@ -19,32 +23,11 @@
 
 namespace qftbx {
 
-/**
- * @brief A real as the text of a field or a label.
- *
- * Through qftbx::text::number, the one formatter of the project: the
- * shortest text that reads back to the same double. QString::number(double)
- * keeps six significant digits, and the dialogs paint stored values into
- * fields they read back on accept, so reopening a specification or a
- * template epsilon must not round what the file holds.
- */
 inline QString numberText(double value)
 {
     return QString::fromStdString(qftbx::text::number(value));
 }
 
-/**
- * @brief How many significant digits a form SHOWS, and the same real at
- * that many.
- *
- * The other half of the rule above. A field the user types into, and every
- * number written to a file, keeps all the digits; a number the user only
- * READS - a gain off an optimisation, the excess of a verdict, a
- * coefficient inside a drawn formula - is shown at four, or at whatever the
- * settings say. One global, because it is one answer for the whole
- * interface and threading it through every viewer would say the same thing
- * two hundred times.
- */
 int shownDigits();
 void setShownDigits(int digits);
 

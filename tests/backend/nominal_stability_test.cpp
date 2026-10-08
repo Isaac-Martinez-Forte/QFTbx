@@ -13,7 +13,11 @@
  * roots); one phase profile serves every gain
  * of a shape; a box is rejected
  * whole only when its corner is unstable and its enclosure excludes the
- * critical point at every frequency; plants with right-half-plane poles have
+ * critical point at every frequency, and a checker that remembers where the
+ * last box reached the critical point rejects, over runs of neighbouring
+ * boxes such as a bisection asks about, exactly the boxes a fresh one
+ * rejects, on a plant with an unstable pole, whose low-gain corners are
+ * unstable and whose boxes reach the critical point often; plants with right-half-plane poles have
  * verdicts fixed by Routh; a delay in the denominator gets no verdict; and
  * the ACC'90 double integrator, whose loop starts on the ray at infinite
  * magnitude, rejects the designs the search had returned and accepts a lead.
@@ -236,6 +240,44 @@ TEST(NominalStability, ALagBoxUnstableThroughoutIsRejectedWhole)
     delete lag;
     delete good;
     delete straddling;
+}
+
+TEST(NominalStability, TheOrderTheSamplesAreAskedInDoesNotChangeTheVerdict)
+{
+    LtiSystem* plant = makeZpk(1.0, {}, {-1.0});
+    std::vector<double> omega{0.1, 0.5, 1.0, 2.0, 15.0, 100.0};
+    NominalStabilityChecker running(plant, &omega);
+    NaturalIntervalExtension extension;
+
+    std::mt19937 generator(19);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    const auto around = [&](double low, double high) {
+        const double centre = std::exp(std::log(low) + unit(generator) * (std::log(high) - std::log(low)));
+        const double width = std::pow(10.0, -1.0 + 2.0 * unit(generator));
+        return Range(centre, centre * (1.0 + width));
+    };
+    const auto half = [](const Range & r, int which) {
+        const double middle = 0.5 * (r.min + r.max);
+        return which == 0 ? Range(r.min, middle) : Range(middle, r.max);
+    };
+
+    std::size_t asked = 0, rejected = 0;
+    for (int parent = 0; parent < 150; ++parent) {
+        const Range k = around(0.1, 100.0), z = around(0.01, 100.0), p = around(0.01, 100.0);
+        for (int child = 0; child < 8; ++child) {
+            LtiSystem* box = makeBox(half(k, child & 1), half(z, (child >> 1) & 1), half(p, (child >> 2) & 1));
+            NominalStabilityChecker fresh(plant, &omega);
+            const bool verdict = running.isBoxUnstable(box, extension);
+            EXPECT_EQ(verdict, fresh.isBoxUnstable(box, extension)) << "parent " << parent << " child " << child;
+            rejected += verdict ? 1 : 0;
+            ++asked;
+            delete box;
+        }
+    }
+    EXPECT_GT(rejected, 0u);
+    EXPECT_LT(rejected, asked);
+
+    delete plant;
 }
 
 TEST(NominalStability, OneUnstablePoleNeedsTheGainAboveOne)

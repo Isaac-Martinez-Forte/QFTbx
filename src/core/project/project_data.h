@@ -9,7 +9,16 @@
  * accessors hand out observers; the type a setter takes says whether it
  * takes ownership. The store is movable and not copyable, since opening a
  * file replaces the whole project. Whether a contour exists follows the
- * contour itself: publishing an empty one clears it.
+ * contour itself: publishing an empty one clears it, and so does dropping
+ * the templates.
+ *
+ * The specifications, the epsilon and the boundaries are held by value in
+ * an optional, and their accessors return null when none were set. The
+ * sweep grids, by parameter name, are what the verifier walks to check the
+ * family member by member; they are empty when the templates came from a
+ * file that did not record them. The epsilon is measured in the complex
+ * plane unless the project names another; the name, the description and
+ * the DOI are empty unless the file carried them.
  */
 
 #ifndef QFTBX_PROJECT_DATA_H
@@ -34,17 +43,6 @@
 
 namespace qftbx {
 
-/**
- * @brief Owning store of everything a QFT project holds: the plant, the
- * design frequencies, the specifications, the templates (clouds, contours
- * and their epsilon), the boundaries, the controller search box and the
- * loop-shaping result.
- *
- * One rule throughout: every member owns what it holds, so a setter frees
- * what it replaces and the store frees the rest when it dies. What a setter
- * takes says whether it takes ownership, and the accessors hand out
- * observers.
- */
 class ProjectData
 {
 public:
@@ -53,9 +51,6 @@ public:
     ProjectData(const ProjectData &) = delete;
     ProjectData & operator=(const ProjectData &) = delete;
 
-    /// Movable: opening a file REPLACES the project, and "start from an empty
-    /// one" is a move-assignment. Spelled out because deleting the copy
-    /// operations above silences the implicit move as well.
     ProjectData(ProjectData &&) = default;
     ProjectData & operator=(ProjectData &&) = default;
 
@@ -66,8 +61,6 @@ public:
     void setOmega(std::unique_ptr<Omega> omega);
     std::vector<double> * frequencies() const;
 
-    /// The seven specification slots, or nullptr when none were ever set.
-    /// Held BY VALUE in an optional, like the boundaries and the epsilon.
     SpecificationRecords * specifications();
     const SpecificationRecords * specifications() const;
     void setSpecifications(std::optional<SpecificationRecords> specifications);
@@ -78,29 +71,16 @@ public:
     const CloudSet & contour() const;
     void setContour(CloudSet contour);
 
-    /// The grids the templates were swept over, by parameter name: what the
-    /// verifier walks to check the family member by member. Empty when the
-    /// templates came from a file that did not record them.
     const ParameterGrids & sweepGrids() const { return m_sweepGrids; }
     void setSweepGrids(ParameterGrids grids) { m_sweepGrids = std::move(grids); }
 
-    /// Whether there is a contour to save or to walk: set when a non-empty
-    /// one is published, cleared when the templates are dropped. (An earlier
-    /// comment here claimed it meant "ever computed, even if empty"; the code
-    /// never did that, and the drop relies on it not doing so.)
     bool hasContour() const;
 
-    /// The epsilon used for the contours, or nullptr when none was ever
-    /// set. Held BY VALUE in an optional, like the boundaries.
     std::vector<double> * epsilon();
     void setEpsilon(std::optional<std::vector<double>> epsilon);
-    /// The plane that epsilon is measured in (see HullMetric): complex by
-    /// default, which is what every file predating the choice used.
     EpsilonMetric epsilonMetric() const { return m_epsilonMetric; }
     void setEpsilonMetric(EpsilonMetric metric) { m_epsilonMetric = metric; }
 
-    /// The name of the project and the free description that travels with
-    /// it, both empty unless the file carried them.
     const std::string & name() const { return m_name; }
     void setName(std::string name) { m_name = std::move(name); }
     const std::string & description() const { return m_description; }
@@ -108,9 +88,6 @@ public:
     const std::string & doi() const { return m_doi; }
     void setDoi(std::string doi) { m_doi = std::move(doi); }
 
-    /// The boundaries, or nullptr when none have been computed. The store
-    /// holds them BY VALUE in an optional; the pointer is only how callers
-    /// ask "are there any", which is what they already did.
     BoundaryData * boundaries();
     const BoundaryData * boundaries() const;
     void setBoundaries(std::optional<BoundaryData> boundaries);

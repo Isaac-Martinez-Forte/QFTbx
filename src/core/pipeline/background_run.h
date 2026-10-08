@@ -3,14 +3,23 @@
  * @brief One piece of work on a worker thread, with what it threw kept.
  *
  * An exception escaping the function of a std::thread terminates the
- * process, so everything the work throws is caught at this boundary and
- * the caller asks afterwards how it went: whether a result was produced,
- * whether it was cancelled, and the message of what it threw. A message
- * rather than the exception, since the caller wants text and an object
- * built on a thread that is gone should not be rethrown. One run at a time:
- * the pipeline is sequential, so nothing is gained from two. The completion
- * callback runs on the worker thread, and getting back to another thread is
- * the caller's business.
+ * process, so everything the work throws, qftbx::Exception,
+ * qftbx::Cancelled or any std::exception (the interval arithmetic reports
+ * its domain errors as std::domain_error), is caught at this boundary and
+ * the caller asks afterwards how the last finished run went: whether the
+ * work returned true, having produced a result, whether it was cancelled,
+ * and the message of what it threw, empty when nothing, also with its text
+ * and arguments apart for a translation. A message rather than the
+ * exception, since the caller wants text and an object built on a thread
+ * that is gone should not be rethrown. One run at a time: the pipeline is
+ * sequential, so nothing is gained from two, and start() returns false,
+ * starting nothing and leaving the run in flight untouched, while one is
+ * running. The completion callback runs on the worker thread, and getting
+ * back to another thread (a queued invocation, in Qt) is the caller's
+ * business; it may poll running() instead. The destructor joins the
+ * worker. The outcome needs no mutex: the worker writes it before
+ * releasing m_running, and it may be read only after acquiring it, never
+ * while a run is in flight.
  */
 
 #ifndef QFTBX_BACKGROUND_RUN_H
@@ -24,77 +33,32 @@
 
 namespace qftbx {
 
-/**
- * @brief One piece of work on a worker thread, with what it threw remembered
- * instead of thrown again.
- *
- * The whole point is the catching. A computation here can throw
- * qftbx::Exception, qftbx::Cancelled or any std::exception (the interval
- * arithmetic reports its domain errors as std::domain_error), and an
- * exception that escapes the function of an std::thread does not propagate
- * anywhere: it TERMINATES the process. So everything is caught here, at the
- * boundary, and the caller asks afterwards how it went.
- *
- * One run at a time. The pipeline is sequential - every stage consumes the
- * output of the one before it - so there is nothing to gain from two at once
- * and a great deal of invalidation grief to gain from trying.
- */
 class BackgroundRun
 {
 public:
-    /// The work. Returns whether it produced a result.
     using Work = std::function<bool()>;
 
-    /**
-     * @brief Called when the work finishes, however it finished.
-     *
-     * IT RUNS ON THE WORKER THREAD. Whoever installs it is responsible for
-     * getting back to wherever they need to be - in a Qt application that
-     * means a queued invocation, which is the interface's business and not
-     * this class's. A caller that would rather not deal with that can ignore
-     * it and poll running() instead.
-     */
     using Done = std::function<void()>;
 
     BackgroundRun() = default;
 
-    /// Joins the worker: the object cannot outlive its thread.
     ~BackgroundRun();
 
     BackgroundRun(const BackgroundRun &) = delete;
     BackgroundRun & operator=(const BackgroundRun &) = delete;
 
-    /**
-     * @brief Starts the work.
-     * @return false when a run is already in flight, in which case nothing
-     *         is started and the previous run is untouched.
-     */
     bool start(Work work, Done done = Done());
 
-    /// Whether a run is in flight.
     bool running() const { return m_running.load(std::memory_order_acquire); }
 
-    /// Waits for the run in flight, if there is one, and joins the worker.
     void wait();
 
-    /// --- how the last finished run ended ------------------------------------
-
-    /// Whether the work returned true.
     bool produced() const { return m_produced; }
 
-    /// Whether it ended by being cancelled.
     bool cancelled() const { return m_cancelled; }
 
-    /**
-     * @brief What it threw, or empty when it threw nothing.
-     *
-     * A message and not an exception: rethrowing on the caller's thread would
-     * hand back an object built on a thread that is already gone, and the
-     * caller wants to show text anyway.
-     */
     const std::string & error() const { return m_error; }
 
-    /// The same, with its text and arguments apart, for a translation.
     const Message & errorMessage() const { return m_errorMessage; }
 
 private:
@@ -103,10 +67,6 @@ private:
     std::thread m_worker;
     std::atomic<bool> m_running{false};
 
-    /// Written by the worker before m_running is released, read by anyone after
-    /// acquiring it: the release/acquire pair on m_running is what publishes
-    /// them, so no mutex is needed for three fields nobody may read while a run
-    /// is in flight.
     bool m_produced = false;
     bool m_cancelled = false;
     std::string m_error;

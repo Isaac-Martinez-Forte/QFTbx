@@ -14,11 +14,9 @@
 
 namespace qftbx {
 
-/// Wrappers over qftbx::math (src/core/math/sequences.h).
 std::vector <double> linspace(double a, double b, std::int32_t N);
 std::vector <double> logspace (double a, double b, std::int32_t N);
 
-/// Float variant kept for the CUDA path.
 std::vector <float> linspace1(double a, double b, std::int32_t N);
 
 }

@@ -1,25 +1,3 @@
-#ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
-#define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
-
-#include "src/core/project/settings.h"
-#include "src/core/pipeline/cancellation.h"
-#include <vector>
-#include <cstdint>
-#include <memory>
-
-#include "src/core/templates/cloud_set.h"
-#include "src/core/loopshaping/nt/algorithm_nt.h"
-#include "src/core/loopshaping/nk/algorithm_nk.h"
-#include "src/core/loopshaping/mr/algorithm_mr.h"
-#include "src/core/loopshaping/mc1/algorithm_mc1.h"
-#include "src/core/loopshaping/mc_thesis/algorithm_mc_thesis.h"
-#include "src/core/loopshaping/mc2/algorithm_mc2.h"
-#include "src/core/loopshaping/mc3/algorithm_mc3.h"
-#include "src/core/loopshaping/loop_shaping_statistics.h"
-#include "src/core/system/lti_system.h"
-#include "src/core/boundaries/boundary_data.h"
-#include "src/core/templates/parameter_grids.h"
-
 /**
  * @file
  * @brief Facade over the loop-shaping algorithms: picks one, runs it over
@@ -39,10 +17,30 @@
  *
  * Before a run the caller may install a cancellation token, read once per
  * node, which must outlive run(); the settings, of which each algorithm
- * copies what it needs; and the grids the plant family was swept over, which
- * the searches close the loop with before they return a design. statistics()
- * is what the last run cost.
+ * copies what it needs; the grids the plant family was swept over, which
+ * the searches close the loop with before they return a design; and the
+ * templates, which must outlive run() too and which, with the
+ * specifications, the exact point reading evaluates a candidate against
+ * (research.mc2-reading). statistics() is what the last run cost.
  */
+
+#ifndef QFTBX_LOOPSHAPING_LOOP_SHAPING_H
+#define QFTBX_LOOPSHAPING_LOOP_SHAPING_H
+
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "src/core/boundaries/boundary_data.h"
+#include "src/core/loopshaping/loop_shaping_statistics.h"
+#include "src/core/loopshaping/loop_shaping_types.h"
+#include "src/core/pipeline/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/specifications/specification_record.h"
+#include "src/core/system/lti_system.h"
+#include "src/core/templates/cloud_set.h"
+#include "src/core/templates/parameter_grids.h"
+
 namespace qftbx {
 
 class LoopShaping
@@ -64,11 +62,14 @@ public:
 
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
+    void setTemplates(const qftbx::CloudSet * templates) { m_templates = templates; }
+
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
     qftbx::Settings m_settings;
     qftbx::ParameterGrids m_sweep;
+    const qftbx::CloudSet * m_templates = nullptr;
 
     std::unique_ptr<LtiSystem> m_controller;
     LoopShapingStatistics m_statistics;

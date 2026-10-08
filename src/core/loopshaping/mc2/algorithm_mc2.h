@@ -1,95 +1,92 @@
 #ifndef QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
 #define QFTBX_LOOPSHAPING_ALGORITHM_MC2_H
 
-#include "src/core/project/settings.h"
-#include "src/core/pipeline/cancellation.h"
-#include "src/core/loopshaping/loop_shaping_statistics.h"
-#include <cstdint>
 #include <complex>
+#include <cstdint>
+#include <limits>
+#include <memory>
 #include <optional>
-
 #include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
-#include "src/core/system/lti_system.h"
-#include "src/core/loopshaping/common/natural_interval_extension.h"
 #include "src/core/loopshaping/common/boundary_violation_detector.h"
-#include "src/core/loopshaping/common/depth_accounting.h"
-#include "src/core/loopshaping/common/ordered_list.h"
-#include "src/core/loopshaping/common/mc_search_node.h"
-#include "src/core/loopshaping/common/nominal_stability_checker.h"
-#include "src/core/loopshaping/common/family_stability_checker.h"
-#include "src/core/math/range_union.h"
-#include "src/core/math/sequence_vectors.h"
-
+#include "src/core/loopshaping/common/certifier.h"
+#include "src/core/loopshaping/common/gain_contractor.h"
 #include "src/core/loopshaping/common/common_functions.h"
+#include "src/core/loopshaping/common/depth_accounting.h"
+#include "src/core/loopshaping/common/exact_point_check.h"
+#include "src/core/loopshaping/common/family_stability_checker.h"
+#include "src/core/loopshaping/common/mc_search_node.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
+#include "src/core/loopshaping/common/nominal_stability_checker.h"
+#include "src/core/loopshaping/common/ordered_list.h"
+#include "src/core/loopshaping/loop_shaping_statistics.h"
+#include "src/core/math/range_union.h"
+#include "src/core/pipeline/cancellation.h"
+#include "src/core/project/settings.h"
+#include "src/core/system/lti_system.h"
 
 /**
  * @file
  * @brief Algorithm MC2: the strategies of the QFTbx thesis with the errors
- * of their formulation corrected.
+ * of their formulation corrected, and a search that certifies its answer.
  *
- * The thesis (Martinez-Forte 2022, chapters 4 and 5) extends the NT/NK
- * interval branch & bound with four cutting strategies, a best-gain search,
- * a tree bisection and the execution stages. The strategies are sound but
- * their published formulation is not: the equations of sec. 4.1.1 compare
- * against B_min where the text prescribes B_max, which makes the cut wrong
- * rather than conservative; the pseudocode of QSInv fixes the phase cut at
- * the vertex that minimises the phase where it needs the one that maximises
- * it; QSFact asks a single vertex to minimise magnitude and phase at once,
- * which no vertex can do; and the best-gain search compares against a
- * boundary extreme over the box's phase span instead of the allowed set at
- * the phase of the point it certifies, so it can return a gain that
- * violates the boundaries. Algorithm MC of the thesis (algorithm_mc_thesis)
- * reproduces the chapters with those readings repaired one by one, as its
- * own header documents; MC2 is where the formulation is rebuilt instead of
- * patched.
+ * The thesis (Martinez-Forte 2022, chapters 4 and 5) adds to the NT/NK
+ * interval branch and bound four cutting strategies, a best-gain search, a
+ * tree bisection and execution stages. Its formulation has errors: the
+ * cuts read B_min for B_max and the wrong vertices, and the best gain can
+ * violate the boundaries. MC of the thesis (algorithm_mc_thesis) repairs
+ * them one by one; MC2 rebuilds the formulation:
  *
- * The corrections MC2 carries:
+ * - T1: the four cuts are valid only with the other parameters at one
+ *   vertex, and they use two vertices, cross-paired: infeasible magnitude
+ *   with feasible phase, feasible magnitude with infeasible phase.
+ * - T2: a certified subrange is cut off as a slab, so what is left is a box.
+ * - T3: with the zeros and poles fixed the phase does not depend on the
+ *   gain, so one phase column of each frequency binds it, and the
+ *   admissible gains are a finite union of intervals (RangeUnion),
+ *   intersected over the frequencies. No equation is solved, a frequency
+ *   that admits nothing empties the set on its own, and the smallest
+ *   admissible gain may lie in the lower branch of a closed boundary. The
+ *   best gain of a box is that of its vertex of largest magnitude, which is
+ *   that of smallest phase.
+ * - P2: with the vertex of T1 the angle of the phase equation is below 90
+ *   degrees, so its check is an invariant.
  *
- * - T1, the correct-vertex theorem: the four cuts are valid if and only if
- *   the other parameters sit at one particular vertex, and the four use only
- *   two vertices, cross-paired - infeasible-magnitude shares its vertex with
- *   feasible-phase, and feasible-magnitude with infeasible-phase. The
- *   pairing is neither {feasible, infeasible} nor {magnitude, phase}, which
- *   is what both publications get wrong.
- * - T2, the slab decomposition: the certified subrange of one parameter is
- *   extracted as a slab, not as the corner of the box, so what is left is
- *   again a box and the 2^n-1 subboxes the article fears never appear.
- * - T3, the exact best gain: with the zeros and poles fixed the phase does
- *   not depend on the gain, so the admissible gains at that point are the
- *   allowed set of one phase column carried to the gain's frame - a finite
- *   union of intervals (RangeUnion), intersected over the design
- *   frequencies. No equation is solved, the empty set propagates on its own
- *   without a sentinel, and the smallest admissible gain can be found in the
- *   lower branch of a closed boundary, which a single-crossing formula never
- *   reaches.
- * - P2, the precondition of the phase equation: with the vertex of T1 and
- *   C_min inside the projected phase span, the angle solved for is below 90
- *   degrees on its own, so the check is an invariant that catches a
- *   phase-branch mistake, not a recovery path.
+ * The execution stages are left out: without them the search is faster and
+ * the gain no higher. Their bisection rule, the parameter that most narrows
+ * the wider side of the projection, is used everywhere. The tree bisection,
+ * the node history and the search node (common/mc_search_node.h) are those
+ * of MC of the thesis.
  *
- * - The execution stages of sec. 4.4 are NOT here. They disable the cuts of
- *   a node, and of all its children, the first time a full pass improves
- *   nothing, which is a decision taken on a box far larger than the ones
- *   where the cuts bite. Without them the search is faster on every problem
- *   tried and returns an equal or lower gain. MC of the thesis keeps them,
- *   under its own setting, as the published algorithm.
- * - What the stages were really contributing is their bisection rule, not
- *   the cuts they switched off: their final stage splits the parameter that
- *   most narrows the WIDER side of the projection, which is the side the
- *   termination test reads, while the rest of the search splits by the AREA
- *   of the projection. MC2 uses the first rule everywhere: the area rule
- *   can fail to terminate under the conservative column reading, and where
- *   both terminate this one returns an equal or better gain, faster. (The
- *   published
- *   algorithms bisect at the middle of the widest parameter RANGE, which is
- *   a third rule; see common/common_functions.h.)
+ * Under the exact reading, the default, a point becomes a design only
+ * through the certification funnel (common/certifier.h), with the smallest
+ * gain the specifications admit at its zeros and poles
+ * (ExactPointCheck::lowestAdmissibleGain). The search ends as a branch and
+ * bound ends: a certified point becomes the best design so far and prunes
+ * every box that cannot beat it, a tie included, until the list is empty.
+ * Every box taken has its gain contracted with proofs first
+ * (GainContractor); a box the columns call infeasible is discarded only
+ * when the exact sector verdict proves it, whose strips are also the
+ * magnitude cuts, and the phase cuts are left out; a box the nominal
+ * criterion finds unstable on its grid is discarded only when the Routh
+ * table or the zero exclusion proves it. What is left without a proof, a
+ * box resolved at the epsilon size or dropped with no certified point, is
+ * counted with the smallest gain it could hold
+ * (LoopShapingStatistics::Certificate), and "no feasible solution" is
+ * claimed only when nothing was. The widest parameter is measured without
+ * the nominal plant, and a parameter that is a point is not split.
  *
- * Everything else - the tree bisection of sec. 5.3, the node history, the
- * nominal stability of every certified point and the box-level instability
- * prune - MC2 keeps as MC of the thesis has it, and the two share their
- * search node (common/mc_search_node.h).
+ * The cancellation token, the templates and the specifications have to
+ * outlive solve(); without templates that cover every design frequency the
+ * search reads the columns, and without the grids of the sweep it leaves
+ * the family out.
+ *
+ * research.mc2.gain-contraction = 0 gives the search without the
+ * contraction, with the family gate (FamilyStabilityChecker::isBoxUnstable)
+ * and the grid's discards counted apart; research.mc2-reading = columns
+ * gives the published formulation, bit for bit, with the certificate as
+ * bookkeeping alone.
  */
 namespace qftbx {
 
@@ -97,203 +94,130 @@ class AlgorithmMc2
 {
 public:
 
-    /**
-     * @brief Runtime switches for the thesis strategies, one each.
-     *
-     * The chapter-6 case studies exercise every improvement alone and in
-     * combination, so each one can be disabled independently without
-     * rebuilding. All enabled is the thesis MC; everything disabled is the
-     * bare branch & bound with area bisection. None of them changes the
-     * answer - each only discards boxes it has certified cannot hold a
-     * better one - which is what the strategies test asserts. By
-     * decision they are not exposed in the interface: a user has no reason
-     * to disable a proof.
-     */
-    struct Strategies {
-        bool infeasibleMagnitude = true;   ///< QSInv, magnitude cuts (NK's QS)
-        bool infeasiblePhase = true;   ///< QSInv, phase cuts (thesis 4.1.2)
-        bool feasibleMagnitude = true;   ///< QSFact, magnitude (thesis 4.1.1)
-        bool feasiblePhase = true;   ///< QSFact, phase
-        bool bestGain = true;   ///< MG (thesis 4.3)
-        bool treeBisection = true;   ///< thesis 4.2.4
-    };
-
-    void setStrategies(const Strategies & s);
-
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega, const BoundaryData * boundaries,
                    double epsilon);
 
-    /**
-     * @brief Installs the flag the search reads once per node.
-     *
-     * A pointer, and null by default: a caller that never cancels - every
-     * test that drives this algorithm directly - carries on unchanged. The
-     * token has to outlive solve().
-     */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
-    /**
-     * @brief The values the user may have changed.
-     *
-     * The whole struct rather than one setter per value: what an algorithm
-     * needs from it is copied here, once, before solve() - so the hot path
-     * reads a member and never a configuration lookup. Not calling it leaves
-     * the compiled defaults, which is what every existing caller does.
-     */
-    /// Keeps the settings and takes the strategy switches from them
-    /// (Settings::Algorithms::mc); a later setStrategies() overrides.
     void setSettings(const qftbx::Settings & settings);
 
-    /**
-     * @brief The grids the plant family was swept over, by parameter name:
-     * what the search closes the loop with before it returns a design.
-     *
-     * Empty leaves the check out, which is what a project with no record of
-     * its sweep gets.
-     */
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
+
+    void setSpecifications(const qftbx::CloudSet * templates, const qftbx::SpecificationSet * specifications)
+    { m_templates = templates; m_specifications = specifications; }
 
     bool solve();
 
-    /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
     std::size_t peakLiveNodes() const;
 
-    /// What the run cost, read from the algorithm's own counters.
     LoopShapingStatistics statistics() const;
 
 private:
 
-    /// One certainly feasible per-frequency threshold of one parameter
-    /// (thesis MM/MF): cutting the range at 'threshold' leaves the side
-    /// named by 'upperSide' feasible for frequency 'freqIndex'.
     struct FeasibleThreshold {
-        std::int32_t parameter;   ///< 0 = gain, 1..nz = zero, nz+1.. = pole
+        std::int32_t parameter;
         std::size_t freqIndex;
         double threshold;
-        bool upperSide;   ///< true: [threshold, sup] is the feasible part
-        double fraction;   ///< |feasible part| / |range|
+        bool upperSide;
     };
 
-    /// Detection results of one node, one entry per design frequency
-    /// (empty for frequencies the node is marked feasible at).
     struct NodeAnalysis {
         std::vector<std::optional<BoxClassification>> classification;
-        std::vector<std::optional<NicholsBox>> projection;   ///< the Nichols box itself
-        std::vector<Range> boxMag;   ///< dB edges of the projected box
-        std::vector<Range> boxPhase;   ///< degree edges
+        std::vector<std::optional<NicholsBox>> projection;
         qftbx::BoxFlag flag = qftbx::feasible;
-        std::size_t mainFrequency = 0;   ///< largest ambiguous projected area
+        std::size_t mainFrequency = 0;
     };
+
+    enum class Step { Next, Carry, Designed };
+    enum class WidthMeasure { Area, Magnitude, Phase };
+
+    void prepare();
+    bool concludeEmptyList();
+    Step returnDesign(std::unique_ptr<LtiSystem> design);
+    Step resolveFeasibleHead(McSearchNode & node);
+    bool analyseOrDiscard(McSearchNode & node, NodeAnalysis & analysis, double gainInf);
+    Step resolveFeasibleCorner(McSearchNode & node, double gainInf);
+    Step resolveEpsilonBox(McSearchNode & node, double gainInf);
+    bool pruneUnstableBox(McSearchNode & node, double gainInf);
+    void expand(McSearchNode & node, NodeAnalysis & analysis);
+
+    void discardUnproven(double gainInf);
+    void discardGridBacked(double gainInf);
+    void dropToResidue(double gainInf);
+    void resolvedAtEpsilon(double gainInf);
+    void adoptIncumbent(const PointController & design, LtiSystem * box);
+    void closeCertificate();
+    bool cannotImprove(double gainInf) const;
 
     bool analyse(McSearchNode * node, NodeAnalysis & out);
     bool isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis);
-    void improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                            std::vector<FeasibleThreshold> & thresholds);
-    /**
-     * @brief The exact set of gains admissible with these zeros and poles,
-     * in decibels of gain (T3).
-     *
-     * With the zeros and poles fixed the phase does not depend on the gain,
-     * so along the gain the loop travels a vertical line of the Nichols
-     * plane and only ONE phase column of each design frequency can ever
-     * bind it. The admissible gains are therefore the allowed set of that
-     * column, carried to the gain's frame by -mu, intersected over the
-     * frequencies and with 'gainRange': a finite union of intervals,
-     * computed without solving any equation. A frequency that admits
-     * nothing empties the intersection on its own, so no sentinel value is
-     * needed for "no solution".
-     */
-    RangeUnion admissibleGains(const std::vector<double> & zeros,
-                               const std::vector<double> & poles, Range gainRange);
+    bool improveNode(McSearchNode * node, NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
 
-    /**
-     * @brief The exact best gain of one vertex (T3): the smallest gain that
-     * clears every design frequency there, or nothing.
-     *
-     * The vertex is the one of the largest magnitude, which by
-     * anti-monotonicity is the one of the smallest phase, and of the two it
-     * is the one that needs the least gain to clear a lower boundary.
-     * admissibleGains() does the work; this decides whether what comes out
-     * is worth keeping.
-     *
-     * That is what makes it exact where the published formulation is not.
-     * The thesis compares against B_min, the smallest magnitude the
-     * boundary takes over the WHOLE phase span of the box, which is at or
-     * below the boundary at the vertex's own phase, so the gain it returns
-     * can violate the boundaries. And a pair of numbers cannot hold two
-     * branches: with a closed boundary the smallest admissible gain often
-     * lies in the LOWER one, under the forbidden band, which a
-     * single-crossing formula never reaches.
-     *
-     * The empty set needs no sentinel either: a frequency that admits no
-     * gain empties the intersection on its own, where the thesis' max over
-     * -infinity silently dropped that frequency instead.
-     *
-     * What leaves is a POINT, and only the point is claimed: it is verified
-     * against the real detection and the nominal stability before it may
-     * lower the prune bound.
-     */
+    RangeUnion columnGainsDb(const std::vector<double> & zeros, const std::vector<double> & poles, Range gainRange);
+
     bool bestGainSearch(McSearchNode * node);
-    void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                             std::vector<FeasibleThreshold> & thresholds, bool & improved);
-    void infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                               bool & improved);
+    std::optional<double> lowestGain(const std::vector<double> & zeros, const std::vector<double> & poles,
+                                     Range gainRange);
+    bool accepts(const PointController & point);
+
+    void feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis, std::vector<FeasibleThreshold> & thresholds);
+    bool infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis);
 
     qftbx::McBisectionResult bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                        const std::vector<FeasibleThreshold> & thresholds);
+                                    const std::vector<FeasibleThreshold> & thresholds);
     qftbx::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
-    inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure);
+    inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, WidthMeasure measure);
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
-    bool pointIsFeasible(const PointController & point);
     void insertFeasibleBox(std::unique_ptr<LtiSystem> box);
+
+    std::optional<PointController> bestEpsilonCandidate(LtiSystem * box);
+    PointController lowestGainOnRay(const PointController & point);
 
     inline std::int32_t parameterCount(LtiSystem * box) const;
     Range parameterRange(LtiSystem * box, std::int32_t parameter) const;
-    std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter,
-                                                       Range range) const;
+    std::unique_ptr<LtiSystem> replaceParameter(LtiSystem * box, std::int32_t parameter, Range range) const;
 
     LtiSystem * plant = nullptr;
     std::unique_ptr<LtiSystem> controller;
     std::vector<double> * omega = nullptr;
     const BoundaryData * boundaries = nullptr;
     double epsilon = 0;
+    const qftbx::CloudSet * m_templates = nullptr;
+    const qftbx::SpecificationSet * m_specifications = nullptr;
+    qftbx::ParameterGrids m_sweep;
+    qftbx::Settings m_settings;
+    const qftbx::CancellationToken * m_cancellation = nullptr;
 
     std::unique_ptr<NaturalIntervalExtension> conversion;
     std::unique_ptr<BoundaryViolationDetector> detector;
     std::unique_ptr<NominalStabilityChecker> stability;
     std::unique_ptr<FamilyStabilityChecker> family;
-    qftbx::ParameterGrids m_sweep;
-    std::unique_ptr<OrderedList> liveList;
+    std::unique_ptr<ExactPointCheck> exact;
+    std::unique_ptr<Certifier> certifier;
+    std::unique_ptr<GainContractor> contractor;
+
+    bool exactReading = false;
+    bool gainContraction = false;
+    Settings::Research::McStrategies strategies;
+    double phaseGridStep = 0;
+    Range initialGainRange;
     std::vector<std::complex<double>> nominalPlantValues;
-
-    /// Prune variable C (thesis 5.4.3): gain and controller of the best
-    /// certified solution found by MG.
-    double bestCertifiedGain = 0;
+    std::unique_ptr<OrderedList> liveList;
+    double bestCertifiedGain = std::numeric_limits<double>::infinity();
     std::unique_ptr<LtiSystem> bestCertifiedController;
-
     std::unique_ptr<LtiSystem> designedController;
-
-    Strategies strategies;
     DepthAccounting depthAccounting;
 
-    double phaseGridStep = 0;
-    double phaseSpanWidth = 0;
-
-    bool hasUncertainZeros = false;
-    bool hasUncertainPoles = false;
-
-    /// Not owned. Null means this run cannot be cancelled.
-    const qftbx::CancellationToken * m_cancellation = nullptr;
-
-    /// Copied whole and read as fields; the defaults are the compiled ones.
-    qftbx::Settings m_settings;
-
+    LoopShapingStatistics::Certificate certificate;
+    double residueGainInf = std::numeric_limits<double>::infinity();
+    double unprovenGainInf = std::numeric_limits<double>::infinity();
+    double gridBackedGainInf = std::numeric_limits<double>::infinity();
+    double resolvedGainInf = std::numeric_limits<double>::infinity();
 };
 
 }

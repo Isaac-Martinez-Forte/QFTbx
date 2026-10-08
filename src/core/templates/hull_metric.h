@@ -12,20 +12,19 @@
  * whether one epsilon can serve a whole template (see TemplateEngine). The
  * choice belongs with the epsilon: an epsilon without its plane is a number
  * without a unit, so the project keeps the two together and the file stores
- * them together.
+ * them together. The default is the plane of the plant's response, which is
+ * also what a project file that names no plane means; on the Nichols chart
+ * distances are in degrees and decibels, weighed against each other by
+ * dbPerDegree. The file and the settings name the planes "complex" and
+ * "nichols".
  */
 namespace qftbx {
 
 enum class HullMetric {
-    /// Distances in the plane of the plant's response: the default, and
-    /// what a project file that names no plane uses.
     ComplexPlane,
-    /// Distances in degrees and decibels on the Nichols chart, one decibel
-    /// weighing as much as so many degrees.
     Nichols
 };
 
-/// The epsilon's plane and, for the Nichols plane, its weighting.
 struct EpsilonMetric
 {
     HullMetric metric = HullMetric::ComplexPlane;
@@ -38,7 +37,6 @@ struct EpsilonMetric
     bool operator!=(const EpsilonMetric & other) const { return !(*this == other); }
 };
 
-/// The name the file and the settings use: "complex" or "nichols".
 inline const char * hullMetricName(HullMetric metric)
 {
     return metric == HullMetric::Nichols ? "nichols" : "complex";

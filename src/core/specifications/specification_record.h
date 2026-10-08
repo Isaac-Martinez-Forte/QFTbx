@@ -4,12 +4,16 @@
  *
  * Declares the raw form of a specification as the interface and the .qft
  * files handle it: plain values with no invariants, since a slot being
- * edited may be temporarily invalid, owning its plant and cloned only
- * deliberately. The seven records are a fixed positional array indexed by
- * specification type. The engines never read a record directly: the
- * validating conversion to the engine-facing specification is where the
- * invariants are enforced, and it throws when the height is not positive,
- * the band is inverted or the plant is missing.
+ * edited may be temporarily invalid. The height is a linear magnitude, not
+ * dB, and skipped lists the design frequencies of the band the user took
+ * out of this specification, empty for the whole band. A record owns its
+ * plant, so it is move-only and clone() is the deliberate deep copy. The
+ * seven records are a fixed positional array indexed by specification
+ * type, which the persistence writes in that order. The engines never read
+ * a record directly: toSpecification() is the validating conversion to the
+ * engine-facing specification, where the invariants are enforced, and it
+ * throws qftbx::InvalidInput when the height is not positive, the band is
+ * inverted or the plant is missing.
  */
 
 #ifndef QFTBX_SPECIFICATION_RECORD_H
@@ -26,28 +30,16 @@
 
 namespace qftbx {
 
-/// Editing/persistence record of one specification slot, as the GUI and the
-/// .qft files handle it: raw values, no invariants (a slot being edited can
-/// be temporarily invalid). The engines never consume it directly: they take
-/// the validated Specification produced by toSpecification(), which is where
-/// the invariants are enforced.
 struct SpecificationRecord {
     std::string name;
     bool used = false;
-    /// The record OWNS its plant.
     std::unique_ptr<LtiSystem> system;
-    double height = 0.0;   ///< LINEAR magnitude (Specification::boundDb converts)
+    double height = 0.0;
     bool constant = false;
     double omegaStart = 0.0;
     double omegaEnd = 0.0;
-    /// The design frequencies inside that band the user took out of this
-    /// specification, one by one. Empty is the whole band, which is what
-    /// every project written before this has.
     std::vector<double> skipped;
 
-    /// Deep copy: the copy owns a fresh copy of the embedded plant. Explicit
-    /// because owning the plant makes the record move-only, which is the
-    /// point: a copy of a specification is always deliberate.
     SpecificationRecord clone() const {
         SpecificationRecord copy;
         copy.name = name;
@@ -64,27 +56,10 @@ struct SpecificationRecord {
 
         return copy;
     }
-
-    /// heightDb() lived here: the same formula as Specification::boundDb(),
-    /// written a second time on the raw record, dereferencing a null system on
-    /// a record that had none. Nothing in the program called it; the bound is
-    /// asked of the validated Specification, which is what toSpecification()
-    /// is for.
 };
 
-/**
- * @brief The seven editing slots, positional: every consumer indexes them
- * by SpecificationType, and the persistence writes them in that order.
- *
- * By value, with each record owning its plant. This was a POINTER to a
- * std::vector of POINTERS, so four modules carried the same nested deletion
- * loop and the size was never checked outside the reader.
- */
 using SpecificationRecords = std::array<SpecificationRecord, kSpecificationCount>;
 
-/// Validating conversion to the engine-facing type. Throws qftbx::InvalidInput
-/// when the record breaks the invariants (height <= 0, inverted band, null
-/// plant): the robustness the raw record does not impose.
 inline Specification toSpecification(const SpecificationRecord & d, SpecificationType type){
     if (!d.used){
         return Specification::unused(type);

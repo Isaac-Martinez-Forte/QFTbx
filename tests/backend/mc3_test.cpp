@@ -32,7 +32,7 @@ namespace {
 void publishedReading(ProjectController & controller)
 {
     Settings published;
-    published.algorithms.conservativeBoundaryColumns = false;
+    published.research.conservativeColumns = false;
     controller.applySettings(published);
 }
 
@@ -69,7 +69,7 @@ TEST(Mc3, WhatItReturnsUnderTheConservativeReadingSatisfiesTheSpecifications)
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     Settings conservative;
-    conservative.algorithms.conservativeBoundaryColumns = true;
+    conservative.research.conservativeColumns = true;
     controller.applySettings(conservative);
 
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::mc3, Range(1e-9, 10.0), 100));

@@ -2,99 +2,63 @@
  * @file
  * @brief Operations on controller boxes shared by the interval algorithms.
  *
- * Extracting a point controller from a box (poles always at their lower
- * corner, the delay kept as the box has it), checking one controller against
- * the boundaries at every design frequency, the verified corner an
- * epsilon-small ambiguous box yields, the bisection of a box along its
- * widest uncertain parameter into two deep copies that keep the parameter
- * names, and the termination test on the size of the Nichols projection.
+ * pointFromBox builds a corner of a box as a controller, and
+ * satisfiesBoundaries asks the boundaries about one controller at every
+ * design frequency. An epsilon-small ambiguous box ends the search with a
+ * point of it (Tharewal 2005, Remark 3.1; QFTbx thesis sec. 3.1), and the
+ * anti-blocking corner (maximum gain and zeros, minimum poles) is a guess,
+ * not a certificate: forEachCandidate walks it, the lower corner, the centre
+ * and, with at most six uncertain parameters, every other corner, or only
+ * the corners of the zeros and poles for a caller that recomputes the gain.
+ * verifiedCornerBy returns the first candidate a test passes, and
+ * verifiedCorner the first the boundaries accept.
+ *
+ * isEpsilonSmall is the termination test of NT, NK, MC1 and MC: the Nichols
+ * rectangle of the box narrower than epsilon in both coordinates at every
+ * design frequency. bisectWidestParameter splits the widest uncertain
+ * parameter at its middle, as NT, NK, MR and MC1 branch.
+ *
+ * ParameterBounds holds the bounds of a box as the Quick Solution
+ * equations (quick_solution.h) read and write them, and boxFromBounds writes
+ * them back. cutBelowBoundary (NK sec. 3.3, steps 3-8) raises the infimum of
+ * the gain and of every zero and lowers the supremum of every pole under
+ * the strip below B_min; cutAboveBoundary is its mirror over B_max;
+ * cutRightOfPhase and cutLeftOfPhase (thesis 4.1.2) cut on the phase
+ * strips. capGain caps the gain of a box at the prune variable C (MC1 step
+ * 3bis.(b), thesis 5.4.3), and nominalPhase puts the nominal plant phase on
+ * the (-2 pi, 0] branch.
  */
 
 #ifndef QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H
 #define QFTBX_LOOPSHAPING_COMMON_FUNCTIONS_H
 
+#include <complex>
 #include <cstdint>
-#include "src/core/math/constants.h"
 #include <memory>
-
+#include <optional>
 #include <vector>
 
-#include "src/core/system/lti_system.h"
-#include "src/core/math/sequence_vectors.h"
 #include "src/core/boundaries/boundary_data.h"
-#include "src/core/loopshaping/common/natural_interval_extension.h"
-#include "src/core/loopshaping/common/boundary_violation_detector.h"
-#include "src/core/loopshaping/common/ordered_list.h"
-#include "src/core/loopshaping/common/mc_search_node.h"
-#include "src/core/loopshaping/common/quick_solution.h"
-
-#include <complex>
-#include <optional>
-
 #include "src/core/common/exception.h"
+#include "src/core/loopshaping/common/boundary_violation_detector.h"
+#include "src/core/loopshaping/common/natural_interval_extension.h"
+#include "src/core/loopshaping/common/point_controller.h"
+#include "src/core/loopshaping/common/quick_solution.h"
+#include "src/core/math/constants.h"
+#include "src/core/system/lti_system.h"
 
 namespace qftbx {
 
-/// The halves of a bisection belong to whoever receives them: each one is
-/// either classified into the live list or dropped.
 struct BisectionResult {
     std::unique_ptr<LtiSystem> v1;
     std::unique_ptr<LtiSystem> v2;
 };
 
-/// The children of a bisection belong to whoever receives them: they are
-/// either inserted in the live list or dropped, and the type says so.
-struct McBisectionResult {
-    std::unique_ptr<McSearchNode> t1;
-    std::unique_ptr<McSearchNode> t2;
-};
-
-/**
- * @brief Extracts a point controller from a box.
- *
- * @param controller the box to take a corner of.
- * @param x true takes the lower corner of every parameter, which is where
- * a feasible box realises its optimum gain. false takes the corner that
- * the monotonicity of the Nichols projection makes feasible for an
- * epsilon-small ambiguous box sitting on a boundary whose allowed side is
- * up (the anti-blocking rule, QFTbx thesis sec. 3.1): maximum gain and
- * zeros push the box up, but poles push it DOWN, so poles take their
- * minimum: taking every maximum steps AWAY from the allowed side in the
- * pole directions.
- */
-inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool x) {
-
-    std::vector <Parameter> numerator;
-    numerator.reserve(controller->numerator().size());
-
-    for (Parameter & v : controller->numerator()) {
-        if (!v.isUncertain()){
-            numerator.emplace_back(v.nominal());
-        } else {
-            numerator.emplace_back(x ? v.range().min : v.range().max);
-        }
-    }
-
-    std::vector <Parameter> denominator;
-    denominator.reserve(controller->denominator().size());
-
-    for (Parameter & v : controller->denominator()) {
-        denominator.emplace_back(v.isUncertain() ? v.range().min : v.nominal());
-    }
-
-    const double k = x ? controller->gain().range().min
-                      : controller->gain().range().max;
-
-    return controller->create(controller->name(), std::move(numerator),
-                               std::move(denominator), Parameter(k),
-                               controller->delay());
+inline std::unique_ptr<LtiSystem> pointFromBox(LtiSystem * controller, bool lower)
+{
+    return systemFromPoint(controller, cornerOf(controller, lower));
 }
 
-/**
- * @brief Whether one controller satisfies the boundaries at every design
- * frequency: its degenerate box, projected by the same interval extension
- * the search uses, classifies as feasible everywhere.
- */
 inline bool satisfiesBoundaries(const PointController & point, std::vector<double> * omega,
                                 NaturalIntervalExtension * conversion, BoundaryViolationDetector * detector,
                                 const BoundaryData * boundaries,
@@ -111,44 +75,15 @@ inline bool satisfiesBoundaries(const PointController & point, std::vector<doubl
     return true;
 }
 
-/**
- * @brief The point an epsilon-small ambiguous box yields, verified against
- * the boundaries.
- *
- * The termination on an epsilon-small ambiguous head (Tharewal 2005,
- * Remark 3.1; QFTbx thesis sec. 3.1) returns a point of the box. The
- * anti-blocking rule picks the corner that moves the projection towards
- * the allowed side when that side is up: maximum gain and zeros, minimum
- * poles. That is a guess about the boundary, not a certificate: where a
- * closed boundary crosses the box its allowed side is down, and the
- * corner lands inside the forbidden region. On the QFT toolbox example 2
- * every algorithm returned such a point at some frequency.
- *
- * So the candidates are classified against every boundary before one
- * leaves the search: the anti-blocking corner first, then the lower corner,
- * then the centre of the box, then the remaining corners (up to 64 of
- * them; beyond six uncertain parameters the rest are left out). The first
- * to pass is returned, at the lowest gain among the candidates tried in
- * that order. When none passes the box has no certified point at this
- * size and the caller bisects it on. The nominal-stability check stays
- * with the caller, which owns the checker.
- *
- * @return the verified point, or nothing when the box has none.
- */
-inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vector<double> * omega,
-                                                     NaturalIntervalExtension * conversion,
-                                                     BoundaryViolationDetector * detector,
-                                                     const BoundaryData * boundaries,
-                                                     const std::vector<std::complex<double>> & nominalPlantValues) {
+enum class CandidateGain { FromTheCorner, Recomputed };
 
-    const auto passes = [&](const PointController & point) {
-        return satisfiesBoundaries(point, omega, conversion, detector, boundaries, nominalPlantValues);
-    };
+template <class Visit>
+inline bool forEachCandidate(LtiSystem * box, Visit && visit,
+                             CandidateGain candidateGain = CandidateGain::FromTheCorner) {
 
     for (const bool lower : {false, true}) {
-        PointController corner = cornerOf(box, lower);
-        if (passes(corner)) {
-            return corner;
+        if (visit(cornerOf(box, lower))) {
+            return true;
         }
     }
 
@@ -180,43 +115,59 @@ inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vecto
         return point;
     };
 
-    {
-        PointController centre = pointAt([](std::size_t) { return 2; });
-        if (passes(centre)) {
-            return centre;
-        }
+    if (visit(pointAt([](std::size_t) { return 2; }))) {
+        return true;
     }
 
     if (uncertain <= 6) {
-        const unsigned corners = 1u << uncertain;
-        for (unsigned mask = 0; mask < corners; ++mask) {
-            PointController corner = pointAt([mask](std::size_t i) { return static_cast<int>((mask >> i) & 1u); });
-            if (passes(corner)) {
-                return corner;
+        unsigned zeroBits = 0;
+        std::size_t index = 0;
+        for (const Parameter & v : numerator) {
+            if (v.isUncertain()) {
+                zeroBits |= 1u << index++;
+            }
+        }
+        const bool walkTheGain = gain.isUncertain() && candidateGain == CandidateGain::FromTheCorner;
+        const std::size_t bits = gain.isUncertain() && !walkTheGain ? uncertain - 1 : uncertain;
+        const unsigned antiBlocking = zeroBits | (walkTheGain ? 1u << (uncertain - 1) : 0u);
+        const unsigned corners = 1u << bits;
+        for (unsigned mask = 1; mask < corners; ++mask) {
+            if (mask == antiBlocking) {
+                continue;
+            }
+            if (visit(pointAt([mask](std::size_t i) { return static_cast<int>((mask >> i) & 1u); }))) {
+                return true;
             }
         }
     }
 
-    return std::nullopt;
+    return false;
 }
 
-/**
- * @brief Termination test of NT, NK, MC1 and MC: the box's Nichols
- * rectangle is narrower than epsilon, in both coordinates, at EVERY
- * design frequency.
- *
- * The four measure epsilon on the projection because that is where their
- * papers place the accuracy: the answer they give is a loop transmission,
- * and how well it is pinned down is a question about \f$ L_0 \f$, not
- * about the parameters that produced it. MR is the exception and does not
- * come through here - its paper solves a constraint satisfaction problem
- * over the parameters and measures the accuracy there
- * (AlgorithmMr::isParameterBoxSmall).
- *
- * One consequence worth keeping in mind: this criterion scales with
- * \f$ |P| \f$, so the same number is far tighter on a plant with a large
- * low-frequency gain than on one without.
- */
+template <class Passes>
+inline std::optional<PointController> verifiedCornerBy(LtiSystem * box, Passes && passes) {
+    std::optional<PointController> found;
+    forEachCandidate(box, [&](const PointController & candidate) {
+        if (passes(candidate)) {
+            found = candidate;
+            return true;
+        }
+        return false;
+    });
+    return found;
+}
+
+inline std::optional<PointController> verifiedCorner(LtiSystem * box, std::vector<double> * omega,
+                                                     NaturalIntervalExtension * conversion,
+                                                     BoundaryViolationDetector * detector,
+                                                     const BoundaryData * boundaries,
+                                                     const std::vector<std::complex<double>> & nominalPlantValues) {
+
+    return verifiedCornerBy(box, [&](const PointController & point) {
+        return satisfiesBoundaries(point, omega, conversion, detector, boundaries, nominalPlantValues);
+    });
+}
+
 inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <double> * omega,
                             NaturalIntervalExtension *conversion,
                             const std::vector<std::complex<double>> & nominalPlantValues) {
@@ -233,23 +184,6 @@ inline bool isEpsilonSmall(LtiSystem * controller, double epsilon, std::vector <
     return true;
 }
 
-/**
- * @brief Bisects the box at the middle of its widest uncertain parameter.
- *
- * The direction that halves the largest remaining uncertainty is the one
- * that makes the interval enclosure tightest fastest, and it is how the
- * published algorithms branch: "along its maximum width coordinate
- * direction", in the words of the 2021 paper's step 4. NT, NK, MR and MC
- * (2021) use it as it stands.
- *
- * The MC family does not, and the difference is not a detail of
- * implementation. MC (thesis) and MC2 measure the widest parameter on the
- * PROJECTION of the box onto the Nichols chart instead of on the parameter
- * ranges - by its area, or, in MC2 and in the final stage of MC (thesis),
- * by its wider side, which is the side the termination test reads - and MC3
- * splits the widest uncertain zero or pole on a logarithmic scale. See each
- * algorithm's own bisect().
- */
 inline BisectionResult bisectWidestParameter(LtiSystem * box) {
 
     std::int32_t widest = -2;
@@ -323,15 +257,6 @@ inline BisectionResult bisectWidestParameter(LtiSystem * box) {
     return halves;
 }
 
-/**
- * @brief The parameter bounds of a controller box as plain vectors: what
- * the Quick Solution equations read and write.
- *
- * Fixed parameters carry their nominal at both ends and are never cut. One
- * definition for NK, MC (2021) and the MC family, which would otherwise
- * have to agree on every detail of it: which end a pole cuts, which corner
- * the other parameters sit at.
- */
 struct ParameterBounds {
     std::vector<double> zeroInfs, zeroSups, poleInfs, poleSups;
     std::vector<char> zeroUncertain, poleUncertain;
@@ -361,9 +286,6 @@ inline ParameterBounds boundsOf(LtiSystem * box) {
     return b;
 }
 
-/// The box with the bounds written back: every uncertain parameter takes
-/// its new range with the nominal at the infimum and keeps its name, and
-/// the fixed ones stay as they were.
 inline std::unique_ptr<LtiSystem> boxFromBounds(LtiSystem * box, const ParameterBounds & b) {
     std::vector<Parameter> numerator;
     numerator.reserve(b.zeroInfs.size());
@@ -390,13 +312,6 @@ inline std::unique_ptr<LtiSystem> boxFromBounds(LtiSystem * box, const Parameter
             box->delay());
 }
 
-/**
- * @brief Quick Solution from below (NK, sec. 3.3, steps 3-8): with the strip
- * under the boundary minimum certainly forbidden, the gain and every zero
- * raise their infimum and every pole lowers its supremum to the point where
- * the loop stops being certainly below B_min. Sequential, on the latest
- * updated values. Returns whether anything moved.
- */
 inline bool cutBelowBoundary(ParameterBounds & b, double boundMin, double w, std::complex<double> p0) {
     bool cut = false;
 
@@ -429,9 +344,6 @@ inline bool cutBelowBoundary(ParameterBounds & b, double boundMin, double w, std
     return cut;
 }
 
-/// The mirror of cutBelowBoundary on the strip over the boundary maximum
-/// (thesis MC): the loop-minimising corner and B_max, cutting the other
-/// end of every range.
 inline bool cutAboveBoundary(ParameterBounds & b, double boundMax, double w, std::complex<double> p0) {
     bool cut = false;
 
@@ -464,9 +376,6 @@ inline bool cutAboveBoundary(ParameterBounds & b, double boundMax, double w, std
     return cut;
 }
 
-/// Phase cuts on the right strip (phases above thetaMax certainly
-/// forbidden; MC stage 2, thesis 4.1.2): zeros raise their infimum, poles
-/// lower their supremum. Angles in radians, phi0 the nominal plant phase.
 inline bool cutRightOfPhase(ParameterBounds & b, double thetaMax, double phi0, double w) {
     bool cut = false;
 
@@ -491,8 +400,6 @@ inline bool cutRightOfPhase(ParameterBounds & b, double thetaMax, double phi0, d
     return cut;
 }
 
-/// Phase cuts on the left strip (phases below thetaMin certainly
-/// forbidden): zeros lower their supremum, poles raise their infimum.
 inline bool cutLeftOfPhase(ParameterBounds & b, double thetaMin, double phi0, double w) {
     bool cut = false;
 
@@ -517,10 +424,6 @@ inline bool cutLeftOfPhase(ParameterBounds & b, double thetaMin, double phi0, do
     return cut;
 }
 
-/// The prune step of MC1 (paper step 3bis.(b)) and the thesis MC (5.4.3):
-/// the gain range of a box capped at the prune variable C. Takes the box
-/// over and returns the capped replacement, or the box itself when the cap
-/// does not apply.
 inline std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double cap) {
     if (!box->gain().isUncertain() ||
             cap <= box->gain().range().min || cap >= box->gain().range().max) {
@@ -533,7 +436,6 @@ inline std::unique_ptr<LtiSystem> capGain(std::unique_ptr<LtiSystem> box, double
             box->delay());
 }
 
-/// Nominal plant phase on the (-2 pi, 0] branch the Nichols boxes use.
 inline double nominalPhase(std::complex<double> p0) {
     double phi0 = std::arg(p0);
 

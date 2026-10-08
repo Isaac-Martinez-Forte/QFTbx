@@ -5,6 +5,8 @@
  * The uncertainty of a parameter, the spans of the Nichols grid and a plot's
  * frequency window are all ranges. The pair says which end is which, orders
  * an inverted pair and gives the width and midpoint every bisection needs.
+ * An inverted pair is a typo for the same interval, not another one, and
+ * containsStrictly() is what a cut asks before it may narrow a range.
  */
 
 #ifndef QFTBX_RANGE_H
@@ -14,14 +16,6 @@
 
 namespace qftbx {
 
-/**
- * @brief A closed real interval [min, max].
- *
- * The toolbox is full of intervals: the uncertainty of a parameter, the
- * phase and magnitude spans of the Nichols grid, a plot's frequency
- * window. A pair of doubles would not say which member is which, and
- * ordered() would be open-coded at every construction site.
- */
 struct Range
 {
     double min = 0.0;
@@ -31,8 +25,6 @@ struct Range
 
     Range(double minimum, double maximum) : min(minimum), max(maximum) {}
 
-    /// The same interval with its ends in order (an inverted pair is a
-    /// user typo, not a different interval).
     Range ordered() const
     {
         return min <= max ? *this : Range(max, min);
@@ -43,7 +35,6 @@ struct Range
         return max - min;
     }
 
-    /// Midpoint; the natural bisection point of the interval.
     double middle() const
     {
         return min + width() / 2.0;
@@ -59,8 +50,6 @@ struct Range
         return min <= value && value <= max;
     }
 
-    /// True when 'value' lies strictly inside, which is what a cut needs
-    /// before it may narrow an interval.
     bool containsStrictly(double value) const
     {
         return min < value && value < max;

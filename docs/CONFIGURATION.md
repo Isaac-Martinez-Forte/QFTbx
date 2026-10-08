@@ -1,161 +1,139 @@
 # The settings file
 
-QFTbx reads an optional settings file, `qftbx.conf`. Every value in it has
-a compiled default, and the file only says what to change: a key left out
-keeps its default, and with no file at all the program runs exactly as
-shipped. Nothing in it is required.
-
-The complete, commented reference is [`qftbx.conf.example`](../qftbx.conf.example)
-at the root of the repository; copy it, uncomment what you want to change,
-and put it in one of the places below.
+QFTbx reads an optional settings file, `qftbx.conf`. Every key has a compiled
+default and the file only says what to change: a key left out keeps its
+default, and with no file the program runs as shipped.
+[`qftbx.conf.example`](../qftbx.conf.example) lists every key commented out;
+copy it and uncomment what you change.
 
 ## Where it is read from
 
 The first one that exists wins:
 
-1. the path in the `QFTBX_CONFIG` environment variable, which is how a
-   variant is tried on a shared machine without touching anyone's home
-   directory. Naming a file that cannot be read is an error, because naming
-   it says it is meant to be used;
-2. `./qftbx.conf`, next to wherever the program was started;
+1. the file named by the `QFTBX_CONFIG` environment variable (naming a file
+   that cannot be read is an error);
+2. `./qftbx.conf`, in the directory the program was started from;
 3. `$HOME/.config/qftbx/qftbx.conf`.
 
 ## Syntax
 
-An INI file. Comments start with `#` or `;` and run to the end of the line.
-Sections group the keys, and a key is its whole path: `max-grid-cells` under
-`[limits]` is `limits.max-grid-cells`, and the same name under another
-section is a different setting.
-
-Every value but the interface language is a number, and every setting has a stated range. A value that
-is not a number, or lies outside its range, stops the program with a
-message naming the key and the line; it does not quietly become zero or the
-nearest bound.
-
-Only the application reads the file. The test suite builds its own settings,
-so no value here can change what a test means.
+An INI file. Comments start with `#` or `;`. A key is its section and its
+name: `max-grid-cells` under `[limits]` is `limits.max-grid-cells`. A value
+that is not a number, or lies outside its range, stops the program with a
+message naming the key and the line. The application and the command-line
+solver read the file; the tests build their own settings and never take a
+value from it.
 
 ## The sections
 
-**`[interface]`**: the interface, and the one setting whose value is a text.
+**`[interface]`**. The window writes `canvas` and `window` itself, and the
+View menu writes `language` and `theme`.
 
 | Key | Default | Values | Meaning |
 |---|---|---|---|
-| `language` | `system` | `system` or a language code (`en`, `es`, ...) | The language the interface starts in. Choosing a language in the View menu writes it here, into the settings file in use (the user's own, `$HOME/.config/qftbx/qftbx.conf`, when the application read none). The codes are those of the translations compiled in; see `src/gui/translations/README.md` |
-| `canvas` | empty | a list of `phase:size` | How the canvas was left when the application last closed: the phases in the order the user put them, each with the size he gave it. The window writes it itself; deleting the line loses nothing, and the canvas comes up in the order of the design |
-| `theme` | `system` | `system`, `light`, `dark` | The look of the interface. The three share their shapes - flat, square, one-pixel borders, the blue of the icon as the accent - and differ in the palette: `system` takes the machine's. Choosing one in the View menu writes it here |
-| `window` | empty | `width height`, `maximized` | How big the window was when it last closed. Written by the window itself; deleting the line loses nothing |
-| `digits` | `4` | 1 to 17 | How many significant digits the forms SHOW. The project file always keeps every digit of every number; this is about reading them. Significant digits and not decimals, so that the small ones survive: four decimals of `6.988e-05` would be a zero |
+| `language` | `system` | `system` or a language code | The language the interface starts in; the codes are those of the compiled translations (`src/gui/translations/README.md`) |
+| `theme` | `system` | `system`, `light`, `dark` | `system` takes the machine's palette, `light` and `dark` the toolbox's own |
+| `digits` | `4` | 1 to 17 | Significant digits the forms show; the project file keeps every digit |
+| `canvas` | empty | a list of `phase:size` | The canvas as it was when the application last closed |
+| `window` | empty | `width height`, `maximized` | The window size when it last closed |
 
-**`[log]`**: the record of what the engines did and how long it took. One
-line per stage, written as the work goes: which algorithm ran on which
-problem and what it cost. It answers the question the engines used to answer
-by printing on standard output, where the interface never showed it and
-nothing could turn it off.
+**`[log]`**. A record of what the engines did and how long it took, one line
+per stage.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `enabled` | `0` | 0 or 1 | Whether the record is written at all. Off by default: a program that writes files nobody asked for surprises somebody |
-| `path` | empty | a path | Where it goes. Empty means `$XDG_STATE_HOME/qftbx/qftbx.log`, or `$HOME/.local/state/qftbx/qftbx.log` when that is not set. The directories are made if they are not there, and a path that cannot be written leaves the record closed rather than stopping a computation |
-| `size-limit-kilobytes` | `1024` | 16 to 1048576 | Where it rotates: past this the file becomes the previous generation (`.1`) and a new one starts, so the oldest lines fall off the end. Two generations are kept, so the space taken is twice this and never more |
+| `enabled` | `0` | 0 or 1 | Whether the record is written |
+| `path` | empty | a path | Empty means `$XDG_STATE_HOME/qftbx/qftbx.log`, or `$HOME/.local/state/qftbx/qftbx.log`; a path that cannot be written leaves the record closed |
+| `size-limit-kilobytes` | `1024` | 16 to 1048576 | Past this size the file becomes the previous generation (`.1`); two generations are kept |
 
-**`[limits]`**: ceilings that exist to stop a typo, not to express a limit of
-the method. They only ever refuse input, so moving them changes no computed
-result.
+**`[limits]`**. Ceilings against typos. They only refuse input, so none
+changes a computed result.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `max-grid-cells` | 10000000 | 4 to 1e15 | Cells of the Nichols grid for the boundaries (phase points × magnitude points) |
+| `max-grid-cells` | 10000000 | 4 to 1e15 | Cells of the Nichols grid of the boundaries, phase points × magnitude points |
 | `max-template-points` | 1000000 | 1 to 1e12 | Points per parameter grid in the template sweep |
 | `max-frequency-count` | 1000000 | 1 to 2147483647 | Design frequencies in one set |
-| `max-magnitude` | 1e12 | 1 to 1e300 | Largest magnitude accepted in the loop-shaping dialog's fields |
+| `max-magnitude` | 1e12 | 1 to 1e300 | Largest magnitude the loop-shaping dialog accepts |
 
-**`[search]`**: what the interval search may spend.
+**`[search]`**. What the interval search may spend.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `max-live-nodes` | 32000000 | 1 to 1e15 | Live nodes the branch and bound list may hold before it refuses to grow. A memory budget, not a time one: a node measures 528 bytes with two uncertain parameters and 1056 with eight. Every run prints its "peak live nodes", which is the number to size this from |
+| `max-live-nodes` | 32000000 | 1 to 1e15 | Live nodes the branch and bound list may hold, a memory budget: 528 bytes per node with two uncertain parameters, 1056 with eight. Every run prints its peak |
 
 **`[defaults.boundary-grid]`**, **`[defaults.templates]`**,
-**`[defaults.loop-shaping]`**: what the dialogs are prefilled with. Nothing
-here changes a computed result, since the value is shown and can be typed
-over; it is the group that shows most in daily use.
+**`[defaults.loop-shaping]`**. What the dialogs are prefilled with. Nothing
+here changes a result, since the value is on screen and can be typed over.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `boundary-grid.phase-start`, `phase-end` | -360, 0 | -3600 to 3600 | The phase axis of the Nichols grid, in degrees; it must span at least 360 degrees or the boundary union cannot close |
-| `boundary-grid.phase-points` | 361 | 2 to 1e6 | Points on the phase axis; 361 over -360..0 is the classic one-degree grid |
+| `boundary-grid.phase-start`, `phase-end` | -360, 0 | -3600 to 3600 | The phase axis of the Nichols grid, in degrees; it must span at least 360 |
+| `boundary-grid.phase-points` | 361 | 2 to 1e6 | Points on the phase axis; 361 over -360..0 is the one-degree grid |
 | `boundary-grid.magnitude-start`, `magnitude-end` | -60, 60 | -1000 to 1000 | The magnitude axis, in decibels |
 | `boundary-grid.magnitude-points` | 121 | 2 to 1e6 | Points on the magnitude axis |
-| `templates.point-count` | 25 | 1 to 1e6 | Points per parameter grid in the template sweep. Ten leaves gaps of up to a fifth of a template; twenty-five keeps them under a few per cent. It multiplies: with n uncertain parameters the sweep evaluates this many to the power of n plants, so lower it for many parameters |
+| `boundary-grid.from-cloud` | 0 | 0 or 1 | Compute the boundaries from the whole template cloud instead of its contour: always safe and more conservative, the cure when a contour comes out wrong |
+| `templates.point-count` | 25 | 1 to 1e6 | Points per parameter grid in the template sweep; with n uncertain parameters the sweep evaluates this many to the power of n plants |
+| `templates.epsilon-in-nichols` | 1 | 0 or 1 | The plane a new project measures its contour epsilon in: 1 the Nichols plane, 0 the complex plane (the historical reading) |
+| `templates.db-per-degree` | 1 | 1e-6 to 1e6 | Decibels that weigh as much as one degree in the Nichols plane |
 | `loop-shaping.start`, `end` | 1e-9, 10 | 1e-300 to 1e300 | The frequency range the loop-shaping plot starts with, in rad/s |
 | `loop-shaping.point-count` | 100 | 2 to 1e6 | Points over that range |
 
-**`[stability]`**: the resolution of the nominal stability check. These trade
-time against how reliably the check decides; the criterion itself, the
-Cohen-Chait-Yaniv crossing count and its 0 dB ray, is the method and not a
-setting. Too coarse a grid misses a fast phase turn, the checker answers
-"cannot decide" and a candidate that may have been good is discarded,
-conservatively; too fine a grid makes every one of millions of candidates
-cost more.
+**`[stability]`**. The frequency grid of the nominal stability check. A
+coarser grid is faster and answers "cannot decide" more often; the criterion
+itself is not a setting.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `base-grid-points` | 3000 | 10 to 1e7 | Points of the base logarithmic frequency grid |
+| `base-grid-points` | 3000 | 10 to 1e7 | Points of the base logarithmic grid |
 | `decades-beyond` | 3 | 0 to 20 | Decades sampled beyond the design frequencies, on both sides |
 | `max-phase-step-degrees` | 30 | 0.1 to 180 | Phase step above which the grid is refined: the unwrapping tolerance |
 | `refinement-budget` | 200000 | 1 to 1e9 | Refinements one verdict may spend before answering "cannot decide" |
 
-**`[algorithms]`**: figures from the published algorithms. This is the group
-to be careful with, and the only one where that is true: these change what
-the algorithm computes, not how long it takes. Every one is a number from a
-paper, and a value changed here makes the golden tests and the article
-validations stop describing the program that is running. They are here
-anyway, because a research toolbox whose published parameters can only be
-explored by recompiling is a worse tool.
+**`[algorithms]`**. Figures from the published algorithms. These change what
+an algorithm computes, not only how long it takes: with a value changed here
+the program is no longer the one the golden tests and the article
+validations describe.
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `template-representatives` | 9 | 2 to 1000 | MR (Rambabu and Nataraj, FDA-10): template points entering the constraint set per design frequency. The paper uses 9; raising it narrows the known excess of the tracking bound only slightly, at a much higher cost |
-| `max-narrowing-passes` | 8 | 1 to 1000 | MR: passes of the HC4 narrowing before a box is accepted as narrowed no further |
-| `mr-nichols-epsilon` | 0 | 0 or 1 | MR: with 1 the termination epsilon measures the Nichols box of the leading node, as in the other four algorithms, instead of the width of the parameter box the paper uses; the only way to compare the running time of MR with the others' |
-| `whole-template-if-no-contour` | 1 | 0 or 1 | Templates: when the contour walk does not close at a frequency, 1 lets the whole template stand in for its contour there (safe, slower, marked in the viewer); 0 stops with an error naming the frequency. The templates dialog offers the same choice |
-| `alpha-shape-contour` | 0 | 0 or 1 | Templates: extract the contour as the alpha-shape (the epsilon-hull by its definition, edge by edge: always closes, every component and hole) instead of by the historical walk of Nordin. The templates dialog offers the same choice |
-| `border-sweep` | 0 | 0 or 1 | Templates: with exactly two uncertain parameters, sweep only the border of the parameter box, as many evaluations as the interior grid would cost, since the worst case of every specification over a template lies on its border. The templates dialog offers the same choice |
-| `defaults.boundary-grid.from-cloud` | 0 | 0 or 1 | Boundaries: read the whole template cloud instead of its contour. The contour assumes the worst case of every specification lies on the template's border, which holds on eleven of the twelve battery problems and saves most of the work; on the twelfth it leaves the answer 0.0012 dB permissive even under the conservative reading. Reading the cloud is always safe and costs gain, since its guard of the singular locus is a bound per sample where the contour's is exact. Turn it on to certify, or when a contour comes out wrong. The boundary dialog offers the same choice per run |
-| `closed-form-columns` | 0 | 0 or 1 | Boundaries: read the columns of the five magnitude specifications in closed form (a quadratic in the gain per plant and phase, intersected exactly) instead of off the sampled sheet: exact in magnitude, no magnitude window. Tracking keeps its sheet |
-| `mc.infeasible-magnitude`, `mc.infeasible-phase`, `mc.feasible-magnitude`, `mc.feasible-phase`, `mc.best-gain`, `mc.tree-bisection` | 1 | 0 or 1 | MC (thesis) and MC2: the strategies of chapter 4 of the thesis, one switch each. They exist so that a benchmark plan can measure what each one buys. They do move the answer: the search stops at the first box small enough, and which box that is depends on how the tree was cut and split |
-| `mc.stages` | 1 | 0 or 1 | **MC (thesis) only**: the execution stages of sec. 4.4, which switch the cuts off for a node and its children the first time a full pass improves nothing. MC2 does not have them: what they contributed is their bisection rule, which MC2 applies everywhere |
-| `conservative-boundary-columns` | 1 | 0 or 1 | NT, NK, MC1, MC (thesis), MC2: how a phase between two nodes of the boundary grid is read. 1, the default and the conservative reading: both bracketing nodes must allow the point or box, so the answer respects the boundary at the point's own phase. 0, the published reading: the nearest node, which admits up to half a step of what the boundary forbids (0.05 dB on example 2 with the 1-degree grid). What 1 costs depends on the algorithm: the searches by contraction alone slow down by orders of magnitude while MC2 does not. Set 0 to reproduce a published algorithm as published. See the note below
-| `family-stability-gate` | 1 | 0 or 1 | NT, NK, MC1, MC (thesis), MC2, MC3: whether a search closes the loop with every plant of the sweep before it returns a design, and refuses one that leaves a plant unstable. The bounds are imposed at the design frequencies and the crossing that decides stability can fall between two of them, so a design can meet every bound and destabilise a third of the family. The check is exact for the sampled family, adds no frequency to the problem, and costs a Routh table per plant. It only acts when the project records the sweep its templates came from; 0 reproduces a published algorithm, which does not make the check |
+| `template-representatives` | 9 | 2 to 1000 | MR (Rambabu and Nataraj, FDA-10): template points entering the constraint set per design frequency; the paper uses 9 |
+| `max-narrowing-passes` | 8 | 1 to 1000 | MR: passes of the HC4 narrowing before a box is accepted as narrowed |
+| `mr-nichols-epsilon` | 0 | 0 or 1 | MR: 0 measures the termination epsilon on the parameter box, as the paper does; 1 on the Nichols box, as the other four algorithms do |
+| `whole-template-if-no-contour` | 1 | 0 or 1 | Templates: when the contour walk does not close at a frequency, 1 uses the whole template there and 0 stops with an error |
+| `alpha-shape-contour` | 0 | 0 or 1 | Templates: 1 extracts the contour as the alpha-shape, which always closes; 0 uses Nordin's walk, as published |
+| `border-sweep` | 0 | 0 or 1 | Templates: with exactly two uncertain parameters, 1 sweeps only the border of the parameter box |
+| `closed-form-columns` | 0 | 0 or 1 | Boundaries: 1 reads the columns of the five magnitude specifications in closed form (Chait and Yaniv 1993) instead of off the sampled sheet; tracking keeps its sheet |
 | `local-search-budget` | 400 | 1 to 1e7 | NK (Nataraj and Kubal 2007): iterations the local refinement of a candidate may spend |
 | `gain-tolerance` | 1.01 | above 1, up to 10 | NK: the ratio at which the gain bisection stops; a pruning bound, not the accuracy of the answer |
-| `certified-gain-tolerance` | 1.01 | above 1, up to 10 | MC (Martínez-Forte and Cervera 2021): the same ratio for the certified gain search |
+| `certified-gain-tolerance` | 1.01 | above 1, up to 10 | MC1 (Martínez-Forte and Cervera 2021): the same ratio for the certified gain search |
 
-What is not in the file, and will not be: 2π, the two layers of the boundary
-union, the seven specification slots, the 0 dB ray of the stability
-criterion. Writing those in a file would not configure anything; it would
-break the program. A setting is a value with a defensible range.
+Constants of the method, such as 2π, the seven specification slots or the
+0 dB ray of the stability criterion, are not settings and are not in the
+file.
 
-**The two readings, measured on the toolbox example 2.** The nearest-node
-reading is what the published algorithms do, and it is permissive: between two
-nodes the boundary can run higher than at the nearer one, so a box up to half
-a grid step away is admitted that the boundary at its own phase forbids. With
-a 1-degree phase grid the returned controller violates the stability
-specification by 0.05 dB; the error halves every time the grid step halves
-and never reaches zero (0.005 dB at 0.125 degrees). The conservative reading
-removes it at every grid, but its cost depends on the grid: the strip cuts of
-the searches need every column of a span to agree, and at 1 degree the two
-bracketing columns disagree so often that NT, NK and MC1 take about a thousand
-times longer (70 to 130 s instead of 0.05 s). Each halving of the step divides
-that by about five: at 0.25 degrees NT takes 2.4 s, at 0.125 degrees 0.5 s,
-less than computing the boundaries themselves (3 and 7 s). So there are two
-sensible ways to run the loop shaping:
+## How the columns are read
 
-| | phase grid | reading | result on example 2 | total time |
+NT, NK, MC1, MC (thesis) and MC3 read a phase between two nodes of the
+boundary grid conservatively: both bracketing nodes must allow the point. The
+published algorithms read the nearest node, which admits between two nodes
+what the boundary at the point's own phase forbids. The conservative reading
+removes that error at any grid, at a cost in time that a finer grid brings
+down. MC2 does not decide on the columns at all: it judges every controller
+against the specifications themselves over the whole template, at the loop's
+own phase, and uses the columns only to steer its search, so it needs a
+template at every design frequency and the grid changes only which design it
+reaches within the epsilon. Measured on the toolbox example 2
+(`examples/toolbox-2.qft`, epsilon 0.5, the whole design on one thread):
+
+| algorithm | phase grid | reading | result | total time |
 |---|---|---|---|---|
-| as published | 361 points (1 degree) | nearest node | k = 557.1, violates by +0.05 dB | about 1 s |
-| certified | 1441 or 2881 points (0.25 or 0.125 degrees) | conservative | k = 567.3, satisfies every specification | 3 to 8 s |
+| NT as published | 361 points (1 degree) | nearest node | k = 557.0, exceeds by 0.05 dB | 1.5 s |
+| NT | 361 points | conservative | k = 567.3, meets every specification | 53 s |
+| NT | 1441 points (0.25 degrees) | conservative | k = 567.3, meets every specification | 6.9 s |
+| MC2 | 361 points | exact | k = 568.8, meets every specification | 1.7 s |
+| MC2 | 1441 points | exact | k = 567.5, meets every specification | 5.3 s |
 
-The controller returned is checked against the specifications on the full
-templates either way, and the loop-shaping viewer shows the verdict.
+Whatever the algorithm, the returned controller is checked against the
+specifications on the full templates, and the loop-shaping viewer shows the
+verdict.

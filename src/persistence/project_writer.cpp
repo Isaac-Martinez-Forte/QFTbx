@@ -237,6 +237,7 @@ void writeLoopShapingSettings(pugi::xml_node settings, const LoopShapingResult::
     section.append_attribute("algorithm") = algorithmName(run.algorithm);
     section.append_attribute("tolerance") = number(run.epsilon).c_str();
     section.append_attribute("columns") = run.conservativeColumns ? "conservative" : "nearest";
+    section.append_attribute("point-reading") = pointReadingName(run.pointReading);
 }
 
 void writeTemplates(pugi::xml_node root, const ProjectContent & content)
@@ -347,6 +348,13 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
             check.append_attribute("family-worst-real-part") = number(family.worstRealPart).c_str();
         } else {
             check.append_attribute("family-not-checked") = familyNotCheckedName(family.notChecked);
+        }
+        const NominalStability & nominal = loopShaping->check()->nominal;
+        if (nominal.checked) {
+            check.append_attribute("nominal-stable") = nominal.stable;
+            if (std::isfinite(nominal.worstRealPart)) {
+                check.append_attribute("nominal-worst-real-part") = number(nominal.worstRealPart).c_str();
+            }
         }
     }
 }

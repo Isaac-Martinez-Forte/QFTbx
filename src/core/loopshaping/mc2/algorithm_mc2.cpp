@@ -1,29 +1,49 @@
 /**
  * @file
- * @brief Algorithm MC2: the thesis algorithm with the corrections documented in its class.
+ * @brief Algorithm MC2, step by step.
  *
- * The loop is that of section 5.4 without the execution stages: a live list
- * ordered by ascending gain infimum, the prune variable C with a strict
- * comparison, the cutting and bisection strategies of the pseudocode, and
- * the certified solution of MG returned when the space is exhausted. The
- * controller parameters are viewed as the thesis vector x, gain first. The
- * gain of a returned corner is whatever the anti-blocking rule chooses.
- * Termination, the verified corner and cancellation are as in NT.
+ * solve() takes the box of least gain from the list, contracts its gain,
+ * reads it against the boundaries at every design frequency, certifies its
+ * corner or the candidates of an epsilon-small box through the funnel,
+ * discards it when its instability is proven, and otherwise cuts and
+ * bisects it; what is removed without a proof goes to the certificate.
+ * What the search is and why is in algorithm_mc2.h.
  */
 
-#include <vector>
-#include "src/core/math/constants.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/mc2/algorithm_mc2.h"
-
-#include "src/core/math/range_union.h"
-
-namespace quick_solution = qftbx::quick_solution;
+#include "src/core/math/constants.h"
 
 namespace qftbx {
 
 namespace {
+
+enum class CutKind { Magnitude, Phase };
+
+Range magnitudeRangeOf(const NicholsBox & projection)
+{
+    return Range(projection.magnitudeDb.lower(), projection.magnitudeDb.upper());
+}
+
+Range phaseRangeOf(const NicholsBox & projection)
+{
+    return Range(projection.phaseDegrees.lower(), projection.phaseDegrees.upper());
+}
+
+bool splittable(const Parameter & parameter)
+{
+    const Range range = parameter.range();
+    return parameter.isUncertain()
+           && range.width() > 1e-12 * std::max(std::abs(range.min), std::abs(range.max));
+}
 
 void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
                    std::vector<double> & zeros, std::vector<double> & poles)
@@ -46,22 +66,11 @@ void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
 void AlgorithmMc2::setSettings(const qftbx::Settings & settings)
 {
     m_settings = settings;
-    const Settings::Algorithms::McStrategies & mc = settings.algorithms.mc;
-    strategies.infeasibleMagnitude = mc.infeasibleMagnitude;
-    strategies.infeasiblePhase = mc.infeasiblePhase;
-    strategies.feasibleMagnitude = mc.feasibleMagnitude;
-    strategies.feasiblePhase = mc.feasiblePhase;
-    strategies.bestGain = mc.bestGain;
-    strategies.treeBisection = mc.treeBisection;
-}
-
-void AlgorithmMc2::setStrategies(const Strategies & s)
-{
-    strategies = s;
+    strategies = settings.research.mc2;
 }
 
 void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> * omega,
-                                  const BoundaryData * boundaries, double epsilon)
+                              const BoundaryData * boundaries, double epsilon)
 {
     this->plant = plant;
     this->controller = controller->clone();
@@ -70,18 +79,7 @@ void AlgorithmMc2::setProblem(LtiSystem * plant, LtiSystem * controller, std::ve
     this->boundaries = boundaries;
     this->epsilon = epsilon;
 
-    phaseSpanWidth = boundaries->phaseRange().width();
-    phaseGridStep = phaseSpanWidth / (boundaries->phaseCount() - 1);
-
-    hasUncertainZeros = false;
-    for (Parameter & var : this->controller->numerator()) {
-        hasUncertainZeros = hasUncertainZeros || var.isUncertain();
-    }
-
-    hasUncertainPoles = false;
-    for (Parameter & var : this->controller->denominator()) {
-        hasUncertainPoles = hasUncertainPoles || var.isUncertain();
-    }
+    phaseGridStep = boundaries->phaseRange().width() / (boundaries->phaseCount() - 1);
 }
 
 inline std::int32_t AlgorithmMc2::parameterCount(LtiSystem * box) const
@@ -102,8 +100,7 @@ Range AlgorithmMc2::parameterRange(LtiSystem * box, std::int32_t parameter) cons
                              : Range(var.nominal(), var.nominal());
 }
 
-std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::int32_t parameter,
-                                                       Range range) const
+std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::int32_t parameter, Range range) const
 {
     std::vector<Parameter> numerator;
     numerator.reserve(box->numerator().size());
@@ -131,36 +128,69 @@ std::unique_ptr<LtiSystem> AlgorithmMc2::replaceParameter(LtiSystem * box, std::
                        std::move(gain), box->delay());
 }
 
-bool AlgorithmMc2::solve()
+void AlgorithmMc2::prepare()
 {
     liveList = std::make_unique<OrderedList>(false, m_settings.search.maxLiveNodes);
     conversion = std::make_unique<NaturalIntervalExtension>();
-    detector = std::make_unique<BoundaryViolationDetector>(m_settings.algorithms.conservativeBoundaryColumns);
+    detector = std::make_unique<BoundaryViolationDetector>(m_settings.research.conservativeColumnsInForce());
     stability = std::make_unique<NominalStabilityChecker>(plant, omega, m_settings.stability);
     family = std::make_unique<FamilyStabilityChecker>(plant, controller.get(),
-                                                     m_settings.algorithms.familyStabilityGate ? m_sweep : ParameterGrids());
+                                                     m_settings.research.familyGate ? m_sweep : ParameterGrids());
+
+    exact.reset();
+    certifier.reset();
+    if (m_settings.research.mc2Reading == Settings::Research::PointReading::Exact) {
+        if (m_templates != nullptr && m_specifications != nullptr) {
+            exact = std::make_unique<ExactPointCheck>(*plant, controller.get(), *omega, *m_templates, *m_specifications);
+        }
+        if (exact == nullptr || !exact->usable()) {
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "MC2 reads every point against the specifications and needs a template at every design frequency."));
+        }
+        certifier = std::make_unique<Certifier>(*exact, *stability, *family);
+    }
+
+    exactReading = certifier != nullptr;
+    gainContraction = exactReading && m_settings.research.mc2GainContraction;
+    contractor.reset();
+    if (gainContraction) {
+        contractor = std::make_unique<GainContractor>(*exact, *family, *omega, nominalPlantValues);
+    }
+
+    certificate = LoopShapingStatistics::Certificate();
+    certificate.kept = true;
+    certificate.exactPoints = exactReading;
+    residueGainInf = std::numeric_limits<double>::infinity();
+    unprovenGainInf = std::numeric_limits<double>::infinity();
+    gridBackedGainInf = std::numeric_limits<double>::infinity();
+    resolvedGainInf = std::numeric_limits<double>::infinity();
 
     bestCertifiedGain = std::numeric_limits<double>::infinity();
     bestCertifiedController.reset();
 
     nominalPlantValues.clear();
-
     for (double o : *omega) {
-        std::complex<double> c = plant->evaluate(o);
-        nominalPlantValues.push_back(c);
+        nominalPlantValues.push_back(plant->evaluate(o));
     }
+}
 
-    if (!hasUncertainZeros && !hasUncertainPoles && !controller->gain().isUncertain()) {
+bool AlgorithmMc2::solve()
+{
+    prepare();
+
+    bool uncertain = controller->gain().isUncertain();
+    for (Parameter & z : controller->numerator()) {
+        uncertain = uncertain || z.isUncertain();
+    }
+    for (Parameter & p : controller->denominator()) {
+        uncertain = uncertain || p.isUncertain();
+    }
+    if (!uncertain) {
         designedController = pointFromBox(controller.get(), true);
         return false;
     }
 
-    const double initialGainInf = controller->gain().range().min;
-
-    auto initial = std::make_unique<McSearchNode>(initialGainInf, std::move(controller),
-                                                 ambiguous);
-    initial->setCutsEnabled(true);
-    liveList->insert(std::move(initial));
+    initialGainRange = controller->gain().range();
+    liveList->insert(std::make_unique<McSearchNode>(initialGainRange.min, std::move(controller), ambiguous));
 
     while (true) {
 
@@ -169,109 +199,279 @@ bool AlgorithmMc2::solve()
         }
 
         if (liveList->isEmpty()) {
-            if (bestCertifiedController != nullptr) {
-                designedController = std::move(bestCertifiedController);
-                return true;
-            }
-
-            throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
+            return concludeEmptyList();
         }
 
         std::unique_ptr<McSearchNode> node = liveList->takeFirstAs<McSearchNode>();
 
-        if (bestCertifiedGain < node->system()->gain().range().min) {
+        if (cannotImprove(node->system()->gain().range().min)) {
             continue;
         }
 
         node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
 
-        if (node->flag() == feasible && family->isStable(cornerOf(node->system(), true))) {
-            designedController = pointFromBox(node->system(), true);
+        if (contractor != nullptr && node->system()->gain().isUncertain()) {
+            const GainContractor::Contraction contraction = contractor->contract(node->system());
+            if (contraction.outcome == GainContractor::Outcome::EmptiedBySpecifications
+                    || contraction.outcome == GainContractor::Outcome::EmptiedByStability
+                    || contraction.outcome == GainContractor::Outcome::EmptiedByZeroExclusion) {
+                continue;
+            }
+            if (contraction.outcome == GainContractor::Outcome::Contracted) {
+                node->setSystem(replaceParameter(node->system(), 0, contraction.gains));
+                if (cannotImprove(contraction.gains.min)) {
+                    continue;
+                }
+            }
+        } else if (exactReading && family->isBoxUnstable(node->system())) {
+            continue;
+        }
+        const double gainInf = node->system()->gain().range().min;
+
+        Step step = resolveFeasibleHead(*node);
+        if (step == Step::Designed) {
             return true;
         }
 
         NodeAnalysis analysis;
-        if (!analyse(node.get(), analysis)) {
-            depthAccounting.record(*node->system(), infeasible);
+        if (!analyseOrDiscard(*node, analysis, gainInf)) {
             continue;
         }
-        depthAccounting.record(*node->system(), analysis.flag == feasible ? feasible : ambiguous);
-        for (std::size_t i = 0; i < analysis.classification.size(); ++i) {
-            if (analysis.classification[i].has_value() && analysis.classification[i]->flag() == ambiguous) {
-                depthAccounting.ambiguousAt(i);
-            }
-        }
 
-        if (analysis.flag == feasible) {
-            const PointController corner = cornerOf(node->system(), true);
-
-            if (!stability->isNominallyStable(corner)) {
-                continue;
-            }
-
-            if (family->isStable(corner)) {
-                designedController = systemFromPoint(node->system(), corner);
+        if (analysis.flag == feasible && !node->cornerVerdict().has_value()) {
+            step = resolveFeasibleCorner(*node, gainInf);
+            if (step == Step::Designed) {
                 return true;
+            }
+            if (step == Step::Next) {
+                continue;
             }
         }
 
         if (isEpsilonSmall(node.get(), analysis)) {
-            const std::optional<PointController> corner = verifiedCorner(node->system(), omega,
-                    conversion.get(), detector.get(), boundaries, nominalPlantValues);
-
-            if (!corner || !stability->isNominallyStable(*corner) || !family->isStable(*corner)) {
-                continue;
+            if (resolveEpsilonBox(*node, gainInf) == Step::Designed) {
+                return true;
             }
-
-            PointController best = *corner;
-            const RangeUnion gains = admissibleGains(best.zeros, best.poles,
-                                                     node->system()->gain().range());
-
-            if (!gains.isEmpty()) {
-                const double contracted = std::pow(10.0, gains.minimum() / 20.0);
-
-                if (contracted < best.gain) {
-                    PointController candidate{contracted, best.zeros, best.poles};
-
-                    if (pointIsFeasible(candidate) && stability->isNominallyStable(candidate)
-                            && family->isStable(candidate)) {
-                        best = std::move(candidate);
-                    }
-                }
-            }
-
-            designedController = systemFromPoint(node->system(), best);
-            return true;
-        }
-
-        if (stability->isBoxUnstable(node->system(), *conversion)) {
             continue;
         }
 
-        std::vector<FeasibleThreshold> thresholds;
-        improveNode(node.get(), analysis, thresholds);
-
-        if (bestCertifiedGain < node->system()->gain().range().min) {
+        if (pruneUnstableBox(*node, gainInf)) {
             continue;
         }
 
-        qftbx::McBisectionResult children = bisect(node.get(), analysis, thresholds);
+        expand(*node, analysis);
+    }
+}
 
-        for (std::unique_ptr<McSearchNode> * slot : {&children.t1, &children.t2}) {
-            std::unique_ptr<McSearchNode> child = std::move(*slot);
+bool AlgorithmMc2::concludeEmptyList()
+{
+    closeCertificate();
 
-            if (child == nullptr) {
-                continue;
-            }
+    if (bestCertifiedController != nullptr) {
+        designedController = std::move(bestCertifiedController);
+        return true;
+    }
 
-            if (bestCertifiedGain < child->system()->gain().range().min) {
-                continue;
-            }
+    if (certificate.residueNodes == 0 && certificate.unprovenDiscards == 0 && certificate.gridBackedPrunes == 0) {
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "No feasible solution exists in the given search box."));
+    }
 
-            child->setIndex(child->system()->gain().range().min);
-            liveList->insert(std::move(child));
+    throw qftbx::InvalidInput(QFTBX_TR("Core", "The search found no design and cannot prove that none exists: %1 boxes were discarded on the boundary columns or on the nominal stability of their enclosure alone, and %2 were left without a certified point. A design, if there is one, needs a gain of at least %3.")
+                              .arg(certificate.unprovenDiscards + certificate.gridBackedPrunes)
+                              .arg(certificate.residueNodes)
+                              .arg(certificate.lowerBoundStrict));
+}
+
+AlgorithmMc2::Step AlgorithmMc2::returnDesign(std::unique_ptr<LtiSystem> design)
+{
+    designedController = std::move(design);
+    closeCertificate();
+    return Step::Designed;
+}
+
+AlgorithmMc2::Step AlgorithmMc2::resolveFeasibleHead(McSearchNode & node)
+{
+    if (exactReading || node.flag() != feasible) {
+        return Step::Carry;
+    }
+
+    if (!node.cornerVerdict().has_value()) {
+        node.setCornerVerdict(family->isStable(cornerOf(node.system(), true)));
+    }
+    if (*node.cornerVerdict()) {
+        return returnDesign(pointFromBox(node.system(), true));
+    }
+    return Step::Carry;
+}
+
+bool AlgorithmMc2::analyseOrDiscard(McSearchNode & node, NodeAnalysis & analysis, double gainInf)
+{
+    if (!analyse(&node, analysis)) {
+        depthAccounting.record(*node.system(), infeasible);
+        if (exactReading) {
+            ++certificate.provenInfeasible;
+        } else {
+            discardUnproven(gainInf);
+        }
+        return false;
+    }
+
+    depthAccounting.record(*node.system(), analysis.flag == feasible ? feasible : ambiguous);
+    for (std::size_t i = 0; i < analysis.classification.size(); ++i) {
+        if (analysis.classification[i].has_value() && analysis.classification[i]->flag() == ambiguous) {
+            depthAccounting.ambiguousAt(i);
         }
     }
+    return true;
+}
+
+AlgorithmMc2::Step AlgorithmMc2::resolveFeasibleCorner(McSearchNode & node, double gainInf)
+{
+    const PointController corner = cornerOf(node.system(), true);
+
+    if (exactReading) {
+        if (certifier->certify(corner)) {
+            adoptIncumbent(lowestGainOnRay(corner), node.system());
+            return Step::Next;
+        }
+        return Step::Carry;
+    }
+
+    if (!stability->isNominallyStable(corner)) {
+        dropToResidue(gainInf);
+        return Step::Next;
+    }
+    if (family->isStable(corner)) {
+        return returnDesign(systemFromPoint(node.system(), corner));
+    }
+    return Step::Carry;
+}
+
+AlgorithmMc2::Step AlgorithmMc2::resolveEpsilonBox(McSearchNode & node, double gainInf)
+{
+    if (exactReading) {
+        const std::optional<PointController> candidate = bestEpsilonCandidate(node.system());
+        if (!candidate) {
+            dropToResidue(gainInf);
+            return Step::Next;
+        }
+        adoptIncumbent(*candidate, node.system());
+        resolvedAtEpsilon(gainInf);
+        return Step::Next;
+    }
+
+    std::optional<PointController> corner = verifiedCorner(node.system(), omega, conversion.get(),
+                                                           detector.get(), boundaries, nominalPlantValues);
+    if (corner && (!stability->isNominallyStable(*corner) || !family->isStable(*corner))) {
+        corner.reset();
+    }
+    if (!corner) {
+        dropToResidue(gainInf);
+        return Step::Next;
+    }
+
+    PointController best = *corner;
+    const std::optional<double> contracted = lowestGain(best.zeros, best.poles, node.system()->gain().range());
+    if (contracted.has_value() && *contracted < best.gain) {
+        PointController candidate{*contracted, best.zeros, best.poles};
+        if (accepts(candidate)) {
+            best = std::move(candidate);
+        }
+    }
+
+    return returnDesign(systemFromPoint(node.system(), best));
+}
+
+bool AlgorithmMc2::pruneUnstableBox(McSearchNode & node, double gainInf)
+{
+    if (!stability->isBoxUnstable(node.system(), *conversion)) {
+        return false;
+    }
+
+    if (exactReading && family->isBoxUnstableAtNominal(node.system())) {
+        return true;
+    }
+    if (gainContraction) {
+        if (family->isBoxUnstableAtNominalOnAxis(node.system())) {
+            return true;
+        }
+        ++certificate.gridPrunesKept;
+        return false;
+    }
+    discardGridBacked(gainInf);
+    return true;
+}
+
+void AlgorithmMc2::expand(McSearchNode & node, NodeAnalysis & analysis)
+{
+    std::vector<FeasibleThreshold> thresholds;
+    if (!improveNode(&node, analysis, thresholds)) {
+        ++certificate.provenInfeasible;
+        return;
+    }
+
+    if (cannotImprove(node.system()->gain().range().min)) {
+        return;
+    }
+
+    qftbx::McBisectionResult children = bisect(&node, analysis, thresholds);
+
+    for (std::unique_ptr<McSearchNode> * slot : {&children.t1, &children.t2}) {
+        std::unique_ptr<McSearchNode> child = std::move(*slot);
+
+        if (cannotImprove(child->system()->gain().range().min)) {
+            continue;
+        }
+
+        liveList->insert(std::move(child));
+    }
+}
+
+void AlgorithmMc2::discardUnproven(double gainInf)
+{
+    ++certificate.unprovenDiscards;
+    unprovenGainInf = std::min(unprovenGainInf, gainInf);
+}
+
+void AlgorithmMc2::discardGridBacked(double gainInf)
+{
+    ++certificate.gridBackedPrunes;
+    gridBackedGainInf = std::min(gridBackedGainInf, gainInf);
+}
+
+void AlgorithmMc2::dropToResidue(double gainInf)
+{
+    ++certificate.residueNodes;
+    residueGainInf = std::min(residueGainInf, gainInf);
+}
+
+void AlgorithmMc2::resolvedAtEpsilon(double gainInf)
+{
+    ++certificate.epsilonResolved;
+    resolvedGainInf = std::min(resolvedGainInf, gainInf);
+}
+
+void AlgorithmMc2::adoptIncumbent(const PointController & design, LtiSystem * box)
+{
+    if (design.gain < bestCertifiedGain) {
+        bestCertifiedGain = design.gain;
+        bestCertifiedController = systemFromPoint(box, design);
+        ++certificate.incumbentUpdates;
+    }
+}
+
+void AlgorithmMc2::closeCertificate()
+{
+    const double head = liveList->isEmpty() ? std::numeric_limits<double>::infinity()
+                                            : liveList->first()->getIndex();
+    certificate.lowerBound = std::min({head, residueGainInf, unprovenGainInf, resolvedGainInf});
+    certificate.lowerBoundStrict = std::min(certificate.lowerBound, gridBackedGainInf);
+    certificate.finished = true;
+}
+
+bool AlgorithmMc2::cannotImprove(double gainInf) const
+{
+    return exactReading ? gainInf >= bestCertifiedGain : gainInf > bestCertifiedGain;
 }
 
 std::size_t AlgorithmMc2::peakLiveNodes() const
@@ -297,6 +497,38 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.stabilityVerdicts = stability->statistics().verdicts;
         statistics.stabilityProfiles = stability->statistics().profilesComputed;
     }
+    statistics.certificate = certificate;
+    if (contractor != nullptr) {
+        statistics.certificate.contractedBoxes = contractor->statistics().contracted;
+        statistics.certificate.emptiedBySpecifications = contractor->statistics().emptiedBySpecifications;
+        statistics.certificate.emptiedByStability = contractor->statistics().emptiedByStability;
+        statistics.certificate.emptiedByZeroExclusion = contractor->statistics().emptiedByZeroExclusion;
+    }
+    if (family != nullptr) {
+        statistics.certificate.familyPrunes = family->statistics().boxPrunes;
+        statistics.certificate.nominalBoxPrunes = family->statistics().nominalBoxPrunes;
+        statistics.certificate.nominalAxisPrunes = family->statistics().nominalAxisPrunes;
+    }
+    if (certifier != nullptr) {
+        const Certifier::Statistics & funnel = certifier->statistics();
+        statistics.certificate.certifications = funnel.certifications;
+        statistics.certificate.refusedByRouth = funnel.refusedByRouth;
+        statistics.certificate.refusedByNominalRouth = funnel.refusedByNominalRouth;
+        statistics.certificate.refusedByNominalStability = funnel.refusedByNominalStability;
+        statistics.certificate.refusedBySpecifications = funnel.refusedBySpecifications;
+        statistics.certificate.refusedByRoots = funnel.refusedByRoots;
+    }
+    if (exact != nullptr) {
+        const ExactPointCheck::Statistics & reading = exact->statistics();
+        statistics.certificate.sectorVerdicts = reading.sectorVerdicts;
+        statistics.certificate.kernelPasses = reading.kernelPasses;
+        statistics.certificate.gainSearches = reading.gainSearches;
+        statistics.certificate.exchangeRounds = reading.exchangeRounds;
+        statistics.certificate.ladderSteps = reading.ladderSteps;
+        statistics.certificate.laddersExhausted = reading.laddersExhausted;
+        statistics.certificate.roundLimitsReached = reading.roundLimitsReached;
+        statistics.certificate.largestWorkingSet = reading.largestWorkingSet;
+    }
     return statistics;
 }
 
@@ -317,8 +549,6 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
         if (node->isFrequencyFeasible(i)) {
             out.classification.push_back(std::nullopt);
             out.projection.push_back(std::nullopt);
-            out.boxMag.push_back(Range());
-            out.boxPhase.push_back(Range());
             continue;
         }
 
@@ -327,16 +557,23 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
 
         BoxClassification classification = detector->classifyBox(projection, boundaries, i);
 
-        const BoxFlag verdict = classification.flag();
-
-        if (verdict == infeasible) {
-            return false;
+        if (classification.flag() == infeasible) {
+            if (!exactReading) {
+                return false;
+            }
+            const ExactPointCheck::SectorVerdict sector = exact->sectorVerdict(
+                        i, phaseRangeOf(projection), magnitudeRangeOf(projection));
+            if (sector.provablyInfeasible) {
+                return false;
+            }
+            ++certificate.columnsOverruled;
+            classification.setFlag(ambiguous);
         }
+
+        const BoxFlag verdict = classification.flag();
 
         out.classification.push_back(std::move(classification));
         out.projection.push_back(projection);
-        out.boxMag.push_back(Range(projection.magnitudeDb.lower(), projection.magnitudeDb.upper()));
-        out.boxPhase.push_back(Range(projection.phaseDegrees.lower(), projection.phaseDegrees.upper()));
 
         const double phaseWidth = projection.phaseDegrees.width();
 
@@ -354,24 +591,22 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
     return true;
 }
 
-void AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
-                                           std::vector<FeasibleThreshold> & thresholds)
+bool AlgorithmMc2::improveNode(McSearchNode * node, NodeAnalysis & analysis,
+                               std::vector<FeasibleThreshold> & thresholds)
 {
     if (!node->cutsEnabled()) {
-        return;
+        return true;
     }
 
-    bool improved = false;
-
-    if (strategies.bestGain && bestGainSearch(node)) {
-        improved = true;
-    } else if (strategies.feasibleMagnitude || strategies.feasiblePhase) {
-        feasibleCuts(node, analysis, thresholds, improved);
+    const bool bestGainFound = strategies.bestGain && bestGainSearch(node);
+    if (!bestGainFound && (strategies.feasibleMagnitude || strategies.feasiblePhase)) {
+        feasibleCuts(node, analysis, thresholds);
     }
 
     if (strategies.infeasibleMagnitude || strategies.infeasiblePhase) {
-        infeasibleCuts(node, analysis, improved);
+        return infeasibleCuts(node, analysis);
     }
+    return true;
 }
 
 bool AlgorithmMc2::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
@@ -383,6 +618,16 @@ bool AlgorithmMc2::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 
 bool AlgorithmMc2::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
 {
+    if (gainContraction) {
+        LtiSystem * box = node->system();
+        bool anySplittable = splittable(box->gain());
+        for (const Parameter & z : box->numerator()) anySplittable = anySplittable || splittable(z);
+        for (const Parameter & p : box->denominator()) anySplittable = anySplittable || splittable(p);
+        if (!anySplittable) {
+            return true;
+        }
+    }
+
     for (std::size_t i = 0; i < omega->size(); ++i) {
         const NicholsBox box = analysis.projection.at(i).has_value()
                 ? *analysis.projection.at(i)
@@ -407,22 +652,8 @@ bool AlgorithmMc2::boxIsFeasible(LtiSystem * box)
     return true;
 }
 
-bool AlgorithmMc2::pointIsFeasible(const PointController & point)
-{
-    for (std::size_t i = 0; i < omega->size(); ++i) {
-        const NicholsBox projection = conversion->nicholsPoint(point, omega->at(i),
-                                                              nominalPlantValues.at(i));
-
-        if (detector->classifyBox(projection, boundaries, i).flag() != feasible) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-RangeUnion AlgorithmMc2::admissibleGains(const std::vector<double> & zeros,
-                                        const std::vector<double> & poles, Range gainRange)
+RangeUnion AlgorithmMc2::columnGainsDb(const std::vector<double> & zeros,
+                                       const std::vector<double> & poles, Range gainRange)
 {
     RangeUnion gains = RangeUnion::of(20.0 * std::log10(gainRange.min),
                                       20.0 * std::log10(gainRange.max));
@@ -461,56 +692,123 @@ bool AlgorithmMc2::bestGainSearch(McSearchNode * node)
     std::vector<double> zeroSups, poleInfs;
     cornerVectors(box, true, false, zeroSups, poleInfs);
 
-    const RangeUnion gains = admissibleGains(zeroSups, poleInfs, box->gain().range());
-
-    if (gains.isEmpty()) {
+    const std::optional<double> gain = lowestGain(zeroSups, poleInfs, box->gain().range());
+    if (!gain.has_value() || *gain >= bestCertifiedGain) {
         return false;
     }
 
-    const double gain = std::pow(10.0, gains.minimum() / 20.0);
-
-    if (gain >= bestCertifiedGain) {
+    const PointController point{*gain, std::move(zeroSups), std::move(poleInfs)};
+    if (!accepts(point)) {
         return false;
     }
 
-    const PointController point{gain, std::move(zeroSups), std::move(poleInfs)};
-
-    if (!pointIsFeasible(point) || !stability->isNominallyStable(point) || !family->isStable(point)) {
-        return false;
-    }
-
-    bestCertifiedGain = gain;
-    bestCertifiedController = systemFromPoint(box, point);
-
+    adoptIncumbent(point, box);
     return true;
+}
+
+std::optional<double> AlgorithmMc2::lowestGain(const std::vector<double> & zeros, const std::vector<double> & poles,
+                                               Range gainRange)
+{
+    if (exactReading) {
+        return exact->lowestAdmissibleGain(zeros, poles, gainRange).gain;
+    }
+
+    const RangeUnion gains = columnGainsDb(zeros, poles, gainRange);
+    if (gains.isEmpty()) {
+        return std::nullopt;
+    }
+    return std::pow(10.0, gains.minimum() / 20.0);
+}
+
+bool AlgorithmMc2::accepts(const PointController & point)
+{
+    if (exactReading) {
+        return certifier->certifyAdmitted(point);
+    }
+
+    return satisfiesBoundaries(point, omega, conversion.get(), detector.get(), boundaries, nominalPlantValues)
+           && stability->isNominallyStable(point) && family->isStable(point);
 }
 
 void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
 {
     const double gainInf = box->gain().range().min;
 
-    if (gainInf > bestCertifiedGain) {
+    if (cannotImprove(gainInf)) {
         return;
     }
 
     const PointController point = cornerOf(box.get(), true);
+    std::optional<bool> verdict;
 
-    if (!stability->isNominallyStable(point)) {
-        return;
-    }
+    if (exactReading) {
+        verdict = certifier->certify(point);
+        if (*verdict) {
+            adoptIncumbent(lowestGainOnRay(point), box.get());
+        }
+    } else {
+        if (!stability->isNominallyStable(point)) {
+            dropToResidue(gainInf);
+            return;
+        }
 
-    if (gainInf < bestCertifiedGain && family->isStable(point)) {
-        bestCertifiedGain = gainInf;
-        bestCertifiedController = systemFromPoint(box.get(), point);
+        if (gainInf < bestCertifiedGain) {
+            verdict = family->isStable(point);
+            if (*verdict) {
+                adoptIncumbent(point, box.get());
+            }
+        }
     }
 
     auto t = std::make_unique<McSearchNode>(gainInf, std::move(box), feasible);
     t->setCutsEnabled(false);
+    if (verdict.has_value()) {
+        t->setCornerVerdict(*verdict);
+    }
     liveList->insert(std::move(t));
 }
 
+PointController AlgorithmMc2::lowestGainOnRay(const PointController & point)
+{
+    const std::optional<double> gain = lowestGain(point.zeros, point.poles, Range(initialGainRange.min, point.gain));
+    if (gain.has_value() && *gain < point.gain) {
+        const PointController lowered{*gain, point.zeros, point.poles};
+        if (accepts(lowered)) {
+            return lowered;
+        }
+    }
+    return point;
+}
+
+std::optional<PointController> AlgorithmMc2::bestEpsilonCandidate(LtiSystem * box)
+{
+    std::optional<PointController> best;
+    std::vector<std::pair<std::vector<double>, std::vector<double>>> tried;
+
+    forEachCandidate(box, [&](const PointController & vertex) {
+        for (const auto & seen : tried) {
+            if (seen.first == vertex.zeros && seen.second == vertex.poles) {
+                return false;
+            }
+        }
+        tried.emplace_back(vertex.zeros, vertex.poles);
+
+        const double ceiling = std::min(best.has_value() ? best->gain : bestCertifiedGain, initialGainRange.max);
+        const std::optional<double> gain = lowestGain(vertex.zeros, vertex.poles, Range(initialGainRange.min, ceiling));
+        if (gain.has_value() && (!best.has_value() || *gain < best->gain)) {
+            const PointController candidate{*gain, vertex.zeros, vertex.poles};
+            if (accepts(candidate)) {
+                best = candidate;
+            }
+        }
+        return false;
+    }, CandidateGain::Recomputed);
+
+    return best;
+}
+
 void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                                            std::vector<FeasibleThreshold> & thresholds, bool & improved)
+                                std::vector<FeasibleThreshold> & thresholds)
 {
     LtiSystem * box = node->system();
     const std::int32_t total = parameterCount(box);
@@ -525,18 +823,17 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
 
         const bool isGain = parameter == 0;
         const bool isZero = !isGain && parameter <= static_cast<std::int32_t>(box->numerator().size());
-            const std::int32_t termIndex = isGain
-            ? -1
-            : (isZero ? parameter - 1
-                      : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
+        const std::int32_t termIndex = isGain ? -1
+                                     : (isZero ? parameter - 1
+                                               : parameter - 1 - static_cast<std::int32_t>(box->numerator().size()));
 
-        for (std::int32_t family = 0; family < 2; ++family) {
+        for (const CutKind kind : {CutKind::Magnitude, CutKind::Phase}) {
 
-            if (family == 0 && !strategies.feasibleMagnitude) {
+            if (kind == CutKind::Magnitude && !strategies.feasibleMagnitude) {
                 continue;
             }
 
-            if (family == 1 && (isGain || !strategies.feasiblePhase)) {
+            if (kind == CutKind::Phase && (isGain || !strategies.feasiblePhase)) {
                 continue;
             }
 
@@ -553,10 +850,9 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                         : std::numeric_limits<double>::max();
                 bool allCertified = true;
 
-                for (std::size_t i = 0; i < omega->size() && allCertified; ++i) {
+                for (std::size_t i = 0; i < omega->size(); ++i) {
 
-                    const std::optional<BoxClassification> & classification =
-                analysis.classification.at(i);
+                    const std::optional<BoxClassification> & classification = analysis.classification.at(i);
 
                     if (!classification.has_value() || classification->flag() != ambiguous) {
                         continue;
@@ -567,7 +863,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
 
                     double t = -1.0;
 
-                    if (family == 0) {
+                    if (kind == CutKind::Magnitude) {
                         const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
                         const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
@@ -602,7 +898,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                         const double phi0 = nominalPhase(p0);
                         const double thetaMin = classification->extremes()[2] * qftbx::math::kPi / 180.0;
                         const double thetaMax = classification->extremes()[3] * qftbx::math::kPi / 180.0;
-                        const Range boxPhase = analysis.boxPhase.at(i);
+                        const Range boxPhase = phaseRangeOf(*analysis.projection.at(i));
 
                         const bool rightStrip = isZero ? !upperSide : upperSide;
 
@@ -641,8 +937,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                         intersection = std::max(intersection, clamped);
 
                         if (t > range.min) {
-                            thresholds.push_back({parameter, i, t, true,
-                                               (range.max - t) / range.width()});
+                            thresholds.push_back({parameter, i, t, true});
                         }
                     } else {
                         if (t <= range.min) {
@@ -653,8 +948,7 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                         intersection = std::min(intersection, clamped);
 
                         if (t < range.max) {
-                            thresholds.push_back({parameter, i, t, false,
-                                               (t - range.min) / range.width()});
+                            thresholds.push_back({parameter, i, t, false});
                         }
                     }
                 }
@@ -686,15 +980,12 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
                                                                        ambiguousPart);
                 box = remainder.get();
                 node->setSystem(std::move(remainder));
-
-                improved = true;
             }
         }
     }
 }
 
-void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis,
-                                       bool & improved)
+bool AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & analysis)
 {
     LtiSystem * v = node->system();
 
@@ -704,8 +995,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
 
     for (std::size_t i = 0; i < omega->size(); ++i) {
 
-        const std::optional<BoxClassification> & classification =
-                analysis.classification.at(i);
+        const std::optional<BoxClassification> & classification = analysis.classification.at(i);
 
         if (!classification.has_value() || classification->flag() != ambiguous) {
             continue;
@@ -713,6 +1003,26 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
 
         const double w = omega->at(i);
         const std::complex<double> p0 = nominalPlantValues.at(i);
+
+        if (exactReading) {
+            if (!strategies.infeasibleMagnitude) {
+                continue;
+            }
+            const NicholsBox & projection = *analysis.projection.at(i);
+            const Range boxMag = magnitudeRangeOf(projection);
+            const ExactPointCheck::SectorVerdict sector = exact->sectorVerdict(i, phaseRangeOf(projection), boxMag);
+            if (gainContraction && sector.provablyInfeasible) {
+                return false;
+            }
+            if (sector.forbiddenBelowDb > boxMag.min && std::isfinite(sector.forbiddenBelowDb)) {
+                cut = cutBelowBoundary(bounds, std::pow(10.0, sector.forbiddenBelowDb / 20.0), w, p0) || cut;
+            }
+            if (sector.forbiddenAboveDb < boxMag.max && std::isfinite(sector.forbiddenAboveDb)) {
+                cut = cutAboveBoundary(bounds, std::pow(10.0, sector.forbiddenAboveDb / 20.0), w, p0) || cut;
+            }
+            continue;
+        }
+
         const double boundMin = std::pow(10.0, classification->extremes()[0] / 20.0);
         const double boundMax = std::pow(10.0, classification->extremes()[1] / 20.0);
 
@@ -727,7 +1037,7 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
         if (strategies.infeasiblePhase) {
 
             const double phi0 = nominalPhase(p0);
-            const Range boxPhase = analysis.boxPhase.at(i);
+            const Range boxPhase = phaseRangeOf(*analysis.projection.at(i));
             const double boundPhaseMin = classification->extremes()[2];
             const double boundPhaseMax = classification->extremes()[3];
 
@@ -742,15 +1052,19 @@ void AlgorithmMc2::infeasibleCuts(McSearchNode * node, const NodeAnalysis & anal
     }
 
     if (!cut) {
-        return;
+        return true;
     }
 
+    if (exactReading) {
+        ++certificate.certifiedCuts;
+    } else {
+        discardUnproven(v->gain().range().min);
+    }
     node->setSystem(boxFromBounds(v, bounds));
-    improved = true;
+    return true;
 }
 
-qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_t parameter,
-                                                         double point)
+qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_t parameter, double point)
 {
     LtiSystem * box = node->system();
     const Range range = parameterRange(box, parameter);
@@ -764,8 +1078,7 @@ qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_
         const double gainInf = system->gain().range().min;
 
         auto t = std::make_unique<McSearchNode>(gainInf, std::move(system), ambiguous);
-        t->setCutsEnabled(node->cutsEnabled());
-        t->setFeasibleFrequencies(node->feasibleFrequencies());
+        t->inheritHistoryFrom(*node);
         return t;
     };
 
@@ -776,11 +1089,15 @@ qftbx::McBisectionResult AlgorithmMc2::bisectAt(McSearchNode * node, std::int32_
     return children;
 }
 
-inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency, int measure)
+inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size_t mainFrequency,
+                                                  WidthMeasure measure)
 {
     LtiSystem * box = node->system();
     const double w = omega->at(mainFrequency);
-    const std::complex<double> p0 = nominalPlantValues.at(mainFrequency);
+    const std::complex<double> p0 = gainContraction ? std::complex<double>(1.0, 0.0) : nominalPlantValues.at(mainFrequency);
+    const auto considered = [&](const Parameter & parameter) {
+        return parameter.isUncertain() && (!gainContraction || splittable(parameter));
+    };
 
     std::int32_t best = -1;
     double bestValue = -1.0;
@@ -788,12 +1105,12 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
     const auto consider = [&](std::int32_t parameter, const NicholsBox & term, bool gainTerm) {
         double value;
 
-        if (measure == 2) {
+        if (measure == WidthMeasure::Phase) {
             if (gainTerm) {
                 return;
             }
             value = term.phaseDegrees.width();
-        } else if (measure == 1 || gainTerm) {
+        } else if (measure == WidthMeasure::Magnitude || gainTerm) {
             value = term.magnitudeDb.width();
         } else {
             value = term.magnitudeDb.width() * term.phaseDegrees.width();
@@ -805,18 +1122,18 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
         }
     };
 
-    if (box->gain().isUncertain()) {
+    if (considered(box->gain())) {
         consider(0, conversion->gainTermBox(box->gain(), p0), true);
     }
 
     for (std::size_t j = 0; j < box->numerator().size(); ++j) {
-        if (box->numerator()[j].isUncertain()) {
+        if (considered(box->numerator()[j])) {
             consider(j + 1, conversion->numeratorTermBox(box->numerator()[j], w, p0), false);
         }
     }
 
     for (std::size_t j = 0; j < box->denominator().size(); ++j) {
-        if (box->denominator()[j].isUncertain()) {
+        if (considered(box->denominator()[j])) {
             consider(j + 1 + box->numerator().size(),
                      conversion->denominatorTermBox(box->denominator()[j], w, p0), false);
         }
@@ -826,7 +1143,7 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
 }
 
 qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAnalysis & analysis,
-                                                       const std::vector<FeasibleThreshold> & thresholds)
+                                              const std::vector<FeasibleThreshold> & thresholds)
 {
     if (strategies.treeBisection && !thresholds.empty()) {
 
@@ -858,21 +1175,22 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
                     ? children.t2 : children.t1).get();
 
             if (boxIsFeasibleAt(feasibleChild->system(), freq)) {
-                feasibleChild->markFrequencyFeasible(freq, omega->at(freq));
+                feasibleChild->markFrequencyFeasible(freq);
             }
 
             return children;
         }
     }
 
-    const Range magnitude = analysis.boxMag.at(analysis.mainFrequency);
-    const Range phase = analysis.boxPhase.at(analysis.mainFrequency);
-    const int measure = phase.width() > magnitude.width() ? 2 : 1;
+    const std::optional<NicholsBox> & main = analysis.projection.at(analysis.mainFrequency);
+    const Range magnitude = main.has_value() ? magnitudeRangeOf(*main) : Range();
+    const Range phase = main.has_value() ? phaseRangeOf(*main) : Range();
+    const WidthMeasure measure = phase.width() > magnitude.width() ? WidthMeasure::Phase : WidthMeasure::Magnitude;
 
     std::int32_t parameter = widestByMeasure(node, analysis.mainFrequency, measure);
 
     if (parameter < 0) {
-        parameter = widestByMeasure(node, analysis.mainFrequency, 0);
+        parameter = widestByMeasure(node, analysis.mainFrequency, WidthMeasure::Area);
     }
 
     const Range range = parameterRange(node->system(), parameter);

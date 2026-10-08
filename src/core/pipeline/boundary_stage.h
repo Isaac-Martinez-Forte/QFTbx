@@ -8,7 +8,10 @@
  * the publishing of its output, and not the dependency graph: a new set of
  * boundaries voids the design found against the old ones, but the facade
  * applies that. Which template data must be present depends on whether the
- * computation reads each template's contour or the whole cloud.
+ * computation reads each template's contour or the whole cloud, and a
+ * missing one throws InvalidInput naming it. run() answers whether it
+ * produced a set, and the choice of closed-form columns for the magnitude
+ * specifications applies to every computation.
  */
 
 #ifndef QFTBX_BOUNDARY_STAGE_H
@@ -24,38 +27,16 @@
 
 namespace qftbx {
 
-/**
- * @brief The boundary stage: the QFT bounds on the Nichols plane, one set per
- * design frequency, plus their union.
- *
- * Like TemplateStage, it owns its preconditions, its engine, its parameters
- * and the publishing of its output - and NOT the dependency graph. A new set
- * of boundaries voids the design the search found against the old ones, but
- * that is applied by the facade.
- */
 class BoundaryStage
 {
 public:
-    /**
-     * @brief Throws InvalidInput naming what is missing.
-     * @param fromContour whether the computation will read the CONTOUR of
-     *        each template or the whole cloud: which of the two has to be
-     *        there depends on it.
-     */
     void requirePrerequisites(const ProjectData & data, bool fromContour) const;
 
-    /**
-     * @brief Computes the boundaries over the given Nichols grid and
-     * publishes them.
-     * @return true when it produced a set.
-     */
     bool run(ProjectData & data, Range phaseRange, std::int32_t phaseCount,
              Range magnitudeRange, std::int32_t magnitudeCount,
              double exportInfinity, bool fromContour, bool cuda,
              const CancellationToken * cancellation = nullptr);
 
-    /// Columns of the magnitude specifications in closed form
-    /// (BoundaryEngine::setClosedFormColumns). Applied to every computation.
     void setClosedFormColumns(bool on) { m_closedForm = on; }
     bool closedFormColumns() const { return m_closedForm; }
 

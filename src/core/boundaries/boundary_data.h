@@ -4,7 +4,19 @@
  *
  * The traced curves, their labels, the union per frequency and the columns
  * the search reads, together so that a project can store, reload and
- * compare them as one object.
+ * compare them as one object. Per design frequency, boundaries() maps each
+ * specification name (the persisted keys of the .qft files: "Tracking",
+ * "Stability", "SensorNoise", "OutputDisturbance", "InputDisturbance",
+ * "ControlEffort") to its traced contours, unionBoundaries() holds the 1D
+ * union of all specifications and unionBuckets() the same union bucketed
+ * by phase, sorted by magnitude. openFlags() and upperFlags() say, per
+ * frequency, whether that union is open and whether its allowed side is
+ * above it. The union is what the viewer draws and the file stores; the
+ * search classifies against columns(), the allowed magnitude intervals per
+ * phase column (BoundaryColumns) at one design frequency. The engine reads
+ * each specification's columns off its sheet and the file stores them; a
+ * specification given without them has them rebuilt from its traces
+ * (BoundaryColumns::fromTraces), and specificationColumns() holds them all.
  */
 
 #ifndef QFTBX_BOUNDARY_DATA_H
@@ -20,22 +32,6 @@
 
 namespace qftbx {
 
-/**
- * @brief The results of one boundary computation, held by value.
- *
- * Per design frequency, boundaries() maps each specification name (the
- * persisted keys of the .qft files: "Tracking", "Stability", "SensorNoise",
- * "OutputDisturbance", "InputDisturbance", "ControlEffort") to its traced
- * contours, unionBoundaries() holds the
- * 1D union of all specifications and unionBuckets() the same union bucketed
- * by phase, sorted by magnitude. openFlags() and upperFlags() say, per
- * frequency, whether that union is open and whether its allowed side is
- * above it. The union is what the viewer draws and the file stores; the
- * search classifies against columns(), the allowed magnitude intervals per
- * phase column (BoundaryColumns): the engine reads each specification's off
- * its sheet, the file stores them, and a file from before they were stored
- * gets them rebuilt from the traces (BoundaryColumns::fromTraces).
- */
 class BoundaryData
 {
 public:
@@ -47,11 +43,8 @@ public:
 
     const BoundarySet & boundaries () const;
 
-    /// The columns of every specification, per frequency: the given ones,
-    /// rebuilt from the traces where a specification had none.
     const ColumnSet & specificationColumns () const { return m_specificationColumns; }
 
-    /// The allowed magnitude intervals per phase column at a design frequency.
     const BoundaryColumns & columns (std::size_t frequencyIndex) const { return m_columns[frequencyIndex]; }
     std::int32_t phaseCount () const;
     std::int32_t magnitudeCount () const;

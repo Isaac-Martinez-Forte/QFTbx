@@ -24,65 +24,42 @@
 /**
  * @file
  * @brief Algorithm NT (Nataraj and Tharewal): QFT loop shaping as an
- * interval branch & bound over the controller parameter box.
+ * interval branch and bound over the controller parameter box.
  *
- * The base algorithm of the five, and the one the other four extend. The
- * reference is Tharewal's doctoral thesis (2005), ch. 3 for the algorithm
- * and ch. 5 for the constraint-propagation acceleration; the section
- * numbers cited throughout the implementation are its.
+ * The base algorithm the others extend. The reference is Tharewal's
+ * doctoral thesis (2005), ch. 3 for the algorithm and ch. 5 for the
+ * constraint-propagation acceleration, whose section numbers the
+ * implementation cites. The gain is minimised over the box of the
+ * controller's parameters subject to the QFT boundaries. A box is a set of
+ * controllers, so its loop \f$ L_0 = P_0 C \f$ is a region of the Nichols
+ * chart: the natural interval extension encloses it in a rectangle
+ * (NaturalIntervalExtension), and comparing that rectangle with the
+ * boundaries at every design frequency (BoundaryViolationDetector)
+ * classifies the whole box as certainly infeasible, certainly feasible or
+ * ambiguous.
  *
- * The design problem is a global minimisation of the controller gain over
- * the box of its parameters, subject to the QFT boundaries. A box of
- * parameters is a set of controllers, so its loop transmission
- * \f$ L_0 = P_0 C \f$ is a region of the Nichols chart: the natural
- * interval extension encloses it in a rectangle
- * (NaturalIntervalExtension), and comparing that rectangle against the
- * boundary union at every design frequency
- * (BoundaryViolationDetector) classifies the whole box at once as
- * certainly infeasible, certainly feasible, or ambiguous.
+ * A certainly infeasible box is discarded whole, and a certainly feasible
+ * one realises its optimum at its lower gain corner, so the first feasible
+ * box at the head of a list ordered by \f$ \inf(k) \f$ holds the global
+ * optimum; nothing biases that key. Ambiguous boxes are bisected along
+ * their widest parameter and classified again (sec. 3.3.3, steps 1-7), and
+ * the search ends on the feasible head or on a head narrower than epsilon
+ * at every frequency (Remark 3.1), from which the feasible corner is taken.
  *
- * That classification is what makes the search a proof rather than a
- * sampling: a certainly infeasible box is discarded whole, and a
- * certainly feasible box realises its optimum at its lower gain corner,
- * so the FIRST feasible box to reach the head of a list ordered by
- * \f$ \inf(k) \f$ holds the global optimum. Ambiguous boxes are bisected
- * along their widest parameter and re-classified (sec. 3.3.3, steps 1-7).
- * The search terminates on that feasible head, or on a head narrower than
- * epsilon at every frequency (Remark 3.1), from which the feasible corner
- * is extracted.
+ * Chapter 5's contractors cut certified subranges of the gain instead of
+ * bisecting them, by the monotonicity of \f$ |L_0| \f$ in the gain: C_g-
+ * removes the low gains entirely below the minimum boundary magnitude over
+ * the box's phase interval, and C_g+ splits off the high gains entirely
+ * above the maximum, each certified by the classification of its corner.
  *
- * Chapter 5 adds two geometric contractors that cut certified subranges
- * of the gain instead of bisecting them, using the monotonicity of
- * \f$ |L_0| \f$ in the gain: C_g- removes the low-gain subrange lying
- * entirely below the minimum boundary magnitude over the box's phase
- * interval, and C_g+ splits off the high-gain subrange lying entirely
- * above the maximum. Both are certified by the parity classification of
- * the corresponding corner, so neither depends on a heuristic for
- * correctness.
- *
- * Deviations from the thesis of Tharewal:
- * - Nominal closed-loop stability is checked with the Nichols-chart
- *   Nyquist criterion (NominalStabilityChecker) rather than by the zeros
- *   of \f$ 1 + L_0 \f$: satisfied stability bounds plus one nominally
- *   stable point make a bounds-feasible box robustly stable (sec. 3.3.5),
- *   and an unstable point discards it. Without this, an ACC'90-style
- *   marginally unstable plant drives the honest search to the bottom of
- *   the gain box, which the QFT boundaries alone do not exclude. The
- *   criterion presumes a nominal plant with no right-half-plane poles.
- *   The same principle discards a whole ambiguous box when one member is
- *   unstable and the box's Nichols enclosure excludes the critical point
- *   at every frequency of the checker's grid
- *   (NominalStabilityChecker::isBoxUnstable): the loops the boundaries
- *   cannot reject between the design frequencies, such as the lag
- *   designs of example 2, would otherwise be bisected down to epsilon
- *   before the point criterion rejects them one by one.
- * - The C_g+ split is re-certified by the same box test it came from, so
- *   its heuristic gate cannot compromise the result; degenerate slivers
- *   are skipped because they would only bloat the list.
- * - Nothing biases the list key. A penalty added to it - the obvious way
- *   to push suspect boxes back - breaks the guarantee that makes the first
- *   solution the global optimum. Nominal stability is a verdict, above,
- *   not a weight.
+ * Nominal stability is checked with the Nichols-chart Nyquist criterion
+ * (NominalStabilityChecker) rather than by the zeros of \f$ 1 + L_0 \f$:
+ * satisfied stability bounds plus one nominally stable point make a
+ * bounds-feasible box robustly stable (sec. 3.3.5). A whole ambiguous box
+ * is discarded when one member is unstable and its enclosure excludes the
+ * critical point at every frequency of the checker's grid. The
+ * cancellation token has to outlive solve(), and without the grids of the
+ * sweep the family is left out.
  */
 namespace qftbx {
 
@@ -92,51 +69,23 @@ public:
     void setProblem(LtiSystem * plant, LtiSystem * controller, std::vector<double> *omega, const BoundaryData * boundaries,
                     double epsilon);
 
-    /**
-     * @brief Installs the flag the search reads once per node.
-     *
-     * A pointer, and null by default: a caller that never cancels - every
-     * test that drives this algorithm directly - carries on unchanged. The
-     * token has to outlive solve().
-     */
     void setCancellation(const qftbx::CancellationToken * token)
     { m_cancellation = token; }
 
-    /**
-     * @brief The values the user may have changed.
-     *
-     * The whole struct rather than one setter per value: what an algorithm
-     * needs from it is copied here, once, before solve() - so the hot path
-     * reads a member and never a configuration lookup. Not calling it leaves
-     * the compiled defaults, which is what every existing caller does.
-     */
     void setSettings(const qftbx::Settings & settings) { m_settings = settings; }
 
-    /**
-     * @brief The grids the plant family was swept over, by parameter name:
-     * what the search closes the loop with before it returns a design.
-     *
-     * Empty leaves the check out, which is what a project with no record of
-     * its sweep gets.
-     */
     void setPlantFamily(qftbx::ParameterGrids sweep) { m_sweep = std::move(sweep); }
 
     bool solve();
 
-    /// The designed controller, handed over to the caller.
     std::unique_ptr<LtiSystem> controllerStructure();
 
-    /// The most boxes the search kept alive at once (see kDefaultMaxLiveNodes).
     std::size_t peakLiveNodes() const;
 
-    /// What the run cost, read from the algorithm's own counters.
     LoopShapingStatistics statistics() const;
 
 private:
 
-    /// Every working structure below owns itself, so an exit through an
-    /// exception - an infeasible problem throws - frees them like a normal
-    /// return would.
     void check_box_feasibility(std::unique_ptr<LtiSystem> box);
     std::unique_ptr<LtiSystem> accelerated(std::unique_ptr<LtiSystem> v, double minBoundary,
                                           const NaturalIntervalExtension::Factors & factors,
@@ -163,10 +112,8 @@ private:
     qftbx::ParameterGrids m_sweep;
     std::vector<std::complex<double>> nominalPlantValues;
 
-    /// Not owned. Null means this run cannot be cancelled.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    /// Copied whole and read as fields; the defaults are the compiled ones.
     qftbx::Settings m_settings;
 
 };

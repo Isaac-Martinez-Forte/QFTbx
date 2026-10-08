@@ -63,6 +63,32 @@ int side(double im)
     return im > 0.0 ? 1 : (im < 0.0 ? -1 : 0);
 }
 
+[[gnu::noinline]] double phaseStepThroughZero(double ar, double ai, double br, double bi)
+{
+    double step = std::abs(phaseDegrees(br, bi) - phaseDegrees(ar, ai));
+    if (step > 180.0) {
+        step = 360.0 - step;
+    }
+    return step;
+}
+
+inline bool phaseStepExceeded(double ar, double ai, double br, double bi, double aNorm, double bNorm,
+                              double cosineOfMaxStep, double maxStepDegrees)
+{
+    const double squaredNorms = aNorm * bNorm;
+
+    if (squaredNorms == 0.0) {
+        return phaseStepThroughZero(ar, ai, br, bi) > maxStepDegrees;
+    }
+
+    const double dot = ar * br + ai * bi;
+    const double c = cosineOfMaxStep;
+    if (c >= 0.0) {
+        return dot < 0.0 || dot * dot < c * c * squaredNorms;
+    }
+    return dot < 0.0 && dot * dot > c * c * squaredNorms;
+}
+
 std::uint64_t bitsOf(double value)
 {
     if (value == 0.0) {
@@ -107,12 +133,16 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
     m_frequencies.reserve(m_tolerances.baseGridPoints);
     m_plantRe.reserve(m_tolerances.baseGridPoints);
     m_plantIm.reserve(m_tolerances.baseGridPoints);
+    m_frequencySquares.reserve(m_tolerances.baseGridPoints);
+    m_plantModuli.reserve(m_tolerances.baseGridPoints);
     for (int i = 0; i < m_tolerances.baseGridPoints; ++i) {
         const double w = std::pow(10.0, logFrom + (logTo - logFrom) * i / (m_tolerances.baseGridPoints - 1));
         const std::complex<double> value = m_plant->evaluate(w);
         m_frequencies.push_back(w);
         m_plantRe.push_back(value.real());
         m_plantIm.push_back(value.imag());
+        m_frequencySquares.push_back(sqr(Interval(w)));
+        m_plantModuli.push_back(ComplexInterval(value).magnitude());
     }
 
     m_cosMaxPhaseStep = std::cos(m_tolerances.maxPhaseStepDegrees * qftbx::math::kPi / 180.0);
@@ -126,12 +156,8 @@ NominalStabilityChecker::NominalStabilityChecker(LtiSystem * nominalPlant,
 
     m_plantAtZero = m_plant->evaluate(0.0);
 
-    std::vector<double> numerator, denominator;
-    for (Parameter & parameter : m_plant->numerator()) numerator.push_back(parameter.nominal());
-    for (Parameter & parameter : m_plant->denominator()) denominator.push_back(parameter.nominal());
-    const std::optional<LtiSystem::Polynomials> polynomials =
-            m_plant->polynomialsAt(numerator, denominator, m_plant->gain().nominal());
-    if (polynomials.has_value() && m_plant->delay().nominal() == 0.0 && !m_plant->delay().isUncertain()) {
+    const std::optional<LtiSystem::Polynomials> polynomials = nominalPolynomials(*m_plant);
+    if (polynomials.has_value() && !hasDelay(*m_plant)) {
         const auto lowest = [](const std::vector<double> & p, int & zerosAtOrigin) {
             zerosAtOrigin = 0;
             for (auto it = p.rbegin(); it != p.rend(); ++it) {
@@ -189,27 +215,6 @@ std::complex<double> NominalStabilityChecker::loopAt(const PointController & sha
                                 re * plant.imag() + im * plant.real());
 }
 
-bool NominalStabilityChecker::phaseStepExceeded(std::size_t i) const
-{
-    const double ar = m_re[i], ai = m_im[i], br = m_re[i + 1], bi = m_im[i + 1];
-    const double squaredNorms = (ar * ar + ai * ai) * (br * br + bi * bi);
-
-    if (squaredNorms == 0.0) {
-        double step = std::abs(phaseDegrees(br, bi) - phaseDegrees(ar, ai));
-        if (step > 180.0) {
-            step = 360.0 - step;
-        }
-        return step > m_tolerances.maxPhaseStepDegrees;
-    }
-
-    const double dot = ar * br + ai * bi;
-    const double c = m_cosMaxPhaseStep;
-    if (c >= 0.0) {
-        return dot < 0.0 || dot * dot < c * c * squaredNorms;
-    }
-    return dot < 0.0 && dot * dot > c * c * squaredNorms;
-}
-
 NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const PointController & shape)
 {
     ++m_statistics.profilesComputed;
@@ -248,9 +253,14 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         m_im[i] = m;
     }
 
+    const auto squaredNorm = [&](std::size_t k) { return m_re[k] * m_re[k] + m_im[k] * m_im[k]; };
     int budget = m_tolerances.refinementBudget;
+    double here = n > 0 ? squaredNorm(0) : 0.0;
     for (std::size_t i = 0; i + 1 < m_w.size() && budget > 0;) {
-        if (phaseStepExceeded(i) && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]
+        const double next = squaredNorm(i + 1);
+        if (phaseStepExceeded(m_re[i], m_im[i], m_re[i + 1], m_im[i + 1], here, next, m_cosMaxPhaseStep,
+                              m_tolerances.maxPhaseStepDegrees)
+                && m_w[i + 1] - m_w[i] > 1e-12 * m_w[i]
                 && (m_axisPoles.empty() || axisPolesBetween(m_w[i], m_w[i + 1]) == 0)) {
             const double w = std::sqrt(m_w[i] * m_w[i + 1]);
             const std::complex<double> loop = loopAt(shape, sign, w);
@@ -261,6 +271,7 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
             --budget;
         } else {
             ++i;
+            here = next;
         }
     }
 
@@ -438,19 +449,29 @@ bool NominalStabilityChecker::isBoxUnstable(LtiSystem * box, NaturalIntervalExte
     }
 
     const std::size_t n = m_frequencies.size();
+    const NaturalIntervalExtension::BoxSquares squares = extension.squaresOf(box);
     const auto reachesCriticalPoint = [&](std::size_t i) {
+        if (!extension.mayReachUnitModulus(squares, m_frequencySquares[i], m_plantModuli[i])) {
+            return false;
+        }
         const NicholsBox enclosure = extension.nicholsBox(box, m_frequencies[i],
                                                           std::complex<double>(m_plantRe[i], m_plantIm[i]));
         return enclosure.magnitudeDb.lower() <= 0.0 && enclosure.magnitudeDb.upper() >= 0.0 &&
                enclosure.phaseDegrees.lower() <= -180.0 && enclosure.phaseDegrees.upper() >= -180.0;
     };
+    const std::size_t remembered = m_lastReaching;
+    if (remembered < n && reachesCriticalPoint(remembered)) {
+        return false;
+    }
     for (std::size_t i = 0; i < n; i += 64) {
-        if (reachesCriticalPoint(i)) {
+        if (i != remembered && reachesCriticalPoint(i)) {
+            m_lastReaching = i;
             return false;
         }
     }
     for (std::size_t i = 0; i < n; i += kStride) {
-        if (i % 64 != 0 && reachesCriticalPoint(i)) {
+        if (i % 64 != 0 && i != remembered && reachesCriticalPoint(i)) {
+            m_lastReaching = i;
             return false;
         }
     }
