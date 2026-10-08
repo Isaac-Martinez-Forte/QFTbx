@@ -164,7 +164,7 @@ struct Settings {
             return strategies;
         }();
 
-        bool mc2GainContraction = false;
+        bool mc2GainContraction = true;
 
         bool conservativeColumnsInForce() const
         {

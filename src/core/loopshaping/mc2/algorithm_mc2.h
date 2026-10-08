@@ -142,16 +142,17 @@
  * (research.mc2-reading = columns), the search is what it was, bit for bit,
  * and the certificate is bookkeeping alone.
  *
- * With research.mc2.gain-contraction (exact reading only) the widest
- * parameter is measured without the nominal plant, whose phase could put a
- * factor on the branch cut and have a degenerate parameter split for ever; a
- * parameter that is a point is not split, and a box of points counts as
- * epsilon-small. Every box taken has its gain contracted first
- * (GainContractor), in place of the family gate, and a box the sector
- * verdict proves infeasible at its cuts is discarded, both with proofs. A
- * box the nominal criterion finds unstable on its grid is discarded only
- * when the Routh table or the zero exclusion proves it, and kept otherwise,
- * so that the strict lower bound is the lower bound.
+ * Under the exact reading the gain is contracted with proofs, unless
+ * research.mc2.gain-contraction turns it off to compare with the search
+ * without it. The widest parameter is then measured without the nominal
+ * plant, whose phase could put a factor on the branch cut and have a
+ * degenerate parameter split for ever; a parameter that is a point is not
+ * split, and a box of points counts as epsilon-small. Every box taken has
+ * its gain contracted first (GainContractor), in place of the family gate,
+ * and a box the sector verdict proves infeasible at its cuts is discarded,
+ * both with proofs. A box the nominal criterion finds unstable on its grid
+ * is discarded only when the Routh table or the zero exclusion proves it,
+ * and kept otherwise, so that the strict lower bound is the lower bound.
  */
 namespace qftbx {
 

@@ -2,20 +2,22 @@
  * @file
  * @brief MC2 under the exact point reading, end to end.
  *
- * Each published problem is loaded as the interface loads it and MC2 runs
- * as it does by default, with the exact point reading and without the
- * feasible magnitude cut, at epsilon 0.5. The result is checked as
- * a user would see it: the design meets every specification over the whole
- * template and closes the loop stably with every plant of the sweep, the run
- * records that it read the points exactly, the certificate's lower bounds
- * stay ordered and at or below the returned gain, and the gain is pinned to
- * the design the search returns on the machine the pins were taken on. A
- * compiler that fuses other products may land a few ulps away, hence the
- * relative tolerance. The certificate is kept and finished with the design;
- * it is kept, finished and read too when a gain box too low for any design
- * leaves the search without one, kept but not finished when the run is
- * cancelled, and not kept at all by another algorithm. With the contraction
- * of the gain, the first-order plant with a delay, whose search split one
+ * Each published problem is loaded as the interface loads it and MC2 runs as
+ * it does by default, with the exact point reading, the contraction of the
+ * gain and without the feasible magnitude cut, at epsilon 0.5. The result is
+ * checked as a user would see it: the design meets every specification over
+ * the whole template and closes the loop stably with every plant of the
+ * sweep, the run records that it read the points exactly, the certificate's
+ * lower bounds stay ordered and at or below the returned gain, and the gain
+ * is pinned to the design the search returns on the machine the pins were
+ * taken on. A compiler that fuses other products may land a few ulps away,
+ * hence the relative tolerance; C-XSC rounds the contraction otherwise than
+ * kv and reaches another design of the DC motor, so that pin is each
+ * library's own. The certificate is kept and finished with the design; it is
+ * kept, finished and read too when a gain box too low for any design leaves
+ * the search without one, kept but not finished when the run is cancelled,
+ * and not kept at all by another algorithm. With the contraction of the
+ * gain, the first-order plant with a delay, whose search split one
  * degenerate parameter for ever, ends in a few thousand boxes with a design
  * the verifier accepts; and two problems without a design end with a proof
  * of it. The ACC'90 benchmark, whose Routh table with the nominal plant asks
@@ -42,6 +44,12 @@
 using namespace qftbx;
 
 namespace {
+
+#if defined(QFTBX_INTERVAL_CXSC)
+constexpr double kDcmT33Gain = 41.102278928422926;
+#else
+constexpr double kDcmT33Gain = 41.101421995522088;
+#endif
 
 struct ExactCase {
     const char * name;
@@ -97,9 +105,9 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
 INSTANTIATE_TEST_SUITE_P(
     PublishedProblems, Mc2UnderTheExactReading,
     ::testing::Values(
-        ExactCase{"DcmT33", "dcm-T33.qft", 41.102278928422926},
-        ExactCase{"Toolbox2", "toolbox-2.qft", 568.77281430503876},
-        ExactCase{"DcmK", "dcm-k.qft", 42523.25845719401}),
+        ExactCase{"DcmT33", "dcm-T33.qft", kDcmT33Gain},
+        ExactCase{"Toolbox2", "toolbox-2.qft", 568.39377382547423},
+        ExactCase{"DcmK", "dcm-k.qft", 42527.370794761417}),
     [](const ::testing::TestParamInfo<ExactCase> & info) {
         return std::string(info.param.name);
     });
