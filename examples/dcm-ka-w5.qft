@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4" name="DC motor, Chait 1999" description="Chait, Chen and Hollot (ASME JDSMC 121, 1999): the DC motor k a/(s(s+a)) with the specifications of Tharewal 3.1 over five design frequencies." doi="10.1115/1.2802481">
+<QFT version="4" name="DC motor, Chait 1999" description="Chait, Chen and Hollot (ASME JDSMC 121, 1999): the DC motor k a/(s(s+a)) with the specifications of Tharewal 3.1 over five design frequencies. At those frequencies only: above them, at 217 rad/s, the design exceeds the margin by 2.9 dB; dcm-ka-w5-extended asks it at every frequency." doi="10.1115/1.2802481">
     <inputs>
         <plant name="DC motor k a/(s(s+a)), Chait 1999 frequencies">
             <type id="0">
@@ -204,7 +204,7 @@
         <templates>
             <epsilon metric="complex" db-per-degree="1">5.61 2.47 1.22 0.0176 0.000558 </epsilon>
         </templates>
-        <loop-shaping algorithm="mc2" tolerance="0.5" columns="conservative" />
+        <loop-shaping algorithm="mc2" tolerance="0.5" columns="nearest" point-reading="exact" />
     </settings>
     <results>
         <templates>
@@ -2153,18 +2153,18 @@
                     <expression size="0" />
                     <numerator size="1">
                         <parameter>
-                            <nominal>1.855196790674376</nominal>
+                            <nominal>1.96310546875</nominal>
                             <uncertain>false</uncertain>
                         </parameter>
                     </numerator>
                     <denominator size="1">
                         <parameter>
-                            <nominal>140.70018192112636</nominal>
+                            <nominal>140.59435548758844</nominal>
                             <uncertain>false</uncertain>
                         </parameter>
                     </denominator>
                     <parameter>
-                        <nominal>569.7829549867392</nominal>
+                        <nominal>568.3937738254742</nominal>
                         <uncertain>false</uncertain>
                     </parameter>
                     <parameter>
@@ -2173,7 +2173,7 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-0.00026835060353057674" family-members="625" family-unstable="0" family-worst-real-part="-1.5374283241349722" />
+            <check satisfied="true" worst-excess-db="-1.000088900582341e-12" family-members="625" family-unstable="0" family-worst-real-part="-1.629613460719628" nominal-stable="true" nominal-worst-real-part="-2.567851722566951" />
         </loop-shaping>
     </results>
 </QFT>

@@ -165,11 +165,18 @@ TEST(Mc2GainContraction, TheDelayedFirstOrderPlantEndsWithADesign)
     EXPECT_LE(result->statistics().certificate.lowerBound, result->controller()->gain().nominal());
 }
 
-TEST(Mc2GainContraction, TheAcc90BenchmarkEndsWithAProofThatNoDesignExists)
+TEST(Mc2GainContraction, TheAcc90BenchmarkWithOneZeroAndOnePoleEndsWithAProofThatNoDesignExists)
 {
     ProjectController controller;
     controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "acc90.qft").string());
-    ASSERT_GE(controller.controllerStructure()->gain().range().min, 1000.0);
+    LtiSystem * structure = controller.controllerStructure();
+    ASSERT_NE(structure, nullptr);
+    ASSERT_GE(structure->gain().range().min, 1000.0);
+    ASSERT_GE(structure->denominator().size(), 1u);
+    controller.setControllerStructure(structure->create(structure->name(), structure->numerator(),
+                                                        {structure->denominator().front()},
+                                                        structure->gain(), structure->delay()));
+    ASSERT_EQ(controller.controllerStructure()->numerator().size(), 1u);
     Settings settings;
     settings.research.mc2GainContraction = true;
     controller.applySettings(settings);

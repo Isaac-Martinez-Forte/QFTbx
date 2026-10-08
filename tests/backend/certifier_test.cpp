@@ -210,8 +210,8 @@ TEST(Certifier, TheNominalRouthRefusesALoopTheNominalCriterionApproves)
     project.load(file);
     LtiSystem * base = project.controllerStructure();
     ASSERT_NE(base, nullptr);
-    std::vector<Parameter> poles = base->denominator();
-    poles.emplace_back(std::string("p2"), Range(0.01, 1000.0), 0.01);
+    ASSERT_GE(base->denominator().size(), 1u);
+    const std::vector<Parameter> poles = {base->denominator().front(), Parameter(std::string("p2"), Range(0.01, 1000.0), 0.01)};
     const std::unique_ptr<LtiSystem> structure = base->create("base+p", base->numerator(), poles, base->gain());
 
     std::vector<double> * omega = project.omega()->values();

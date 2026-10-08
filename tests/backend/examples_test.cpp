@@ -7,10 +7,7 @@
  * directly against the plant, the templates and the specifications, must
  * meet every one of them with the same worst excess the file records. A
  * problem that stops loading or stops meeting its specifications fails here
- * rather than in the hands of whoever downloads the repository. The
- * examples waiting to be redesigned are listed: their stored controller
- * fails the verifier, acc90's leaving the nominal closed loop unstable, and
- * one that starts to pass has to leave the list.
+ * rather than in the hands of whoever downloads the repository.
  */
 
 #include <gtest/gtest.h>
@@ -29,8 +26,6 @@
 #include "src/core/specifications/specification_record.h"
 
 namespace {
-
-const std::vector<std::string> kAwaitingRedesign = {"acc90"};
 
 std::vector<std::string> publishedProblems()
 {
@@ -101,12 +96,8 @@ TEST(PublishedProblems, EveryOneOpensWholeAndMeetsItsSpecifications)
             project.templates(), qftbx::toSpecificationSet(*project.specifications()),
             &project.sweepGrids());
 
-        if (std::find(kAwaitingRedesign.begin(), kAwaitingRedesign.end(), name) != kAwaitingRedesign.end()) {
-            EXPECT_FALSE(check.satisfied()) << name << " now passes the verifier: take it off the list";
-        } else {
-            EXPECT_TRUE(check.satisfied())
-                << name << " exceeds a specification by " << check.worstExcessDb << " dB";
-        }
+        EXPECT_TRUE(check.satisfied())
+            << name << " exceeds a specification by " << check.worstExcessDb << " dB";
         if (project.sweepGrids().empty()) {
             std::printf("%s carries no record of its sweep: the family was not checked\n", name.c_str());
         } else {
