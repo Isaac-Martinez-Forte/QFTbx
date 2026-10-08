@@ -2,10 +2,47 @@
  * @file
  * @brief Computation of QFT templates and of their epsilon-hull contours.
  *
- * Declares the engine that sweeps the plant over the grids of its uncertain
- * parameters at every design frequency, the walk that extracts the contour of
- * each cloud, the proposal of an epsilon that closes it, and the report of
- * what each contour went through.
+ * The engine sweeps the plant at s = j*omega over the cartesian product of
+ * the uncertain-parameter grids at each design frequency, and walks the
+ * contour of each cloud with the \f$\varepsilon\f$-hull (Nordin 1993),
+ * faithful to Montoya's EPSHULL.M: unique()d input in MATLAB complex
+ * order, max-real start, the previous point still a candidate, the next one
+ * the neighbour of least \f$\psi\f$ angle, the closed contour repeating its
+ * first point, and empty when nothing lies within \f$\varepsilon\f$ of the
+ * start. A walk that does not close falls back to the relaxed walk
+ * (max-imaginary start, previous point excluded, open), a valid cover but
+ * not the canonical hull, empty at its step limit so that a partial contour
+ * never passes for a whole one. Each \f$\varepsilon\f$-connected component
+ * is walked apart (Gutman, Nordin and Cohen 2007), the contours joined in
+ * order of rightmost point. ContourReport records this per frequency after
+ * the parallel loop, since nothing may warn or throw inside an OpenMP
+ * region; a contour that never closes becomes the whole cloud, or an error
+ * naming the frequency. The alpha-shape contour is the same boundary by
+ * definition and always closes.
+ *
+ * Distances are taken in the complex plane (the default, also for a
+ * project that names none) or in the Nichols plane, dbPerDegree decibels
+ * weighing as one degree, with the phase cut in the widest angular gap;
+ * the plane belongs to the project, with its epsilon. proposeEpsilon()
+ * climbs from the longest edge of the minimum spanning tree, the least
+ * epsilon keeping the cloud connected, one per cent at a time in three
+ * significant figures, to the first that closes (or stays there, with
+ * closes false). withoutRetracing() then tries at most four steps of 1.5
+ * for a walk that passes no point twice, since the least closing epsilon
+ * goes into every notch of the lattice; on a curve it returns the closing
+ * one.
+ *
+ * With exactly two uncertain parameters the border sweep spends the same
+ * budget on the edges of the box, round it along the user's grids: the
+ * template's border lies in the image of the box's border plus isolated
+ * critical values, and every bounded closed-loop magnitude, a Mobius
+ * function of the plant, peaks there while its pole is outside. Its contour
+ * is the alpha-shape at the connecting epsilon, never the walk. The sweep
+ * refuses a family whose plants differ in right half-plane poles. The token
+ * is read once per frequency and throws qftbx::Cancelled; null cannot be
+ * cancelled. The engine keeps copies of all it is given, and the
+ * combination count is a size_t: the product of grid sizes overflows 32
+ * bits.
  */
 
 #ifndef QFTBX_TEMPLATE_ENGINE_H
@@ -29,308 +66,80 @@
 
 namespace qftbx {
 
-/**
- * @brief Computes QFT templates (plant value sets) and their contours.
- *
- * For each design frequency the brute-force sweep evaluates the plant over
- * the cartesian product of the uncertain-parameter grids, and the contour is
- * extracted with the
- * \f$\varepsilon\f$-hull algorithm (Nordin 1993, Montoya's EPSHULL.M
- * implementation): starting from the rightmost point, the walk repeatedly
- * picks the neighbour within \f$\varepsilon\f$ whose circle of radius
- * \f$\varepsilon/2\f$ sticks out of the covered region (minimum
- * \f$\psi\f$ angle), closing when it returns to the initial pair.
- *
- * A walk that does not close within its step limit falls back to the
- * relaxed walk, a valid \f$\varepsilon\f$-cover and not the
- * canonical hull, which epsilonHull() records. It is the net under the
- * clouds no walk can close: one in two pieces, or an \f$\varepsilon\f$
- * below what the cloud needs.
- *
- * The engine keeps its own copies of everything it is given: the grids,
- * the epsilons, the clouds (see the setters) and the frequencies.
- */
 class TemplateEngine
 {
 public:
-    /// Sweeps the plant and extracts every contour. Throws qftbx::Exception
-    /// on invalid input or when a computation fails.
     bool compute(LtiSystem *plant, std::vector<double>* frequencies, bool cuda);
 
-    /**
-     * @brief Installs the flag that asks the sweep to stop.
-     *
-     * Read once per design frequency, which is the grain the sweep works
-     * at: a frequency that has not started is skipped, and what has been
-     * computed is thrown away with a qftbx::Cancelled. Null - the default -
-     * means a sweep that cannot be given up on, which is what every test
-     * that drives the engine directly wants.
-     */
     void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
 
-    /// Recomputes only the contours (one epsilon per frequency) over the
-    /// current clouds.
     bool computeContours (std::vector <double> epsilon);
 
-    /// Brute-force sweep: one cloud per frequency, the cartesian product of
-    /// the parameter grids evaluated at s = j*omega.
     CloudSet computeClouds(LtiSystem *plant, std::vector<double>* frequencies);
 
     bool computeContourSet(bool cuda);
 
-    /// One line of the record for whatever contours have just been walked.
     void logContours(std::chrono::steady_clock::time_point since) const;
 
-    /**
-     * @brief Epsilon-hull contour of a point cloud, faithful to EPSHULL.M:
-     * unique()d input in MATLAB complex order, max-real starting point, the
-     * previous point stays a candidate (spikes are traversed both ways) and
-     * the returned contour is closed (last point repeats the first).
-     *
-     * Returns empty when no candidate lies within epsilon of the start;
-     * when the reference walk cycles, falls back to the relaxed walk (open,
-     * deduplicated, max-imaginary start).
-     *
-     * @param cloud the plant value set at one design frequency.
-     * @param epsilon how far the hull may cut across the cloud: the walk
-     * guarantees every point is covered within this distance.
-     * @param fellBack when not null, set to true if the faithful walk did
-     * not close and the relaxed walk was used instead. Reported by the
-     * caller after the parallel loop, since nothing may warn or throw from
-     * inside an OpenMP region.
-     */
     ComplexCloud epsilonHull(const ComplexCloud & cloud, double epsilon,
                              bool * fellBack = nullptr, bool * truncated = nullptr,
                              std::vector<std::size_t> * componentStarts = nullptr);
 
-    /**
-     * @brief The epsilon to propose once one is known that closes: the first
-     * at or above it whose walk passes through no point twice.
-     *
-     * The least epsilon that closes is not a good epsilon. At it the disc
-     * that is rolled barely spans the lattice the cloud is sampled on, so
-     * the walk goes into every notch between neighbouring points and back
-     * out, and the contour comes out with MORE points than the cloud it was
-     * extracted from - which costs the boundaries and the loop shaping
-     * several times over and draws as a line over itself. Measured on a
-     * six-frequency project: 4508 points and 29.5 s of boundaries against
-     * 705 points and 4.7 s, for boundaries identical over all 955206 cells
-     * of the grid.
-     *
-     * Going in and out is not always the lattice, though: the template of a
-     * plant with one uncertain parameter is a CURVE, and a curve can only be
-     * walked out and back. Nothing passes that test there, and what comes
-     * back is the epsilon that was given - the least one that closes.
-     *
-     * Four candidates, each half as big again as the one before, and no
-     * more. This answers a button somebody is waiting on, over clouds of
-     * tens of thousands of points where one walk is seconds, and it is only
-     * reached at all by a frequency whose walk retraces - the walk that says
-     * so is the one the ladder above had already done. The epsilons that
-     * pass the test are a little above the one that closes, between 1.1 and
-     * 3.2 times it over the projects measured, so five times it is where the
-     * ladder stops and answers that there is none.
-     */
     double withoutRetracing(const ComplexCloud & cloud, double closing, double diameter);
 
-    /// Whether a walk goes over a point of the cloud more than once, past
-    /// the one repeat that closing it costs.
     static bool retraces(const ComplexCloud & walked);
 
-    /**
-     * @brief The plane the epsilon of the hull is measured in.
-     *
-     * The walk of the hull only ever asks how far apart two points are, so
-     * the plane those distances are taken in is a choice - and it decides
-     * whether one epsilon can serve a whole template. In the COMPLEX plane
-     * (what EPSHULL.M does) an epsilon is a
-     * distance in the units of the plant's response, so it means one thing
-     * where the template sits at 40 dB and another where it sits at -40 dB;
-     * measured on example 2 the epsilon a template needs varies by a factor
-     * of ten thousand across its six frequencies, and the spacing of the
-     * points by a factor of seven hundred within one template. In the
-     * NICHOLS plane the distance is taken in degrees and decibels, one
-     * decibel weighed against so many degrees, which is how the reference
-     * implementation of the walk measures (Nordin's prune.m: an accuracy in
-     * degrees and one in dB); there the epsilon a template needs varies by
-     * a factor of three across those same frequencies, and the spacing by
-     * a factor of thirteen. The plane is a property of the project, kept
-     * with its epsilon, since the two are meaningless apart.
-     */
     using HullMetric = qftbx::HullMetric;
 
-    /// The metric and, for the Nichols plane, how many decibels weigh as
-    /// much as one degree. Complex plane by default, and for a stored
-    /// project that names no plane.
     void setHullMetric(HullMetric metric, double dbPerDegree = 1.0);
     HullMetric hullMetric() const { return m_metric; }
 
-    /// How the contour of a cloud is extracted: the walk of Nordin (which
-    /// can fail to close) or the alpha-shape,
-    /// the same boundary by its definition, edge by edge, which always
-    /// closes and returns every component and hole (see alphaShape()).
     void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
     bool alphaShapeContour() const { return m_alphaShape; }
 
-    /**
-     * @brief Sweep only the BORDER of the parameter box when the plant has
-     * exactly two uncertain parameters, instead of its interior grid.
-     *
-     * The template is the image of the box; the border of an image lies in
-     * the image of the border plus the critical values, which for a map of
-     * a rectangle into the plane are isolated points. And every closed-loop
-     * magnitude a specification bounds is a Mobius function of the plant, so
-     * its worst case over the template is attained on the template's border
-     * whenever the pole lies outside (the case the singular-locus guard
-     * tells apart). So with two parameters the interior samples add nothing,
-     * and the same budget of evaluations - the product of the two grid sizes
-     * - is spent on the four edges: as many points per edge as a quarter of
-     * it, each edge sampled along the user's own grid (so a logarithmic grid
-     * stays logarithmic), in order round the box, a closed curve.
-     *
-     * The contour of that curve is its alpha-shape at the CONNECTING epsilon,
-     * whatever epsilon the caller gives: a curve is already a border, and
-     * the alpha-shape at the epsilon of its own sampling step only resolves
-     * where it folds or crosses itself, taking the outer loop. At a larger
-     * epsilon the exposed chords of a curve multiply and the outer loop
-     * degenerates into thousands of spikes (a border of some six hundred
-     * points can give a loop of fourteen thousand), which the boundaries
-     * then pay for. The walk is not used on a curve at all.
-     *
-     * With one or with three or more uncertain parameters the request is
-     * ignored and the interior grid is swept (borderSweepApplied() says).
-     */
     void setBorderSweep(bool border) { m_borderSweep = border; }
 
-    /**
-     * @brief How many right half-plane poles every plant of the family has,
-     * after a sweep; nothing when the plant cannot place its poles.
-     *
-     * QFT's robust stability argument - the stability margin boundary, the
-     * nominal loop stable, the templates connected - carries the nominal
-     * verdict to the whole family only if every member has the same number
-     * of unstable poles. The sweep checks it over the plants it evaluates
-     * and refuses a family that crosses the axis.
-     */
     std::optional<int> familyRightHalfPlanePoles() const { return m_familyRhpPoles; }
     bool borderSweep() const { return m_borderSweep; }
     bool borderSweepApplied() const { return m_borderSweepApplied; }
 
-    /// The alpha-shape contour of one cloud at this epsilon, in the current
-    /// metric: its loops concatenated, each closed by repeating its first
-    /// point, and where each begins in componentStarts.
     ComplexCloud alphaShapeContour(const ComplexCloud & cloud, double epsilon,
                                    std::vector<std::size_t> * componentStarts) const;
 
-    /// The least epsilon that keeps the cloud connected, in the current
-    /// metric: the longest edge of its minimum spanning tree (0 for fewer
-    /// than two distinct points).
     double connectingEpsilon(const ComplexCloud & cloud) const;
     double dbPerDegree() const { return m_dbPerDegree; }
 
-    /**
-     * @brief The epsilon a cloud asks for, and how coarse the cloud is.
-     *
-     * The smallest epsilon that keeps a cloud connected is the longest edge
-     * of its Euclidean minimum spanning tree (the last merge of single
-     * linkage), in the plane of the metric. It is the least epsilon that
-     * loses no point of the cloud, and being the least it is also the one
-     * that rolls over the fewest concavities, so it answers both halves of
-     * "which epsilon?" at once. Alongside it, the cloud's diameter in the
-     * same plane: their ratio is how large the biggest gap in the sample is
-     * against the size of the template, a dimensionless measure of how
-     * coarse the sweep is - on example 2 with 25 points per parameter it is
-     * a fifth of the template at one frequency.
-     */
     struct EpsilonProposal
     {
-        /// The longest edge of the minimum spanning tree: below it the cloud
-        /// splits into more than one component, so no smaller epsilon can
-        /// keep every point in reach of the contour.
         double connected = 0.0;
-        /// The epsilon to use: the least value, on the ladder of three-figure
-        /// numbers rising one per cent at a time from `connected`, at which
-        /// the contour walk closes. Equal to `connected` when nothing up to
-        /// the diameter closes (then `closes` is false).
         double epsilon = 0.0;
-        double diameter = 0.0;   ///< the largest distance between two points
-        bool closes = false;     ///< whether the walk closes at `epsilon`
-        /// The gap as a fraction of the template: the connecting epsilon
-        /// over the diameter. A property of the sweep, not of the walk.
+        double diameter = 0.0;
+        bool closes = false;
         double coarseness() const { return diameter > 0.0 ? connected / diameter : 0.0; }
     };
 
-    /**
-     * @brief One proposal per frequency of the clouds held, in the current
-     * metric.
-     *
-     * Connectivity is necessary for the walk to close but not sufficient: the
-     * walk (Prune) steps from a point to a neighbour within epsilon in a
-     * given angular order, and a template whose points are just connected
-     * can still leave it with no admissible next step, or send it round in
-     * circles. Measured on example 2, the walk closes anywhere from exactly
-     * the connecting epsilon to twice it, and not monotonically. So the
-     * epsilon proposed is found by walking: candidates rise from the
-     * connecting epsilon one per cent at a time, each rounded up to the three
-     * significant figures a person types, and the first at which the walk
-     * closes is proposed. Every candidate is tried as the user would type it,
-     * so what the field shows is what has been verified. Quadratic in the
-     * cloud size (Prim) plus one walk per candidate.
-     */
     std::vector<EpsilonProposal> proposeEpsilon();
 
-    /**
-     * @brief What the contour of one frequency went through, as data.
-     *
-     * The walk has two ways of not being the canonical epsilon-hull:
-     * falling back to the relaxed walk when the faithful one does
-     * not close, and that walk then stopping at its step limit. A benchmark,
-     * a test or a script has no error stream to read, so the facts are kept
-     * here, one report per design frequency, in the order of the clouds.
-     */
     struct ContourReport
     {
         std::size_t cloudPoints = 0;
         std::size_t contourPoints = 0;
-        /// The faithful walk did not close; the relaxed walk was used.
         bool relaxed = false;
-        /// The relaxed walk hit its step limit too.
         bool truncated = false;
-        /// No walk closed, and the WHOLE CLOUD stands in for the contour at
-        /// this frequency (setWholeCloudStandsIn). With that off, a walk
-        /// that does not close is an error naming the frequency.
         bool wholeCloud = false;
-        /// The epsilon-connected components of the cloud, and where each
-        /// one's contour begins in the returned vector (the first at 0). The
-        /// walk of Prune is defined for an epsilon-connected set (Gutman,
-        /// Nordin and Cohen 2007, section 3); a cloud with more than one
-        /// component is walked once per component, and the contours are
-        /// concatenated in this order.
         std::size_t components = 1;
         std::vector<std::size_t> componentStarts;
     };
 
-    /// One report per frequency of the last contour computation.
     const std::vector<ContourReport> & contourReports() const { return m_reports; }
 
-    /// What a contour that does not close becomes: the whole cloud at that
-    /// frequency (the default, always safe and only slower) or an error
-    /// naming the frequency, for the user to change the epsilon or the sweep.
     void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
     bool wholeCloudStandsIn() const { return m_wholeCloudStandsIn; }
 
-    /// Sweep grids keyed by parameter NAME; the caller keeps ownership.
-    /// Takes the grids BY VALUE: the engine owns its copy and nobody has to
-    /// remember to free anything. See qftbx::ParameterGrids.
     void setGrids (ParameterGrids grids);
 
-    /// One epsilon per frequency, by value.
     void setEpsilon (std::vector <double> epsilon);
 
-    /// Feeds precomputed clouds (e.g. loaded from a project file) so their
-    /// contours can be recomputed.
-    /// Takes the clouds BY VALUE: see qftbx::CloudSet for what the pointer
-    /// version cost.
     void setClouds (CloudSet clouds);
 
     const CloudSet & clouds() const;
@@ -342,19 +151,11 @@ public:
     const std::vector <double> & epsilon () const;
 
 private:
-    /// The flag the sweep reads once per frequency; null when nobody can
-    /// ask it to stop.
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    /// Grid for an uncertain parameter, looked up by name; throws
-    /// qftbx::InvalidInput naming the parameter when the grid is missing.
     const std::vector<double> & gridFor(const Parameter & a);
 
     ParameterGrids m_grids;
-    /// The cartesian product of the grid sizes, so size_t and not int32:
-    /// eight uncertain parameters on a 25-point grid is 25^8, about 1.5e11,
-    /// which overflows a 32-bit int - and an overflowed count does not make
-    /// the sweep slow, it makes it silently wrong.
     std::size_t m_combinationCount = 0;
     std::vector <double> m_epsilon;
     HullMetric m_metric = HullMetric::ComplexPlane;
@@ -364,39 +165,20 @@ private:
     bool m_alphaShape = false;
     bool m_borderSweep = false;
     bool m_borderSweepApplied = false;
-    /// Right half-plane poles of every plant of the family, one number
-    /// (see the sweep); nothing when the plant cannot place its poles.
     std::optional<int> m_familyRhpPoles;
 
     CloudSet m_clouds;
     CloudSet m_contours;
     std::vector<ContourReport> m_reports;
-    /// A COPY of the frequencies compute() was given, named in the contour
-    /// messages: the engine outlives them, since it is kept across a project
-    /// load and that replaces the project's own.
     std::vector <double> m_frequencies;
 
     class NeighbourGrid;
 
-    /// The epsilon-connected components of 'cv' (sorted, deduplicated), as
-    /// index lists, each ordered as in 'cv' and the components ordered by
-    /// their rightmost point, so the first one holds the walk's usual seed.
     std::vector<std::vector<std::int32_t>> components(const ComplexCloud & cv, double epsilon,
                                                       const NeighbourGrid & neighbours);
 
-    /// The points the walk measures its distances in: the points themselves
-    /// in the complex plane, their phase in degrees and magnitude in
-    /// decibels over dbPerDegree in the Nichols plane, the branch cut of
-    /// the phase placed in the widest angular gap of the cloud so that no
-    /// template is torn at -360/0.
     ComplexCloud projected(const ComplexCloud & points) const;
 
-    /// The faithful walk over one epsilon-connected set of points. The walk
-    /// measures on 'walk' and returns points of 'source', which run parallel
-    /// (the same points, in the same order, in two planes); when the walk
-    /// does not close the relaxed fallback runs over 'fallbackWalk' and
-    /// returns points of 'fallbackSource' (the same points in the order the
-    /// fallback has always received them).
     ComplexCloud walkComponent(const ComplexCloud & source, const ComplexCloud & walk,
                                const ComplexCloud & fallbackSource, const ComplexCloud & fallbackWalk,
                                double epsilon, const NeighbourGrid & neighbours,
@@ -405,15 +187,9 @@ private:
     std::int32_t findSecond(std::int32_t b1, const ComplexCloud & cv, double epsilon,
                             const NeighbourGrid & neighbours);
 
-    /// excludePrevious = true reproduces the relaxed variant;
-    /// false is the behaviour faithful to EPSHULL.M.
     std::int32_t findNext(std::int32_t previousPoint, std::int32_t currentPoint, const ComplexCloud & cv, double epsilon,
                           const NeighbourGrid & neighbours, bool excludePrevious = false);
 
-    /// The relaxed walk (divergent from EPSHULL.M): max-imaginary start,
-    /// previous point excluded, deduplicated output. Used as the fallback
-    /// when the reference walk cycles. Empty when it hits its own step
-    /// limit, since a partial contour must never pass for a whole one.
     ComplexCloud epsilonHullRelaxed(const ComplexCloud & source, const ComplexCloud & walk,
                                     double epsilon, bool * truncated = nullptr);
 

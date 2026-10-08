@@ -9,75 +9,46 @@
 
 /**
  * @file
- * @brief Ceiling on the number of nodes the branch and bound may keep alive
- * at once.
+ * @brief The live list of the branch and bound, and the ceiling on the
+ * number of nodes it may keep at once.
  *
- * A branch and bound on a problem it cannot resolve at the requested
- * accuracy grows its live list without limit, and on Linux with the default
- * heuristic overcommit (vm.overcommit_memory = 0) that does NOT end in a
- * std::bad_alloc anyone could report: malloc keeps
- * succeeding and the OOM killer takes the process down when it touches the
- * pages, so the user loses the project with no message at all. A ceiling is
- * the only mechanism that turns that into a diagnosis.
+ * OrderedList is a priority list of live nodes ordered by the node index,
+ * ascending by default and descending with highestFirst. Ties keep their
+ * insertion order, so the exploration is deterministic, and the ordering
+ * is what makes the first solution of the branch and bound the global one:
+ * an insertion off by one slot changes the answer. The list owns the nodes
+ * it holds and whatever is queued when the search ends dies with it;
+ * takeFirst() unlinks the first node and hands its ownership over in one
+ * call, while first() and last() only observe. Those three throw
+ * qftbx::ComputationError on an empty list, and insert() throws it when
+ * the list already holds its ceiling. peakSize() is the most nodes ever
+ * queued at once, which LoopShaping reports next to the elapsed time and
+ * which is what to set the ceiling against.
  *
- * A live node measures 528 bytes for a two-parameter controller and 1056
- * for an eight-parameter one (the tree node of the list, the
- * SearchNode, the box and its parameter vector), so this ceiling is about
- * 17 to 34 GB. It is deliberately far above the millions of nodes a normal
- * hard run reaches: it is there to catch a runaway search, not to cap a
- * legitimate one.
- *
- * LoopShaping reports the peak of every run next to the elapsed time, which
- * is what to set this figure against.
- *
- * The ceiling in effect comes from the settings file (search.max-live-nodes,
- * qftbx::Settings::Search) through the algorithm that builds the list.
+ * The ceiling exists because a search that cannot resolve the requested
+ * accuracy grows its list without limit, and under Linux's default
+ * overcommit that ends with the OOM killer and no message, not with a
+ * std::bad_alloc anyone could report. kDefaultMaxLiveNodes is deliberately
+ * far above what a hard legitimate run reaches: it catches a runaway
+ * search, it does not cap a legitimate one. The ceiling in effect comes
+ * from the settings file (search.max-live-nodes, qftbx::Settings::Search)
+ * through the algorithm that builds the list.
  */
 namespace qftbx {
 
 inline constexpr std::size_t kDefaultMaxLiveNodes = 32000000;
 
-/**
- * @brief Priority list of live branch & bound nodes, ordered by the node
- * index (ascending by default, descending with highestFirst = true).
- *
- * Backed by a std::multimap: insertion and removal are O(log n) - the
- * live-node lists grow to millions of nodes - and ties keep insertion
- * order, so the exploration is deterministic. The list OWNS the nodes it
- * holds: whatever is still queued when the search ends dies with the
- * list, and takeFirst() hands one node's ownership over. The ordering is
- * what makes the first solution of the branch and bound the global one, so
- * an insertion off by one slot does not misorder the list, it changes the
- * answer.
- */
 class OrderedList
 {
 public:
     OrderedList(bool highestFirst = false, std::size_t maxNodes = kDefaultMaxLiveNodes);
 
-    /**
-     * @brief Queues one node, taking its ownership.
-     *
-     * Throws qftbx::ComputationError when the list already holds maxNodes:
-     * see kDefaultMaxLiveNodes for why the ceiling exists.
-     */
     void insert (std::unique_ptr<ListNode> node);
 
-    /// Observer on the first queued node; the list keeps ownership. Throws
-    /// qftbx::ComputationError on an empty list, as do takeFirst() and
-    /// last(): the alternative is a dereference of end().
     ListNode * first();
 
-    /**
-     * @brief Unlinks the first node and hands its ownership over.
-     *
-     * One call rather than an observer plus a removal: inside a loop that
-     * visits millions of nodes, a caller that forgets one of the two leaks
-     * every node it takes.
-     */
     std::unique_ptr<ListNode> takeFirst();
 
-    /// takeFirst() for a list known to hold nodes of a derived type.
     template <class T>
     std::unique_ptr<T> takeFirstAs()
     {
@@ -87,23 +58,17 @@ public:
         return std::unique_ptr<T>(static_cast<T *>(takeFirst().release()));
     }
 
-    /// Observer on the last queued node; the list keeps ownership.
     ListNode * last();
 
     bool isEmpty () const;
 
-    /// Nodes currently queued.
     std::size_t size () const;
 
-    /// The most nodes ever queued at once, which is what the run cost in
-    /// memory and what the ceiling has to be tuned against.
     std::size_t peakSize () const;
-    /// Nodes taken from the head so far.
     std::size_t takenCount() const { return m_taken; }
 
 private:
 
-    /// Ascending or descending by node index; ties keep insertion order.
     std::multimap <double, std::unique_ptr<ListNode>, bool(*)(double, double)> m_nodes;
 
     void requireNodes() const;

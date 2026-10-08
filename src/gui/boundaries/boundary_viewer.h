@@ -4,9 +4,12 @@
  *
  * Declares the viewer that draws every boundary per design frequency and
  * specification, coloured by frequency, with a legend that hides a
- * frequency at a time. It observes the boundary data and the frequencies
- * and is emptied, not destroyed, when the project drops the step. The
- * plot owns the curves; the viewer keeps the containers.
+ * frequency at a time. setData publishes the boundary data and the
+ * frequencies as observers, which must stay alive until clear(), and
+ * showDiagram builds the plot from them. The viewer lives as long as the
+ * window: when the project drops the step it is emptied with clear(), not
+ * destroyed. The plot owns the curves and frees them when it clears its
+ * plottables; the viewer keeps only the containers.
  */
 
 #ifndef QFTBX_BOUNDARY_VIEWER_H
@@ -30,12 +33,6 @@ class BoundaryViewer;
 
 namespace qftbx {
 
-/**
- * @brief Plots the computed QFT boundaries on the Nichols chart, one curve
- * per design frequency and specification.
- *
- * @author Isaac Martínez Forte
- */
 class BoundaryViewer : public QWidget
 {
     Q_OBJECT
@@ -45,26 +42,10 @@ public:
     explicit BoundaryViewer(QWidget *parent = 0);
     ~BoundaryViewer();
 
-   /**
-    * @brief Publishes what the plot needs. Observers on both: the viewer
-    * outlives neither.
-    *
-    * @param data the computed boundaries.
-    * @param omega the design frequencies they were computed at.
-    */
     void setData (const BoundaryData *data, std::vector<double> *omega);
 
-    /**
-     * @brief Forgets what it was drawing and empties the plot.
-     *
-     * A viewer lives in its phase's dock for as long as the window does,
-     * and what it holds are observers on the project: when the project
-     * drops a step, the pointers behind them go with it. This is what is
-     * called then, instead of destroying the viewer.
-     */
     void clear();
 
-   /// Builds the plot from the data published by setData().
     void showDiagram();
 
 private slots:
@@ -84,8 +65,6 @@ private:
 
     bool plotted = false;
 
-    /// The curves BELONG TO QCustomPlot, which frees them on
-    /// clearPlottables(): only these containers are the viewer's.
     QVector <QVector <QCPCurve *> > curves;
 
     std::unique_ptr<Ui::BoundaryViewer> ui;

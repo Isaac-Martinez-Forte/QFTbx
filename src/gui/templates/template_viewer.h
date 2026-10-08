@@ -3,12 +3,25 @@
  * @brief Plots the templates of a plant and the epsilon-hull contour of each.
  *
  * Declares the viewer of the value set at every design frequency and its
- * contour, with a legend row per frequency that carries the epsilon it was
- * walked with, the epsilon it asks for and whether the whole template
- * stands in for a contour that did not close. Recomputing and proposing
- * are plain callbacks installed by whoever owns the computation; the
- * viewer draws and holds its own copies of what it draws, since a project
- * may carry templates and no epsilon. The plot owns the graphs and curves.
+ * contour, on the Nichols plane or, when plotDiagram is given true, on the
+ * Nyquist one, with a legend row per frequency that carries the epsilon it
+ * was walked with, the epsilon it asks for and whether the whole template
+ * stands in for a contour that did not close. The viewer does not reach
+ * into the project: it is handed what it draws, one epsilon per design
+ * frequency, and holds its own copies, since a project may carry templates
+ * and no epsilon. It lives as long as the window, so when the project
+ * drops a step it is cleared, not destroyed.
+ *
+ * Recomputing, proposing and reporting are plain callbacks installed by
+ * whoever owns the computation: one caller, one handler, one thread.
+ * Without a recomputer the button does nothing; the recomputer takes the
+ * epsilons and answers with refreshContour, which redraws the contour
+ * without rebuilding the frequency colours. The plot owns the graphs and
+ * curves. A cloud is a scatter, having no order, and a contour a QCPCurve,
+ * never a QCPGraph, which would sort it by phase although a contour is
+ * multivalued in phase; a cloud of several components has one curve per
+ * component, so legend rows and curves are not one to one. The card opens
+ * with the contour shown and the cloud hidden.
  */
 
 #ifndef QFTBX_TEMPLATE_VIEWER_H
@@ -39,12 +52,6 @@ class TemplateViewer;
 
 namespace qftbx {
 
-/**
- * @brief Plots the templates of a plant - its value set at every design
- * frequency - and the epsilon-hull contour computed from them.
- *
- * @author Isaac Martínez Forte
- */
 class TemplateViewer : public QWidget
 {
     Q_OBJECT
@@ -54,87 +61,31 @@ public:
     explicit TemplateViewer(QWidget *parent = 0);
     ~TemplateViewer();
 
-   /**
-    * @brief Builds the plot.
-    *
-    * @param plot which plane to draw on: false is Nichols, true is
-    * Nyquist.
-    */
     void plotDiagram(bool plot);
 
-    /**
-     * @brief Forgets what it was drawing and empties the plot.
-     *
-     * A viewer lives in its phase's dock for as long as the window does,
-     * and what it holds are observers on the project: when the project
-     * drops a step, the pointers behind them go with it. This is what is
-     * called then, instead of destroying the viewer.
-     */
     void clear();
-
-   /**
-    * @brief Publishes everything the plot needs at once, instead of
-    * calling the two setters separately.
-    *
-    * The viewer does not reach into the project: it is handed what it
-    * draws.
-    *
-    * @param templates the plant value set at every design frequency.
-    * @param contour the epsilon-hull of each of those.
-    * @param omega the design frequencies the templates belong to.
-    * @param epsilon the tightening of each frequency, one per omega entry.
-    */
 
     void setData(const qftbx::CloudSet & templates,
                   const qftbx::CloudSet & contour,
                   std::vector<double> * omega,
                   std::vector<double> * epsilon);
 
-   /**
-    * @brief What runs when the user asks for a tighter contour. Ownership of
-    * the epsilon vector passes to the handler, which answers with
-    * refreshContour().
-    *
-    * A plain callback rather than a Qt signal: one caller, one handler, same
-    * thread. Same seam as qftbx::ErrorReporter.
-   */
-
     using ContourRecomputer = std::function<void (std::vector<double> epsilon)>;
-
-   /**
-    * @fn setContourRecomputer
-    * @brief Installs the handler of the recompute button. Without one the
-    * button does nothing: the viewer owns no computation.
-   */
 
     void setContourRecomputer(ContourRecomputer recompute);
 
-    /// What answers the "propose epsilon" button and fills the coarseness
-    /// of each template: the epsilon each cloud asks for, in the project's
-    /// plane, and its diameter (TemplateEngine::EpsilonProposal).
     using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal> ()>;
     void setEpsilonProposer(EpsilonProposer propose);
 
-    /// Where the viewer reads what the last contour computation reported
-    /// (TemplateEngine::ContourReport), to mark the frequencies where the
-    /// whole template stands in for a contour that did not close.
     using ContourReporter = std::function<std::vector<qftbx::TemplateEngine::ContourReport> ()>;
     void setContourReporter(ContourReporter report);
-
-   /**
-    * @fn refreshContour
-    * @brief Answer to recomputeRequested: the new contour and the epsilon
-    * that produced it, redrawn without rebuilding the frequency colours.
-   */
 
     void refreshContour(const qftbx::CloudSet & contour,
                         std::vector<double> * omega,
                         std::vector<double> * epsilon);
 
-   /// @param templates the plant value set at every design frequency.
     void setTemplates (const qftbx::CloudSet & templates);
 
-   /// @param contour the epsilon-hull of each template.
     void setContour (const qftbx::CloudSet & contour);
 
 private slots:
@@ -159,15 +110,9 @@ private:
     std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
     void showProposals();
     bool plotted = false;
-    /// The cloud of a frequency, as the points it is: a value set has no
-    /// order, so there is no line to draw through it.
     void plotCloud(const std::vector<double> & phases, const std::vector<double> & magnitudes,
                    qint32 frequency);
 
-    /// And its contour, as the closed curve it is. A QCPCurve and not a
-    /// QCPGraph: a graph is a function of its x, and it SORTS its points by
-    /// phase, which is what made the line cross the cloud instead of
-    /// walking its border - a contour is multivalued in phase by nature.
     void plotContour(const std::vector<double> & phases, const std::vector<double> & magnitudes,
                      qint32 frequency);
 
@@ -175,21 +120,12 @@ private:
     FrequencyLegend * legend = nullptr;
     void clearDiagram();
 
-    /// Its OWN copies, not aliases of the project's vectors,
-    /// which is why a recompute had to be careful about what it freed.
     qftbx::CloudSet m_templates;
     qftbx::CloudSet m_contour;
     std::vector<double> m_omega;
     std::vector<double> m_epsilon;
 
-    /// The graphs BELONG TO QCustomPlot, which frees them on clearGraphs():
-    /// only these containers are the viewer's.
-    /// The clouds are scatters, where the order of the points does not
-    /// matter; the contours are curves, where it is everything.
     QVector <QCPGraph *> templateGraphs;
-    /// One entry per frequency, and inside it one curve per piece of its
-    /// contour: a cloud with more than one component is walked once per
-    /// component, so the row of the legend and the curve are not one to one.
     QVector <QVector <QCPCurve *>> contourCurves;
     QMap <qreal, QColor> colorByFrequency;
 
@@ -197,10 +133,6 @@ private:
 
     QVector <QLineEdit *> epsilonEdits;
 
-    /// What the buttons say when the card opens: the contour is drawn and the
-    /// cloud behind it is not. The second flag said the opposite while the
-    /// drawing hardcoded the truth, so the first press of "Hide contour" only
-    /// set the text it already had.
     bool templatesVisible = false;
     bool contourVisible = true;
 

@@ -25,9 +25,6 @@ class QTableWidget;
 
 namespace qftbx {
 
-/**
- * @brief The cases of a run, one row each, with their state as they go.
- */
 class QueueView : public QWidget
 {
     Q_OBJECT

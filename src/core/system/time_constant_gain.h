@@ -2,12 +2,14 @@
  * @file
  * @brief Transfer function in time-constant form.
  *
- * Declares the form whose numerator and denominator parameters are corner
- * frequencies, each a factor s/z + 1, times a gain that is the value at
- * s = 0 and a pure delay. An empty vector stands for the constant 1. A
- * corner that is zero, or whose uncertainty range contains zero, is refused
- * at construction: every factor divides by it, and zero is a finite number
- * no other check refuses.
+ * Declares the form
+ * \f$ P(s) = k \, e^{-s\tau} \prod_i (s/z_i + 1) / \prod_j (s/p_j + 1) \f$,
+ * whose numerator and denominator parameters are corner frequencies, each
+ * a factor s/z + 1, times a gain k that is the value at s = 0 and a pure
+ * delay. An empty vector stands for the constant 1. A corner that is zero,
+ * or whose uncertainty range contains zero, is refused at construction
+ * with InvalidInput: every factor divides by it, and zero is a finite
+ * number no other check refuses.
  */
 
 #ifndef QFTBX_TIME_CONSTANT_GAIN_H
@@ -19,22 +21,9 @@
 
 namespace qftbx {
 
-/**
- * @brief Transfer function in time-constant (DC-gain) form:
- * \f$ P(s) = k \, e^{-s\tau} \prod_i (s/z_i + 1) / \prod_j (s/p_j + 1) \f$.
- *
- * Each numerator/denominator Parameter is a corner frequency; at s = 0 the
- * system equals k. An empty vector stands for the constant 1.
- */
 class TimeConstantGain : public TransferFunction
 {
 public:
-    /**
-     * @brief Builds the system. Throws InvalidInput when any corner frequency
-     * is zero or its uncertainty range contains zero: every factor is
-     * s/z + 1, so a zero corner divides by zero at every frequency, and 0 is a
-     * finite number that no other check refuses.
-     */
     TimeConstantGain(std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator, Parameter k, Parameter delay);
 
     std::unique_ptr<LtiSystem> create (std::string name, std::vector <Parameter> numerator, std::vector <Parameter> denominator,

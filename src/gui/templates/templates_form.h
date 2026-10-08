@@ -1,15 +1,29 @@
 /**
  * @file
- * @brief The step that asks for the parameter grids and the contour epsilon.
+ * @brief The step that asks for the parameter grids and the contour
+ * epsilon.
  *
  * Declares the panel with a general point count and spacing, a row per
  * uncertain parameter with its own linear, logarithmic or manual grid, the
  * plane the templates are drawn on and the epsilon is measured in, how the
- * contour is extracted and what stands in when it does not close, the
- * border-only sweep, and the per-frequency epsilon. An installed proposer
- * fills the epsilon field with the least value that closes each contour.
- * The grids are returned by value; the plant is an observer the project
- * can take away while the panel is open.
+ * contour is extracted (the walk or the alpha shape) and whether the whole
+ * template stands in when it does not close or the computation stops, the
+ * border-only sweep, offered only for exactly two uncertain parameters, and
+ * the epsilon, one per design frequency. The point-count ceiling from the
+ * settings only ever refuses input, so it changes no computed result.
+ *
+ * An installed proposer fills the epsilon field with the least value that
+ * closes each contour, for the family swept over the grids the panel holds
+ * and in its plane, on launch and from the Propose button; without one the
+ * field opens empty, and proposals() is empty when none was made. The
+ * grids are returned by value and the panel keeps its own copy for a
+ * second accept; takeEpsilon() moves the epsilon out, so the panel holds
+ * nothing between accepts. The plant is an observer the project owns and
+ * can take away while the panel is open: after forgetPlant() the panel
+ * refuses to publish until it is given one again, and shownPlant() tells
+ * the window which plant the grids on screen were built for. The line
+ * edits and radio buttons of the rows are owned by Qt through their row
+ * widget.
  */
 
 #ifndef QFTBX_TEMPLATES_FORM_H
@@ -48,100 +62,52 @@ class TemplatesForm;
 
 namespace qftbx {
 
-/**
- * @brief Step 3 of the design: the sweep grid of every uncertain plant
- * parameter and the epsilon of the contour walk.
- *
- *
- * @author Isaac Martínez Forte
- */
 class TemplatesForm : public StepPanel
 {
     Q_OBJECT
 
 public:
-    /// Ceiling on a parameter grid's point count, from the settings. It only
-    /// ever refuses input, so moving it changes no computed result.
     void setMaxPointCount(double points) { m_maxPointCount = points; }
 
-    /// Prefills the general point count from the settings.
     void setDefaultPointCount(std::int32_t points);
 
     explicit TemplatesForm(QWidget *parent = 0);
 
     ~TemplatesForm();
 
-   /**
-    * @brief Builds the rows and shows the dialog.
-    *
-    * @param plant the plant whose uncertain parameters need a grid.
-    * @param frequencyCount how many epsilon values to ask for, one per
-    * design frequency.
-    */
     void launch(LtiSystem * plant, qint32 frequencyCount);
 
-    /// The plant the grids on screen were built for, or nullptr when there
-    /// is none. The window asks so it can tell a panel still showing the
-    /// project's plant from one whose plant has been replaced under it.
     LtiSystem * shownPlant() const { return plant; }
 
-    /// Forgets the plant: the grids no longer describe anything, and the
-    /// panel refuses to publish until it is given one again. The project
-    /// owns the plant and can drop it while this stays open.
     void forgetPlant();
 
-    /// The grids BY VALUE: nobody has to free them, and the dialog keeps its
-    /// own copy for a second accept. See qftbx::ParameterGrids.
     qftbx::ParameterGrids grids() const;
 
-    /// The per-frequency epsilon the user described, or nullptr when the
-    /// dialog was cancelled or rejected. Ownership PASSES to the caller,
-    /// so the dialog holds nothing between accepts.
     std::vector<double> takeEpsilon();
 
-    /// Which plane the templates and their contour are drawn on: Nichols
-    /// rather than Nyquist.
     bool nicholsSelected();
 
-    /// Whether the user asked for the GPU path (requires a CUDA build).
     bool cudaSelected();
 
-    /// The plane the epsilon is measured in, as the dialog shows it and as
-    /// the user left it (HullMetric). Preset from the project before launch.
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
 
-    /// Where the contour does not close: the whole template stands in
-    /// (checked, the default from the settings) or the computation stops.
     bool wholeTemplateIfNoContour() const;
     void setWholeTemplateIfNoContour(bool standsIn);
 
-    /// How the contour is extracted: the walk (index 0) or the alpha-shape.
     bool alphaShapeContour() const;
     void setAlphaShapeContour(bool alphaShape);
 
-    /// Sweep only the border of the parameter box. Offered only when the
-    /// plant has exactly two uncertain parameters; false otherwise.
     bool borderSweep() const;
     void setBorderSweep(bool border);
 
-    /// What the epsilon field is filled with: the least epsilon at which the
-    /// contour of each template closes, for the family swept over the grids
-    /// the dialog holds and in its plane. Called on launch, with the grids as
-    /// they open, and again from the Propose button. Without one the field
-    /// opens empty, as it always did.
     using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal>(
         const qftbx::ParameterGrids &, qftbx::EpsilonMetric)>;
     void setEpsilonProposer(EpsilonProposer propose);
 
-    /// The proposals behind the field's current text, empty when none
-    /// were made (no proposer, grids the dialog could not read, or the
-    /// sweep failed).
     const std::vector<qftbx::TemplateEngine::EpsilonProposal> & proposals() const { return m_proposals; }
 
     struct ThreeRadioButtons{
-        /// Observers on radio buttons owned by their row widget: the three
-        /// ways of entering one parameter's grid.
         QRadioButton * linear = nullptr;
         QRadioButton * logarithmic = nullptr;
         QRadioButton * manual = nullptr;
@@ -164,17 +130,10 @@ private slots:
 private:
     void clearTables();
 
-    /// Reads every grid from the fields into gridMap. False, with the
-    /// message the user should see in reason, when a field is not usable;
-    /// the caller decides whether to show it (OK does, the proposal on
-    /// launch does not).
     bool readGrids(QString & reason);
 
-    /// Where the general section has nothing selected, selects what the
-    /// proposal and a plain OK need: linear spacing, every variable alike.
     void selectDefaultsWhereEmpty();
 
-    /// Sweeps over the grids as entered and fills the epsilon field.
     void proposeEpsilon();
 
     EpsilonProposer m_propose;
@@ -185,17 +144,11 @@ private:
     void buildRow (QWidget *widget, QVector<ParLineEdit> & par,
                    QVector <ThreeRadioButtons> & rowRadios);
     void buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator);
-    /// Why the last readVariable() refused its input, empty when it has
-    /// nothing to add to the caller's message. It exists so the operator is
-    /// told WHICH rule the entry broke: "invalid" alone left them guessing
-    /// between a syntax error and a count out of range.
     QString m_readReason;
 
     bool readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons rowRadios, Parameter & parameter,
                          bool useLinspace, bool useLogspace);
 
-    /// A ParLineEdit is three QLineEdit POINTERS, and Qt owns those through
-    /// the row widget: the rows themselves are values.
     QVector <ParLineEdit> numeratorRows;
     QVector <ParLineEdit> denominatorRows;
     qftbx::ParameterGrids gridMap;
@@ -203,8 +156,6 @@ private:
     QVector <ThreeRadioButtons> denominatorRadios;
     std::vector<Parameter> numerator;
     std::vector<Parameter> denominator;
-    /// An observer on the project's plant, handed in by launch(): the
-    /// dialog never owns it.
     LtiSystem * plant = nullptr;
 
     bool rowsBuilt = false;
@@ -214,8 +165,6 @@ private:
 
     std::vector<double> epsilonValues;
 
-    /// Names entered more than once in the current OK pass (numerator and
-    /// denominator sharing a parameter): reported once to the user.
     QStringList duplicateNames;
 
     qint32 frequencyCount = 0;

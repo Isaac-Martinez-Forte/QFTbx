@@ -16,6 +16,15 @@
  * what() is the English sentence, for the logs, the tests and whoever has
  * no translator. The plain-string constructors remain for texts that are
  * not for the user or come from elsewhere already composed.
+ *
+ * A ParseError carries the file and the line apart from its message:
+ * what() composes the three in English, and an interface that translates
+ * innerMessage() composes them again with frame(). A MissingPart is an
+ * element or attribute a reader looked for and did not find; a file can be
+ * incomplete without being broken, as a project saved half way through a
+ * design is, so a reader answers an absence by leaving that part unread
+ * and only a reader that cannot go on throws it. Malformed content, such
+ * as a number that is not a number, stays a ParseError.
  */
 namespace qftbx {
 
@@ -60,9 +69,6 @@ public:
     using Exception::Exception;
 };
 
-/// A malformed file: the message, the file and the line it was found
-/// on. what() composes the three in English; the interface translates the
-/// message on its own and composes them again (see frame()).
 class ParseError : public FileError
 {
 public:
@@ -74,11 +80,8 @@ public:
     long long line() const noexcept { return m_line; }
     const std::string & file() const noexcept { return m_file; }
 
-    /// The message without the file and the line.
     const Message & innerMessage() const noexcept { return m_inner; }
 
-    /// How the file and the line are put around a message, for whoever
-    /// composes it in another language.
     static Message frame(const std::string & file, const std::string & renderedMessage, long long line)
     {
         if (file.empty()) {
@@ -93,16 +96,6 @@ private:
     long long m_line;
 };
 
-/**
- * @brief A piece of a file that is not there: an element or an attribute
- * the reader looked for and did not find.
- *
- * A file can be INCOMPLETE without being broken - a project saved half way
- * through a design is the normal case - so a reader answers an absence by
- * leaving that part unread, and only a reader that cannot go on says so.
- * Malformed content is a ParseError and stays one: a number that is not a
- * number is a broken file, not an unfinished one.
- */
 class MissingPart : public ParseError
 {
 public:

@@ -18,7 +18,15 @@
  * later. The projection and the stability check accept this record
  * directly and compute exactly what they compute for the equivalent
  * system; pointFromBox() builds the system when a point leaves the
- * search as a result.
+ * search as a result, and systemFromPoint() builds it from the values,
+ * every value a fixed parameter of the prototype's structure.
+ *
+ * cornerOf() is the corner pointFromBox() takes: the lower end of every
+ * uncertain parameter when lower is true, otherwise the upper end of the
+ * gain and the zeros with the poles at their lower end (the anti-blocking
+ * rule); fixed parameters give their nominal value. Neither corner is
+ * certified feasible by itself: the searches use verifiedCorner()
+ * (common_functions.h).
  */
 namespace qftbx {
 
@@ -29,11 +37,6 @@ struct PointController
     std::vector<double> poles;
 };
 
-/// The corner of a box that pointFromBox() takes: the lower corner of every
-/// parameter when 'lower' is true, otherwise the maximum gain and zeros with
-/// the poles at their minimum (the anti-blocking rule). Fixed parameters
-/// contribute their nominal value. Neither corner is certified feasible by
-/// itself: verifiedCorner() (common_functions.h) is what the searches use.
 inline PointController cornerOf(LtiSystem * box, bool lower)
 {
     PointController point;
@@ -54,8 +57,6 @@ inline PointController cornerOf(LtiSystem * box, bool lower)
     return point;
 }
 
-/// The point as a system of the prototype's structure, every value a fixed
-/// parameter: what pointFromBox() builds, from the values instead of the box.
 inline std::unique_ptr<LtiSystem> systemFromPoint(LtiSystem * prototype, const PointController & point)
 {
     std::vector<Parameter> numerator;

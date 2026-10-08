@@ -20,13 +20,6 @@
 
 namespace qftbx {
 
-/**
- * @brief Common implementation for transfer-function systems.
- *
- * Holds the numerator/denominator parameters, the gain and the delay BY
- * VALUE. Subclasses only provide the expression generators for their
- * mathematical form.
- */
 class TransferFunction : public LtiSystem
 {
 public:

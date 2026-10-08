@@ -5,7 +5,8 @@
  * Declares the tab that shows the statistics per case as a table and one
  * measure against the controller structure as a figure, one curve per
  * algorithm, the way the thesis draws its comparisons. The table and the
- * figure can be exported as CSV or Markdown through a file chooser seam.
+ * figure can be exported as CSV or Markdown through a file chooser seam,
+ * the same as PlanEditor's.
  */
 
 #ifndef QFTBX_GUI_BENCH_RESULTS_VIEW_H
@@ -26,11 +27,6 @@ class QTableWidget;
 
 namespace qftbx {
 
-/**
- * @brief The summary of a run: the statistics per case as a table, and a
- * figure of one measure against the controller structure, one curve per
- * algorithm, the way the thesis draws its comparisons.
- */
 class ResultsView : public QWidget
 {
     Q_OBJECT
@@ -41,7 +37,6 @@ public:
     void show(const std::vector<bench::Aggregate> & aggregates);
     void clear();
 
-    /// How a file name gets asked for when exporting; see PlanEditor.
     using FileChooser = std::function<QString (bool forSaving, const QString & filter)>;
     void setFileChooser(FileChooser chooser) { m_chooseFile = std::move(chooser); }
 

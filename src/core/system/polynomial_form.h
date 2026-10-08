@@ -2,10 +2,11 @@
  * @file
  * @brief Transfer function as a quotient of polynomials.
  *
- * Declares the form whose numerator and denominator are coefficient
- * vectors from highest to lowest degree, times a gain and a pure delay. An
- * empty vector stands for the constant 1, and the poles are the roots of
- * the denominator.
+ * Declares the form
+ * \f$ P(s) = k \, e^{-s\tau} (a_0 s^{n-1} + \dots + a_{n-1}) / (b_0 s^{m-1} + \dots + b_{m-1}) \f$,
+ * whose numerator and denominator are coefficient vectors from highest to
+ * lowest degree. An empty vector stands for the constant 1, and the poles
+ * are the roots of the denominator.
  */
 
 #ifndef QFTBX_POLYNOMIAL_FORM_H
@@ -17,15 +18,6 @@
 
 namespace qftbx {
 
-/**
- * @brief Transfer function as a quotient of polynomials given by their
- * coefficients:
- * \f$ P(s) = k \, e^{-s\tau} (a_0 s^{n-1} + \dots + a_{n-1}) /
- *                          (b_0 s^{m-1} + \dots + b_{m-1}) \f$.
- *
- * Coefficient vectors run from highest to lowest degree; the degree of the
- * i-th entry is size - 1 - i. An empty vector stands for the constant 1.
- */
 class PolynomialForm : public TransferFunction
 {
 public:

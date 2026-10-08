@@ -15,18 +15,17 @@
  * algorithm and read the clocks, the memory and the counters. The
  * measurements the plan does not ask for are not taken. The caller is
  * expected to be a process of its own, so that the peak memory is the
- * case's and a crash is the case's.
+ * case's and a crash is the case's. The records of a plan go to `records`
+ * under the plan's name in the output directory; failureRecord() stands for
+ * a case that left none, killed on its timeout or dead of a crash.
  */
 namespace qftbx::bench {
 
 Record runCase(const Plan & plan, const Case & c);
 
-/// Where the records of a plan go: `records` under the plan name in the output directory.
 std::string recordsDirectory(const Plan & plan);
 std::string recordPath(const Plan & plan, const Case & c);
 
-/// A record for a case that produced none: killed on its timeout, or dead
-/// of a crash.
 Record failureRecord(const Plan & plan, const Case & c, const std::string & status, const std::string & message);
 
 }

@@ -4,8 +4,8 @@
  *
  * Declares the viewer with a magnitude canvas and a phase canvas, drawn
  * from a system and a frequency set and exported as two files. It lives
- * in the plant's dock for as long as the window does and is emptied, not
- * destroyed, when the project loses its plant.
+ * in the plant's dock for as long as the window does and is emptied by
+ * clear(), not destroyed, when the project loses its plant.
  */
 
 #ifndef QFTBX_BODE_VIEWER_H
@@ -32,12 +32,6 @@ class BodeViewer;
 
 namespace qftbx {
 
-/**
- * @brief Plots the Bode diagram of a plant over a set of design
- * frequencies.
- *
- * @author Isaac Martínez Forte
- */
 class BodeViewer : public QWidget
 {
     Q_OBJECT
@@ -46,21 +40,8 @@ public:
     explicit BodeViewer(QWidget *parent = 0);
     ~BodeViewer();
 
-    /**
-     * @brief Draws the Bode diagram.
-     *
-     * @param plant the plant to evaluate.
-     * @param omega the frequencies to evaluate it at.
-     */
     void drawBode(LtiSystem * plant, Omega * omega);
 
-    /**
-     * @brief Empties both plots.
-     *
-     * The viewer lives in the plant's dock for as long as the window does,
-     * so when the project loses its plant this is what is called, instead
-     * of destroying it.
-     */
     void clear();
 
 private slots:

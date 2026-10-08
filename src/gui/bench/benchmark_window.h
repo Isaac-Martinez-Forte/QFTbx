@@ -3,11 +3,18 @@
  * @brief The benchmark planner window: a plan edited, saved, run and read.
  *
  * Declares the main window that holds the plan editor, the queue of cases
- * and the results as three tabs, with a toolbar for new, open, save, run,
- * stop and reading results already on disk. File and confirmation dialogs
- * are behind replaceable seams so a test can drive the window. Built only
- * with the benchmark option enabled and opened from the main window's
- * Tools menu.
+ * and the results as three tabs, in the order of the work, with a toolbar
+ * for new, open, save, run, stop and reading results already on disk. The
+ * plan is saved to its file before it runs, since the worker processes
+ * read it from there, with its paths relative to that file so it travels
+ * with its project and its results; the same file runs unattended with
+ * qftbx-bench on another machine, and loadResults() reads the records such
+ * a run left. savePlan() asks for a file when there is none and returns
+ * false when the user gave none or the plan cannot be read. File and
+ * confirmation dialogs are behind replaceable seams so a test can drive
+ * the window: the chooser returns a path or an empty string, the confirmer
+ * true for yes. Built only with QFTBX_BUILD_BENCHMARK and opened from the
+ * main window's Tools menu.
  */
 
 #ifndef QFTBX_GUI_BENCH_BENCHMARK_WINDOW_H
@@ -30,19 +37,6 @@ class PlanEditor;
 class QueueView;
 class ResultsView;
 
-/**
- * @brief The benchmark planner: a plan edited, saved, run and read in one
- * window.
- *
- * Three tabs, in the order of the work: the plan, the queue of cases as
- * they run, the results. The plan is saved to its file before it runs,
- * since the worker processes read it from there, with its paths relative
- * to that file so it travels with its project and its results. The same
- * plan file runs unattended with qftbx-bench on another machine.
- *
- * Opened from the main window's Tools menu; built only with
- * QFTBX_BUILD_BENCHMARK.
- */
 class BenchmarkWindow : public QMainWindow
 {
     Q_OBJECT
@@ -51,13 +45,9 @@ public:
     explicit BenchmarkWindow(QWidget * parent = nullptr);
     ~BenchmarkWindow() override;
 
-    /// How a file name gets asked for (the dialogs are modal and cannot be
-    /// driven by a test): forSaving and a filter, returning the path or an
-    /// empty string.
     using FileChooser = std::function<QString (bool forSaving, const QString & filter)>;
     void setFileChooser(FileChooser chooser);
 
-    /// How a question gets asked (save before running?); true for yes.
     using Confirmer = std::function<bool (const QString & question)>;
     void setConfirmer(Confirmer confirmer) { m_confirm = std::move(confirmer); }
 
@@ -70,14 +60,10 @@ public:
 
     void newPlan();
     void openPlan(const QString & path);
-    /// Saves to the current file, asking for one when there is none;
-    /// returns false when the user gave none or the plan cannot be read.
     bool savePlan();
     bool savePlanAs();
     void run();
     void stop();
-    /// Loads the records already on disk for the current plan into the
-    /// results, which is how a run made elsewhere is read here.
     void loadResults();
 
 private:

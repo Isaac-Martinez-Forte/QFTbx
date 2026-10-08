@@ -2,8 +2,11 @@
  * @file
  * @brief Linearly and logarithmically spaced sequences.
  *
- * Each point is computed from its index, so the last point is exactly the
- * end requested and nothing drifts with the count.
+ * Each point is computed from its index, so nothing drifts with the count,
+ * and the last point is exactly the end requested, as in MATLAB's
+ * linspace. A count of zero gives an empty vector, a count of one just the
+ * first value, and a descending range is allowed. logspace takes the
+ * exponents of its ends, as MATLAB's does.
  */
 
 #ifndef QFTBX_MATH_SEQUENCES_H
@@ -16,14 +19,6 @@
 namespace qftbx {
 namespace math {
 
-/**
- * @brief count values evenly spaced from first to last, both included.
- *
- * Values are computed as first + i*step (no accumulation drift) and the last
- * element is pinned exactly to `last`, matching MATLAB's linspace.
- * count == 0 yields an empty vector; count == 1 yields {first}. A descending
- * range (first > last) is produced naturally.
- */
 inline std::vector<double> linspace(double first, double last, std::size_t count)
 {
     std::vector<double> values;
@@ -46,10 +41,6 @@ inline std::vector<double> linspace(double first, double last, std::size_t count
     return values;
 }
 
-/**
- * @brief count values logarithmically spaced from 10^firstExp to 10^lastExp,
- * both included (the arguments are exponents, matching MATLAB's logspace).
- */
 inline std::vector<double> logspace(double firstExp, double lastExp, std::size_t count)
 {
     std::vector<double> values = linspace(firstExp, lastExp, count);

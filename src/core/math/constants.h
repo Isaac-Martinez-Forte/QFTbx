@@ -16,8 +16,6 @@
 namespace qftbx {
 namespace math {
 
-/// pi and e, from the standard library where it provides them and spelled
-/// out where it does not yet.
 #if __has_include(<numbers>)
 inline constexpr double kPi = std::numbers::pi;
 inline constexpr double kE = std::numbers::e;
