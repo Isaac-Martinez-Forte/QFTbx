@@ -113,8 +113,8 @@ TEST(GainShave, TheRouthTableRaisesTheFloorOfAnUnstablePlant)
 TEST(GainShave, NoGainTheShavingRemovesIsStable)
 {
     std::size_t removed = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -150,8 +150,8 @@ TEST(GainContractor, NoGainTheContractionRemovesIsADesign)
 {
     std::size_t removed = 0;
     std::size_t emptied = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -199,7 +199,7 @@ TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
 {
     std::size_t acrossATurn = 0, contractedAcrossATurn = 0;
     for (const auto & [name, extra] : {std::pair<const char *, const char *>{"msf.qft", "pz"}, {"maglev-lower.qft", "p"}}) {
-        const std::string file = example(name);
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -286,7 +286,7 @@ TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
 
 TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
 {
-    const std::string file = example("acc90.qft");
+    const std::string file = problem("acc90.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -333,8 +333,8 @@ TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
 TEST(ZeroExclusion, NoBoxItProvesHoldsAStableController)
 {
     std::size_t proven = 0, holdingStable = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft", "toolbox-2.qft", "maglev-upper.qft", "dcm-k.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-1.qft", "toolbox-2.qft", "maglev-upper.qft", "dcm-k-plant-k.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }

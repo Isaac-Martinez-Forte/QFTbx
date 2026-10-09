@@ -45,7 +45,7 @@ struct Problem
 {
     explicit Problem(const char * name)
     {
-        project.load(example(name));
+        project.load(problem(name));
         structure = project.controllerStructure();
         omega = project.omega()->values();
         specifications = toSpecificationSet(*project.specifications());
@@ -63,8 +63,8 @@ struct Problem
 
 TEST(ExactGain, TheAdmissibleSetIsTheVerifiersOnAScan)
 {
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft"}) {
-        if (!std::filesystem::exists(example(name))) {
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft"}) {
+        if (!std::filesystem::exists(problem(name))) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
         Problem problem(name);
@@ -105,8 +105,8 @@ TEST(ExactGain, TheAdmissibleSetIsTheVerifiersOnAScan)
 
 TEST(ExactGain, TheWorkingSetFindsTheMinimumOfTheWholeCloud)
 {
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft"}) {
-        if (!std::filesystem::exists(example(name))) {
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft"}) {
+        if (!std::filesystem::exists(problem(name))) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
         Problem problem(name);
@@ -146,8 +146,8 @@ TEST(ExactGain, TheWorkingSetFindsTheMinimumOfTheWholeCloud)
 
 TEST(ExactGain, WhatIsAskedBetweenTwoSearchesDoesNotMoveThem)
 {
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft"}) {
-        if (!std::filesystem::exists(example(name))) {
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft"}) {
+        if (!std::filesystem::exists(problem(name))) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
         Problem alone(name);
@@ -190,12 +190,12 @@ TEST(ExactGain, TheVerticesOfTheStudyArePinned)
         double gain;
     };
     const Pin pins[] = {
-        {"dcm-T33.qft", {1000.0}, {472.86}, 41.4696},
+        {"dcm-T33-plant-k.qft", {1000.0}, {472.86}, 41.4696},
         {"toolbox-2.qft", {1.8076}, {139.95}, 566.88},
-        {"dcm-k.qft", {3.24587}, {67.9953, 69.6121}, 47807.0},
+        {"dcm-k-plant-k.qft", {3.24587}, {67.9953, 69.6121}, 47807.0},
     };
     for (const Pin & pin : pins) {
-        if (!std::filesystem::exists(example(pin.file))) {
+        if (!std::filesystem::exists(problem(pin.file))) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
         Problem problem(pin.file);

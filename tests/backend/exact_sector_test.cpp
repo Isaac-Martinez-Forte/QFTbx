@@ -180,10 +180,10 @@ bool closeEnough(double a, double b)
 TEST(ExactSector, ItsVerdictIsThatOfEveryPlantOfTheValueSet)
 {
     std::size_t asked = 0, proven = 0, strips = 0;
-    for (const std::string name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft", "maglev-upper.qft", "msf.qft",
+    for (const std::string name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft", "toolbox-1.qft", "maglev-upper.qft", "msf.qft",
                                    "maglev-lower.qft", "all round"}) {
         const bool allRound = name == "all round";
-        const std::string file = example(allRound ? "toolbox-2.qft" : name.c_str());
+        const std::string file = problem(allRound ? "toolbox-2.qft" : name.c_str());
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -239,8 +239,8 @@ TEST(ExactSector, ItsVerdictIsThatOfEveryPlantOfTheValueSet)
 
 TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
 {
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -310,8 +310,8 @@ TEST(ExactSector, WhatItProvesInfeasibleViolatesEverywhere)
 TEST(ExactSector, AVerdictAfterTheWorkingSetGrowsIsThatOfAFreshCache)
 {
     std::size_t grown = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -364,8 +364,8 @@ TEST(ExactSector, ARememberedVerdictLastsOnlyWhileTheWorkingSetStands)
     };
 
     std::size_t changed = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "dcm-k.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "dcm-k-plant-k.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }

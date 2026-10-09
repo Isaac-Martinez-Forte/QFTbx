@@ -10,9 +10,9 @@ the verdict can be recomputed from the file alone.
 
 Open any of them with QFTbx to see every phase.
 
-The plants are grouped by the family they come from. `k a/(s(s+a))` and
-`k/(s(s+a))` are the same DC motor written two ways, and which of the two a
-paper uses changes the templates - it is not a typo in one of them.
+The plants are grouped by the family they come from. Seven are the DC motor
+`k a/(s(s+a))` of the QFT Toolbox's example 2, with the specifications and the
+design frequencies of each paper.
 
 ## How the controllers were found
 
@@ -28,8 +28,8 @@ excess over the specifications is zero to within 10⁻¹² dB.
 
 A specification asked at the design frequencies is met at them, and a search
 that minimises the gain finds the designs that meet it there and nowhere else.
-`dcm-T33`, as Tharewal poses it, meets its stability margin at its five
-frequencies and exceeds it by 43 dB at 28 rad/s, where a lightly damped
+`toolbox-1`, as the manual poses it, meets its stability margin at its four
+frequencies and exceeds it by 35.7 dB at 57.7 rad/s, where a lightly damped
 closed-loop pair resonates. So every problem whose design exceeds its stability
 margin at some frequency comes in two files:
 
@@ -45,9 +45,9 @@ The extended version changes the stability margin and nothing else: the other
 specifications keep the paper's frequencies and ranges, and between those
 frequencies a tracking bound can still be exceeded by some tenths of a dB, as in
 any design over a finite set of frequencies. The description inside each file
-says which of the two it is. `dcm-hs72` meets its margin at every frequency as
-posed, and has one file; `toolbox-1` has one file too, for the reason its page
-gives.
+says which of the two it is. `dcm-T33` and `dcm-hs72` meet their margin at every
+frequency as posed, and have one file each; `toolbox-1` has one file too, for
+the reason its page gives.
 
 ## The problems
 
@@ -56,17 +56,17 @@ gives.
 | `toolbox-1` | QFT Toolbox manual (Borghesani, Chait and Yaniv), example 1 | `k/((s+a)(s+b))`; `k ∈ [1,10]`, `a ∈ [1,5]`, `b ∈ [20,30]` | stability `1.2`; output disturbance `0.02(s³+64s²+748s+2400)/(s²+14.4s+169)` over [0,10]; input disturbance `0.01` over [0,50] | 0.1 5 10 100 | designed by hand in the manual | 1 zero, 1 pole, gain 50.2204 |
 | `toolbox-2` | QFT Toolbox manual, example 2 - the problem most of the rest descend from | `k a/(s(s+a))`; `k,a ∈ [1,10]` | stability `1.2`; corridor `120/(s³+17s²+82s+120)` to `0.6584(s+30)/(s²+4s+19.752)` | 0.1 0.5 1 2 15 100 | designed by hand in the manual; second order by genetic algorithm in Chen, Ballance and Gawthrop 1998 (`k_hf` 136.76 dB); CRONE-2 in Cervera and Baños 2008 (`K_hf` 129.75 dB) | 1 zero, 1 pole, gain 568.394 |
 | `acc90` | ACC'90 benchmark, spring-mass; QFT Toolbox manual example 5 (margin 2.25); Nataraj and Kubal, IJRNC 17 (2007), ex. 4.1 (p. 262-263) | `e/(s²(s²+0.02s+2e))`; `e ∈ [0.5,2]` — a double integrator | stability `1.75` and nothing else | 0.1 0.98 0.99 1 2 5 7 8.5 10 15 20 100 | Nataraj and Kubal, for their margin specifications: `1.139e7(s+0.0751)(s+0.3488)(s+0.3868)/((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))` | 1 zero, 2 poles, gain 1000 |
-| `dcm-k` | Tharewal 2005, ex. 3.1 (p. 37-38) = Nataraj and Tharewal, ASME 2007, ex. 5.1 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 0.6584(s+30)/(s²+4s+19.752)`, `T_L = 120/(s³+17s²+82s+120)` | 0.1 0.5 1 15 100 | `3462219(s+3.85)/((s+931.27)(s+946.83))` — 1 zero, 2 poles | 1 zero, 2 poles, gain 42527.4 |
+| `dcm-k` | Tharewal 2005, ex. 3.1 (p. 37-38) = Nataraj and Tharewal, ASME 2007, ex. 5.1 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 0.6584(s+30)/(s²+4s+19.752)`, `T_L = 120/(s³+17s²+82s+120)` | 0.1 0.5 1 15 100 | `3462219(s+3.85)/((s+931.27)(s+946.83))` — 1 zero, 2 poles | 1 zero, 2 poles, gain 399855 |
 | `dcm-ka-w5` | Chait, Chen and Hollot, ASME JDSMC 121 (1999) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the same as `dcm-k` | 0.1 0.5 1 15 100 | three degrees of freedom by linear programming | 1 zero, 1 pole, gain 568.394 |
 | `dcm-ka-w8` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.1 (p. 10-12) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; the same corridor | 0.5 1 2 3 5 10 30 60 | PID `Kp 9.22, Td 0.41, Ti 12.21` and a prefilter; **the paper admits it violates the upper tracking bound over ω ∈ [11,29]** | 2 zeros, 1 pole, gain 0.326047 |
 | `dcm-AC` | IFAC DYCOPS 2013 (p. 431-432); Tharewal 2005, ex. 3.2 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking with the fourth-order lower bound `8400/((s+3)(s+4)(s+10)(s+70))` | 0.5 1 2 10 30 60 | PID `7.03 + 3.89s + 0.1/s` | 2 zeros, 1 pole, gain 0.300228 |
-| `dcm-T33` | Tharewal 2005, ex. 3.3 (p. 40-41) = ASME 2007, ex. 5.3 | `k/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 1.5/(s+1.5)`, `T_L = 1/(s+1)²` | 0.001 0.0157 0.2449 3.8337 60 | `10455(s+1.56)(s+1.29)/((s+0.54)(s²+149.4s+17260))` — **a complex pole pair** | 1 zero, 1 pole, gain 41.1014 |
+| `dcm-T33` | Tharewal 2005, ex. 3.3 (p. 40-41) = ASME 2007, ex. 5.3 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 1.5/(s+1.5)`, `T_L = 1/(s+1)²` | 0.001 0.0157 0.2449 3.8337 60 | `10455(s+1.56)(s+1.29)/((s+0.54)(s²+149.4s+17260))` — **a complex pole pair** | 1 zero, 1 pole, gain 68.524 |
 | `dcm-hs72` | Bryant and Halikias 1995, over Horowitz and Sidi 1972 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the corridor `1/(s+1)² ≤ T ≤ 1.5/(s+1.5)`; the paper states no margin, `1.2` added here as Tharewal 3.3 does | 23 logarithmic, 0.01 to 428.1 | by linear programming | 1 zero, 2 poles, gain 26416.1 |
 | `msf` | Tharewal 2005, ex. 4.4 (p. 68-72) | MSF desalination `K(1+T1 s)/((1+T2 s)(1+T3 s))`; `K ∈ [32,76]`, `T1 ∈ [12,28]`, `T2 ∈ [11,26]`, `T3 ∈ [4,10]` | stability `1.2`; tracking added by the authors ("Ismail does not use any tracking specifications") | 0.01 0.098 0.309 0.97 9.558 30 | `655.65(s+2.022)/(s(s+169.9))` — **an integrator** | 1 zero, 2 poles, gain 233.738 |
 | `maglev-lower` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.2 (p. 12-13) | `k/(s²+a)`; `k ∈ [811,944]`, `a ∈ [382,478.5]` — poles on the imaginary axis | stability `1.2`; corridor `916.3/(s³+39.76s²+354.9s+916.3)` to `(1.722s+68.89)/(s²+16.6s+68.89)` | 11 from 0.1 to 30 | PID with `ωn`, `ζ` | 2 zeros, 1 pole, gain 0.01 |
 | `maglev-upper` | the same paper, the unstable half | `k/(s²−a)`; `k ∈ [1021,1106]`, `a ∈ [382,478.5]` | the same | the same | PID with `ωn`, `ζ` | 1 zero, 1 pole, gain 708.503 |
 | `fopdt` | the same paper, exp. 4.3 (p. 15-16) | first order plus delay, first-order Padé: `k(1−td s/2)/((s+a)(1+td s/2))`; `k ∈ [1,3]`, `a ∈ [1,2]`, `td ∈ [0.08,0.12]` | stability `1.2`; corridor `9/(s³+7s²+15s+9)` to `4/(s²+3.3s+4)` | 0.1 0.2 0.5 1 2 5 8 10 50 | PID `Kp 1.88, Td 0.05, Ti 0.72` | 2 zeros, 1 pole, gain 0.0639392 |
-| `unstable` | Tharewal 2005, ex. 3.6 (p. 47-48) | unstable `k(s+a)/(s²−2.5)`; `k ∈ [1,10]`, `a ∈ [0.1,1]` | stability `2.1` and nothing else ("the only design spec considered") | 0.1 1 2 6 50 | `5.18` — a static gain, searched in `(0,10⁸]`; Chen and Ballance's hand design, `6.582` | 1 zero, 1 pole, gain 0.0729821 |
+| `unstable` | Tharewal 2005, ex. 3.6 (p. 47-48) | unstable `k(s+a)/(s(s−2.5))`; `k ∈ [1,10]`, `a ∈ [0.1,1]` | stability `2.1` and nothing else ("the only design spec considered") | 0.1 1 2 6 50 | `5.18` — a static gain, searched in `(0,10⁸]`; Chen and Ballance's hand design, `6.582` | a static gain, 5.20471 |
 
 ## The extended versions
 
@@ -78,17 +78,17 @@ The margin as posed is the worst excess over the stability margin on the grid of
 | `toolbox-1` | +35.7 dB at 57.7 | none found yet: see its page | 50.2204 | - |
 | `toolbox-2` | +2.9 dB at 217 | 2.917 3.516 5.433 217.3 267.3 | 568.394 | 1297.91 |
 | `acc90` | +19.7 dB at 0.0332 | 0.004266 0.03319 | 1000 | 1000 |
-| `dcm-k` | +8.0 dB at 54.2 | 4.236 4.325 54.2 62.66 63.97 | 42527.4 | 236142 |
+| `dcm-k` | +10.7 dB at 262 | 2.917 3.041 3.589 5.433 261.8 357.3 364.8 | 399855 | 3.21804·10⁶ |
 | `dcm-ka-w5` | +2.9 dB at 217 | 2.917 3.516 5.433 217.3 267.3 272.9 | 568.394 | 1298.93 |
 | `dcm-ka-w8` | +2.7 dB at 164 | 164 198.5 | 0.326047 | 0.680363 |
 | `dcm-AC` | +2.6 dB at 155 | 154.8 183.9 187.4 | 0.300228 | 0.596137 |
-| `dcm-T33` | +43.2 dB at 27.9 | 2.4547 2.455 2.518 21.68 27.93 | 41.1014 | 115.754 |
+| `dcm-T33` | met, by 0.34 dB | none: one file | 68.524 | - |
 | `dcm-hs72` | met, by 1.2 dB | none: one file | 26416.1 | - |
 | `msf` | +3.8 dB at 95.5 | 3.802 4.467 95.5 173.8 195 | 233.738 | 1484.59 |
 | `maglev-lower` | +39.6 dB at 92.9 | 36.56 43.15 58.88 92.9 208.4 | 0.01 | 0.0821922 |
 | `maglev-upper` | +72.7 dB at 853 | 13.24 15 15.63 89.13 100.9 107.4, with two zeros and two poles | 708.503 | 38.4827 |
 | `fopdt` | +0.0008 dB at 4.90 | 4.898 | 0.0639392 | 0.0647 |
-| `unstable` | +32.1 dB at 0.001 | 0.001 3.17 4.236 11.22 20.89 90.99 107.4 140.6 149.6 | 0.0729821 | 2.65673 |
+| `unstable` | +0.05 dB at 2.14 | 2.138 | 5.20471 | 5.23401 |
 
 ## The problems, one by one
 
@@ -112,7 +112,7 @@ The margin as posed is the worst excess over the stability margin on the grid of
 
 **The problem.** `P(s) = k a / (s (s + a))`, `k, a ∈ [1, 10]`; stability 1.2; tracking between `120/(s³+17s²+82s+120)` and `0.6584 (s+30)/(s²+4s+19.752)`; ω = 0.1, 0.5, 1, 2, 15, 100 rad/s.
 
-**Published controllers.** The manual's, by hand. Chen, Ballance and Gawthrop 1998, second order by genetic algorithm, `k_hf` 136.76 dB. Cervera and Baños 2008, CRONE-2 with `n_pe = 3`, `K_hf` 129.75 dB. Chen et al. print the coefficient as 0.6854 and "828" for 82 - readings of the manual's 0.6584 and 82.
+**Published controllers.** The manual's, by hand. Chen, Ballance and Li 1998, second order by genetic algorithm, `k_hf` 6.753·10⁶ (136.59 dB). Cervera and Baños 2008, CRONE-2 with `n_pe = 3`, `K_hf` 129.75 dB. The text of the manual's example 2 prints the tracking coefficient as 0.6854 and the denominator coefficient 82 as "828", while its code and its reference pages carry 0.6584 and 82; Chen, Ballance and Li carry the two misprints over. The corridor here is the code's.
 
 **The controller in the file.** 1 zero, 1 pole, gain **568.394**.
 
@@ -140,19 +140,19 @@ The margin as posed is the worst excess over the stability margin on the grid of
 
 ### dcm-k — the DC motor of Tharewal 3.1
 
-**Source.** Tharewal 2005, example 3.1 (p. 37-38), the same as Nataraj and Tharewal, ASME JDSMC 2007, example 5.1; the design Chen, Ballance and Gawthrop 1998 made with a genetic algorithm is what it is compared against there.
+**Source.** Tharewal 2005, example 3.1 (p. 37-38), the same as Nataraj and Tharewal, ASME JDSMC 2007, example 5.1; the design Chen, Ballance and Li 1998 made with a genetic algorithm is what it is compared against there.
 
-**The problem.** `P(s) = k / (s (s + a))`, `k, a ∈ [1, 10]` - note **`k`, not `k·a`** in the numerator: this is Tharewal's plant, and its templates are not those of the QFT Toolbox's example 2 although the specifications are. Stability margin 1.2; tracking between `T_L = 120/(s³+17s²+82s+120)` and `T_U = 0.6584 (s+30)/(s²+4s+19.752)`, at ω = 0.1, 0.5, 1, 15 and 100 rad/s.
+**The problem.** `P(s) = k a / (s (s + a))`, `k, a ∈ [1, 10]`; stability margin 1.2; tracking between `T_L = 120/(s³+17s²+82s+120)` and `T_U = 0.6584 (s+30)/(s²+4s+19.752)`, at ω = 0.1, 0.5, 1, 15 and 100 rad/s. It is the problem of `dcm-ka-w5`, posed here with the paper's one zero and two poles.
 
 **Published controller.** `3462219 (s+3.85) / ((s+931.27)(s+946.83))`: one zero, two poles, a high-frequency gain of 3.46·10⁶, "a 48.73 % reduction" against Chen et al.
 
-**The controller in the file.** 1 zero, 2 poles, gain **42527.4**.
+**The controller in the file.** 1 zero, 2 poles, gain **399855**, the zero at 1.81 and the poles at 313.4 and 315.9.
 
-**Between the design frequencies.** The margin is exceeded by **8.0 dB** at 54.2 rad/s, between 15 and 100.
+**Above the design frequencies.** The margin is exceeded by **10.7 dB** at 262 rad/s, above the last design frequency, 100.
 
-**The extended version.** `dcm-k-extended.qft` adds 4.236, 4.325, 54.2, 62.66 and 63.97 rad/s, and its controller has gain **236142**, 5.6 times as much.
+**The extended version.** `dcm-k-extended.qft` adds 2.917, 3.041, 3.589, 5.433, 261.8, 357.3 and 364.8 rad/s, and its controller has gain **3.21804·10⁶**, 8 times as much, with the zero at 3.79 and the poles at 904.3 and 905.5.
 
-**How to read it.** Both controllers are zero-pole-gain forms with one more pole than zero, so the gain of each is its high-frequency gain and the numbers are comparable in kind: 4.3·10⁴ here, and 2.4·10⁵ with the margin at every frequency, against 3.5·10⁶ published, with the reservation that the paper's boundaries come from its own templates and tolerance. The tracking bound's coefficient is the correct **0.6584**; several papers carry 0.6854, a transposition that travels from one to the next.
+**How to read it.** Both controllers are zero-pole-gain forms with one more pole than zero, so the gain of each is its high-frequency gain and the numbers are comparable: 4.0·10⁵ as posed, and 3.2·10⁶ with the margin at every frequency, against the published 3.46·10⁶, whose zero at 3.85 and poles at 931 and 947 are close to those of the extended design. The paper's boundaries come from its own templates and tolerance. The tracking bound's coefficient is the correct **0.6584**; the 0.6854 several papers carry comes from the text of the Toolbox manual (see `toolbox-2`).
 
 ### dcm-ka-w5 — the QFT Toolbox motor at Chait's frequencies
 
@@ -160,11 +160,11 @@ The margin as posed is the worst excess over the stability margin on the grid of
 
 **The problem.** `P(s) = k a / (s (s + a))`, `k, a ∈ [1, 10]`; stability 1.2; tracking between `120/(s³+17s²+82s+120)` and `0.6584 (s+30)/(s²+4s+19.752)`; ω = 0.1, 0.5, 1, 15, 100 rad/s. Against `toolbox-2` the only change is the missing 2 rad/s.
 
-**Published controller.** A controller of three degrees of freedom found by linear programming; the paper writes the tracking coefficient as 0.6854, a transposition of the Toolbox manual's 0.6584 - the one used here.
+**Published controller.** A controller of three degrees of freedom found by linear programming. The paper prints the corridor with the 0.6854 and the "828" of the manual's text (see `toolbox-2`) and swaps the labels of its upper and lower bounds; the corridor here is the manual's code's.
 
 **The controller in the file.** 1 zero, 1 pole, gain **568.394**.
 
-**How to read it.** The controller is `toolbox-2`'s to the last digit: dropping 2 rad/s changes nothing, the binding frequencies being elsewhere.
+**How to read it.** The controller is `toolbox-2`'s to the last digit: dropping 2 rad/s changes nothing, the binding frequencies being elsewhere. `dcm-k` is the same problem with one more pole.
 
 **Above the design frequencies.** As in `toolbox-2`, the margin is exceeded by **2.9 dB** at 217 rad/s.
 
@@ -210,23 +210,21 @@ The margin as posed is the worst excess over the stability margin on the grid of
 
 **Source.** Tharewal 2005, example 3.3 (p. 40-41) = ASME JDSMC 2007, example 5.3, against the linear-programming design of Bryant and Halikias.
 
-**The problem.** `P(s) = k / (s (s + a))`, `k, a ∈ [1, 10]`; stability 1.2; tracking between `1/(s+1)²` and `1.5/(s+1.5)`; ω = 0.001, 0.0157, 0.2449, 3.8337 and 60 rad/s - three decades below 1 rad/s, where the bounds are nearly flat.
+**The problem.** `P(s) = k a / (s (s + a))`, `k, a ∈ [1, 10]`; stability 1.2; tracking between `1/(s+1)²` and `1.5/(s+1.5)`; ω = 0.001, 0.0157, 0.2449, 3.8337 and 60 rad/s - three decades below 1 rad/s, where the bounds are nearly flat.
 
 **Published controller.** `10455 (s+1.56)(s+1.29) / ((s+0.54)(s²+149.4s+17260))`, two zeros, one real pole and a complex pair, searched in a 30 % neighbourhood of Bryant and Halikias's parameters.
 
 **Why this structure.** The published controller has a complex pole pair, which QFTbx's controllers - real zeros, real poles and a gain - cannot hold, so it cannot be posed as published; the file holds one zero and one pole.
 
-**The controller in the file.** 1 zero, 1 pole, gain **41.1014**, and every one of the 625 plants of the sweep closed-loop stable. The zero sits at 1000, the top of the search box, over a pole at 468.7.
+**The controller in the file.** 1 zero, 1 pole, gain **68.524**, the zero at 1.34 and the pole at 68.1, and every one of the 625 plants of the sweep closed-loop stable.
 
-**Between the design frequencies.** The margin is exceeded by **43.2 dB** at 27.9 rad/s, between 3.8337 and 60, where a lightly damped closed-loop pair resonates.
-
-**The extended version.** `dcm-T33-extended.qft` adds 2.4547, 2.455, 2.518, 21.68 and 27.93 rad/s, and its controller has gain **115.754**, 2.8 times as much. The first two are one peak: 2.455 is its frequency rounded, and 2.4547 the grid's own, added when the rounded one left less than 10⁻⁴ dB over the margin there.
+**At every frequency.** The design meets the stability margin at every frequency, not only at the five design ones, by 0.34 dB at the closest, at 67.8 rad/s, so the problem has one file.
 
 **How to read it.** The gain is a high-frequency gain, against the paper's 10 455 - a different structure, so a comparison of kind and not of merit.
 
 ### dcm-hs72 — Horowitz and Sidi's corridor, by Bryant and Halikias
 
-**Source.** Bryant and Halikias 1995, over the problem of Horowitz and Sidi 1972; Tharewal 2005 example 3.3 solves the same bounds on the plant `k/(s(s+a))` at five frequencies (`dcm-T33`).
+**Source.** Bryant and Halikias 1995, over the problem of Horowitz and Sidi 1972; Tharewal 2005 example 3.3 solves the same bounds on the same plant at five frequencies (`dcm-T33`).
 
 **The problem.** `P(s) = k a / (s (s + a))`, `k, a ∈ [1, 10]`; the corridor `1/(s+1)² ≤ T ≤ 1.5/(s+1.5)`; 23 frequencies spaced logarithmically from 0.01 to 428.1 rad/s. The paper states no stability margin; **1.2 is added here**, as Tharewal does in 3.3.
 
@@ -314,16 +312,14 @@ The margin as posed is the worst excess over the stability margin on the grid of
 
 **Source.** Tharewal 2005, example 3.6 (p. 47-48), designed directly on the unstable nominal plant rather than on a stabilised one, against Chen and Ballance's hand design.
 
-**The problem.** `P(s) = k (s + a) / (s² − 2.5)`, `k ∈ [1, 10]`, `a ∈ [0.1, 1]`, nominal `(s+1)/(s²−2.5)`: one pole in the right half-plane at every member. Stability margin **2.1** and nothing else, at ω = 0.1, 1, 2, 6 and 50 rad/s.
+**The problem.** `P(s) = k (s + a) / (s (s − 2.5))`, `k ∈ [1, 10]`, `a ∈ [0.1, 1]`, nominal `(s+1)/(s(s−2.5))`: an integrator and a pole in the right half-plane at every member. Stability margin **2.1** and nothing else, at ω = 0.1, 1, 2, 6 and 50 rad/s.
 
 **Published controller.** A static gain, **5.18**, searched in `(0, 10⁸]`; Chen and Ballance's is 6.582.
 
-**Why this structure.** The published controller is a static gain, and no static gain stabilises the whole family (below); the file holds one zero and one pole, which does.
+**What the published gains do.** With `C` a constant the closed loop's characteristic polynomial is `s² + (kC − 2.5) s + kC a`, stable if and only if `kC > 2.5`: with `k ≥ 1`, every gain above 2.5 stabilises the whole family, 5.18 and 6.582 included. Over the 625 plants of the sweep and at the five design frequencies, 5.18 exceeds the margin by 0.043 dB at 2 rad/s, on the member `k = 1, a = 1`, and 6.582 meets it by 1.73 dB.
 
-**What the published gain does.** With `C` a constant the closed loop's characteristic polynomial is `s² + kC s + (kC a − 2.5)`, stable if and only if `kC a > 2.5`. At `k = 1` that needs `C > 2.5/a`: **5.18 leaves every member with `a < 0.48` unstable**, and 6.582 every one with `a < 0.38`. No static gain below 25 stabilises the worst member, `k = 1, a = 0.1`. The margin at the five design frequencies does not see this - it is met by gains from about 20 - and that gap, between a margin sampled at the design frequencies and the stability of every member, is why every controller here is also checked against the closed-loop poles of every plant of the sweep.
+**The controller in the file.** A static gain, as the paper poses it: **5.20471**, the least that meets the margin at the design frequencies, with every one of the 625 plants of the sweep closed-loop stable.
 
-**The controller in the file.** 1 zero, 1 pole, gain **0.0729821**, and every one of the 625 plants of the sweep closed-loop stable. The zero sits at 1000, the top of the search box, over a pole at 2.90.
+**Between the design frequencies.** The margin is exceeded by **0.05 dB** at 2.14 rad/s, between 2 and 6.
 
-**Below the design frequencies.** Near zero frequency the margin is exceeded by **32.1 dB**: the loop gain of the member `k = 1, a = 0.1` is -1.007 at zero frequency, and the worst closed-loop pole of the family is at -0.0007.
-
-**The extended version.** `unstable-extended.qft` adds 0.001, 3.17, 4.236, 11.22, 20.89, 90.99, 107.4, 140.6 and 149.6 rad/s, and its controller has gain **2.65673**, 36 times as much.
+**The extended version.** `unstable-extended.qft` adds 2.138 rad/s, and its gain is **5.23401**, 0.6 % more.

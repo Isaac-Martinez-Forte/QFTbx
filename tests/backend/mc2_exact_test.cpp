@@ -40,6 +40,7 @@
 #include "src/core/pipeline/cancellation.h"
 #include "src/core/project/settings.h"
 #include "src/core/system/parameter.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
 
@@ -71,7 +72,7 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
     const ExactCase c = GetParam();
 
     ProjectController controller;
-    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / c.file).string());
+    controller.load(qftbx_tests::problem(c.file));
 
     Settings settings;
     settings.research.mc2Reading = Settings::Research::PointReading::Exact;
@@ -105,9 +106,9 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
 INSTANTIATE_TEST_SUITE_P(
     PublishedProblems, Mc2UnderTheExactReading,
     ::testing::Values(
-        ExactCase{"DcmT33", "dcm-T33.qft", kDcmT33Gain},
+        ExactCase{"DcmT33", "dcm-T33-plant-k.qft", kDcmT33Gain},
         ExactCase{"Toolbox2", "toolbox-2.qft", 568.39377382547423},
-        ExactCase{"DcmK", "dcm-k.qft", 42527.370794761417}),
+        ExactCase{"DcmK", "dcm-k-plant-k.qft", 42527.370794761417}),
     [](const ::testing::TestParamInfo<ExactCase> & info) {
         return std::string(info.param.name);
     });

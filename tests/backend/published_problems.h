@@ -38,6 +38,17 @@ inline std::string example(const char * name)
     return (std::filesystem::path(QFTBX_EXAMPLES_DIR) / name).string();
 }
 
+inline std::string testData(const char * name)
+{
+    return (std::filesystem::path(QFTBX_TEST_DATA_DIR) / name).string();
+}
+
+inline std::string problem(const char * name)
+{
+    const std::string published = example(name);
+    return std::filesystem::exists(published) ? published : testData(name);
+}
+
 inline std::vector<std::string> allExamples()
 {
     std::vector<std::string> files;
