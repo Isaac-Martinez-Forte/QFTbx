@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4" name="QFT Toolbox, example 1" description="Example 1 of the MATLAB QFT Toolbox manual (Borghesani, Chait and Yaniv): k/((s+a)(s+b)) with a stability margin and output and input disturbance rejection. The one problem here with disturbance specifications.">
+<QFT version="4" name="QFT Toolbox, example 1" description="Example 1 of the MATLAB QFT Toolbox manual (Borghesani, Chait and Yaniv): k/((s+a)(s+b)) with a stability margin and output and input disturbance rejection. The one problem here with disturbance specifications. At the four design frequencies only: between them, at 58 rad/s, the design exceeds the margin by 36 dB, and no design with the margin at every frequency has been found yet.">
     <inputs>
         <plant name="QFT Toolbox example 1: k/((s+a)(s+b))">
             <type id="0">
@@ -180,7 +180,7 @@
         <templates>
             <epsilon metric="complex" db-per-degree="1">0.0293 0.0123 0.00332 0.00016 </epsilon>
         </templates>
-        <loop-shaping algorithm="mc2" tolerance="0.5" columns="conservative" />
+        <loop-shaping algorithm="mc2" tolerance="0.5" columns="nearest" point-reading="exact" />
     </settings>
     <results>
         <templates>
@@ -1763,12 +1763,12 @@
                     </numerator>
                     <denominator size="1">
                         <parameter>
-                            <nominal>152.9894639741935</nominal>
+                            <nominal>132.82102330225868</nominal>
                             <uncertain>false</uncertain>
                         </parameter>
                     </denominator>
                     <parameter>
-                        <nominal>67.69612778492683</nominal>
+                        <nominal>50.22042228680487</nominal>
                         <uncertain>false</uncertain>
                     </parameter>
                     <parameter>
@@ -1777,7 +1777,7 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-0.8504490036699888" family-members="729" family-unstable="0" family-worst-real-part="-0.003401191531352838" />
+            <check satisfied="true" worst-excess-db="-1.000088900582341e-12" family-members="729" family-unstable="0" family-worst-real-part="-0.0837515295682009" nominal-stable="true" nominal-worst-real-part="-9.105289570859567" />
         </loop-shaping>
     </results>
 </QFT>

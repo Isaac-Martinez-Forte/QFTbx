@@ -43,19 +43,24 @@ from the magnitude side. QS2 adds two stages:
   search exhausts the list without finding anything better. Same prune, same
   fallback, no duplicate list entries.
 - Stage 3 finds k_f by logarithmic bisection over the feasibility test; the paper
-  leaves the search method unspecified. For closed boundaries feasibility is not
-  monotonic in k_f, so the bisection may miss a certificate. It never accepts a
-  false one.
+  leaves the search method unspecified. The test is asked of the gain range
+  [k, k_max], which shrinks as k grows, so it is monotonic in k and the bisection
+  finds k_f within its tolerance.
 - The returned point must pass the nominal closed-loop stability criterion of
   [loop-shaping.md](loop-shaping.md), as in NT and NK.
 
 ## Errata found in the reference
 
-- Algorithm 4 (QS2), stage 2, the comment of the inner loop says that y receives
-  the value of z[λ] that *maximises* the contribution of x(λ) to ∠L0. The
-  assignments of the pseudocode (zero to its supremum, pole to its infimum)
-  minimise that contribution, and they are the correct ones for the right-side
-  cut the figure illustrates; the comment is the erratum.
+- Section 3.1 gives the contribution to ∠L0 as arctan(ω/q) for a pole and
+  −arctan(ω/q) for a zero: the signs are swapped, a zero adds arctan(ω/z) and a
+  pole −arctan(ω/p). Algorithm 4 (QS2), stage 2, follows them: its comment (y
+  receives the value of z[λ] that *maximises* the contribution of x(λ) to ∠L0)
+  and its assignments (zero to its supremum, pole to its infimum) agree under
+  the swapped signs and disagree under the true ones. For the case the paper
+  describes, the region forbidden on the left, the cut needs the corner of
+  largest phase, zeros at their infimum and poles at their supremum: the
+  comment is right, and the assignments are those of the mirror case. QFTbx
+  applies both cases with the true signs.
 
 ## Where it lives
 

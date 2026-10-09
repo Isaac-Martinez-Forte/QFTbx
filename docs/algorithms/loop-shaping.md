@@ -143,14 +143,16 @@ region down to epsilon and reject it one corner at a time, which is minutes of
 work for nothing. The crossing count of a controller changes only where its loop
 passes through the critical point, so it is one and the same over a box whose
 Nichols enclosure (the natural interval extension of the box) excludes
-(-180°, 0 dB) at every frequency of the checker's grid: when one corner of such a
-box is unstable, every member is, and the box is discarded on classification
-(`NominalStabilityChecker::isBoxUnstable`). A box whose enclosure reaches the
-critical point somewhere is left to the bisection, as before. On example 2 this
+(-180°, 0 dB) at every frequency: when one corner of such a box is unstable,
+every member is. The test that discards a box on classification on these
+grounds (`NominalStabilityChecker::isBoxUnstable`) looks at one frequency in
+eight of the checker's grid, so its verdict rests on that grid and is not a
+proof. A box whose enclosure reaches the critical point at one of those
+frequencies is left to the bisection, as before. On example 2 this
 takes the four boundary-driven searches from minutes to tens of milliseconds.
 
-The criterion presumes a nominal plant without right-half-plane poles, and it
-samples the nominal loop on a logarithmic grid extended three decades beyond the
+The criterion takes P from the nominal plant alone, and it samples the nominal
+loop on a logarithmic grid extended three decades beyond the
 design frequencies, refined where the phase turns fast. The `stability.*` keys of
 the settings tune that sampling; they do not touch the criterion.
 

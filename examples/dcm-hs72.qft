@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<QFT version="4" name="DC motor, Horowitz and Sidi 1972" description="Bryant and Halikias 1995 over Horowitz and Sidi 1972: the DC motor k a/(s(s+a)) over 23 logarithmic frequencies, with the stability margin of Tharewal 3.3 added, since the paper states none." doi="10.1080/00207177208932261">
+<QFT version="4" name="DC motor, Horowitz and Sidi 1972" description="Bryant and Halikias 1995 over Horowitz and Sidi 1972: the DC motor k a/(s(s+a)) over 23 logarithmic frequencies, with the stability margin of Tharewal 3.3 added, since the paper states none. The design meets the margin at every frequency, not only at the 23." doi="10.1080/00207177208932261">
     <inputs>
         <plant name="DC motor k a/(s(s+a)), Horowitz-Sidi 1972 corridor (Bryant-Halikias 1995)">
             <type id="0">
@@ -197,7 +197,7 @@
         <templates>
             <epsilon metric="complex" db-per-degree="1">37.5 23.2 21.3 13.2 8.09 4.97 3.05 2.82 2.56 1.56 0.939 0.369 0.137 0.0692 0.0339 0.0186 0.00878 0.00368 0.00145 0.000558 0.000214 0.000182 0.000104 </epsilon>
         </templates>
-        <loop-shaping algorithm="mc2" tolerance="0.5" columns="conservative" />
+        <loop-shaping algorithm="mc2" tolerance="0.5" columns="nearest" point-reading="exact" />
     </settings>
     <results>
         <templates>
@@ -9076,22 +9076,22 @@
                     <expression size="0" />
                     <numerator size="1">
                         <parameter>
-                            <nominal>2.505058078497356</nominal>
+                            <nominal>1.7122910482644718</nominal>
                             <uncertain>false</uncertain>
                         </parameter>
                     </numerator>
                     <denominator size="2">
                         <parameter>
-                            <nominal>199.22675781249998</nominal>
+                            <nominal>186.53157226562502</nominal>
                             <uncertain>false</uncertain>
                         </parameter>
                         <parameter>
-                            <nominal>185.55501953125003</nominal>
+                            <nominal>191.4143359375</nominal>
                             <uncertain>false</uncertain>
                         </parameter>
                     </denominator>
                     <parameter>
-                        <nominal>27395.47625933104</nominal>
+                        <nominal>26416.08950113271</nominal>
                         <uncertain>false</uncertain>
                     </parameter>
                     <parameter>
@@ -9100,7 +9100,7 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-0.0002544585352322597" family-members="625" family-unstable="0" family-worst-real-part="-0.8674667160273958" />
+            <check satisfied="true" worst-excess-db="-1.0089706847793423e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.7650520887047494" nominal-stable="true" nominal-worst-real-part="-0.8699930983312387" />
         </loop-shaping>
     </results>
 </QFT>

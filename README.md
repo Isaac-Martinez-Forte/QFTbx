@@ -28,18 +28,19 @@ computes every step:
   respect for each specification (stability, tracking, disturbance rejection,
   control effort), merged into one boundary per frequency.
 - **Automatic loop shaping**: seven interval branch and bound algorithms that
-  find a controller of a given structure with the least high-frequency gain,
-  and certify it: NT, NK, MR and the accelerated MC algorithms of the
+  find a controller of a given structure with the least high-frequency gain:
+  NT, NK, MR and the accelerated MC algorithms of the
   author's doctoral work, plus MC2, those same strategies with their
   published formulation corrected, and MC3, which keeps the gain out of the
   search tree.
 - **Rigorous arithmetic**: the loop shaping runs on verified interval
-  arithmetic, so a controller reported feasible is feasible for every plant
-  of the uncertainty set.
+  arithmetic, so what it computes over a box of controllers encloses every
+  controller in the box.
 - **An answer that is checked**: every run ends by evaluating the controller
-  it returns against the specifications themselves, over the whole plant
-  family, rather than against the boundaries computed from them, and says
-  whether it satisfies them and by what margin.
+  it returns against the specifications themselves, over every plant of the
+  templates at the design frequencies, rather than against the boundaries
+  computed from them, and by closing the loop with every plant of the sweep;
+  it says whether the controller satisfies them and by what margin.
 
 The software comes out of academic work at the University of Murcia and is
 oriented to research and teaching; it is also usable by control engineers

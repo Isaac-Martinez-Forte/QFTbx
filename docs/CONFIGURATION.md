@@ -128,11 +128,11 @@ reaches within the epsilon. Measured on the toolbox example 2
 
 | algorithm | phase grid | reading | result | total time |
 |---|---|---|---|---|
-| NT as published | 361 points (1 degree) | nearest node | k = 557.0, exceeds by 0.05 dB | 1.5 s |
-| NT | 361 points | conservative | k = 567.3, meets every specification | 53 s |
-| NT | 1441 points (0.25 degrees) | conservative | k = 567.3, meets every specification | 6.9 s |
-| MC2 | 361 points | exact | k = 568.8, meets every specification | 1.7 s |
-| MC2 | 1441 points | exact | k = 567.5, meets every specification | 5.3 s |
+| NT | 361 points (1 degree) | nearest node, as published | k = 556.9, exceeds by 0.05 dB | 3.4 s |
+| NT | 361 points | conservative | k = 567.3, meets every specification | 31 s |
+| NT | 1441 points (0.25 degrees) | conservative | k = 567.3, meets every specification | 14 s |
+| MC2 | 361 points | exact | k = 568.4, meets every specification | 3.4 s |
+| MC2 | 1441 points | exact | k = 567.2, meets every specification | 13 s |
 
 Whatever the algorithm, the returned controller is checked against the
 specifications on the full templates, and the loop-shaping viewer shows the

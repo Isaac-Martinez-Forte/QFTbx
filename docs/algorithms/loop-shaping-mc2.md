@@ -1,10 +1,13 @@
 # Algorithm MC2: the thesis strategies with their formulation corrected
 
-MC2 is what the strategies of the doctoral thesis do once their published
-equations are made to say what their text says. It is not a new method: it is MC
-(thesis) with four corrections to the cutting rules, an exact best gain, a
-contraction of the box it is about to return, and the execution stages taken out
-in favour of the bisection rule that was hiding inside them.
+MC2 starts from what the strategies of the doctoral thesis do once their
+published equations are made to say what their text says: MC (thesis) with four
+corrections to the cutting rules, an exact best gain, and the execution stages
+taken out in favour of the bisection rule that was hiding inside them. Unlike
+the other algorithms, it does not decide on the boundary columns: it judges
+every controller it returns against the specifications over the whole template,
+at the loop's own phase (see [how the columns are
+read](../CONFIGURATION.md#how-the-columns-are-read)).
 
 **Reference.** I. Martínez-Forte, *Aceleración de algoritmos intervalares de
 diseño automático de controladores QFT*, doctoral thesis, Universidad de Murcia,
@@ -33,13 +36,9 @@ each confirmed by a test that fails with the published form:
 
 ## What MC2 adds
 
-- **The exact best gain of a vertex.** The gain that a point controller may take
-  is read off the boundary columns at the point's own phase, as a union of
-  intervals, and the best one is the least member of it. No bisection, no
-  tolerance.
-- **The terminal box is contracted.** When a box is small enough to return, its
-  gain interval is contracted to what the columns allow before the corner is
-  taken, instead of the corner inheriting the width of the box.
+- **The exact best gain of a vertex.** With its zeros and poles fixed, the gains
+  a point controller may take form a finite union of intervals, and the best one
+  is the least member of it. No bisection, no tolerance.
 - **No execution stages, and a different bisection.** The stages of section 4.4
   switch the cuts off for a node and all its children the first time a full pass
   improves nothing, and that happens early on some branches, where the cuts still
@@ -57,27 +56,18 @@ each confirmed by a test that fails with the published form:
   the rule everywhere; MC (thesis) keeps the stages, under its own setting, as
   the published algorithm.
 
-## What it costs and what it buys
+## What it returns
 
-On the toolbox example 2, with the published reading of the boundary columns:
-
-| structure | MC2 | MC (thesis) |
-|---|---|---|
-| k(s+z)/(s+p) | 557.02, 11 ms, 362 nodes | 567.69, 16 ms, 1157 nodes |
-| one more pole | 407 879, 784 ms, 13 462 nodes | 406 692, 978 ms, 26 092 nodes |
-| one more zero | 293.18, 6.4 s, 176 045 nodes | 293.36, 9.7 s, 511 364 nodes |
-
-And with the conservative reading, which is the default, MC2 returns 567.32 in
-0.15 s: the same answer NT, NK and MC (2021) return there in 69, 78 and 131
-seconds. That is the point of the bisection rule, and it is what makes a
-certified answer affordable at all.
+The answers MC2 gives to the published problems, each checked against its
+specifications, are in [`examples/`](../../examples/README.md).
 
 ## Where it lives
 
 `src/core/loopshaping/mc2/algorithm_mc2.h`, `.cpp`.
 
-Tests: `tests/backend/thesis_benchmark_test.cpp` (the goldens of the fixture
-under both readings), `tests/backend/specification_check_test.cpp` (what it
+Tests: `tests/backend/mc2_exact_test.cpp` (MC2 as it runs by default),
+`tests/backend/thesis_benchmark_test.cpp` (the goldens of the fixture under both
+readings of the columns), `tests/backend/specification_check_test.cpp` (what it
 returns, checked against the specifications themselves),
 `tests/backend/mc_thesis_strategies_test.cpp` (every combination of the
 strategies reaches the same optimum).

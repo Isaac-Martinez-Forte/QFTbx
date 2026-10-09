@@ -292,10 +292,13 @@ TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
     }
     ProjectController project;
     project.load(file);
-    LtiSystem * structure = project.controllerStructure();
+    LtiSystem * base = project.controllerStructure();
+    ASSERT_NE(base, nullptr);
+    ASSERT_GE(base->denominator().size(), 1u);
+    const std::unique_ptr<LtiSystem> structure = base->create(base->name(), base->numerator(),
+                                                              {base->denominator().front()}, base->gain(), base->delay());
     ASSERT_EQ(structure->numerator().size(), 1u);
-    ASSERT_EQ(structure->denominator().size(), 1u);
-    FamilyStabilityChecker family(project.plant(), structure, ParameterGrids());
+    FamilyStabilityChecker family(project.plant(), structure.get(), ParameterGrids());
 
     std::mt19937 generator(53);
     std::uniform_real_distribution<double> unit(0.0, 1.0);
