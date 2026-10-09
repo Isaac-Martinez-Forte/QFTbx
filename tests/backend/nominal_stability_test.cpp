@@ -21,8 +21,11 @@
  * verdicts fixed by Routh; a delay in the denominator gets no verdict; the
  * ACC'90 double integrator, whose loop starts on the ray at infinite
  * magnitude, rejects the designs the search had returned and accepts a lead;
- * and an integrator with an unstable pole, whose arc around the origin
- * crosses the ray, is stable exactly for the gains its closed-loop roots say.
+ * an integrator with an unstable pole, whose arc around the origin crosses
+ * the ray, is stable exactly for the gains its closed-loop roots say; and
+ * with the ACC'90 plant undamped, whose resonance is crossed at infinite
+ * magnitude, a lead there is unstable at every gain and a lag is stable up
+ * to the gain its roots allow.
  */
 
 #include <gtest/gtest.h>
@@ -391,4 +394,30 @@ TEST(NominalStability, ADoubleIntegratorStartsOnTheRayAtInfiniteMagnitude)
     delete returnedOnce;
     delete returnedTwice;
     delete stabilising;
+}
+
+TEST(NominalStability, AResonanceOnTheAxisIsCrossedAtInfiniteMagnitude)
+{
+    std::vector<Parameter> ev{Parameter(std::string("ev"), 0.5)};
+    FreeForm plant(std::string("ACC90"), ev, ev, Parameter(1.0), Parameter(0.0),
+                   std::string("ev"), std::string("s^2*(s^2+2*ev)"));
+    std::vector<double> frequencies{0.1, 0.98, 0.99, 1.02, 1.1, 1.5, 2.0, 5.0, 10.0, 20.0, 100.0};
+    NominalStabilityChecker checker(&plant, &frequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 0);
+
+    for (const double gain : {0.003, 0.01, 0.03, 0.1}) {
+        LtiSystem* lead = makeZpk(gain, {0.1}, {1.0});
+        EXPECT_FALSE(checker.isNominallyStable(lead)) << "a lead at the resonance, gain " << gain;
+        delete lead;
+    }
+    for (const double gain : {0.003, 0.01, 0.03, 0.1}) {
+        LtiSystem* lag = makeZpk(gain, {0.1}, {0.5, 0.5});
+        EXPECT_TRUE(checker.isNominallyStable(lag)) << "a lag at the resonance, gain " << gain;
+        delete lag;
+    }
+    for (const double gain : {0.3, 1.0}) {
+        LtiSystem* lag = makeZpk(gain, {0.1}, {0.5, 0.5});
+        EXPECT_FALSE(checker.isNominallyStable(lag)) << "a lag at the resonance, gain " << gain;
+        delete lag;
+    }
 }

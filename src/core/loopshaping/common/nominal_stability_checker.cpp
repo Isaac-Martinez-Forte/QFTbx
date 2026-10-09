@@ -371,7 +371,8 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         const double t = (level - a) / delta;
         const double from = std::hypot(m_re[i], m_im[i]);
         const double to = std::hypot(m_re[i + 1], m_im[i + 1]);
-        profile.crossings.push_back({from * std::pow(to / from, t), delta > 0.0 ? 1.0 : -1.0});
+        profile.crossings.push_back({poles > 0 ? std::numeric_limits<double>::infinity() : from * std::pow(to / from, t),
+                                     delta > 0.0 ? 1.0 : -1.0});
     }
 
     return profile;
