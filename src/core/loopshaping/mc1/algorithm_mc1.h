@@ -44,8 +44,8 @@
  * C, returned when the list is exhausted without anything better, and the
  * capped boxes are the remainder: the same prune, with no duplicate list
  * entries. Stage 3 finds k_f by logarithmic bisection over the feasibility
- * test; for closed boundaries feasibility is not monotonic in k_f, so the
- * bisection may miss a certificate but never accepts a false one. The
+ * test of the gain range [k, k_max], which shrinks as k grows, so the test
+ * is monotonic in k and the bisection finds k_f within its tolerance. The
  * returned point passes the nominal stability criterion, and an ambiguous
  * box whose members are all unstable is discarded, as in NT. The
  * cancellation token has to outlive solve().

@@ -103,9 +103,9 @@ divided by `db-per-degree`) or `metric="complex"` (the modulus of the
 difference of two complex values). A file ported from version 2 is read as
 `metric="complex"`.
 
-**`<loop-shaping>`**: what the search was asked for, as three attributes.
+**`<loop-shaping>`**: what the search was asked for, as four attributes.
 
-    <loop-shaping algorithm="mc2" tolerance="0.05" columns="conservative"/>
+    <loop-shaping algorithm="mc2" tolerance="0.5" columns="nearest" point-reading="exact"/>
 
 `algorithm` is the name of one of `nt`, `nk`, `mr`, `mc1`, `mc-thesis`,
 `mc2`, `mc3` - a name and not the position of the enumeration, so a file
@@ -114,9 +114,13 @@ is the epsilon the algorithm stops at, which is the diameter of the Nichols
 box for every algorithm but MR, where it is the width of the controller's
 parameter box. `columns` is how a phase between two boundary nodes was
 read: `nearest` takes the node it falls closest to, `conservative` takes
-both, which is the reading that cannot return an infeasible design. The
-same problem answers a different gain under each, so a design without these
-three cannot be reproduced or compared.
+both, which is the reading that cannot return an infeasible design.
+`point-reading` is `exact` when the design was judged on every point of the
+templates instead of on the columns, as MC2 does, and `columns` is then only
+how the columns steered the search; it is `columns` otherwise, which is also
+what a file without the attribute is read as. The same problem answers a
+different gain under each, so a design without these four cannot be
+reproduced or compared.
 
 ### The results
 
