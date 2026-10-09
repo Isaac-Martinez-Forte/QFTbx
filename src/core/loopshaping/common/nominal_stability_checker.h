@@ -17,8 +17,11 @@
  * phase falls by 180 degrees per pole. A loop that starts on a ray at a
  * finite magnitude counts half a crossing towards its departure side; with
  * two integrators it starts on the ray at infinite magnitude, and only a
- * loop leaving towards the lower phase crosses it. The start is read off
- * the low-frequency asymptote of the polynomials, not off the first sample.
+ * loop leaving towards the lower phase crosses it. With m poles at the
+ * origin the contour goes round it on an arc of infinite radius that turns
+ * the loop clockwise by m times 180 degrees, and every ray inside that arc
+ * is half a crossing against. The start is read off the low-frequency
+ * asymptote of the polynomials, not off the first sample.
  *
  * The nominal plant is sampled once on a logarithmic grid three decades
  * beyond the design frequencies, refined where the loop phase turns fast;
@@ -72,6 +75,7 @@ public:
         bool startsOnRay = false;
         double startMagnitudeAtUnitGain = 0.0;
         double startDirection = 0.0;
+        double arcCrossings = 0.0;
         std::vector<Crossing> crossings;
     };
 

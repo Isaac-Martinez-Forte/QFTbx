@@ -18,9 +18,11 @@
  * boxes such as a bisection asks about, exactly the boxes a fresh one
  * rejects, on a plant with an unstable pole, whose low-gain corners are
  * unstable and whose boxes reach the critical point often; plants with right-half-plane poles have
- * verdicts fixed by Routh; a delay in the denominator gets no verdict; and
- * the ACC'90 double integrator, whose loop starts on the ray at infinite
- * magnitude, rejects the designs the search had returned and accepts a lead.
+ * verdicts fixed by Routh; a delay in the denominator gets no verdict; the
+ * ACC'90 double integrator, whose loop starts on the ray at infinite
+ * magnitude, rejects the designs the search had returned and accepts a lead;
+ * and an integrator with an unstable pole, whose arc around the origin
+ * crosses the ray, is stable exactly for the gains its closed-loop roots say.
  */
 
 #include <gtest/gtest.h>
@@ -335,6 +337,28 @@ TEST(NominalStability, PolesOnTheAxisAreIndentedFromTheExactRoots)
     delete fromNk;
     delete fromMc2;
     delete stabilising;
+}
+
+TEST(NominalStability, AnIntegratorWithAnUnstablePoleCountsTheArcAroundTheOrigin)
+{
+    std::vector<Parameter> numerator{Parameter(std::string("a"), 1.0)};
+    std::vector<Parameter> denominator;
+    FreeForm plant(std::string("P"), numerator, denominator, Parameter(1.0), Parameter(0.0),
+                   std::string("s+a"), std::string("s*(s-2.5)"));
+
+    NominalStabilityChecker checker(&plant, &designFrequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 1);
+
+    for (const double gain : {1.0, 2.0, 2.4}) {
+        LtiSystem* controller = makeZpk(gain, {}, {});
+        EXPECT_FALSE(checker.isNominallyStable(controller)) << "s^2 + (G - 2.5) s + G with G = " << gain;
+        delete controller;
+    }
+    for (const double gain : {2.6, 3.0, 5.3, 25.0, 100.0}) {
+        LtiSystem* controller = makeZpk(gain, {}, {});
+        EXPECT_TRUE(checker.isNominallyStable(controller)) << "s^2 + (G - 2.5) s + G with G = " << gain;
+        delete controller;
+    }
 }
 
 TEST(NominalStability, ADenominatorThatIsNotAPolynomialGetsNoVerdict)
