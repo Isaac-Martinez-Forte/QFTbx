@@ -502,10 +502,6 @@
         <translation>No se ha podido evaluar la expresión de la planta en %1 rad/s: %2</translation>
     </message>
     <message>
-        <source>The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC&apos;90 benchmark) or move those frequencies out of the set.</source>
-        <translation>La planta tiene magnitud infinita en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre. Su template no se puede acotar ni contornear. Añada un amortiguamiento ligero a los polos resonantes (la solución habitual para el problema ACC&apos;90) o saque esas frecuencias del conjunto.</translation>
-    </message>
-    <message>
         <source>The contours need one epsilon per design frequency: %1 given for %2 frequencies.</source>
         <translation>Los contornos necesitan un épsilon por frecuencia de diseño: se dieron %1 para %2 frecuencias.</translation>
     </message>
@@ -732,6 +728,10 @@
     <message>
         <source>The nominal plant has a pole on the imaginary axis at %1 rad/s, which is a design frequency: the nominal loop is infinite there and no boundary can be drawn for it. Take a frequency a little to either side, such as %2 or %3 rad/s.</source>
         <translation>La planta nominal tiene un polo sobre el eje imaginario en %1 rad/s, que es una frecuencia de diseño: el lazo nominal es infinito ahí y no se puede calcular su boundary. Tome una frecuencia un poco a cualquiera de los lados, como %2 o %3 rad/s.</translation>
+    </message>
+    <message>
+        <source>Some plants of the sweep have a pole on the imaginary axis exactly at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty, where the template is unbounded and cannot be contoured. Move those frequencies a little, or sweep the parameters so that no plant falls exactly on them.</source>
+        <translation>Algunas plantas del barrido tienen un polo sobre el eje imaginario justo en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre, donde el template no está acotado y no se puede contornear. Mueva un poco esas frecuencias, o barra los parámetros de modo que ninguna planta caiga justo en ellas.</translation>
     </message>
 </context>
 <context>
@@ -2571,6 +2571,14 @@ contorno</translation>
     <message>
         <source>The epsilon of this frequency: the diameter of the hull the contour of this template is walked with. Recompute walks the contours again with it.</source>
         <translation>El épsilon de esta frecuencia: el diámetro de la envoltura con la que se recorre el contorno de este template. Recalcular recorre otra vez los contornos con él.</translation>
+    </message>
+    <message>
+        <source>unbounded template</source>
+        <translation>template no acotado</translation>
+    </message>
+    <message>
+        <source>Some plants of the family have a pole on the imaginary axis between %1 and %2 rad/s, so the true template at this frequency reaches an infinite magnitude and what is drawn ends at the highest plant of the sweep. A stability boundary computed from it is closed underneath where the true one is not: a loop that passes under it may be unstable with plants the sweep does not hold, and the stability of the design is checked only with the plants of the sweep.</source>
+        <translation>Algunas plantas de la familia tienen un polo sobre el eje imaginario entre %1 y %2 rad/s, así que el template real en esta frecuencia llega a magnitud infinita y lo que se dibuja termina en la planta más alta del barrido. Un boundary de estabilidad calculado a partir de él está cerrado por debajo donde el real no lo está: un lazo que pase por debajo puede ser inestable con plantas que el barrido no contiene, y la estabilidad del diseño sólo se comprueba con las plantas del barrido.</translation>
     </message>
 </context>
 <context>

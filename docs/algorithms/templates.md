@@ -69,6 +69,19 @@ canonical hull, and the engine reports it with a warning. Which frequencies fall
 back depends on the last digits of the cloud, because the reference walk is that
 sensitive; the golden test detects the rule per frequency rather than fixing it.
 
+## Poles on the imaginary axis
+
+When the uncertainty moves a pole of the plant along the imaginary axis, an
+undamped resonance whose frequency depends on the parameters as in the ACC'90
+benchmark, the template at every frequency of the band it sweeps reaches an
+infinite magnitude, and the sweep only reaches as high as its plants go. Such a
+design frequency is marked, with the band, in the templates window and by
+`qftbx-solve`: a stability boundary computed from that template is closed below
+where the true one is not, and the stability of a design is checked with the
+plants of the sweep only. A design frequency on which a swept plant has its pole
+exactly is refused, and so is one on a pole of the nominal plant, where the
+nominal loop is infinite; a frequency a little to either side serves.
+
 ## Parallelism
 
 The brute-force sweep is embarrassingly parallel. The CPU engine parallelises

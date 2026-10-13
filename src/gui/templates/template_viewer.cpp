@@ -11,7 +11,8 @@
  * (-360, 0). The side panel and the plot share a splitter so a long legend
  * row can be read by dragging. Contour state and proposals are marked
  * beside each epsilon field, never as a dialog, since trying an epsilon
- * and looking is how a contour is tuned.
+ * and looking is how a contour is tuned; so is a template the poles of the
+ * family on the imaginary axis leave unbounded.
  */
 
 #include "src/core/common/exception.h"
@@ -168,11 +169,26 @@ void TemplateViewer::showContourState(){
                              "gives the epsilon that closes it.");
         }
 
+        const bool unbounded = i < reports.size() && reports[i].unbounded;
+        if (unbounded) {
+            notice = tr("unbounded template");
+            const QString band = tr("Some plants of the family have a pole on the imaginary axis between "
+                                    "%1 and %2 rad/s, so the true template at this frequency reaches an "
+                                    "infinite magnitude and what is drawn ends at the highest plant of the "
+                                    "sweep. A stability boundary computed from it is closed underneath "
+                                    "where the true one is not: a loop that passes under it may be "
+                                    "unstable with plants the sweep does not hold, and the stability of "
+                                    "the design is checked only with the plants of the sweep.")
+                                         .arg(numberText(reports[i].resonanceFrom),
+                                              numberText(reports[i].resonanceTo));
+            explanation = explanation.isEmpty() ? band : band + QStringLiteral("\n\n") + explanation;
+        }
+
         stateLabels[i]->setText(notice);
         stateLabels[i]->setVisible(!notice.isEmpty());
         stateLabels[i]->setToolTip(explanation);
         markAs(stateLabels[i], "notice", whole ? QStringLiteral("closed")
-                                              : open ? QStringLiteral("coarse") : QString());
+                                              : open || unbounded ? QStringLiteral("coarse") : QString());
     }
 }
 

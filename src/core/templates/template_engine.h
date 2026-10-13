@@ -38,7 +38,10 @@
  * critical values, and every bounded closed-loop magnitude, a Mobius
  * function of the plant, peaks there while its pole is outside. Its contour
  * is the alpha-shape at the connecting epsilon, never the walk. The sweep
- * refuses a family whose plants differ in right half-plane poles. The token
+ * refuses a family whose plants differ in right half-plane poles, and marks
+ * in the report the design frequencies inside a band swept by poles of its
+ * plants on the imaginary axis, where the true template is unbounded and the
+ * sweep only reaches as high as its plants go. The token
  * is read once per frequency and throws qftbx::Cancelled; null cannot be
  * cancelled. The engine keeps copies of all it is given, and the
  * combination count is a size_t: the product of grid sizes overflows 32
@@ -48,6 +51,7 @@
 #ifndef QFTBX_TEMPLATE_ENGINE_H
 #define QFTBX_TEMPLATE_ENGINE_H
 
+#include <array>
 #include <cstdint>
 #include "src/core/pipeline/cancellation.h"
 #include <complex>
@@ -129,6 +133,9 @@ public:
         bool wholeCloud = false;
         std::size_t components = 1;
         std::vector<std::size_t> componentStarts;
+        bool unbounded = false;
+        double resonanceFrom = 0.0;
+        double resonanceTo = 0.0;
     };
 
     const std::vector<ContourReport> & contourReports() const { return m_reports; }
@@ -166,6 +173,7 @@ private:
     bool m_borderSweep = false;
     bool m_borderSweepApplied = false;
     std::optional<int> m_familyRhpPoles;
+    std::vector<std::optional<std::array<double, 2>>> m_resonanceBands;
 
     CloudSet m_clouds;
     CloudSet m_contours;

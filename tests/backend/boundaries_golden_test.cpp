@@ -11,7 +11,8 @@
  * full clouds give the same raw sweep, that the guard near the singular locus
  * moves exactly one trace point at 5 rad/s, that the critical Nichols point
  * violates every finite specification, that an undamped resonance swept
- * exactly at its frequency is reported with the frequency and the cause, and
+ * exactly at its frequency is reported with the frequency and the cause and
+ * the frequency asked to be moved, not the plant damped, and
  * that a design frequency on a pole of the nominal plant is refused with a
  * frequency to either side, while one beside it is swept.
  */
@@ -315,6 +316,8 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
         const std::string message = std::string(error.what());
         EXPECT_TRUE(message.find("1 rad/s") != std::string::npos) << error.what();
         EXPECT_TRUE(message.find("resonance") != std::string::npos) << error.what();
+        EXPECT_TRUE(message.find("Move those frequencies") != std::string::npos) << error.what();
+        EXPECT_EQ(message.find("damping"), std::string::npos) << "damping hides the resonance: " << error.what();
     }
 
 }

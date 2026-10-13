@@ -10,8 +10,10 @@
  * drive and links no Qt. The Nichols grid comes from the options or from the
  * settings file the application reads; the points per uncertain parameter
  * default to a count that brings the whole cloud near the size asked for,
- * since a sweep costs the product over the parameters. The project is saved
- * once the boundaries exist and again after the search.
+ * since a sweep costs the product over the parameters. A design frequency
+ * whose template the poles of the family on the imaginary axis leave
+ * unbounded is named. The project is saved once the boundaries exist and
+ * again after the search.
  */
 
 #include <algorithm>
@@ -290,6 +292,33 @@ int main(int argc, char ** argv)
             std::cout << "templates: " << project.templates().size() << " frequencies, "
                       << parameters << " uncertain parameters at " << points
                       << " points each, " << cloud << " points, contours " << contour << "\n";
+
+            const std::vector<qftbx::TemplateEngine::ContourReport> & reports = project.contourReports();
+            const std::vector<double> & frequencies = *project.omega()->values();
+            std::vector<std::size_t> pending;
+            for (std::size_t i = 0; i < reports.size() && i < frequencies.size(); ++i) {
+                if (reports[i].unbounded) {
+                    pending.push_back(i);
+                }
+            }
+            while (!pending.empty()) {
+                const qftbx::TemplateEngine::ContourReport & band = reports[pending.front()];
+                std::ostringstream at;
+                std::vector<std::size_t> rest;
+                for (const std::size_t i : pending) {
+                    if (reports[i].resonanceFrom == band.resonanceFrom && reports[i].resonanceTo == band.resonanceTo) {
+                        at << (at.tellp() > 0 ? ", " : "") << frequencies[i];
+                    } else {
+                        rest.push_back(i);
+                    }
+                }
+                std::cout << "templates: unbounded at " << at.str() << " rad/s, inside the band "
+                          << band.resonanceFrom << " to " << band.resonanceTo
+                          << " rad/s that poles of the family on the imaginary axis sweep: drawn only as high as"
+                          << " the plants of the sweep reach, and the design's stability is checked with those"
+                          << " plants only\n";
+                pending = std::move(rest);
+            }
         }
 
         double phaseFrom = settings.defaults.phaseStart;
