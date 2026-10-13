@@ -8,8 +8,10 @@
  * an exception leaving an OpenMP region terminates the process. Before the
  * sweep the number of right half-plane poles is checked over every distinct
  * denominator of the family, and a family whose count is not one number is
- * refused. A frequency where some plant has an infinite value is reported
- * rather than turned into a contour of noise. The walk finds its candidates
+ * refused. A design frequency on a pole of the nominal plant is refused,
+ * since the nominal loop is infinite there, and a frequency where some other
+ * plant has an infinite value is reported rather than turned into a contour
+ * of noise. The walk finds its candidates
  * through a grid of cells a quarter of epsilon wide; a walk that does not
  * close is replaced by the whole cloud or fails, never handed on partial.
  */
@@ -183,6 +185,21 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     const std::size_t digitCount = names.size();
     const std::size_t frequencyCount = omega->size();
+
+    const std::optional<std::vector<std::complex<double>>> nominalPoles = plant->nominalPoles();
+    const std::vector<double> nominalResonances = nominalPoles.has_value()
+            ? qftbx::math::imaginaryAxisFrequencies(*nominalPoles) : std::vector<double>{};
+    for (const double w : *omega){
+        const std::complex<double> nominal = plant->evaluate(w);
+        bool onAPole = !std::isfinite(nominal.real()) || !std::isfinite(nominal.imag());
+        for (const double r : nominalResonances){
+            onAPole = onAPole || std::abs(w - r) <= 1e-9 * r;
+        }
+        if (onAPole){
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "The nominal plant has a pole on the imaginary axis at %1 rad/s, which is a design frequency: the nominal loop is infinite there and no boundary can be drawn for it. Take a frequency a little to either side, such as %2 or %3 rad/s.")
+                    .arg(qftbx::text::number(w)).arg(qftbx::text::number(0.99 * w)).arg(qftbx::text::number(1.01 * w)));
+        }
+    }
 
     std::vector<std::array<double, 2>> border;
     m_borderSweepApplied = false;

@@ -10,8 +10,10 @@
  * of the traces with sorted, deduplicated phase buckets, that contours and
  * full clouds give the same raw sweep, that the guard near the singular locus
  * moves exactly one trace point at 5 rad/s, that the critical Nichols point
- * violates every finite specification, and that an undamped resonance swept
- * exactly at its frequency is reported with the frequency and the cause.
+ * violates every finite specification, that an undamped resonance swept
+ * exactly at its frequency is reported with the frequency and the cause, and
+ * that a design frequency on a pole of the nominal plant is refused with a
+ * frequency to either side, while one beside it is swept.
  */
 
 #include <gtest/gtest.h>
@@ -315,6 +317,43 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
         EXPECT_TRUE(message.find("resonance") != std::string::npos) << error.what();
     }
 
+}
+
+TEST(BoundaryCriticalPoint, ADesignFrequencyOnANominalPoleIsRefused)
+{
+    ProjectController controller;
+    controller.load(
+        std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+
+    std::vector<Parameter> numerator;
+    numerator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 0.5,
+                                    std::string("ev")));
+    std::vector<Parameter> denominator;
+    denominator.push_back(Parameter(std::string("ev"), Range(0.5, 2.0), 0.5,
+                                      std::string("ev")));
+    controller.setPlant(std::make_unique<qftbx::FreeForm>(
+        std::string("undamped"), numerator, denominator,
+        Parameter(1.0), Parameter(0.0),
+        std::string("ev"), std::string("s^2*(s^2 + 2*ev)")));
+
+    const std::vector<double> epsilon{10.0};
+    qftbx::ParameterGrids grids{{std::string("ev"), {0.6, 0.7}}};
+
+    const std::vector<double> onThePole{1.0};
+    controller.setOmega(std::make_unique<Omega>(1.0, 1.0, 1, onThePole, Omega::Manual));
+    try {
+        controller.computeTemplates(epsilon, grids, false);
+        FAIL() << "a design frequency on a pole of the nominal plant must be refused";
+    } catch (const qftbx::Exception & error) {
+        const std::string message = std::string(error.what());
+        EXPECT_TRUE(message.find("nominal") != std::string::npos) << error.what();
+        EXPECT_TRUE(message.find("0.99") != std::string::npos) << error.what();
+        EXPECT_TRUE(message.find("1.01") != std::string::npos) << error.what();
+    }
+
+    const std::vector<double> beside{1.01};
+    controller.setOmega(std::make_unique<Omega>(1.01, 1.01, 1, beside, Omega::Manual));
+    EXPECT_NO_THROW(controller.computeTemplates(epsilon, grids, false));
 }
 
 }

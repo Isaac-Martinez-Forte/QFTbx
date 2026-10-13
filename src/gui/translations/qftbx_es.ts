@@ -729,6 +729,10 @@
         <source>Internal error: the design returned under the exact point reading leaves the nominal closed loop unstable (worst real part %1).</source>
         <translation>Error interno: el diseño devuelto con la lectura exacta de los puntos deja inestable el lazo cerrado nominal (peor parte real %1).</translation>
     </message>
+    <message>
+        <source>The nominal plant has a pole on the imaginary axis at %1 rad/s, which is a design frequency: the nominal loop is infinite there and no boundary can be drawn for it. Take a frequency a little to either side, such as %2 or %3 rad/s.</source>
+        <translation>La planta nominal tiene un polo sobre el eje imaginario en %1 rad/s, que es una frecuencia de diseño: el lazo nominal es infinito ahí y no se puede calcular su boundary. Tome una frecuencia un poco a cualquiera de los lados, como %2 o %3 rad/s.</translation>
+    </message>
 </context>
 <context>
     <name>FrequenciesForm</name>
