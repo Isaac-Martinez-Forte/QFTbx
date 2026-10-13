@@ -41,6 +41,7 @@ constexpr double kExclusionResolutionDecades = 0.25;
 constexpr std::size_t kExclusionPlants = 2;
 constexpr double kExclusionCellsPerDecade = 2.0;
 constexpr int kExclusionDepth = 16;
+constexpr int kAxisPoleDepth = 30;
 constexpr long kExclusionBudget = 4000;
 constexpr int kAxisEndSearches = 12;
 constexpr std::size_t kNominalMember = std::numeric_limits<std::size_t>::max();
@@ -228,9 +229,15 @@ struct AxisExclusion {
     const LtiSystem::Polynomials & plant;
     const BoxIntervals & box;
     Interval gain;
+    const std::vector<double> & axisPoles;
     long budget = kExclusionBudget;
 
-    bool excludedOn(double w1, double w2, int depth)
+    bool holdsAnAxisPole(double w1, double w2) const
+    {
+        return std::any_of(axisPoles.begin(), axisPoles.end(), [&](double w) { return w1 <= w && w <= w2; });
+    }
+
+    bool excludedOn(double w1, double w2, int depth, bool nearAxisPole)
     {
         if (--budget < 0) {
             return false;
@@ -254,16 +261,17 @@ struct AxisExclusion {
                 || !mayHoldAnOddMultipleOfPi(polePhase - zeroPhase)) {
             return true;
         }
-        if (depth <= 0) {
+        const bool near = nearAxisPole || holdsAnAxisPole(w1, w2);
+        if (depth <= (near ? kExclusionDepth - kAxisPoleDepth : 0)) {
             return false;
         }
         const double middle = std::sqrt(w1 * w2);
-        return excludedOn(w1, middle, depth - 1) && excludedOn(middle, w2, depth - 1);
+        return excludedOn(w1, middle, depth - 1, near) && excludedOn(middle, w2, depth - 1, near);
     }
 };
 
-bool provenUnstableOnAxis(const LtiSystem::Polynomials & plant, const BoxIntervals & box, const Interval & gain,
-                          double & lastFailure)
+bool provenUnstableOnAxis(const LtiSystem::Polynomials & plant, const std::vector<double> & axisPoles,
+                          const BoxIntervals & box, const Interval & gain, double & lastFailure)
 {
     for (const std::vector<Interval> * roots : {&box.zeros, &box.poles}) {
         for (const Interval & r : *roots) {
@@ -324,7 +332,7 @@ bool provenUnstableOnAxis(const LtiSystem::Polynomials & plant, const BoxInterva
         return false;
     }
 
-    AxisExclusion exclusion{plant, box, gain};
+    AxisExclusion exclusion{plant, box, gain, axisPoles};
     const double decades = std::log10(highest / lowest);
     const int cells = std::max(1, static_cast<int>(std::ceil(decades * kExclusionCellsPerDecade)));
     const auto cellAt = [&](int i, double & a, double & b) {
@@ -337,7 +345,7 @@ bool provenUnstableOnAxis(const LtiSystem::Polynomials & plant, const BoxInterva
                                                                            / decades * cells))));
         double a, b;
         cellAt(first, a, b);
-        if (!exclusion.excludedOn(a, b, kExclusionDepth)) {
+        if (!exclusion.excludedOn(a, b, kExclusionDepth, false)) {
             return false;
         }
     }
@@ -347,7 +355,7 @@ bool provenUnstableOnAxis(const LtiSystem::Polynomials & plant, const BoxInterva
         }
         double a, b;
         cellAt(i, a, b);
-        if (!exclusion.excludedOn(a, b, kExclusionDepth)) {
+        if (!exclusion.excludedOn(a, b, kExclusionDepth, false)) {
             lastFailure = std::sqrt(a * b);
             return false;
         }
@@ -672,7 +680,8 @@ std::optional<Range> FamilyStabilityChecker::shaveByZeroExclusion(LtiSystem * bo
     return shaved(gains, kExclusionResolutionDecades, [&](double a, double b) {
         for (const std::size_t member : refusing) {
             ++m_statistics.axisExclusions;
-            if (provenUnstableOnAxis(workingPlant(member), *intervals, Interval(a, b), m_lastAxisFailure)) {
+            if (provenUnstableOnAxis(workingPlant(member), axisPolesOf(member), *intervals, Interval(a, b),
+                                     m_lastAxisFailure)) {
                 ++m_statistics.axisProofs;
                 return true;
             }
@@ -692,7 +701,8 @@ bool FamilyStabilityChecker::isBoxUnstableAtNominalOnAxis(LtiSystem * box)
         return false;
     }
     ++m_statistics.axisExclusions;
-    const bool proven = provenUnstableOnAxis(*m_nominal, *intervals, intervals->gain, m_lastAxisFailure);
+    const bool proven = provenUnstableOnAxis(*m_nominal, axisPolesOf(kNominalMember), *intervals, intervals->gain,
+                                             m_lastAxisFailure);
     m_statistics.axisProofs += proven ? 1 : 0;
     m_statistics.nominalAxisPrunes += proven ? 1 : 0;
     return proven;
@@ -701,6 +711,15 @@ bool FamilyStabilityChecker::isBoxUnstableAtNominalOnAxis(LtiSystem * box)
 const LtiSystem::Polynomials & FamilyStabilityChecker::workingPlant(std::size_t member) const
 {
     return member == kNominalMember ? *m_nominal : m_family.member(member);
+}
+
+const std::vector<double> & FamilyStabilityChecker::axisPolesOf(std::size_t member)
+{
+    const auto known = m_axisPoles.find(member);
+    if (known != m_axisPoles.end()) {
+        return known->second;
+    }
+    return m_axisPoles[member] = math::imaginaryAxisFrequencies(math::polynomialRoots(workingPlant(member).denominator));
 }
 
 void FamilyStabilityChecker::addWorkingPlant(std::size_t member)

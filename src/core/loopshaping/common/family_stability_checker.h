@@ -2,6 +2,7 @@
 #define QFTBX_FAMILY_STABILITY_CHECKER_H
 
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -52,7 +53,11 @@
  * isBoxUnstableAtNominalOnAxis with the nominal plant): an unstable point
  * of the box, proven by the table, and a characteristic polynomial that
  * cannot vanish on the imaginary axis over the box, shown in polar form
- * over pieces of the frequency.
+ * over pieces of the frequency. On a piece that holds a pole of the plant
+ * on the imaginary axis the plant's term passes through zero, its phase
+ * tells nothing, and only the moduli can part the two terms, which takes a
+ * piece narrower the smaller the gain; such a piece is bisected deeper than
+ * the others.
  */
 namespace qftbx {
 
@@ -101,6 +106,8 @@ private:
 
     const LtiSystem::Polynomials & workingPlant(std::size_t member) const;
 
+    const std::vector<double> & axisPolesOf(std::size_t member);
+
     void addWorkingPlant(std::size_t member);
 
     std::optional<std::size_t> refuserOutsideWorkingSet(const PointController & point);
@@ -112,6 +119,7 @@ private:
     std::vector<std::size_t> m_working;
     std::size_t m_shavesAsked = 0;
     double m_lastAxisFailure = -1.0;
+    std::map<std::size_t, std::vector<double>> m_axisPoles;
     Statistics m_statistics;
 };
 

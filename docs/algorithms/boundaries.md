@@ -110,11 +110,11 @@ starts: a classification touches a few contiguous doubles and allocates nothing.
 ## Guards
 
 A sheet value that is not a number would read as "allowed" in the trace; the
-engine refuses it. The classic cause is an undamped resonance inside the plant
-uncertainty, whose frequency moves with the parameters (the ACC'90 benchmark is
-built on exactly that): the error message says so and suggests damping it
-lightly. A grid with fewer than two phases or magnitudes, or a window of zero
-width, is refused before any sheet is built.
+engine refuses it. The classic cause, an undamped resonance inside the plant
+uncertainty that falls exactly on a design frequency, is refused before, by the
+templates (see [templates](templates.md#poles-on-the-imaginary-axis)). A grid
+with fewer than two phases or magnitudes, or a window of zero width, is refused
+before any sheet is built.
 
 ## Parallelism
 

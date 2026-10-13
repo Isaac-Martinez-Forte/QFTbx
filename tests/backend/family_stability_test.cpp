@@ -151,7 +151,7 @@ TEST(PlantPolynomials, EveryFormAgreesWithItsEvaluation)
 
 TEST(SweptFamily, MembersWalkTheSweepFirstGridFastest)
 {
-    const std::string file = example("maglev-lower.qft");
+    const std::string file = problem("maglev-lower.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -182,7 +182,7 @@ TEST(SweptFamily, MembersWalkTheSweepFirstGridFastest)
 
 TEST(SweptFamily, WhyItCannotBeWalked)
 {
-    const std::string file = example("maglev-lower.qft");
+    const std::string file = problem("maglev-lower.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -212,7 +212,7 @@ TEST(SweptFamily, WhyItCannotBeWalked)
 
 TEST(FamilyStability, TheMaglevDesignsAreToldApart)
 {
-    const std::string file = example("maglev-lower.qft");
+    const std::string file = problem("maglev-lower.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -260,7 +260,7 @@ TEST(FamilyStability, TheMaglevDesignsAreToldApart)
 
 TEST(FamilyStability, ADelayLeavesTheFamilyUnchecked)
 {
-    const std::string file = example("maglev-lower.qft");
+    const std::string file = problem("maglev-lower.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -305,7 +305,7 @@ TEST(FamilyStability, APoleOnTheAxisIsNotStability)
 
 TEST(FamilyStabilityGate, ABoxBeyondTheRouthLimitIsProvenUnstable)
 {
-    const std::string file = example("dcm-T33.qft");
+    const std::string file = problem("dcm-T33-plant-k.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -343,8 +343,8 @@ TEST(FamilyStabilityGate, ABoxBeyondTheRouthLimitIsProvenUnstable)
 
 TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
 {
-    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -383,7 +383,7 @@ TEST(FamilyStabilityGate, AProvenBoxHoldsNoStableController)
 
 TEST(FamilyStabilityGate, TheDesignTheBatteryReturnedLiesInNoProvenBox)
 {
-    const std::string file = example("toolbox-1.qft");
+    const std::string file = problem("toolbox-1.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -403,8 +403,8 @@ TEST(FamilyStabilityGate, TheDesignTheBatteryReturnedLiesInNoProvenBox)
 
 TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
 {
-    for (const char * name : {"dcm-k.qft", "maglev-lower.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-k-plant-k.qft", "maglev-lower.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -462,8 +462,8 @@ TEST(FamilyStabilityGate, ABoxProvenUnstableAtTheNominalPlantHoldsNoController)
 TEST(FamilyStabilityGate, ATimeConstantBoxProvenUnstableHoldsNoController)
 {
     std::size_t proven = 0, provenWithFamily = 0, holdingAStableOne = 0;
-    for (const char * name : {"dcm-k.qft", "maglev-lower.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-k-plant-k.qft", "maglev-lower.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -517,7 +517,7 @@ TEST(FamilyStabilityGate, ATimeConstantBoxProvenUnstableHoldsNoController)
 
 TEST(FamilyStabilityGate, TheNominalBoxProofNeedsNoSweepButRefusesADelay)
 {
-    const std::string file = example("dcm-k.qft");
+    const std::string file = problem("dcm-k-plant-k.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -555,7 +555,7 @@ TEST(FamilyStabilityGate, TheNominalBoxProofNeedsNoSweepButRefusesADelay)
 
 TEST(FamilyStabilityGate, TheSearchNoLongerReturnsTheUnstableMaglevDesign)
 {
-    const std::string file = example("maglev-lower.qft");
+    const std::string file = problem("maglev-lower.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }

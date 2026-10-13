@@ -20,7 +20,7 @@
  * gain, the first-order plant with a delay, whose search split one
  * degenerate parameter for ever, ends in a few thousand boxes with a design
  * the verifier accepts; and two problems without a design end with a proof
- * of it. The ACC'90 benchmark, whose Routh table with the nominal plant asks
+ * of it. The damped ACC'90, whose Routh table with the nominal plant asks
  * for k < 40.5 where the box starts at k = 1000, and the unstable maglev
  * with a second pole, which without the contraction ends with boxes
  * discarded on the sweep alone.
@@ -40,6 +40,7 @@
 #include "src/core/pipeline/cancellation.h"
 #include "src/core/project/settings.h"
 #include "src/core/system/parameter.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
 
@@ -71,7 +72,7 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
     const ExactCase c = GetParam();
 
     ProjectController controller;
-    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / c.file).string());
+    controller.load(qftbx_tests::problem(c.file));
 
     Settings settings;
     settings.research.mc2Reading = Settings::Research::PointReading::Exact;
@@ -105,9 +106,9 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
 INSTANTIATE_TEST_SUITE_P(
     PublishedProblems, Mc2UnderTheExactReading,
     ::testing::Values(
-        ExactCase{"DcmT33", "dcm-T33.qft", kDcmT33Gain},
+        ExactCase{"DcmT33", "dcm-T33-plant-k.qft", kDcmT33Gain},
         ExactCase{"Toolbox2", "toolbox-2.qft", 568.39377382547423},
-        ExactCase{"DcmK", "dcm-k.qft", 42527.370794761417}),
+        ExactCase{"DcmK", "dcm-k-plant-k.qft", 42527.370794761417}),
     [](const ::testing::TestParamInfo<ExactCase> & info) {
         return std::string(info.param.name);
     });
@@ -168,7 +169,7 @@ TEST(Mc2GainContraction, TheDelayedFirstOrderPlantEndsWithADesign)
 TEST(Mc2GainContraction, TheAcc90BenchmarkWithOneZeroAndOnePoleEndsWithAProofThatNoDesignExists)
 {
     ProjectController controller;
-    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "acc90.qft").string());
+    controller.load(qftbx_tests::problem("acc90-damped.qft"));
     LtiSystem * structure = controller.controllerStructure();
     ASSERT_NE(structure, nullptr);
     ASSERT_GE(structure->gain().range().min, 1000.0);

@@ -12,6 +12,9 @@
  * lattice, but the least at or above it whose walk goes over no point twice.
  * A contour that does not close is the user's decision: by default the whole
  * cloud stands in and the report says so; asked not to, the engine errors.
+ * With the ACC'90 plant undamped, the design frequencies inside the band its
+ * resonance sweeps, and only those, are marked unbounded with the band; with
+ * the plant damped, none is.
  */
 
 #include <gtest/gtest.h>
@@ -20,10 +23,13 @@
 #include <string>
 #include <algorithm>
 #include <complex>
+#include <memory>
 #include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/common/exception.h"
+#include "src/core/frequencies/omega.h"
+#include "src/core/system/free_form.h"
 #include "src/core/templates/template_engine.h"
 
 using namespace qftbx;
@@ -175,4 +181,40 @@ TEST(ContourReport, AContourThatDoesNotCloseIsTheWholeCloudOrAnError)
     ASSERT_TRUE(engine.computeContours(std::vector<double>(1, 2.5)));
     EXPECT_FALSE(engine.contourReports()[0].wholeCloud);
     EXPECT_LE(engine.contours()[0].size(), 8u);
+}
+
+TEST(ContourReport, AFrequencyInsideABandOfPolesOnTheAxisIsMarked)
+{
+    const std::vector<double> frequencies{0.5, 0.99, 1.25, 1.5, 2.01, 3.0};
+    std::vector<double> sweep;
+    for (int i = 0; i < 26; ++i) {
+        sweep.push_back(0.5 + 1.5 * i / 25.0);
+    }
+
+    for (const bool damped : {false, true}) {
+        ProjectController controller;
+        controller.load(std::string(QFTBX_TEST_DATA_DIR "/acc90.qft"));
+
+        std::vector<Parameter> ev{Parameter(std::string("ev"), Range(0.5, 2.0), 0.5, std::string("ev"))};
+        controller.setPlant(std::make_unique<FreeForm>(
+            std::string("acc90"), ev, ev, Parameter(1.0), Parameter(0.0), std::string("ev"),
+            std::string(damped ? "s^2*(s^2 + 0.02*s + 2*ev)" : "s^2*(s^2 + 2*ev)")));
+        controller.setOmega(std::make_unique<Omega>(frequencies.front(), frequencies.back(),
+                                                    static_cast<std::int32_t>(frequencies.size()),
+                                                    frequencies, Omega::Manual));
+
+        ASSERT_TRUE(controller.computeTemplates(std::vector<double>(frequencies.size(), 10.0),
+                                                ParameterGrids{{std::string("ev"), sweep}}, false));
+
+        const std::vector<TemplateEngine::ContourReport> & reports = controller.contourReports();
+        ASSERT_EQ(reports.size(), frequencies.size());
+        for (std::size_t i = 0; i < frequencies.size(); ++i) {
+            const bool inside = !damped && frequencies[i] > 1.0 && frequencies[i] < 2.0;
+            EXPECT_EQ(reports[i].unbounded, inside) << "w = " << frequencies[i] << (damped ? ", damped" : "");
+            if (inside) {
+                EXPECT_NEAR(reports[i].resonanceFrom, 1.0, 1e-9);
+                EXPECT_NEAR(reports[i].resonanceTo, 2.0, 1e-9);
+            }
+        }
+    }
 }

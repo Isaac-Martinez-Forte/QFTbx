@@ -302,6 +302,10 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
             startPhase = (coefficient < 0.0 ? 180.0 : 0.0) + 90.0 * order;
             startPhase -= 360.0 * std::floor((startPhase + 180.0) / 360.0);
             startMagnitude = order < 0 ? std::numeric_limits<double>::infinity() : std::abs(coefficient);
+            const double arcEnd = startPhase - 180.0 * order;
+            for (double ray = rayBelow(startPhase + 1e-6) + 360.0; ray < arcEnd - 1e-6; ray += 360.0) {
+                profile.arcCrossings -= 0.5;
+            }
         }
     } else {
         const std::complex<double> atZero = atZeroFactor * m_plantAtZero;
@@ -367,7 +371,8 @@ NominalStabilityChecker::Profile NominalStabilityChecker::computeProfile(const P
         const double t = (level - a) / delta;
         const double from = std::hypot(m_re[i], m_im[i]);
         const double to = std::hypot(m_re[i + 1], m_im[i + 1]);
-        profile.crossings.push_back({from * std::pow(to / from, t), delta > 0.0 ? 1.0 : -1.0});
+        profile.crossings.push_back({poles > 0 ? std::numeric_limits<double>::infinity() : from * std::pow(to / from, t),
+                                     delta > 0.0 ? 1.0 : -1.0});
     }
 
     return profile;
@@ -403,7 +408,7 @@ bool NominalStabilityChecker::isStable(const Profile & profile, double gainMagni
         return false;
     }
 
-    double crossings = 0.0;
+    double crossings = profile.arcCrossings;
     if (profile.startsOnRay && gainMagnitude * profile.startMagnitudeAtUnitGain > kRayMagnitude) {
         crossings += profile.startDirection;
     }

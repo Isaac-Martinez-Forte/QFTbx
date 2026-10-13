@@ -14,9 +14,12 @@
  * stability, both meets every specification and closes the loop stably, and
  * the specifications contract a box as much as the exact phase and modulus
  * of its corners allow, also where its phase crosses a whole turn. The
- * zero exclusion proves unstable, on the ACC'90 plant, boxes whose zero and
- * pole nearly cancel, where the Routh table proves nothing; and on problems
- * with stable controllers no box it proves holds one.
+ * zero exclusion proves unstable, on the damped ACC'90, boxes whose zero and
+ * pole nearly cancel, where the Routh table proves nothing; on problems
+ * with stable controllers no box it proves holds one; and on the ACC'90
+ * plant undamped, with gains between 1e-4 and 1e-3, it proves at least nine
+ * in ten of the boxes every sampled controller of which is unstable, the
+ * frequency pieces that hold the plant's resonance being bisected deeper.
  */
 
 #include <gtest/gtest.h>
@@ -39,6 +42,7 @@
 #include "src/core/loopshaping/common/gain_contractor.h"
 #include "src/core/math/range.h"
 #include "src/core/specifications/specification_record.h"
+#include "src/core/system/free_form.h"
 #include "src/core/system/parameter.h"
 #include "src/core/system/zero_pole_gain.h"
 #include "tests/backend/published_problems.h"
@@ -113,8 +117,8 @@ TEST(GainShave, TheRouthTableRaisesTheFloorOfAnUnstablePlant)
 TEST(GainShave, NoGainTheShavingRemovesIsStable)
 {
     std::size_t removed = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -150,8 +154,8 @@ TEST(GainContractor, NoGainTheContractionRemovesIsADesign)
 {
     std::size_t removed = 0;
     std::size_t emptied = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-2.qft", "toolbox-1.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-2.qft", "toolbox-1.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -199,7 +203,7 @@ TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
 {
     std::size_t acrossATurn = 0, contractedAcrossATurn = 0;
     for (const auto & [name, extra] : {std::pair<const char *, const char *>{"msf.qft", "pz"}, {"maglev-lower.qft", "p"}}) {
-        const std::string file = example(name);
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -286,7 +290,7 @@ TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
 
 TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
 {
-    const std::string file = example("acc90.qft");
+    const std::string file = problem("acc90-damped.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -333,8 +337,8 @@ TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
 TEST(ZeroExclusion, NoBoxItProvesHoldsAStableController)
 {
     std::size_t proven = 0, holdingStable = 0;
-    for (const char * name : {"dcm-T33.qft", "toolbox-1.qft", "toolbox-2.qft", "maglev-upper.qft", "dcm-k.qft"}) {
-        const std::string file = example(name);
+    for (const char * name : {"dcm-T33-plant-k.qft", "toolbox-1.qft", "toolbox-2.qft", "maglev-upper.qft", "dcm-k-plant-k.qft"}) {
+        const std::string file = problem(name);
         if (!std::filesystem::exists(file)) {
             GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
         }
@@ -362,4 +366,59 @@ TEST(ZeroExclusion, NoBoxItProvesHoldsAStableController)
                 proven, holdingStable);
     EXPECT_GT(proven, 0u);
     EXPECT_GT(holdingStable, 0u);
+}
+
+TEST(ZeroExclusion, ProvesTheLowGainBoxesBesideAnUndampedResonance)
+{
+    std::vector<Parameter> ev{Parameter(std::string("ev"), Range(0.5, 2.0), 0.5, std::string("ev"))};
+    FreeForm plant(std::string("acc90"), ev, ev, Parameter(1.0), Parameter(0.0), std::string("ev"),
+                   std::string("s^2*(s^2 + 2*ev)"));
+    ZeroPoleGain structure(std::string("c"), {Parameter(std::string("z"), Range(0.01, 10.0), 1.0)},
+                           {Parameter(std::string("p1"), Range(0.01, 10.0), 1.0),
+                            Parameter(std::string("p2"), Range(0.01, 10.0), 1.0)},
+                           Parameter(std::string("k"), Range(1e-4, 10.0), 1.0), Parameter(0.0));
+    FamilyStabilityChecker family(&plant, &structure, ParameterGrids());
+
+    std::mt19937 generator(61);
+    std::uniform_real_distribution<double> unit(0.0, 1.0);
+    std::size_t unstable = 0, proven = 0;
+    for (int trial = 0; trial < 400; ++trial) {
+        const double half = std::pow(10.0, -1.5 + unit(generator));
+        const auto around = [&](double low, double high) {
+            const double centre = low + (high - low) * unit(generator);
+            return Range(std::pow(10.0, std::max(low, centre - half)), std::pow(10.0, std::min(high, centre + half)));
+        };
+        const Range z = around(-2.0, 1.0), p1 = around(-2.0, 1.0), p2 = around(-2.0, 1.0), k = around(-4.0, -3.0);
+        ZeroPoleGain box(std::string("box"), {Parameter(std::string("z"), z, z.min)},
+                         {Parameter(std::string("p1"), p1, p1.min), Parameter(std::string("p2"), p2, p2.min)},
+                         Parameter(std::string("k"), k, k.min), Parameter(0.0));
+
+        bool everyPointUnstable = true;
+        for (int corner = 0; corner < 81 && everyPointUnstable; ++corner) {
+            const auto pick = [](const Range & r, int i) {
+                return i == 0 ? r.min : i == 1 ? std::sqrt(r.min * r.max) : r.max;
+            };
+            PointController point;
+            point.zeros.push_back(pick(z, corner % 3));
+            point.poles.push_back(pick(p1, corner / 3 % 3));
+            point.poles.push_back(pick(p2, corner / 9 % 3));
+            point.gain = pick(k, corner / 27);
+            everyPointUnstable = !family.isStableAtNominal(point);
+        }
+        if (!everyPointUnstable) {
+            continue;
+        }
+        ++unstable;
+        if (!family.isBoxUnstableAtNominalOnAxis(&box)) {
+            continue;
+        }
+        ++proven;
+        for (int point = 0; point < 20; ++point) {
+            EXPECT_FALSE(family.isStableAtNominal(pointInside(box, generator))) << "trial " << trial;
+        }
+    }
+    std::printf("ZERO-EXCLUSION acc90 undamped, gains 1e-4 to 1e-3: %zu boxes unstable at every sample, %zu proven\n",
+                unstable, proven);
+    EXPECT_GT(unstable, 100u);
+    EXPECT_GE(proven * 10, unstable * 9) << "at least nine boxes in ten";
 }

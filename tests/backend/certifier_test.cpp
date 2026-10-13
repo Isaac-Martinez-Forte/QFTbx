@@ -14,7 +14,7 @@
  * a point whose gain came from the specifications. On the magnetic
  * levitation problem, a loop the Routh table of the family calls stable is
  * refused by the nominal criterion, whose grid ends with the loop still above
- * 0 dB, and the funnel stops there. On the ACC'90 benchmark, with no sweep,
+ * 0 dB, and the funnel stops there. On the damped ACC'90, with no sweep,
  * a loop the nominal criterion approves, its grid missing the crossing of
  * the -180 degree ray near 0.71 rad/s, has its nominal closed-loop poles in
  * the right half-plane, and the Routh table of the nominal plant refuses it
@@ -78,7 +78,7 @@ struct Funnel
 
 TEST(Certifier, ThePublishedDcMotorDesignPassesEveryStep)
 {
-    const std::string file = example("dcm-T33.qft");
+    const std::string file = problem("dcm-T33-plant-k.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -97,7 +97,7 @@ TEST(Certifier, ThePublishedDcMotorDesignPassesEveryStep)
 
 TEST(Certifier, ThePointOnTheRouthLimitIsRefusedByTheRoots)
 {
-    const std::string file = example("dcm-T33.qft");
+    const std::string file = problem("dcm-T33-plant-k.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -130,7 +130,7 @@ TEST(Certifier, ThePointOnTheRouthLimitIsRefusedByTheRoots)
 
 TEST(Certifier, TheFunnelStopsAtTheFirstRefusal)
 {
-    const std::string file = example("dcm-T33.qft");
+    const std::string file = problem("dcm-T33-plant-k.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -154,7 +154,7 @@ TEST(Certifier, TheFunnelStopsAtTheFirstRefusal)
 
 TEST(Certifier, AnAdmittedPointSkipsTheSpecifications)
 {
-    const std::string file = example("dcm-T33.qft");
+    const std::string file = problem("dcm-T33-plant-k.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -177,7 +177,7 @@ TEST(Certifier, AnAdmittedPointSkipsTheSpecifications)
 
 TEST(Certifier, ALoopTheNominalCriterionRefusesStopsThere)
 {
-    const std::string file = example("maglev-lower.qft");
+    const std::string file = problem("maglev-lower.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -202,7 +202,7 @@ TEST(Certifier, ALoopTheNominalCriterionRefusesStopsThere)
 
 TEST(Certifier, TheNominalRouthRefusesALoopTheNominalCriterionApproves)
 {
-    const std::string file = example("acc90.qft");
+    const std::string file = problem("acc90-damped.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }
@@ -245,7 +245,7 @@ TEST(Certifier, TheNominalRouthRefusesALoopTheNominalCriterionApproves)
 
 TEST(Certifier, WhatTheNearestColumnAdmitsTheSpecificationRefuses)
 {
-    const std::string file = example("toolbox-2.qft");
+    const std::string file = problem("toolbox-2.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }

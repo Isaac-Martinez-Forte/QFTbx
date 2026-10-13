@@ -175,9 +175,9 @@ checks the two agree.
 Two problems from the literature travel with the tests as `.qft` fixtures and are
 the reference cases of the thesis: example 2 of the MATLAB QFT Toolbox manual
 (`tests/data/qft_toolbox_ex2.qft`) and the ACC'90 benchmark
-(`tests/data/acc90.qft`), a marginally unstable plant with an undamped resonance
-whose frequency moves with the uncertainty, chosen by the literature precisely
-because it is hard. Any change to the algorithms should be tried on both.
+(`tests/data/acc90.qft`), a marginally unstable plant with a resonance, lightly
+damped in the fixture, whose frequency moves with the uncertainty, chosen by the
+literature precisely because it is hard. Any change to the algorithms should be tried on both.
 
 ## Where it lives
 

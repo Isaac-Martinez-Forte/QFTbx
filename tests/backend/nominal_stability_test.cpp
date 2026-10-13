@@ -18,9 +18,14 @@
  * boxes such as a bisection asks about, exactly the boxes a fresh one
  * rejects, on a plant with an unstable pole, whose low-gain corners are
  * unstable and whose boxes reach the critical point often; plants with right-half-plane poles have
- * verdicts fixed by Routh; a delay in the denominator gets no verdict; and
- * the ACC'90 double integrator, whose loop starts on the ray at infinite
- * magnitude, rejects the designs the search had returned and accepts a lead.
+ * verdicts fixed by Routh; a delay in the denominator gets no verdict; the
+ * ACC'90 double integrator, whose loop starts on the ray at infinite
+ * magnitude, rejects the designs the search had returned and accepts a lead;
+ * an integrator with an unstable pole, whose arc around the origin crosses
+ * the ray, is stable exactly for the gains its closed-loop roots say; and
+ * with the ACC'90 plant undamped, whose resonance is crossed at infinite
+ * magnitude, a lead there is unstable at every gain and a lag is stable up
+ * to the gain its roots allow.
  */
 
 #include <gtest/gtest.h>
@@ -337,6 +342,28 @@ TEST(NominalStability, PolesOnTheAxisAreIndentedFromTheExactRoots)
     delete stabilising;
 }
 
+TEST(NominalStability, AnIntegratorWithAnUnstablePoleCountsTheArcAroundTheOrigin)
+{
+    std::vector<Parameter> numerator{Parameter(std::string("a"), 1.0)};
+    std::vector<Parameter> denominator;
+    FreeForm plant(std::string("P"), numerator, denominator, Parameter(1.0), Parameter(0.0),
+                   std::string("s+a"), std::string("s*(s-2.5)"));
+
+    NominalStabilityChecker checker(&plant, &designFrequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 1);
+
+    for (const double gain : {1.0, 2.0, 2.4}) {
+        LtiSystem* controller = makeZpk(gain, {}, {});
+        EXPECT_FALSE(checker.isNominallyStable(controller)) << "s^2 + (G - 2.5) s + G with G = " << gain;
+        delete controller;
+    }
+    for (const double gain : {2.6, 3.0, 5.3, 25.0, 100.0}) {
+        LtiSystem* controller = makeZpk(gain, {}, {});
+        EXPECT_TRUE(checker.isNominallyStable(controller)) << "s^2 + (G - 2.5) s + G with G = " << gain;
+        delete controller;
+    }
+}
+
 TEST(NominalStability, ADenominatorThatIsNotAPolynomialGetsNoVerdict)
 {
     std::vector<Parameter> none;
@@ -367,4 +394,30 @@ TEST(NominalStability, ADoubleIntegratorStartsOnTheRayAtInfiniteMagnitude)
     delete returnedOnce;
     delete returnedTwice;
     delete stabilising;
+}
+
+TEST(NominalStability, AResonanceOnTheAxisIsCrossedAtInfiniteMagnitude)
+{
+    std::vector<Parameter> ev{Parameter(std::string("ev"), 0.5)};
+    FreeForm plant(std::string("ACC90"), ev, ev, Parameter(1.0), Parameter(0.0),
+                   std::string("ev"), std::string("s^2*(s^2+2*ev)"));
+    std::vector<double> frequencies{0.1, 0.98, 0.99, 1.02, 1.1, 1.5, 2.0, 5.0, 10.0, 20.0, 100.0};
+    NominalStabilityChecker checker(&plant, &frequencies);
+    EXPECT_EQ(checker.rightHalfPlanePoles(), 0);
+
+    for (const double gain : {0.003, 0.01, 0.03, 0.1}) {
+        LtiSystem* lead = makeZpk(gain, {0.1}, {1.0});
+        EXPECT_FALSE(checker.isNominallyStable(lead)) << "a lead at the resonance, gain " << gain;
+        delete lead;
+    }
+    for (const double gain : {0.003, 0.01, 0.03, 0.1}) {
+        LtiSystem* lag = makeZpk(gain, {0.1}, {0.5, 0.5});
+        EXPECT_TRUE(checker.isNominallyStable(lag)) << "a lag at the resonance, gain " << gain;
+        delete lag;
+    }
+    for (const double gain : {0.3, 1.0}) {
+        LtiSystem* lag = makeZpk(gain, {0.1}, {0.5, 0.5});
+        EXPECT_FALSE(checker.isNominallyStable(lag)) << "a lag at the resonance, gain " << gain;
+        delete lag;
+    }
 }

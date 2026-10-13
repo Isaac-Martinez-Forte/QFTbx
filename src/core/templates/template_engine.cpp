@@ -8,10 +8,14 @@
  * an exception leaving an OpenMP region terminates the process. Before the
  * sweep the number of right half-plane poles is checked over every distinct
  * denominator of the family, and a family whose count is not one number is
- * refused. A frequency where some plant has an infinite value is reported
- * rather than turned into a contour of noise. The walk finds its candidates
- * through a grid of cells a quarter of epsilon wide; a walk that does not
- * close is replaced by the whole cloud or fails, never handed on partial.
+ * refused. A design frequency on a pole of the nominal plant is refused,
+ * since the nominal loop is infinite there, and a frequency where some other
+ * plant has an infinite value is reported rather than turned into a contour
+ * of noise. The poles each distinct denominator is asked for give the bands
+ * that poles on the imaginary axis sweep, and a design frequency inside one
+ * is marked in its report. The walk finds its candidates through a grid of
+ * cells a quarter of epsilon wide; a walk that does not close is replaced by
+ * the whole cloud or fails, never handed on partial.
  */
 
 #include <chrono>
@@ -57,6 +61,7 @@ void TemplateEngine::setEpsilon(std::vector<double> epsilon){
 
 void TemplateEngine::setClouds(CloudSet templates){
     m_clouds = std::move(templates);
+    m_resonanceBands.clear();
 }
 
 bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool cuda){
@@ -184,6 +189,21 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     const std::size_t digitCount = names.size();
     const std::size_t frequencyCount = omega->size();
 
+    const std::optional<std::vector<std::complex<double>>> nominalPoles = plant->nominalPoles();
+    const std::vector<double> nominalResonances = nominalPoles.has_value()
+            ? qftbx::math::imaginaryAxisFrequencies(*nominalPoles) : std::vector<double>{};
+    for (const double w : *omega){
+        const std::complex<double> nominal = plant->evaluate(w);
+        bool onAPole = !std::isfinite(nominal.real()) || !std::isfinite(nominal.imag());
+        for (const double r : nominalResonances){
+            onAPole = onAPole || std::abs(w - r) <= 1e-9 * r;
+        }
+        if (onAPole){
+            throw qftbx::InvalidInput(QFTBX_TR("Core", "The nominal plant has a pole on the imaginary axis at %1 rad/s, which is a design frequency: the nominal loop is infinite there and no boundary can be drawn for it. Take a frequency a little to either side, such as %2 or %3 rad/s.")
+                    .arg(qftbx::text::number(w)).arg(qftbx::text::number(0.99 * w)).arg(qftbx::text::number(1.01 * w)));
+        }
+    }
+
     std::vector<std::array<double, 2>> border;
     m_borderSweepApplied = false;
     if (m_borderSweep && digitCount == 2 && grids[0]->size() > 1 && grids[1]->size() > 1){
@@ -249,6 +269,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     CloudSet allClouds (frequencyCount);
 
     m_familyRhpPoles.reset();
+    std::map<std::vector<double>, std::vector<double>> axisByDenominator;
     {
         std::vector<double> numeratorValues = numeratorNominal;
         std::vector<double> denominatorValues = denominatorNominal;
@@ -294,6 +315,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
                 }
                 count = qftbx::math::rightHalfPlaneCount(*poles);
                 countByDenominator[denominatorValues] = count;
+                axisByDenominator[denominatorValues] = qftbx::math::imaginaryAxisFrequencies(*poles);
             }
 
             if (!familyCount.has_value()){
@@ -314,6 +336,25 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
         if (placeable){
             m_familyRhpPoles = familyCount;
+        }
+    }
+
+    std::vector<std::array<double, 2>> bands;
+    for (const auto & [denominator, frequencies] : axisByDenominator){
+        for (std::size_t j = 0; j < frequencies.size(); j++){
+            if (bands.size() <= j){
+                bands.push_back({frequencies[j], frequencies[j]});
+            }
+            bands[j][0] = std::min(bands[j][0], frequencies[j]);
+            bands[j][1] = std::max(bands[j][1], frequencies[j]);
+        }
+    }
+    m_resonanceBands.assign(frequencyCount, std::nullopt);
+    for (std::size_t u = 0; u < frequencyCount; u++){
+        for (const std::array<double, 2> & band : bands){
+            if (band[0] < omega->at(u) && omega->at(u) < band[1]){
+                m_resonanceBands[u] = band;
+            }
         }
     }
 
@@ -421,7 +462,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
     }
 
     if (!affected.empty()){
-        throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant has infinite magnitude at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty. Its template cannot be bounded or contoured. Add light damping to the resonant poles (the usual answer for the ACC'90 benchmark) or move those frequencies out of the set.")
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "Some plants of the sweep have a pole on the imaginary axis exactly at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty, where the template is unbounded and cannot be contoured. Move those frequencies a little, or sweep the parameters so that no plant falls exactly on them.")
                 .arg(qftbx::text::join(affected, ", ")));
     }
 
@@ -463,6 +504,11 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
     m_reports.assign(digitCount, ContourReport{});
     for (std::size_t i = 0; i < digitCount; i++){
         m_reports[i].cloudPoints = m_clouds[i].size();
+        if (i < m_resonanceBands.size() && m_resonanceBands[i].has_value()){
+            m_reports[i].unbounded = true;
+            m_reports[i].resonanceFrom = (*m_resonanceBands[i])[0];
+            m_reports[i].resonanceTo = (*m_resonanceBands[i])[1];
+        }
     }
 
 #ifdef CUDA_AVAILABLE
@@ -582,6 +628,16 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
 
     if (!truncatedAt.empty()){
         qftbx::record::write("contours", "whole cloud", qftbx::text::join(truncatedAt, ", "));
+    }
+
+    std::vector<std::string> unboundedAt;
+    for (std::size_t i = 0; i < digitCount; i++){
+        if (m_reports[i].unbounded){
+            unboundedAt.push_back(label(i));
+        }
+    }
+    if (!unboundedAt.empty()){
+        qftbx::record::write("contours", "unbounded", qftbx::text::join(unboundedAt, ", "));
     }
 
     if (!succeeded){
