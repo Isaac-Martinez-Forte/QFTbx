@@ -20,7 +20,7 @@
  * gain, the first-order plant with a delay, whose search split one
  * degenerate parameter for ever, ends in a few thousand boxes with a design
  * the verifier accepts; and two problems without a design end with a proof
- * of it. The ACC'90 benchmark, whose Routh table with the nominal plant asks
+ * of it. The damped ACC'90, whose Routh table with the nominal plant asks
  * for k < 40.5 where the box starts at k = 1000, and the unstable maglev
  * with a second pole, which without the contraction ends with boxes
  * discarded on the sweep alone.
@@ -169,7 +169,7 @@ TEST(Mc2GainContraction, TheDelayedFirstOrderPlantEndsWithADesign)
 TEST(Mc2GainContraction, TheAcc90BenchmarkWithOneZeroAndOnePoleEndsWithAProofThatNoDesignExists)
 {
     ProjectController controller;
-    controller.load((std::filesystem::path(QFTBX_EXAMPLES_DIR) / "acc90.qft").string());
+    controller.load(qftbx_tests::problem("acc90-damped.qft"));
     LtiSystem * structure = controller.controllerStructure();
     ASSERT_NE(structure, nullptr);
     ASSERT_GE(structure->gain().range().min, 1000.0);

@@ -14,7 +14,7 @@
  * stability, both meets every specification and closes the loop stably, and
  * the specifications contract a box as much as the exact phase and modulus
  * of its corners allow, also where its phase crosses a whole turn. The
- * zero exclusion proves unstable, on the ACC'90 plant, boxes whose zero and
+ * zero exclusion proves unstable, on the damped ACC'90, boxes whose zero and
  * pole nearly cancel, where the Routh table proves nothing; on problems
  * with stable controllers no box it proves holds one; and on the ACC'90
  * plant undamped, with gains between 1e-4 and 1e-3, it proves at least nine
@@ -290,7 +290,7 @@ TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
 
 TEST(ZeroExclusion, ProvesTheNearCancellationsTheRouthTableCannot)
 {
-    const std::string file = problem("acc90.qft");
+    const std::string file = problem("acc90-damped.qft");
     if (!std::filesystem::exists(file)) {
         GTEST_SKIP() << "no published problems under " << QFTBX_EXAMPLES_DIR;
     }

@@ -47,7 +47,8 @@ frequencies a tracking bound can still be exceeded by some tenths of a dB, as in
 any design over a finite set of frequencies. The description inside each file
 says which of the two it is. `dcm-T33` and `dcm-hs72` meet their margin at every
 frequency as posed, and have one file each; `toolbox-1` has one file too, for
-the reason its page gives.
+the reason its page gives. `acc90` meets it as posed as well, and its extended
+version poses the benchmark with its resonance undamped.
 
 ## The problems
 
@@ -55,7 +56,8 @@ the reason its page gives.
 |---|---|---|---|---|---|---|
 | `toolbox-1` | QFT Toolbox manual (Borghesani, Chait and Yaniv), example 1 | `k/((s+a)(s+b))`; `k ∈ [1,10]`, `a ∈ [1,5]`, `b ∈ [20,30]` | stability `1.2`; output disturbance `0.02(s³+64s²+748s+2400)/(s²+14.4s+169)` over [0,10]; input disturbance `0.01` over [0,50] | 0.1 5 10 100 | designed by hand in the manual | 1 zero, 1 pole, gain 50.2204 |
 | `toolbox-2` | QFT Toolbox manual, example 2 - the problem most of the rest descend from | `k a/(s(s+a))`; `k,a ∈ [1,10]` | stability `1.2`; corridor `120/(s³+17s²+82s+120)` to `0.6584(s+30)/(s²+4s+19.752)` | 0.1 0.5 1 2 15 100 | designed by hand in the manual; second order by genetic algorithm in Chen, Ballance and Gawthrop 1998 (`k_hf` 136.76 dB); CRONE-2 in Cervera and Baños 2008 (`K_hf` 129.75 dB) | 1 zero, 1 pole, gain 568.394 |
-| `acc90` | ACC'90 benchmark, spring-mass; QFT Toolbox manual example 5 (margin 2.25); Nataraj and Kubal, IJRNC 17 (2007), ex. 4.1 (p. 262-263) | `e/(s²(s²+0.02s+2e))`; `e ∈ [0.5,2]` — a double integrator | stability `1.75` and nothing else | 0.1 0.98 0.99 1 2 5 7 8.5 10 15 20 100 | Nataraj and Kubal, for their margin specifications: `1.139e7(s+0.0751)(s+0.3488)(s+0.3868)/((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))` | 1 zero, 2 poles, gain 1000 |
+| `acc90` | ACC'90 benchmark, spring-mass, as Martínez-Forte and Cervera pose it, IJRNC 31 (2021), sec. 4.2 (p. 16); the controller's structure and box of Nataraj and Kubal, IJRNC 17 (2007), ex. 4.1 (p. 262-263) | `e/(s²(s²+0.01s+2e))`; `e ∈ [0.5,2]` — a double integrator and a lightly damped resonance | stability `1.75` and nothing else | 0.1 0.98 0.99 1 2 5 7 8.5 10 15 20 100 | Nataraj and Kubal: `1.139e7(s+0.0751)(s+0.3488)(s+0.3868)/((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))`; the paper's, the same with two more zeros and poles | 3 zeros, 4 poles, gain 10⁷ |
+| `acc90-toolbox` | the same benchmark as the QFT Toolbox manual poses it, example 5 (p. 5-7) | `e/(s²(s²+2e))`; `e ∈ [0.5,2]` — the resonance undamped | stability `2.25`; sensitivity `0.2` from 0.01 to 0.05 rad/s, added here | 0.01 0.05 0.1 0.9 0.99 1.01 1.5 2.01 20 | `0.032(10s+1)/(4s²+2s+1)` — **a complex pole pair** | 1 zero, 2 poles, gain 0.017526 |
 | `dcm-k` | Tharewal 2005, ex. 3.1 (p. 37-38) = Nataraj and Tharewal, ASME 2007, ex. 5.1 | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; tracking `T_U = 0.6584(s+30)/(s²+4s+19.752)`, `T_L = 120/(s³+17s²+82s+120)` | 0.1 0.5 1 15 100 | `3462219(s+3.85)/((s+931.27)(s+946.83))` — 1 zero, 2 poles | 1 zero, 2 poles, gain 399855 |
 | `dcm-ka-w5` | Chait, Chen and Hollot, ASME JDSMC 121 (1999) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | the same as `dcm-k` | 0.1 0.5 1 15 100 | three degrees of freedom by linear programming | 1 zero, 1 pole, gain 568.394 |
 | `dcm-ka-w8` | Purohit, Goldsztejn, Jermann, Granvilliers, Goualard and Nataraj, IJRNC 2016, exp. 4.1 (p. 10-12) | `k a/(s(s+a))`, `k,a ∈ [1,10]` | stability `1.2`; the same corridor | 0.5 1 2 3 5 10 30 60 | PID `Kp 9.22, Td 0.41, Ti 12.21` and a prefilter; **the paper admits it violates the upper tracking bound over ω ∈ [11,29]** | 2 zeros, 1 pole, gain 0.326047 |
@@ -77,7 +79,8 @@ The margin as posed is the worst excess over the stability margin on the grid of
 |---|---|---|---|---|
 | `toolbox-1` | +35.7 dB at 57.7 | none found yet: see its page | 50.2204 | - |
 | `toolbox-2` | +2.9 dB at 217 | 2.917 3.516 5.433 217.3 267.3 | 568.394 | 1297.91 |
-| `acc90` | +19.7 dB at 0.0332 | 0.004266 0.03319 | 1000 | 1000 |
+| `acc90` | met, by 0.30 dB | the plant undamped, with 1 and 2 moved to 1.01 and 2.01; then 1.197 1.633 | 10⁷ | 10⁷ |
+| `acc90-toolbox` | +32.7 dB at 0.151 | 0.1514 0.166 0.1738 0.1778 0.1862 0.1906 0.2042 0.2291 | 0.017526 | 0.0675908 |
 | `dcm-k` | +10.7 dB at 262 | 2.917 3.041 3.589 5.433 261.8 357.3 364.8 | 399855 | 3.21804·10⁶ |
 | `dcm-ka-w5` | +2.9 dB at 217 | 2.917 3.516 5.433 217.3 267.3 272.9 | 568.394 | 1298.93 |
 | `dcm-ka-w8` | +2.7 dB at 164 | 164 198.5 | 0.326047 | 0.680363 |
@@ -120,23 +123,41 @@ The margin as posed is the worst excess over the stability margin on the grid of
 
 **The extended version.** `toolbox-2-extended.qft` adds 2.917, 3.516, 5.433, 217.3 and 267.3 rad/s, and its controller has gain **1297.91**, 2.3 times as much.
 
-### acc90 — the ACC'90 spring-mass benchmark
+### acc90 — the ACC'90 spring-mass benchmark, as Martínez-Forte and Cervera pose it
 
-**Source.** The ACC'90 benchmark problem; example 5 of the QFT Toolbox manual (Borghesani, Chait and Yaniv), where it is designed with a margin of 2.25; Nataraj and Kubal, IJRNC 17 (2007), ex. 4.1, p. 262-263, with margin specifications of their own.
+**Source.** Martínez-Forte and Cervera, IJRNC 31 (2021), section 4.2 (p. 16), and chapter 6 of the thesis behind it; the benchmark is Wie and Bernstein's (ACC 1990). The controller's structure and search box are those of Nataraj and Kubal, IJRNC 17 (2007), example 4.1 (p. 262-263).
 
-**The problem.** `P(s) = e / (s² (s² + 0.02 s + 2e))`, `e ∈ [0.5, 2]`: two masses joined by an uncertain spring, a double integrator, a lightly damped pair at `√(2e)`. Stability margin **1.75** and nothing else, at ω = 0.1, 0.98, 0.99, 1, 2, 5, 7, 8.5, 10, 15, 20 and 100 rad/s. The three frequencies around 1 rad/s straddle the resonance, which sweeps from 1 to 2 rad/s across the family.
+**The problem.** `P(s) = e / (s² (s² + 0.01 s + 2e))`, `e ∈ [0.5, 2]`, nominal 0.5: two masses joined by an uncertain spring, a double integrator and a resonance at `√(2e)`, which sweeps from 1 to 2 rad/s across the family. The benchmark's resonance is undamped; the paper damps it lightly to plot the loop in a finite area of the Nichols chart, without giving the damping, and `0.01 s` is the damping the heights of the thesis's templates match. Stability margin **1.75** and nothing else, at 0.1, 0.98, 0.99, 1, 2, 5, 7, 8.5, 10, 15, 20 and 100 rad/s.
 
-**Published controller.** Nataraj and Kubal, for their margins: `1.139·10⁷ (s+0.0751)(s+0.3488)(s+0.3868) / ((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))`, three zeros and four poles.
+**Published controller.** Nataraj and Kubal's, `1.139·10⁷ (s+0.0751)(s+0.3488)(s+0.3868) / ((s+7.2019)(s+39.7899)(s+95.8659)(s+96.2539))`; the paper's is the same with two more zeros (25, 35) and poles (30, 40).
 
-**Why this structure.** Nataraj and Kubal's controller answers their own margin specifications, not the single stability margin posed here, so it is not the controller of this problem. With one zero and one pole no controller in the search box meets the margin and closes a stable loop with every plant: MC2 proves it. The file holds one zero and two poles, the smallest structure with a design, and a strictly proper one.
+**Why this structure.** The loop of this paper, and of Nataraj and Kubal, passes the band from 1 to 2 rad/s above 0 dB, and with the resonance undamped it must hold there a phase lead of more than 180°, or the resonance crosses the −180° ray at infinite magnitude (Cervera and Baños, JVC 2013). Real zeros lead by less than 90° each, so the controller needs three: the file holds Nataraj and Kubal's three zeros and four poles, each searched within 90% of the seed they started from, with the gain in their `[10⁷, 10¹⁰]`. With one zero and two poles and a gain from 1000, the design the search returns keeps the resonance under 0 dB, which the damping allows and the undamped benchmark does not: it leaves every undamped plant unstable.
 
-**The controller in the file.** 1 zero, 2 poles, gain **1000**, and every one of the 625 plants of the sweep closed-loop stable, the worst closed-loop pole at -0.001.
+**The controller in the file.** 3 zeros (0.1323, 0.1428, 0.6045), 4 poles (7.202, 39.79, 50.66, 318.8), gain **10⁷**, and every one of the 625 plants of the sweep closed-loop stable, the worst closed-loop pole at −0.053. With the plant undamped the loop is stable too, over 3001 values of `e`, the worst pole again at −0.053.
 
-**How to read it.** 1000 is the floor of the search box, `[1000, 10⁸]`, Nataraj and Kubal's: with a stability margin as the only specification nothing holds the gain up, and at the design frequencies the margin is met with 22.7 dB to spare. The zero and the poles are the first feasible point the search reached, not an optimum: as posed, the problem has none inside the box.
+**How to read it.** 10⁷ is the floor of the gain box, as Nataraj and Kubal's own gain is near it: with a stability margin as the only specification nothing holds the gain up.
 
-**Below the margin's range.** The problem asks the margin from 0.1 to 100 rad/s, and at 0.0332 rad/s the design exceeds it by **19.7 dB**. Across the resonance band, from 0.9 to 2.1 rad/s, it is met on a grid of 20001 frequencies.
+**At every frequency.** The design meets the margin over the grid of 1001 frequencies as posed, by 0.30 dB.
 
-**The extended version.** `acc90-extended.qft` adds 0.03319 and 0.004266 rad/s, and its controller keeps the gain of **1000**, the floor of the box.
+**The extended version.** `acc90-extended.qft` poses the benchmark as it is, undamped, with the margin from 0.001 to 10⁶ rad/s. Then 1 rad/s is a pole of the nominal plant and 2 rad/s a pole of the stiffest plant, so they become 1.01 and 2.01, as the QFT Toolbox does; at 1.01 rad/s the template is unbounded, since a plant between the sampled ones resonates there, and the templates window says so; and the parameter is swept at 602 points, so that no sampled plant falls exactly on a design frequency. It adds 1.197 and 1.633 rad/s, and its controller has the zeros 0.1428, 0.2406 and 0.8222, the poles 31.88, 39.79, 50.66 and 72.02 and gain **10⁷**; the worst closed-loop pole is at −0.086.
+
+### acc90-toolbox — the same benchmark as the QFT Toolbox poses it
+
+**Source.** Example 5 of the QFT Toolbox manual (Borghesani, Chait and Yaniv), p. 5-7, and its demo `qftex5.m`.
+
+**The problem.** The plant of `acc90`, undamped, nominal 0.5. Stability margin **2.25** at every frequency, which the manual found appropriate in place of the benchmark's time-domain specifications; design frequencies 0.01, 0.1, 0.9, 0.99, 1.01, 1.5, 2.01 and 20 rad/s, three of them inside the resonance band and none on a resonance of the sweep.
+
+**What differs from the manual.** A stability margin alone admits ever smaller gains: the same loop slid to lower frequencies keeps the margin while its gain goes to zero. So a bound on the sensitivity, `|1/(1+L)| ≤ 0.2` from 0.01 to 0.05 rad/s, is added here, with 0.05 rad/s among the design frequencies; the designs of the manual, of Horowitz, of Nataraj and Kubal and of Martínez-Forte and Cervera all meet it. The controller is searched with the gain in `[10⁻⁴, 10]` and the zero and the poles in `[0.01, 10]`, and the parameter is swept at 602 points.
+
+**Published controller.** `0.032 (10s+1)/(4s²+2s+1)`: one zero and a complex pole pair.
+
+**Why this structure.** This is the other branch: the loop crosses 0 dB below the resonance band and passes it at low gain, with a phase lag, so that the resonance crosses the positive real axis and not the −180° ray. One zero and two poles hold it; QFTbx's poles are real, so the manual's complex pair becomes two real poles.
+
+**The controller in the file.** 1 zero (0.01), 2 poles (0.0862, 0.309), gain **0.017526**, and every one of the 602 plants closed-loop stable, the worst closed-loop pole at −3.3·10⁻⁶.
+
+**How to read it.** The least gain leaves a closed-loop pair of the rigid mode on the imaginary axis, at 0.15 rad/s, between the design frequencies 0.1 and 0.9: there the design exceeds the margin by **32.7 dB**.
+
+**The extended version.** `acc90-toolbox-extended.qft` asks the margin from 0.0001 to 10⁶ rad/s and adds eight frequencies between 0.15 and 0.23 rad/s. Its controller has the zero at 0.0649, the poles at 0.425 and 0.437 and gain **0.0675908**, crosses 0 dB at about 0.17 rad/s against the manual's 0.20, and its worst closed-loop pole is at −0.0038.
 
 ### dcm-k — the DC motor of Tharewal 3.1
 
