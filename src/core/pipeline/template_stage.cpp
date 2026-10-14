@@ -100,11 +100,13 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
 
 std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data,
                                                                            ParameterGrids grids,
-                                                                           EpsilonMetric metric) const
+                                                                           EpsilonMetric metric,
+                                                                           const CancellationToken * cancellation) const
 {
     requirePrerequisites(data);
 
     TemplateEngine sweep;
+    sweep.setCancellation(cancellation);
     sweep.setGrids(std::move(grids));
     sweep.setHullMetric(metric.metric, metric.dbPerDegree);
     sweep.setAlphaShapeContour(m_alphaShape);

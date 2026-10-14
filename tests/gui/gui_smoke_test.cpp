@@ -51,6 +51,7 @@
 #include <QSplitter>
 #include <QMouseEvent>
 #include <QProgressBar>
+#include <QTabWidget>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QComboBox>
@@ -65,6 +66,7 @@
 #include <QStringList>
 
 #include "src/app/project_controller.h"
+#include "src/gui/common/number_text.h"
 #include "src/gui/common/formula_delegate.h"
 #include "src/gui/common/field_mark.h"
 #include "src/gui/common/trace_segments.h"
@@ -904,7 +906,7 @@ TEST_F(GuiSmoke, TemplatesDialogSpacesALogarithmicGridOverTheRange)
     EXPECT_TRUE(m_reported.join(QChar(' ')).contains("above zero")) << m_reported.join(QChar(' ')).toStdString();
 }
 
-TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
+TEST_F(GuiSmoke, TemplatesDialogProposesOnlyWhenAsked)
 {
     TemplatesForm dialog;
 
@@ -917,31 +919,38 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     int calls = 0;
     qftbx::EpsilonMetric lastMetric;
     qftbx::ParameterGrids lastGrids;
-    dialog.setEpsilonProposer([&](const qftbx::ParameterGrids & grids, qftbx::EpsilonMetric metric) {
-        ++calls;
-        lastGrids = grids;
-        lastMetric = metric;
-        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
-        proposals[0].connected = 2.7731;
-        proposals[0].epsilon = 2.78;
-        proposals[0].diameter = 100.0;
-        proposals[0].closes = true;
-        proposals[1].connected = 0.012345;
-        proposals[1].epsilon = 0.0124;
-        proposals[1].diameter = 1.0;
-        proposals[1].closes = true;
-        return proposals;
-    });
+    QObject::connect(&dialog, &TemplatesForm::proposalAsked,
+                     [&](qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric) {
+                         ++calls;
+                         lastGrids = std::move(grids);
+                         lastMetric = metric;
+                     });
     dialog.setDefaultPointCount(3);
     dialog.setEpsilonMetric(qftbx::EpsilonMetric{});
 
     dialog.launch(&plant, 2);
 
-    EXPECT_EQ(calls, 1) << "launching did not ask for a proposal";
-    EXPECT_EQ(lastGrids.count("a"), 1u) << "the proposal was not made over the dialog's grids";
+    EXPECT_EQ(calls, 0) << "opening the dialog swept the family";
+    EXPECT_TRUE(child<QLineEdit>(&dialog, "epsilonEdit")->text().isEmpty());
+
+    press(&dialog, "proposeButton");
+    EXPECT_EQ(calls, 1) << "Propose did not ask for a proposal";
+    EXPECT_EQ(lastGrids.count("a"), 1u) << "the proposal was not asked over the dialog's grids";
     EXPECT_EQ(lastGrids.at("a").size(), 3u) << "the default point count was not used";
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::ComplexPlane);
+
+    std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
+    proposals[0].connected = 2.7731;
+    proposals[0].epsilon = 2.78;
+    proposals[0].diameter = 100.0;
+    proposals[0].closes = true;
+    proposals[1].connected = 0.012345;
+    proposals[1].epsilon = 0.0124;
+    proposals[1].diameter = 1.0;
+    proposals[1].closes = true;
+    dialog.showProposals(proposals);
     EXPECT_EQ(child<QLineEdit>(&dialog, "epsilonEdit")->text(), QString("2.78 0.0124"));
+    EXPECT_EQ(dialog.proposals().size(), 2u);
 
     child<QComboBox>(&dialog, "metricCombo")->setCurrentIndex(0);
     press(&dialog, "proposeButton");
@@ -969,7 +978,7 @@ TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
     EXPECT_DOUBLE_EQ(epsilon[1], 0.0124);
 }
 
-TEST_F(GuiSmoke, TemplatesDialogWithoutAProposerOpensEmpty)
+TEST_F(GuiSmoke, TemplatesDialogLeavesAnEmptyEpsilonToTheSweep)
 {
     TemplatesForm dialog;
 
@@ -981,8 +990,86 @@ TEST_F(GuiSmoke, TemplatesDialogWithoutAProposerOpensEmpty)
 
     dialog.launch(&plant, 2);
 
-    EXPECT_TRUE(child<QLineEdit>(&dialog, "epsilonEdit")->text().isEmpty());
+    QLineEdit * field = child<QLineEdit>(&dialog, "epsilonEdit");
+    EXPECT_TRUE(field->text().isEmpty());
+    EXPECT_FALSE(field->placeholderText().isEmpty()) << "an empty field does not say what it means";
     EXPECT_TRUE(dialog.proposals().empty());
+
+    check(&dialog, "linspaceRadio");
+    type(&dialog, "globalPointCount", "3");
+    press(&dialog, "okButton");
+
+    ASSERT_TRUE(dialog.wasAccepted()) << m_reported.join(QChar(' ')).toStdString();
+    EXPECT_TRUE(dialog.takeEpsilon().empty()) << "an empty field must leave the epsilon to the sweep";
+    EXPECT_TRUE(m_reported.empty()) << m_reported.join(QChar(' ')).toStdString();
+}
+
+TEST_F(GuiSmoke, TemplatesDialogShowsTheGridsAndTheEpsilonItIsGiven)
+{
+    std::vector<Parameter> numerator{Parameter("a", qftbx::Range(1.0, 5.0), 1.0), Parameter(1.0)};
+    std::vector<Parameter> denominator{Parameter("b", qftbx::Range(1.0, 100.0), 1.0),
+                                       Parameter("c", qftbx::Range(0.1, 1.0), 0.5)};
+    PolynomialForm plant("templates", numerator, denominator,
+                         Parameter("k", qftbx::Range(2.0, 4.0), 3.0), Parameter(0.0));
+
+    const auto inRow = [](QWidget * dialog, const char * tabs, int row, const char * name) -> QWidget * {
+        QTabWidget * tab = dialog->findChild<QTabWidget *>(QString::fromUtf8(tabs));
+        if (tab == nullptr || row >= tab->count()) {
+            return nullptr;
+        }
+        return tab->widget(row)->findChild<QWidget *>(QString::fromUtf8(name));
+    };
+
+    const auto accepted = [](TemplatesForm & dialog) {
+        press(&dialog, "okButton");
+        EXPECT_TRUE(dialog.wasAccepted());
+        return std::make_pair(dialog.grids(), dialog.takeEpsilon());
+    };
+
+    TemplatesForm typed;
+    typed.launch(&plant, 2);
+    check(&typed, "oneByOneRadio");
+    check(&typed, "linspaceRadio");
+    type(&typed, "globalPointCount", "5");
+    static_cast<QRadioButton *>(inRow(&typed, "numeratorTabs", 0, "rLin"))->setChecked(true);
+    static_cast<QLineEdit *>(inRow(&typed, "numeratorTabs", 0, "lin"))->setText("4");
+    static_cast<QRadioButton *>(inRow(&typed, "denominatorTabs", 0, "rLog"))->setChecked(true);
+    static_cast<QLineEdit *>(inRow(&typed, "denominatorTabs", 0, "log"))->setText("3");
+    static_cast<QRadioButton *>(inRow(&typed, "denominatorTabs", 1, "rManual"))->setChecked(true);
+    static_cast<QLineEdit *>(inRow(&typed, "denominatorTabs", 1, "manual"))->setText("0 0.25 0.9");
+    type(&typed, "epsilonEdit", "0.1 0.2");
+    const auto [grids, epsilon] = accepted(typed);
+    ASSERT_EQ(grids.at("b").size(), 3u);
+
+    TemplatesForm shown;
+    shown.launch(&plant, 2);
+    shown.setFromProject(grids, epsilon);
+    EXPECT_EQ(child<QLineEdit>(&shown, "epsilonEdit")->text(), QString("0.1 0.2"));
+    EXPECT_TRUE(child<QRadioButton>(&shown, "oneByOneRadio")->isChecked());
+    EXPECT_TRUE(static_cast<QRadioButton *>(inRow(&shown, "denominatorTabs", 0, "rLog"))->isChecked())
+        << "a logarithmic grid came back as something else";
+    EXPECT_TRUE(static_cast<QRadioButton *>(inRow(&shown, "denominatorTabs", 1, "rManual"))->isChecked());
+    const auto [again, againEpsilon] = accepted(shown);
+    EXPECT_EQ(again, grids) << "accepting what a project holds sweeps other grids";
+    EXPECT_EQ(againEpsilon, epsilon);
+
+    TemplatesForm shared;
+    shared.launch(&plant, 2);
+    check(&shared, "allVariablesRadio");
+    check(&shared, "logspaceRadio");
+    type(&shared, "globalPointCount", "6");
+    type(&shared, "epsilonEdit", "0.3");
+    const auto [sharedGrids, sharedEpsilon] = accepted(shared);
+
+    TemplatesForm sharedShown;
+    sharedShown.launch(&plant, 2);
+    sharedShown.setFromProject(sharedGrids, sharedEpsilon);
+    EXPECT_TRUE(child<QRadioButton>(&sharedShown, "allVariablesRadio")->isChecked())
+        << "one spacing for every parameter is shown row by row";
+    EXPECT_TRUE(child<QRadioButton>(&sharedShown, "logspaceRadio")->isChecked());
+    EXPECT_EQ(child<QLineEdit>(&sharedShown, "globalPointCount")->text(), QString("6"));
+    EXPECT_EQ(accepted(sharedShown).first, sharedGrids);
+    EXPECT_TRUE(m_reported.empty()) << m_reported.join(QChar(' ')).toStdString();
 }
 
 TEST_F(GuiSmoke, LoopShapingDialogCarriesTheChosenAlgorithm)
@@ -1968,6 +2055,46 @@ TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
     EXPECT_EQ(progress->value(), 2) << "a cancelled sweep left templates behind";
     EXPECT_TRUE(m_reported.isEmpty())
         << "giving up is not an error: " << m_reported.join(" | ").toStdString();
+}
+
+TEST_F(GuiSmoke, OpeningAProjectShowsTheGridsAndTheEpsilonOfItsTemplates)
+{
+    const QString path = QStringLiteral(QFTBX_SOURCE_DIR "/examples/fopdt.qft");
+    ProjectController stored;
+    stored.load(path.toStdString());
+    ASSERT_NE(stored.epsilon(), nullptr);
+    QStringList epsilon;
+    for (double value : *stored.epsilon()) {
+        epsilon.push_back(qftbx::numberText(value));
+    }
+
+    MainWindow window;
+    window.setFileChooser([path](bool) { return path; });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    EXPECT_FALSE(window.isComputing()) << "opening a project started a computation";
+
+    TemplatesForm * templates = panelIn<TemplatesForm>(&window);
+    ASSERT_NE(templates, nullptr);
+    EXPECT_EQ(child<QLineEdit>(templates, "epsilonEdit")->text(), epsilon.join(QChar(' ')))
+        << "the form does not show the epsilon the templates were computed with";
+    EXPECT_TRUE(child<QRadioButton>(templates, "allVariablesRadio")->isChecked());
+    EXPECT_TRUE(child<QRadioButton>(templates, "linspaceRadio")->isChecked());
+    EXPECT_EQ(child<QLineEdit>(templates, "globalPointCount")->text(), QString("9"))
+        << "the form does not show the grids the templates were swept over";
+    EXPECT_TRUE(templates->proposals().empty()) << "opening a project proposed an epsilon";
+
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    const int steps = progress->value();
+
+    press(templates, "proposeButton");
+    EXPECT_TRUE(window.isComputing() || !templates->proposals().empty())
+        << "the proposal was neither started nor made: " << m_reported.join(" | ").toStdString();
+    waitForComputation(window);
+    ASSERT_EQ(templates->proposals().size(), stored.epsilon()->size())
+        << m_reported.join(" | ").toStdString();
+    EXPECT_FALSE(child<QLineEdit>(templates, "epsilonEdit")->text().isEmpty());
+    EXPECT_EQ(progress->value(), steps) << "a proposal dropped a step of the project";
 }
 
 TEST_F(GuiSmoke, ZZPlantForm)

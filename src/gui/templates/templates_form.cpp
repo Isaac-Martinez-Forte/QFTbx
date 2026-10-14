@@ -11,9 +11,11 @@
  * both polynomials gets the first grid entered and the user is told once;
  * a certain gain or delay is a grid of its one nominal value. Fewer
  * epsilons than frequencies repeat the last one, every one positive and
- * finite, and the decibels-per-degree weight must be positive. The epsilon
- * field is prefilled from the proposer over the grids as they open, and
- * the border sweep needs exactly two distinct uncertain parameters.
+ * finite, or none at all, which leaves the epsilon to the sweep's
+ * proposal, and the decibels-per-degree weight must be positive. A stored
+ * grid is shown as the spacing that gives it exactly, compared value by
+ * value, or else as its values, and the border sweep needs exactly two
+ * distinct uncertain parameters.
  */
 
 #include <algorithm>
@@ -60,6 +62,37 @@ bool logarithmicGrid(double from, double to, std::size_t count, std::vector<doub
     return true;
 }
 
+enum class Spacing { Linear, Logarithmic, Values };
+
+struct StoredGrid
+{
+    Spacing spacing = Spacing::Values;
+    std::size_t count = 0;
+    std::vector<double> values;
+};
+
+StoredGrid storedGrid(const Parameter & parameter, const std::vector<double> & values)
+{
+    StoredGrid stored;
+    stored.count = values.size();
+    stored.values = values;
+
+    const double from = parameter.range().min;
+    const double to = parameter.range().max;
+    std::vector<double> logarithmic;
+    if (values == qftbx::math::linspace(from, to, values.size())) {
+        stored.spacing = Spacing::Linear;
+    } else if (logarithmicGrid(from, to, values.size(), logarithmic) && values == logarithmic) {
+        stored.spacing = Spacing::Logarithmic;
+    }
+    return stored;
+}
+
+bool sameSpacing(const StoredGrid & a, const StoredGrid & b)
+{
+    return a.spacing != Spacing::Values && a.spacing == b.spacing && a.count == b.count;
+}
+
 }
 
 TemplatesForm::TemplatesForm(QWidget *parent) :
@@ -68,6 +101,7 @@ TemplatesForm::TemplatesForm(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->globalPointCount->setValidator(new QDoubleValidator(this));
+    m_epsilonToolTip = ui->epsilonEdit->toolTip();
 
     setWindowTitle(tr("Template input"));
 
@@ -152,7 +186,129 @@ void TemplatesForm::launch(LtiSystem *plant, qint32 frequencyCount){
     ui->borderSweepCheck->setEnabled(uncertain.size() == 2);
 
     selectDefaultsWhereEmpty();
-    proposeEpsilon();
+    showEpsilon(QString());
+}
+
+void TemplatesForm::setFromProject(const qftbx::ParameterGrids & grids, const std::vector<double> & epsilon)
+{
+    QStringList values;
+    for (double e : epsilon){
+        values.push_back(numberText(e));
+    }
+    showEpsilon(values.join(QStringLiteral(" ")));
+
+    if (plant == nullptr || grids.empty()){
+        return;
+    }
+
+    struct Row
+    {
+        ParLineEdit edits;
+        ThreeRadioButtons radios;
+        StoredGrid grid;
+    };
+    std::vector<Row> rows;
+    std::vector<StoredGrid> general;
+    const auto stored = [&grids](const Parameter & parameter, StoredGrid & into) {
+        const auto found = grids.find(parameter.name());
+        if (found == grids.end()){
+            return false;
+        }
+        into = storedGrid(parameter, found->second);
+        return true;
+    };
+
+    const auto collect = [&](const std::vector<Parameter> & parameters, const QVector<ParLineEdit> & edits,
+                             const QVector<ThreeRadioButtons> & radios) {
+        qint32 index = 0;
+        for (const Parameter & parameter : parameters){
+            if (!parameter.isUncertain()){
+                continue;
+            }
+            Row row{edits.at(index), radios.at(index), StoredGrid()};
+            ++index;
+            if (!stored(parameter, row.grid)){
+                return false;
+            }
+            rows.push_back(std::move(row));
+        }
+        return true;
+    };
+    if (!collect(numerator, numeratorRows, numeratorRadios)
+            || !collect(denominator, denominatorRows, denominatorRadios)){
+        return;
+    }
+    for (const Parameter * parameter : {&plant->gain(), &plant->delay()}){
+        if (parameter->isUncertain()){
+            StoredGrid grid;
+            if (!stored(*parameter, grid)){
+                return;
+            }
+            general.push_back(std::move(grid));
+        }
+    }
+    if (rows.empty() && general.empty()){
+        return;
+    }
+
+    const StoredGrid & first = rows.empty() ? general.front() : rows.front().grid;
+    bool shared = true;
+    for (const Row & row : rows){
+        shared = shared && sameSpacing(first, row.grid);
+    }
+    for (const StoredGrid & grid : general){
+        shared = shared && sameSpacing(first, grid);
+    }
+
+    const auto setGeneral = [this](const StoredGrid & grid) {
+        if (grid.spacing == Spacing::Values){
+            return;
+        }
+        ui->linspaceRadio->setChecked(grid.spacing == Spacing::Linear);
+        ui->logspaceRadio->setChecked(grid.spacing == Spacing::Logarithmic);
+        ui->globalPointCount->setText(numberText(static_cast<double>(grid.count)));
+    };
+
+    if (shared){
+        setGeneral(first);
+        ui->allVariablesRadio->setChecked(true);
+        on_allVariablesRadio_clicked();
+        return;
+    }
+
+    if (!general.empty()){
+        setGeneral(general.front());
+    }
+    for (const Row & row : rows){
+        switch (row.grid.spacing){
+        case Spacing::Linear:
+            row.radios.linear->setChecked(true);
+            row.edits.getX()->setText(numberText(static_cast<double>(row.grid.count)));
+            break;
+        case Spacing::Logarithmic:
+            row.radios.logarithmic->setChecked(true);
+            row.edits.getY()->setText(numberText(static_cast<double>(row.grid.count)));
+            break;
+        case Spacing::Values: {
+            QStringList written;
+            for (double value : row.grid.values){
+                written.push_back(numberText(value));
+            }
+            row.radios.manual->setChecked(true);
+            row.edits.nominal()->setText(written.join(QStringLiteral(" ")));
+            break;
+        }
+        }
+    }
+    ui->oneByOneRadio->setChecked(true);
+    on_oneByOneRadio_clicked();
+    if (!numeratorRows.empty()){
+        ui->numeratorRadio->setChecked(true);
+        on_numeratorRadio_clicked();
+    } else {
+        ui->denominatorRadio->setChecked(true);
+        on_denominatorRadio_clicked();
+    }
 }
 
 bool TemplatesForm::wholeTemplateIfNoContour() const
@@ -185,11 +341,6 @@ void TemplatesForm::setAlphaShapeContour(bool alphaShape)
     ui->contourCombo->setCurrentIndex(alphaShape ? 1 : 0);
 }
 
-void TemplatesForm::setEpsilonProposer(EpsilonProposer propose)
-{
-    m_propose = std::move(propose);
-}
-
 void TemplatesForm::selectDefaultsWhereEmpty()
 {
     if (!ui->linspaceRadio->isChecked() && !ui->logspaceRadio->isChecked()){
@@ -204,26 +355,20 @@ void TemplatesForm::selectDefaultsWhereEmpty()
     }
 }
 
-void TemplatesForm::proposeEpsilon()
+void TemplatesForm::showEpsilon(const QString & text)
 {
     m_proposals.clear();
-    if (!m_propose || plant == nullptr){
-        return;
-    }
+    markWrong(ui->epsilonEdit, false);
+    ui->epsilonEdit->setText(text);
+    ui->epsilonEdit->setToolTip(m_epsilonToolTip);
+}
 
-    QString reason;
-    if (!readGrids(reason)){
+void TemplatesForm::showProposals(std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals)
+{
+    if (proposals.empty()){
         return;
     }
-    try {
-        m_proposals = m_propose(gridMap, epsilonMetric());
-    } catch (const qftbx::Exception &) {
-        m_proposals.clear();
-        return;
-    }
-    if (m_proposals.empty()){
-        return;
-    }
+    m_proposals = std::move(proposals);
 
     QStringList values;
     QStringList detail;
@@ -253,7 +398,18 @@ void TemplatesForm::proposeEpsilon()
 
 void TemplatesForm::on_proposeButton_clicked()
 {
-    proposeEpsilon();
+    if (plant == nullptr) {
+        errorMessage(tr("The plant must be entered before the templates."), tr("Epsilon proposal"));
+        return;
+    }
+
+    QString reason;
+    if (!readGrids(reason)){
+        errorMessage(reason, tr("Epsilon proposal"));
+        return;
+    }
+
+    emit proposalAsked(gridMap, epsilonMetric());
 }
 
 void TemplatesForm::buildTables(std::vector<Parameter> & numerator, std::vector<Parameter> & denominator){
@@ -440,14 +596,8 @@ void TemplatesForm::on_okButton_clicked()
     }
     markWrong(ui->dbPerDegreeEdit, false);
 
-    if (ui->epsilonEdit->text().isEmpty()){
-        errorMessage(tr("No epsilon value was entered."), tr("Template computation"));
-        markWrong(ui->epsilonEdit, true, tr("No epsilon value was entered."));
-        epsilonValues.clear();
-        return;
-    }else {
-
-        markWrong(ui->epsilonEdit, false);
+    markWrong(ui->epsilonEdit, false);
+    if (!ui->epsilonEdit->text().trimmed().isEmpty()){
         const std::vector<std::string> v = qftbx::text::tokens(ui->epsilonEdit->text().toStdString());
 
         qreal lastEpsilon = 0;

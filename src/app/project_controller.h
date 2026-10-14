@@ -14,9 +14,13 @@
  * with the old by value, here and nowhere else. Publishing null is refused,
  * since removing a step is not something the pipeline does. A computation in
  * flight has the data to itself and anything that would change it throws
- * meanwhile; the loop shaping runs on a worker and can be cancelled, and
- * what its last run cost, with the certificate it kept, can be read even
- * when it ended without a design. The controller structure is the
+ * meanwhile, a proposal of the epsilon on the templates swept included,
+ * since it keeps what it proposed; the loop shaping runs on a worker and
+ * can be cancelled, and what its last run cost, with the certificate it
+ * kept, can be read even when it ended without a design. An epsilon can
+ * also be proposed on a worker before the templates are computed, a sweep
+ * that can be cancelled like the others, and what it proposed is kept
+ * until the next proposal. The controller structure is the
  * controller being designed, not this class. The templates, the contours and the boundaries take the
  * choices of their dialogs, with the settings giving the defaults, and a
  * project is read whole before the current one is replaced.
@@ -133,12 +137,17 @@ public:
     bool startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda,
                         std::function<void ()> finished = std::function<void ()>());
 
+    bool startEpsilonProposal(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric,
+                              std::function<void ()> finished = std::function<void ()>());
+
+    const std::vector<TemplateEngine::EpsilonProposal> & epsilonProposals() const { return m_proposals; }
+
     bool startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
                          qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
                          double exportInfinity, bool contour, bool cuda,
                          std::function<void ()> finished = std::function<void ()>());
 
-    enum class Computation { None, Templates, Boundaries, LoopShaping };
+    enum class Computation { None, Templates, Proposal, Boundaries, LoopShaping };
 
     void collectComputation();
 
@@ -207,6 +216,8 @@ private:
     qftbx::CancellationToken m_cancellation;
 
     Computation m_lastComputation = Computation::None;
+
+    std::vector<TemplateEngine::EpsilonProposal> m_proposals;
 };
 
 }

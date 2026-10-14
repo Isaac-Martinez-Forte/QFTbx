@@ -1506,14 +1506,6 @@ del controlador</translation>
         <translation>Épsilon:</translation>
     </message>
     <message>
-        <source>One value, or one per design frequency. Filled in with the least epsilon at which the contour of each template closes, over the grids as they are entered above.</source>
-        <translation>Un valor, o uno por frecuencia de diseño. Se rellena con el menor épsilon con el que cierra el contorno de cada template, sobre las mallas tal como están arriba.</translation>
-    </message>
-    <message>
-        <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below.</source>
-        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada template, en el plano elegido abajo.</translation>
-    </message>
-    <message>
         <source>Propose</source>
         <translation>Proponer</translation>
     </message>
@@ -1624,6 +1616,18 @@ del controlador</translation>
     <message>
         <source>Sweeps the family at every design frequency: the templates and the contour of each one.</source>
         <translation>Barre la familia en cada frecuencia de diseño: los templates y el contorno de cada uno.</translation>
+    </message>
+    <message>
+        <source>One value, or one per design frequency. Left empty, each template is contoured at the least epsilon at which its contour closes, found on the templates as they are swept.</source>
+        <translation>Un valor, o uno por frecuencia de diseño. Si se deja vacío, cada template se contornea con el menor épsilon con el que cierra su contorno, buscado sobre los templates según se barren.</translation>
+    </message>
+    <message>
+        <source>proposed by the sweep</source>
+        <translation>lo propone el barrido</translation>
+    </message>
+    <message>
+        <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below, to see it or change it before accepting.</source>
+        <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada template, en el plano elegido abajo, para verlo o cambiarlo antes de aceptar.</translation>
     </message>
 </context>
 <context>
@@ -2225,6 +2229,14 @@ del controlador</translation>
         <source>That folder holds the examples the program comes with, which it does not write to. Save the project somewhere else.</source>
         <translation>Esa carpeta contiene los ejemplos que vienen con el programa, y en ella no se escribe. Guarda el proyecto en otro sitio.</translation>
     </message>
+    <message>
+        <source>Templates: proposing epsilon...</source>
+        <translation>Templates: proponiendo épsilon…</translation>
+    </message>
+    <message>
+        <source>Epsilon proposal</source>
+        <translation>Propuesta de épsilon</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::PhaseCard</name>
@@ -2600,10 +2612,6 @@ contorno</translation>
         <translation>Manual</translation>
     </message>
     <message>
-        <source>No epsilon value was entered.</source>
-        <translation>No se ha introducido ningún valor de épsilon.</translation>
-    </message>
-    <message>
         <source>Template computation</source>
         <translation>Cálculo de templates</translation>
     </message>
@@ -2700,6 +2708,10 @@ contorno</translation>
     <message>
         <source>its range does not lie above zero, so it cannot be swept logarithmically</source>
         <translation>su rango no está por encima de cero, así que no se puede barrer de forma logarítmica</translation>
+    </message>
+    <message>
+        <source>Epsilon proposal</source>
+        <translation>Propuesta de épsilon</translation>
     </message>
 </context>
 <context>

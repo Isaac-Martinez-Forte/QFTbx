@@ -13,7 +13,7 @@
  * a copy. A run given no epsilon contours at the epsilon the engine
  * proposes on the clouds it swept, and publishes that one. An epsilon can
  * also be proposed before any sweep is published, on an engine of its own:
- * that costs one sweep and publishes nothing.
+ * that costs one sweep, which the token can cancel, and publishes nothing.
  *
  * requirePrerequisites throws InvalidInput naming the missing input, so a
  * stage whose inputs were just invalidated says what it needs. run returns
@@ -51,7 +51,8 @@ public:
 
     std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data,
                                                                 ParameterGrids grids,
-                                                                EpsilonMetric metric) const;
+                                                                EpsilonMetric metric,
+                                                                const CancellationToken * cancellation = nullptr) const;
 
     void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
 

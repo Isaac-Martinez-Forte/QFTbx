@@ -329,6 +329,9 @@ void MainWindow::relaunchTemplates()
     templatesForm->setEpsilonMetric(controller->epsilonMetric());
     templatesForm->launch(controller->plant(),
                           qint32(controller->omega()->values()->size()));
+    if (!controller->templates().empty() && controller->epsilon() != nullptr) {
+        templatesForm->setFromProject(controller->sweepGrids(), *controller->epsilon());
+    }
     m_templatesStale = false;
 }
 
@@ -574,16 +577,10 @@ void MainWindow::ensureTemplatesPhase()
         templatesForm->setWholeTemplateIfNoContour(m_settings.algorithms.wholeTemplateIfNoContour);
         templatesForm->setAlphaShapeContour(m_settings.algorithms.alphaShapeContour);
         templatesForm->setBorderSweep(m_settings.algorithms.borderSweep);
-        templatesForm->setEpsilonProposer([this](const qftbx::ParameterGrids & grids,
-                                                   qftbx::EpsilonMetric metric) {
-            const WaitCursor waiting(this);
-            controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
-            controller->setBorderSweep(templatesForm->borderSweep());
-            return controller->proposeEpsilon(grids, metric);
-        });
         templateViewer = new TemplateViewer(this);
         installContourRecomputer();
         connect(templatesForm, &StepPanel::accepted, this, &MainWindow::applyTemplates);
+        connect(templatesForm, &TemplatesForm::proposalAsked, this, &MainWindow::proposeTemplateEpsilon);
         templatesCard = addPhaseCard(tr("Templates"), "templatesCard", templatesForm,
                                      {{tr("Templates"), templateViewer}});
         relaunchTemplates();
@@ -731,6 +728,9 @@ void MainWindow::installContourRecomputer(){
         recomputeContour(std::move(epsilon));
     });
     templateViewer->setEpsilonProposer([this]() {
+        if (controller->isComputing()) {
+            return std::vector<qftbx::TemplateEngine::EpsilonProposal>();
+        }
         return controller->proposeEpsilon();
     });
     templateViewer->setContourReporter([this]() {
@@ -868,6 +868,20 @@ void MainWindow::applyTemplates()
                                                 controller->omega()->values(),
                                                 controller->epsilon());
                         templateViewer->plotDiagram(nichols);
+                    });
+}
+
+void MainWindow::proposeTemplateEpsilon(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric)
+{
+    controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
+    controller->setBorderSweep(templatesForm->borderSweep());
+
+    runInBackground(templatesCard, tr("Templates: proposing epsilon..."), tr("Epsilon proposal"),
+                    [this, grids = std::move(grids), metric](std::function<void ()> done) mutable {
+                        return controller->startEpsilonProposal(std::move(grids), metric, std::move(done));
+                    },
+                    [this]() {
+                        templatesForm->showProposals(controller->epsilonProposals());
                     });
 }
 

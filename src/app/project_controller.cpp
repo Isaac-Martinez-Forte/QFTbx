@@ -185,6 +185,7 @@ void ProjectController::setEpsilonMetric(qftbx::EpsilonMetric metric){
 }
 
 std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(){
+    requireNotComputing();
     return m_templates.proposeEpsilon(m_data);
 }
 
@@ -355,6 +356,28 @@ bool ProjectController::startTemplates(std::vector<double> epsilon, qftbx::Param
         std::move(finished));
 }
 
+bool ProjectController::startEpsilonProposal(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric,
+                                             std::function<void ()> finished)
+{
+    if (m_background.running()) {
+        return false;
+    }
+
+    m_templates.requirePrerequisites(m_data);
+
+    m_cancellation.reset();
+
+    m_lastComputation = Computation::Proposal;
+    m_proposals.clear();
+
+    return m_background.start(
+        [this, grids = std::move(grids), metric]() mutable {
+            m_proposals = m_templates.proposeEpsilon(m_data, std::move(grids), metric, &m_cancellation);
+            return !m_proposals.empty();
+        },
+        std::move(finished));
+}
+
 bool ProjectController::startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
                                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
                                         double exportInfinity, bool contour, bool cuda,
@@ -391,6 +414,8 @@ void ProjectController::collectComputation()
     switch (m_lastComputation) {
     case Computation::Templates:
         dropBoundariesAndBelow();
+        break;
+    case Computation::Proposal:
         break;
     case Computation::Boundaries:
         dropLoopShaping();
