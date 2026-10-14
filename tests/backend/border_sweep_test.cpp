@@ -10,7 +10,9 @@
  * order round the box, that one or three parameters still sweep the interior,
  * and on QFT toolbox example 2 that the denser border leads NT to the same
  * gain as the interior sweep (557.0721774) while its check finds a slightly
- * worse plant, and that a border cloud's contour never exceeds the cloud.
+ * worse plant, that a border cloud's contour never exceeds the cloud, and
+ * that an epsilon proposed before the sweep is the one the border cloud
+ * asks for.
  */
 
 #include <gtest/gtest.h>
@@ -159,5 +161,26 @@ TEST(BorderSweep, TheContourOfABorderCloudIgnoresAnOversizedEpsilon)
     for (std::size_t i = 0; i < f; ++i) {
         EXPECT_LE(controller.contour()[i].size(), controller.templates()[i].size() + 1) << "frequency " << i;
         EXPECT_GT(controller.contour()[i].size(), 4u) << "frequency " << i;
+    }
+}
+
+TEST(BorderSweep, TheProposalBeforeTheSweepIsMadeOnTheBorderCloud)
+{
+    ProjectController controller;
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+    controller.setEpsilonMetric({HullMetric::Nichols, 1.0});
+    controller.setBorderSweep(true);
+    const ParameterGrids grids = gridsOf(controller.plant(), 25);
+
+    const std::vector<TemplateEngine::EpsilonProposal> before =
+        controller.proposeEpsilon(grids, controller.epsilonMetric());
+    ASSERT_TRUE(controller.computeTemplates({}, grids, false));
+    const std::vector<TemplateEngine::EpsilonProposal> after = controller.proposeEpsilon();
+
+    ASSERT_EQ(before.size(), after.size());
+    for (std::size_t i = 0; i < before.size(); ++i) {
+        EXPECT_EQ(before[i].connected, after[i].connected) << "frequency " << i;
+        EXPECT_EQ(before[i].epsilon, after[i].epsilon) << "frequency " << i;
+        EXPECT_EQ(before[i].closes, after[i].closes) << "frequency " << i;
     }
 }

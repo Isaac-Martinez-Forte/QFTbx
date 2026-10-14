@@ -10,8 +10,10 @@
  * first use and kept, because it holds the clouds that a later recontour
  * with a new epsilon walks, and templates loaded from a file are fed to it
  * by adopt() for the same reason, the engine and the project each keeping
- * a copy. An epsilon can also be proposed before any sweep is published,
- * on an engine of its own: that costs one sweep and publishes nothing.
+ * a copy. A run given no epsilon contours at the epsilon the engine
+ * proposes on the clouds it swept, and publishes that one. An epsilon can
+ * also be proposed before any sweep is published, on an engine of its own:
+ * that costs one sweep and publishes nothing.
  *
  * requirePrerequisites throws InvalidInput naming the missing input, so a
  * stage whose inputs were just invalidated says what it needs. run returns

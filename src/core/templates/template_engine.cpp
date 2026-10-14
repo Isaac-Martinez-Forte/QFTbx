@@ -62,6 +62,14 @@ void TemplateEngine::setEpsilon(std::vector<double> epsilon){
 void TemplateEngine::setClouds(CloudSet templates){
     m_clouds = std::move(templates);
     m_resonanceBands.clear();
+    m_proposals.reset();
+}
+
+void TemplateEngine::setAlphaShapeContour(bool alphaShape){
+    if (alphaShape != m_alphaShape){
+        m_proposals.reset();
+    }
+    m_alphaShape = alphaShape;
 }
 
 bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool cuda){
@@ -89,6 +97,16 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
     if (m_clouds.empty()){
         throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
+    }
+
+    if (m_epsilon.empty()){
+        const auto proposing = std::chrono::steady_clock::now();
+        for (const EpsilonProposal & proposal : proposeEpsilon()){
+            m_epsilon.push_back(proposal.epsilon);
+        }
+        qftbx::record::write("templates", "proposal",
+                          qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                       std::chrono::steady_clock::now() - proposing).count()));
     }
 
     const auto timer2 = std::chrono::steady_clock::now();
@@ -206,6 +224,7 @@ CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *om
 
     std::vector<std::array<double, 2>> border;
     m_borderSweepApplied = false;
+    m_proposals.reset();
     if (m_borderSweep && digitCount == 2 && grids[0]->size() > 1 && grids[1]->size() > 1){
         std::vector<std::vector<double>> sorted{*grids[0], *grids[1]};
         std::sort(sorted[0].begin(), sorted[0].end());
@@ -789,6 +808,9 @@ void TemplateEngine::setHullMetric(HullMetric metric, double dbPerDegree){
     if (!(dbPerDegree > 0.0) || !std::isfinite(dbPerDegree)){
         throw qftbx::InvalidInput(QFTBX_TR("Core", "The decibels per degree of the Nichols metric must be a finite positive number."));
     }
+    if (metric != m_metric || dbPerDegree != m_dbPerDegree){
+        m_proposals.reset();
+    }
     m_metric = metric;
     m_dbPerDegree = dbPerDegree;
 }
@@ -925,6 +947,10 @@ double TemplateEngine::withoutRetracing(const ComplexCloud & cloud, double closi
 
 std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
+    if (m_proposals.has_value()){
+        return *m_proposals;
+    }
+
     std::vector<EpsilonProposal> proposals;
     proposals.reserve(m_clouds.size());
 
@@ -979,6 +1005,7 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
         proposals.push_back(proposal);
     }
 
+    m_proposals = proposals;
     return proposals;
 }
 

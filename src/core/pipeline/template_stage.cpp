@@ -6,9 +6,11 @@
  * so nothing lingers from a previous one on the engine that is kept between
  * runs. A run publishes straight from the engine's own copies rather than
  * through adoption, which is for clouds computed elsewhere. Only the epsilon
- * used is kept for the persistence, since the sweep neither reorders nor
- * replaces the frequencies. A run counts as produced when it yields both
- * clouds and contours.
+ * used is kept for the persistence, the one given or the one the engine
+ * proposed, since the sweep neither reorders nor replaces the frequencies.
+ * A run counts as produced when it yields both clouds and contours. A
+ * proposal before the sweep is given every sweep option before it sweeps,
+ * since the border sweep changes the cloud it proposes for.
  */
 
 #include "src/core/pipeline/template_stage.h"
@@ -50,7 +52,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
     sweep.setWholeCloudStandsIn(m_wholeCloudStandsIn);
     sweep.setAlphaShapeContour(m_alphaShape);
     sweep.setBorderSweep(m_borderSweep);
-    sweep.setEpsilon(epsilon);
+    sweep.setEpsilon(std::move(epsilon));
     data.setSweepGrids(grids);
     sweep.setGrids(std::move(grids));
 
@@ -63,7 +65,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
         data.setContour(sweep.contours());
     }
 
-    data.setEpsilon(std::move(epsilon));
+    data.setEpsilon(sweep.epsilon());
 
     return produced;
 }
@@ -104,10 +106,10 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
 
     TemplateEngine sweep;
     sweep.setGrids(std::move(grids));
-    sweep.setClouds(sweep.computeClouds(data.plant(), data.omega()->values()));
     sweep.setHullMetric(metric.metric, metric.dbPerDegree);
     sweep.setAlphaShapeContour(m_alphaShape);
     sweep.setBorderSweep(m_borderSweep);
+    sweep.setClouds(sweep.computeClouds(data.plant(), data.omega()->values()));
 
     return sweep.proposeEpsilon();
 }
