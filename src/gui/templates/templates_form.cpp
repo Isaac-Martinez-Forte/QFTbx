@@ -4,7 +4,9 @@
  *
  * A point count comes from an expression, so it is accepted only when
  * finite, at least one and under the settings' ceiling, then truncated to
- * a whole number; a manual grid value may be negative but must be finite,
+ * a whole number; a logarithmic grid is evenly spaced in the logarithm of
+ * the range, which must lie above zero, and keeps its ends exactly; a
+ * manual grid value may be negative but must be finite,
  * since a NaN would surface much later as an empty plot. A name entered in
  * both polynomials gets the first grid entered and the user is told once;
  * a certain gain or delay is a grid of its one nominal value. Fewer
@@ -42,6 +44,19 @@ bool asPointCount(double value, double ceiling, std::size_t & count)
         return false;
     }
     count = static_cast<std::size_t>(value);
+    return true;
+}
+
+bool logarithmicGrid(double from, double to, std::size_t count, std::vector<double> & grid)
+{
+    if (!(from > 0.0) || !(to > 0.0)) {
+        return false;
+    }
+    grid = qftbx::math::logspace(std::log10(from), std::log10(to), count);
+    if (!grid.empty()) {
+        grid.front() = from;
+        grid.back() = count > 1 ? to : from;
+    }
     return true;
 }
 
@@ -563,8 +578,10 @@ bool TemplatesForm::readGrids(QString & reason)
 
         if (useLinspace){
             gridMap[plant->gain().name()] = qftbx::math::linspace(start, end, pointCount);
-        } else {
-            gridMap[plant->gain().name()] = qftbx::math::logspace(start, end, pointCount);
+        } else if (!logarithmicGrid(start, end, pointCount, gridMap[plant->gain().name()])) {
+            reason = tr("The range of \"%1\" does not lie above zero, so it cannot be swept "
+                        "logarithmically.").arg(QString::fromStdString(plant->gain().name()));
+            return false;
         }
     }
 
@@ -584,8 +601,10 @@ bool TemplatesForm::readGrids(QString & reason)
 
         if (useLinspace){
             gridMap[plant->delay().name()] = qftbx::math::linspace(start, end, pointCount);
-        } else {
-            gridMap[plant->delay().name()] = qftbx::math::logspace(start, end, pointCount);
+        } else if (!logarithmicGrid(start, end, pointCount, gridMap[plant->delay().name()])) {
+            reason = tr("The range of \"%1\" does not lie above zero, so it cannot be swept "
+                        "logarithmically.").arg(QString::fromStdString(plant->delay().name()));
+            return false;
         }
     }
 
@@ -640,7 +659,11 @@ bool TemplatesForm::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons
             return false;
         }
 
-        gridMap[parameter.name()] = qftbx::math::logspace(start, end, pointCount);
+        if (!logarithmicGrid(start, end, pointCount, gridMap[parameter.name()])){
+            m_readReason = tr("its range does not lie above zero, so it cannot be swept "
+                              "logarithmically");
+            return false;
+        }
 
     }else if(rowRadios.manual->isChecked() && !rowEdits.nominal()->text().isEmpty()){
 
@@ -674,8 +697,10 @@ bool TemplatesForm::readVariable(const ParLineEdit & rowEdits, ThreeRadioButtons
 
         if(useLinspace){
             gridMap[parameter.name()] = qftbx::math::linspace(start, end, pointCount);
-        }else {
-            gridMap[parameter.name()] = qftbx::math::logspace(start, end, pointCount);
+        }else if (!logarithmicGrid(start, end, pointCount, gridMap[parameter.name()])){
+            m_readReason = tr("its range does not lie above zero, so it cannot be swept "
+                              "logarithmically");
+            return false;
         }
     }else{
         return false;

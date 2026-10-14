@@ -2693,6 +2693,14 @@ contorno</translation>
         <source>The values themselves, separated by spaces. They need not lie in the range and they need not be evenly spaced.</source>
         <translation>Los valores mismos, separados por espacios. No tienen por qué estar dentro del rango ni igualmente espaciados.</translation>
     </message>
+    <message>
+        <source>The range of &quot;%1&quot; does not lie above zero, so it cannot be swept logarithmically.</source>
+        <translation>El rango de «%1» no está por encima de cero, así que no se puede barrer de forma logarítmica.</translation>
+    </message>
+    <message>
+        <source>its range does not lie above zero, so it cannot be swept logarithmically</source>
+        <translation>su rango no está por encima de cero, así que no se puede barrer de forma logarítmica</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::Theme</name>

@@ -870,6 +870,40 @@ TEST_F(GuiSmoke, TemplatesDialogBuildsOneEpsilonPerFrequency)
         << "the uncertain parameter got no grid";
 }
 
+TEST_F(GuiSmoke, TemplatesDialogSpacesALogarithmicGridOverTheRange)
+{
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    PolynomialForm plant("templates", numerator,
+                         {Parameter("a", qftbx::Range(1.0, 100.0), 1.0)},
+                         Parameter(1.0), Parameter(0.0));
+
+    TemplatesForm dialog;
+    dialog.launch(&plant, 2);
+    type(&dialog, "epsilonEdit", "0.05");
+    check(&dialog, "logspaceRadio");
+    type(&dialog, "globalPointCount", "3");
+    press(&dialog, "okButton");
+    ASSERT_TRUE(dialog.wasAccepted()) << m_reported.join(QChar(' ')).toStdString();
+
+    const std::vector<double> a = dialog.grids().at("a");
+    ASSERT_EQ(a.size(), 3u);
+    EXPECT_EQ(a[0], 1.0);
+    EXPECT_NEAR(a[1], 10.0, 1e-12);
+    EXPECT_EQ(a[2], 100.0) << "the grid was spaced over the exponents, not over the range";
+
+    PolynomialForm across("templates", numerator,
+                          {Parameter("a", qftbx::Range(-1.0, 1.0), 0.5)},
+                          Parameter(1.0), Parameter(0.0));
+    TemplatesForm refused;
+    refused.launch(&across, 2);
+    type(&refused, "epsilonEdit", "0.05");
+    check(&refused, "logspaceRadio");
+    type(&refused, "globalPointCount", "3");
+    press(&refused, "okButton");
+    EXPECT_FALSE(refused.wasAccepted()) << "a range through zero was swept logarithmically";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("above zero")) << m_reported.join(QChar(' ')).toStdString();
+}
+
 TEST_F(GuiSmoke, TemplatesDialogOpensWithTheProposedEpsilon)
 {
     TemplatesForm dialog;
