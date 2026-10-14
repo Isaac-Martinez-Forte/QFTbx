@@ -30,7 +30,10 @@
  * closes false). withoutRetracing() then tries at most four steps of 1.5
  * for a walk that passes no point twice, since the least closing epsilon
  * goes into every notch of the lattice; on a curve it returns the closing
- * one.
+ * one. compute() given no epsilon contours each template at its proposal,
+ * made on the clouds it has just swept, so a proposal costs no second
+ * sweep; the proposals are kept until the clouds, the plane or the contour
+ * method change.
  *
  * With exactly two uncertain parameters the border sweep spends the same
  * budget on the edges of the box, round it along the user's grids: the
@@ -98,7 +101,7 @@ public:
     void setHullMetric(HullMetric metric, double dbPerDegree = 1.0);
     HullMetric hullMetric() const { return m_metric; }
 
-    void setAlphaShapeContour(bool alphaShape) { m_alphaShape = alphaShape; }
+    void setAlphaShapeContour(bool alphaShape);
     bool alphaShapeContour() const { return m_alphaShape; }
 
     void setBorderSweep(bool border) { m_borderSweep = border; }
@@ -174,6 +177,7 @@ private:
     bool m_borderSweepApplied = false;
     std::optional<int> m_familyRhpPoles;
     std::vector<std::optional<std::array<double, 2>>> m_resonanceBands;
+    std::optional<std::vector<EpsilonProposal>> m_proposals;
 
     CloudSet m_clouds;
     CloudSet m_contours;

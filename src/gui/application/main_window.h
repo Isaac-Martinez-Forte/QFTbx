@@ -27,7 +27,11 @@
  * widget's own slot, and a card leaves the canvas before it is queued. The
  * templates form is rebuilt over the plant and the design frequencies,
  * discarding what was typed into it, only when the phase is built or
- * either of the two has been applied since.
+ * either of the two has been applied since; over templates the project
+ * already holds it shows the grids and the epsilon they were computed
+ * with, and nothing is swept until it is accepted. The epsilon it asks to
+ * have proposed is swept off the GUI thread like a phase, and the
+ * template viewer asks the project for nothing while a phase computes.
  */
 
 #ifndef QFTBX_MAIN_WINDOW_H
@@ -94,6 +98,7 @@ private slots:
     void applySpecifications();
     void applyFrequencies();
     void applyTemplates();
+    void proposeTemplateEpsilon(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric);
     void applyBoundaries();
     void applyController();
     void applyLoopShaping();

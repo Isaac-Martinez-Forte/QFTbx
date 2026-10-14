@@ -275,13 +275,7 @@ int main(int argc, char ** argv)
 
         const qftbx::ParameterGrids grids = gridsOf(*project.plant(), points);
 
-        std::vector<double> epsilon;
-        for (const qftbx::TemplateEngine::EpsilonProposal & one
-                 : project.proposeEpsilon(grids, project.epsilonMetric())) {
-            epsilon.push_back(one.epsilon);
-        }
-
-        if (!project.computeTemplates(epsilon, grids, false)) {
+        if (!project.computeTemplates({}, grids, false)) {
             throw qftbx::InvalidInput("the templates came out empty");
         }
 

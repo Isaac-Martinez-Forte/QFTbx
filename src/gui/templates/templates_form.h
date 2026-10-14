@@ -12,11 +12,18 @@
  * the epsilon, one per design frequency. The point-count ceiling from the
  * settings only ever refuses input, so it changes no computed result.
  *
- * An installed proposer fills the epsilon field with the least value that
- * closes each contour, for the family swept over the grids the panel holds
- * and in its plane, on launch and from the Propose button; without one the
- * field opens empty, and proposals() is empty when none was made. The
- * grids are returned by value and the panel keeps its own copy for a
+ * The epsilon field opens empty, and accepted empty it asks the sweep to
+ * contour each template at the least epsilon that closes it, proposed on
+ * the clouds it sweeps. The Propose button asks the window for that
+ * proposal over the grids the panel holds and in its plane, a sweep the
+ * window runs off the interface's thread, and showProposals() fills the
+ * field with the answer; proposals() is empty until one is shown.
+ * setFromProject() shows the grids and the epsilon a project's templates
+ * were computed with: the general spacing when every grid is the same
+ * linear or logarithmic one over its range, otherwise each row as linear
+ * or logarithmic when its grid is exactly that and as its values when not,
+ * so that accepting it again repeats the computation. The grids are
+ * returned by value and the panel keeps its own copy for a
  * second accept; takeEpsilon() moves the epsilon out, so the panel holds
  * nothing between accepts. The plant is an observer the project owns and
  * can take away while the panel is open: after forgetPlant() the panel
@@ -31,7 +38,6 @@
 
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_panel.h"
-#include <functional>
 #include <memory>
 
 #include <vector>
@@ -77,6 +83,8 @@ public:
 
     void launch(LtiSystem * plant, qint32 frequencyCount);
 
+    void setFromProject(const qftbx::ParameterGrids & grids, const std::vector<double> & epsilon);
+
     LtiSystem * shownPlant() const { return plant; }
 
     void forgetPlant();
@@ -101,9 +109,7 @@ public:
     bool borderSweep() const;
     void setBorderSweep(bool border);
 
-    using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal>(
-        const qftbx::ParameterGrids &, qftbx::EpsilonMetric)>;
-    void setEpsilonProposer(EpsilonProposer propose);
+    void showProposals(std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals);
 
     const std::vector<qftbx::TemplateEngine::EpsilonProposal> & proposals() const { return m_proposals; }
 
@@ -112,6 +118,9 @@ public:
         QRadioButton * logarithmic = nullptr;
         QRadioButton * manual = nullptr;
     };
+
+signals:
+    void proposalAsked(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric);
 
 private slots:
     void on_allVariablesRadio_clicked();
@@ -134,10 +143,10 @@ private:
 
     void selectDefaultsWhereEmpty();
 
-    void proposeEpsilon();
+    void showEpsilon(const QString & text);
 
-    EpsilonProposer m_propose;
     std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
+    QString m_epsilonToolTip;
 
     std::unique_ptr<Ui::TemplatesForm> ui;
 

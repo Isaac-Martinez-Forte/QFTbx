@@ -12,6 +12,9 @@
  * that keeps it connected. On QFT toolbox example 2 the six templates need
  * epsilons spanning a factor of ten thousand in the complex plane and about
  * three in the Nichols plane; the figures are pinned to about a per cent.
+ * A sweep given no epsilon contours at the proposal of its own clouds, the
+ * same epsilon and the same contour as when that proposal is given by hand,
+ * and a template of a single point needs no epsilon.
  */
 
 #include <gtest/gtest.h>
@@ -23,6 +26,9 @@
 #include <vector>
 
 #include "src/app/project_controller.h"
+#include "src/core/frequencies/omega.h"
+#include "src/core/math/sequences.h"
+#include "src/core/system/polynomial_form.h"
 #include "src/core/templates/template_engine.h"
 
 using namespace qftbx;
@@ -33,6 +39,19 @@ namespace {
 Complex atNichols(double phaseDegrees, double db)
 {
     return std::polar(std::pow(10.0, db / 20.0), phaseDegrees * M_PI / 180.0);
+}
+
+ParameterGrids gridsOf(LtiSystem * plant, int points)
+{
+    ParameterGrids g;
+    const auto add = [&](const Parameter & p) {
+        if (p.isUncertain()) g[p.name()] = qftbx::math::linspace(p.range().min, p.range().max, points);
+    };
+    for (const Parameter & p : plant->numerator()) add(p);
+    for (const Parameter & p : plant->denominator()) add(p);
+    add(plant->gain());
+    add(plant->delay());
+    return g;
 }
 
 }
@@ -139,4 +158,51 @@ TEST(HullMetric, Example2AsksForOneEpsilonInNicholsAndTenThousandInTheComplexPla
     EXPECT_NEAR(nichols[2].connected, 8.973, 0.09);
     EXPECT_NEAR(nichols[5].connected, 2.766, 0.03);
     EXPECT_GT(10.0 / complexPlane[5].connected, 20000.0);
+}
+
+TEST(HullMetric, ASweepGivenNoEpsilonContoursAtTheProposalOfItsOwnClouds)
+{
+    ProjectController controller;
+    controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
+    controller.setEpsilonMetric({HullMetric::Nichols, 1.0});
+    const ParameterGrids grids = gridsOf(controller.plant(), 12);
+
+    std::vector<double> proposed;
+    for (const TemplateEngine::EpsilonProposal & p : controller.proposeEpsilon(grids, controller.epsilonMetric())) {
+        proposed.push_back(p.epsilon);
+    }
+
+    ASSERT_TRUE(controller.computeTemplates({}, grids, false));
+    ASSERT_NE(controller.epsilon(), nullptr);
+    EXPECT_EQ(*controller.epsilon(), proposed) << "the epsilon kept is not the proposal";
+    const CloudSet proposedContour = controller.contour();
+
+    std::vector<double> again;
+    for (const TemplateEngine::EpsilonProposal & p : controller.proposeEpsilon()) {
+        again.push_back(p.epsilon);
+    }
+    EXPECT_EQ(again, proposed) << "the templates swept propose something else";
+
+    ASSERT_TRUE(controller.computeTemplates(proposed, grids, false));
+    EXPECT_EQ(controller.contour(), proposedContour) << "the proposal given by hand draws another contour";
+}
+
+TEST(HullMetric, ATemplateOfASinglePointNeedsNoEpsilon)
+{
+    ProjectController controller;
+    controller.setPlant(std::make_unique<PolynomialForm>(
+        std::string("certain"), std::vector<Parameter>{Parameter(1.0)},
+        std::vector<Parameter>{Parameter(2.0), Parameter(1.0)}, Parameter(1.0), Parameter(0.0)));
+    const std::vector<double> frequencies{0.1, 1.0, 10.0};
+    controller.setOmega(std::make_unique<Omega>(frequencies.front(), frequencies.back(),
+                                                static_cast<std::int32_t>(frequencies.size()),
+                                                frequencies, Omega::Manual));
+
+    ASSERT_TRUE(controller.computeTemplates({}, ParameterGrids(), false));
+    ASSERT_NE(controller.epsilon(), nullptr);
+    ASSERT_EQ(controller.epsilon()->size(), frequencies.size());
+    for (std::size_t i = 0; i < frequencies.size(); ++i) {
+        EXPECT_EQ(controller.templates()[i].size(), 1u);
+        EXPECT_FALSE(controller.contour()[i].empty()) << "w = " << frequencies[i];
+    }
 }
