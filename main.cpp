@@ -81,5 +81,17 @@ int main(int argc, char *argv[])
     auto w = std::make_unique<qftbx::MainWindow>(settings);
     w->show();
 
+    QObject::connect(&a, &qftbx::Application::fileOpenAsked, w.get(), &qftbx::MainWindow::openProject);
+    QString asked = a.takeAskedFile();
+    for (const QString & argument : QCoreApplication::arguments().mid(1)) {
+        if (!argument.startsWith(QLatin1Char('-'))) {
+            asked = argument;
+            break;
+        }
+    }
+    if (!asked.isEmpty()) {
+        w->openProject(asked);
+    }
+
     return a.exec();
 }

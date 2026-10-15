@@ -50,6 +50,7 @@
 #include <QSlider>
 #include <QSplitter>
 #include <QMouseEvent>
+#include <QFileOpenEvent>
 #include <QProgressBar>
 #include <QTabWidget>
 #include <QPushButton>
@@ -74,6 +75,7 @@
 #include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/language.h"
+#include "src/gui/application/application.h"
 #include "src/gui/application/main_window.h"
 #include "src/gui/application/phase_card.h"
 #include "src/gui/application/theme.h"
@@ -679,6 +681,29 @@ TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
     ASSERT_FALSE(m_reported.empty()) << "the escaped error must be reported";
     EXPECT_TRUE(m_reported.join(QChar(' ')).contains("refused something"))
         << m_reported.join(QChar(' ')).toStdString();
+}
+
+TEST_F(GuiSmoke, TheApplicationPassesOnAFileTheSystemAsksToOpen)
+{
+    auto * application = qobject_cast<qftbx::Application *>(qApp);
+    ASSERT_NE(application, nullptr);
+
+    QObject listener;
+    QString heard;
+    QObject::connect(application, &qftbx::Application::fileOpenAsked, &listener,
+                     [&heard](const QString & fileName) { heard = fileName; });
+
+    const QString project = QStringLiteral(QFTBX_SOURCE_DIR "/examples/fopdt.qft");
+    QFileOpenEvent asked(project);
+    QCoreApplication::sendEvent(application, &asked);
+
+    EXPECT_EQ(heard, project) << "the window was not told which file to open";
+    EXPECT_EQ(application->takeAskedFile(), project) << "a file asked for before the window existed was lost";
+    EXPECT_TRUE(application->takeAskedFile().isEmpty()) << "the same file would be opened twice";
+
+    MainWindow window;
+    window.openProject(project);
+    EXPECT_EQ(child<QProgressBar>(&window, "progressBar")->value(), 7) << m_reported.join(" | ").toStdString();
 }
 
 TEST_F(GuiSmoke, ControllerFormBuildsTheControllerStructure)

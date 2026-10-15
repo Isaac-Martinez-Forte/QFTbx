@@ -11,6 +11,8 @@
 
 #include "src/gui/application/application.h"
 
+#include <QFileOpenEvent>
+
 #include "src/gui/application/error_message.h"
 #include "src/core/common/exception.h"
 
@@ -32,6 +34,23 @@ bool Application::notify(QObject * receiver, QEvent * event)
     }
 
     return true;
+}
+
+QString Application::takeAskedFile()
+{
+    QString asked;
+    asked.swap(m_askedFile);
+    return asked;
+}
+
+bool Application::event(QEvent * event)
+{
+    if (event->type() == QEvent::FileOpen) {
+        m_askedFile = static_cast<QFileOpenEvent *>(event)->file();
+        emit fileOpenAsked(m_askedFile);
+        return true;
+    }
+    return QApplication::event(event);
 }
 
 }
