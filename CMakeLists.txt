@@ -1,10 +1,50 @@
 cmake_minimum_required(VERSION 3.17)
 
+# The build options, all of them here. Each is passed as -D<option>=<value>
+# and remembered by the build directory. CMakePresets.json names the usual
+# combinations: native, the fastest build for the machine that compiles it and
+# the one to use from the sources; reproducible, the same with the results of
+# the published packages; and portable, the build of those packages. See
+# docs/BUILDING.md.
+#
+# USE_NATIVE_ARCH tunes the numeric code for the machine that builds it
+# (-march=native), the fastest, but the binary may not run on another one.
+# USE_FP_CONTRACTION lets the compiler fuse a product and a sum into one
+# instruction where the machine has it: a few per cent faster, with last bits
+# that differ from a build without it; off, a native build gives exactly the
+# results of the packages.
+option(USE_NATIVE_ARCH    "Tune the code for the machine that builds it (-march=native)" ON)
+option(USE_FP_CONTRACTION "Let the compiler fuse a product and a sum into one instruction" ON)
+option(USE_OpenMP         "Use OpenMP" ON)
+option(USE_CLANG          "Compile with Clang when available" OFF)
+option(USE_CUDA           "Use CUDA" OFF)
+
+# The tests, off unless asked for. They are the author's, not something a
+# build for use needs: they fetch GoogleTest, which a build without network
+# access cannot do, and they take longer to compile than the program. They do
+# not change the program, which is built from the same sources either way.
+option(QFTBX_BUILD_TESTS "Build unit tests" OFF)
+
+# The benchmark tool and its planner in the interface: for measuring the
+# algorithms, not for using them, so off unless asked for. See
+# docs/BENCHMARKING.md.
+option(QFTBX_BUILD_BENCHMARK "Build the benchmark tool and its planner" OFF)
+
+# The interval arithmetic under the loop shaping: kv (vendored, header-only,
+# the default) or cxsc (C-XSC, fetched from its repository at configure time
+# and built as an external project). Both live behind src/core/math/interval.h
+# and must give the same enclosures up to rounding.
+set(QFTBX_INTERVAL_BACKEND "kv" CACHE STRING "Interval arithmetic library: kv or cxsc")
+set_property(CACHE QFTBX_INTERVAL_BACKEND PROPERTY STRINGS kv cxsc)
+
+# Development builds with sanitizers, e.g. -DQFTBX_SANITIZERS=address,undefined
+# (needs the libasan/libubsan runtimes installed).
+set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")
+
 # Compile with Clang when it is installed and asked for. The compiler has to
 # be chosen before project() and cannot change once a build tree exists, so
 # this takes effect in a fresh build directory only; an explicit
 # CMAKE_CXX_COMPILER on the command line always wins.
-option(USE_CLANG "Compile with Clang when available" OFF)
 if(USE_CLANG AND NOT DEFINED CMAKE_CXX_COMPILER)
   find_program(QFTBX_CLANGXX NAMES clang++)
   find_program(QFTBX_CLANG NAMES clang)
@@ -87,20 +127,6 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-option(USE_OpenMP        "Use OpenMP"           ON)
-option(USE_CUDA          "Use CUDA"             OFF)
-option(USE_NATIVE_ARCH   "Enable -march=native" ON)
-# The tests, off unless asked for. They are the author's, not something a
-# build for use needs: they fetch GoogleTest, which a build without network
-# access cannot do, and they take longer to compile than the program. They do
-# not change the program, which is built from the same sources either way.
-option(QFTBX_BUILD_TESTS "Build unit tests"     OFF)
-
-# The benchmark tool and its planner in the interface: for measuring the
-# algorithms, not for using them, so off unless asked for. See
-# docs/BENCHMARKING.md.
-option(QFTBX_BUILD_BENCHMARK "Build the benchmark tool and its planner" OFF)
-
 # The commit the build is made from, for the benchmark records; "unknown"
 # outside a repository.
 execute_process(COMMAND git rev-parse --short HEAD
@@ -111,22 +137,17 @@ if(NOT QFTBX_GIT_COMMIT)
   set(QFTBX_GIT_COMMIT "unknown")
 endif()
 
-# The interval arithmetic under the loop shaping: kv (vendored, header-only,
-# the default) or cxsc (C-XSC, fetched from its repository at configure time
-# and built as an external project). Both live behind src/core/math/interval.h
-# and must give the same enclosures up to rounding.
-set(QFTBX_INTERVAL_BACKEND "kv" CACHE STRING "Interval arithmetic library: kv or cxsc")
-set_property(CACHE QFTBX_INTERVAL_BACKEND PROPERTY STRINGS kv cxsc)
 if(NOT QFTBX_INTERVAL_BACKEND MATCHES "^(kv|cxsc)$")
   message(FATAL_ERROR "QFTBX_INTERVAL_BACKEND must be kv or cxsc, not '${QFTBX_INTERVAL_BACKEND}'")
 endif()
 
-# Development builds with sanitizers, e.g. -DQFTBX_SANITIZERS=address,undefined
-# (needs the libasan/libubsan runtimes installed).
-set(QFTBX_SANITIZERS "" CACHE STRING "Comma-separated sanitizers for dev builds (e.g. address,undefined)")
 if(QFTBX_SANITIZERS)
   add_compile_options(-fsanitize=${QFTBX_SANITIZERS} -fno-omit-frame-pointer)
   add_link_options(-fsanitize=${QFTBX_SANITIZERS})
+endif()
+
+if(NOT USE_FP_CONTRACTION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  add_compile_options(-ffp-contract=off)
 endif()
 
 # Where Qt lives on Windows when nothing says otherwise; pass

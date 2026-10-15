@@ -1,0 +1,57 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "native",
+      "displayName": "Native",
+      "description": "The fastest build for the machine that compiles it: Release, tuned with -march=native, products and sums fused where the machine can. The one to use when building from the sources.",
+      "binaryDir": "${sourceDir}/build-native",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_NATIVE_ARCH": "ON",
+        "USE_FP_CONTRACTION": "ON"
+      }
+    },
+    {
+      "name": "reproducible",
+      "displayName": "Reproducible",
+      "description": "Native, but without fusing products and sums: a few per cent slower, and its results are exactly those of the published packages.",
+      "binaryDir": "${sourceDir}/build-reproducible",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_NATIVE_ARCH": "ON",
+        "USE_FP_CONTRACTION": "OFF"
+      }
+    },
+    {
+      "name": "portable",
+      "displayName": "Portable",
+      "description": "The build of the published packages: Release for the baseline of the processor family, so the binary runs on any machine of it.",
+      "binaryDir": "${sourceDir}/build-portable",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_NATIVE_ARCH": "OFF",
+        "USE_FP_CONTRACTION": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "native",
+      "configurePreset": "native"
+    },
+    {
+      "name": "reproducible",
+      "configurePreset": "reproducible"
+    },
+    {
+      "name": "portable",
+      "configurePreset": "portable"
+    }
+  ]
+}
