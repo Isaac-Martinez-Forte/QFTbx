@@ -27,9 +27,19 @@
       </Component>
     </DirectoryRef>
 
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="ProjectFiles" Guid="9CB7CABF-3DB3-4D6C-9351-2D8384A979C5" Win64="yes">
+        <RegistryValue Root="HKLM" Key="Software\Classes\.qft" Type="string" Value="QFTbx.Project" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\QFTbx.Project" Type="string" Value="QFTbx project" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\QFTbx.Project\DefaultIcon" Type="string" Value="[INSTALLFOLDER]QFTbx.exe,0" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\QFTbx.Project\shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]QFTbx.exe&quot; &quot;%1&quot;" />
+      </Component>
+    </DirectoryRef>
+
     <Feature Id="Main" Title="QFTbx" Level="1">
       <ComponentGroupRef Id="QFTbxFiles" />
       <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="ProjectFiles" />
     </Feature>
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />

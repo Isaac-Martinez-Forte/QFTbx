@@ -246,6 +246,10 @@ if(UNIX AND NOT APPLE)
   install(FILES "${CMAKE_SOURCE_DIR}/Resources/qftbx.desktop"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
   )
+  install(FILES "${CMAKE_SOURCE_DIR}/Resources/qftbx-mime.xml"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/mime/packages"
+    RENAME qftbx.xml
+  )
   foreach(size 16 32 64 128 256 512)
     install(FILES "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx_${size}.png"
       DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/${size}x${size}/apps"

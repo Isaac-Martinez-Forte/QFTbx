@@ -20,6 +20,7 @@ OutputBaseFilename=QFTbx-{#AppVersion}-beta-windows-x86_64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+ChangesAssociations=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -27,9 +28,16 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "associate"; Description: "{cm:AssocFileExtension,QFTbx,.qft}"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Registry]
+Root: HKA; Subkey: "Software\Classes\.qft"; ValueType: string; ValueName: ""; ValueData: "QFTbx.Project"; Flags: uninsdeletevalue; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\QFTbx.Project"; ValueType: string; ValueName: ""; ValueData: "QFTbx project"; Flags: uninsdeletekey; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\QFTbx.Project\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\QFTbx.exe,0"; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\QFTbx.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\QFTbx.exe"" ""%1"""; Tasks: associate
 
 [Icons]
 Name: "{autoprograms}\QFTbx"; Filename: "{app}\QFTbx.exe"
