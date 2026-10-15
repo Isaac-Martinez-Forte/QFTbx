@@ -6,7 +6,8 @@
  * set, the message opens a parentless critical box. A core message is
  * looked up under its own context and its arguments are substituted after
  * translation. A parse error is translated inside out: its inner message
- * first, then the frame that puts the file and line around it.
+ * first, then the frame that puts the file and line around it. Every
+ * toolbox exception is a standard one, so reporting catches that alone.
  */
 
 #include "src/gui/application/error_message.h"
@@ -66,6 +67,17 @@ QString translated(const std::exception & failure)
         return translated(exception->message());
     }
     return QString::fromUtf8(failure.what());
+}
+
+bool reportingErrors(const QString & title, const std::function<void ()> & action)
+{
+    try {
+        action();
+        return true;
+    } catch (const std::exception & failure) {
+        errorMessage(translated(failure), title);
+    }
+    return false;
 }
 
 }

@@ -40,7 +40,6 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QStandardPaths>
-#include <QMessageBox>
 
 #include "src/core/math/point.h"
 #include "src/core/common/exception.h"
@@ -728,10 +727,13 @@ void MainWindow::installContourRecomputer(){
         recomputeContour(std::move(epsilon));
     });
     templateViewer->setEpsilonProposer([this]() {
-        if (controller->isComputing()) {
-            return std::vector<qftbx::TemplateEngine::EpsilonProposal>();
+        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals;
+        if (!controller->isComputing()) {
+            reportingErrors(tr("Template computation"), [this, &proposals]() {
+                proposals = controller->proposeEpsilon();
+            });
         }
-        return controller->proposeEpsilon();
+        return proposals;
     });
     templateViewer->setContourReporter([this]() {
         return controller->contourReports();
@@ -739,18 +741,15 @@ void MainWindow::installContourRecomputer(){
 }
 
 void MainWindow::recomputeContour(std::vector<double> epsilon){
-    try {
-        const WaitCursor waiting(this);
-
-        controller->recomputeContour(std::move(epsilon));
-    } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Template computation"), translated(e));
-        return;
-    }
-
-    templateViewer->refreshContour(controller->contour(),
-                                   controller->omega()->values(),
-                                   controller->epsilon());
+    reportingErrors(tr("Template computation"), [this, &epsilon]() {
+        {
+            const WaitCursor waiting(this);
+            controller->recomputeContour(std::move(epsilon));
+        }
+        templateViewer->refreshContour(controller->contour(),
+                                       controller->omega()->values(),
+                                       controller->epsilon());
+    });
 }
 
 const std::vector<double> * MainWindow::frequencyValues() const{
@@ -771,125 +770,146 @@ void MainWindow::destroySession(){
 
 void MainWindow::on_plantButton_clicked()
 {
-    ensurePlantPhase();
-    plantForm->clearAcceptance();
-    showPhase(plantCard);
+    reportingErrors(tr("Plant"), [this]() {
+        ensurePlantPhase();
+        plantForm->clearAcceptance();
+        showPhase(plantCard);
+    });
 }
 
 void MainWindow::applyPlant()
 {
-    std::unique_ptr<LtiSystem> described = plantForm->takePlant();
-    if (described == nullptr){
-        return;
-    }
+    reportingErrors(tr("Plant"), [this]() {
+        std::unique_ptr<LtiSystem> described = plantForm->takePlant();
+        if (described == nullptr){
+            return;
+        }
 
-    controller->setPlant(std::move(described));
-    m_templatesStale = true;
+        controller->setPlant(std::move(described));
+        m_templatesStale = true;
 
-    drawBodeIfPossible();
+        drawBodeIfPossible();
+    });
 }
 
 void MainWindow::on_specificationsButton_clicked()
 {
-
-    try {
+    reportingErrors(tr("Specifications input"), [this]() {
         ensureSpecificationsPhase();
-    } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Specifications input"), translated(e));
-        return;
-    }
-
-    specificationsForm->clearAcceptance();
-    showPhase(specificationsCard);
+        specificationsForm->clearAcceptance();
+        showPhase(specificationsCard);
+    });
 }
 
 void MainWindow::applySpecifications()
 {
-    std::optional<qftbx::SpecificationRecords> described =
-            specificationsForm->takeSpecifications();
+    reportingErrors(tr("Specifications"), [this]() {
+        std::optional<qftbx::SpecificationRecords> described =
+                specificationsForm->takeSpecifications();
 
-    if (!described.has_value()){
-        return;
-    }
+        if (!described.has_value()){
+            return;
+        }
 
-    controller->setSpecifications(std::move(described));
+        controller->setSpecifications(std::move(described));
+    });
 }
 
 void MainWindow::on_frequenciesButton_clicked()
 {
-    ensureFrequenciesPhase();
-    frequenciesForm->clearAcceptance();
-    showPhase(frequenciesCard);
+    reportingErrors(tr("Design frequencies"), [this]() {
+        ensureFrequenciesPhase();
+        frequenciesForm->clearAcceptance();
+        showPhase(frequenciesCard);
+    });
 }
 
 void MainWindow::applyFrequencies()
 {
-    std::unique_ptr<Omega> described = frequenciesForm->takeOmega();
-    if (described == nullptr){
-        return;
-    }
+    reportingErrors(tr("Design frequencies"), [this]() {
+        std::unique_ptr<Omega> described = frequenciesForm->takeOmega();
+        if (described == nullptr){
+            return;
+        }
 
-    controller->setOmega(std::move(described));
-    m_templatesStale = true;
+        controller->setOmega(std::move(described));
+        m_templatesStale = true;
 
-    drawBodeIfPossible();
+        drawBodeIfPossible();
+    });
 }
 
 void MainWindow::on_templatesButton_clicked()
 {
-    ensureTemplatesPhase();
+    reportingErrors(tr("Templates"), [this]() {
+        ensureTemplatesPhase();
 
-    if (m_templatesStale) {
-        relaunchTemplates();
-    }
-    templatesForm->clearAcceptance();
-    showPhase(templatesCard);
+        if (m_templatesStale) {
+            relaunchTemplates();
+        }
+        templatesForm->clearAcceptance();
+        showPhase(templatesCard);
+    });
 }
 
 void MainWindow::applyTemplates()
 {
-    controller->setEpsilonMetric(templatesForm->epsilonMetric());
-    controller->setWholeCloudStandsIn(templatesForm->wholeTemplateIfNoContour());
-    controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
-    controller->setBorderSweep(templatesForm->borderSweep());
+    if (!idle(tr("Template computation"))) {
+        return;
+    }
 
-    const bool nichols = templatesForm->nicholsSelected();
+    reportingErrors(tr("Template computation"), [this]() {
+        controller->setEpsilonMetric(templatesForm->epsilonMetric());
+        controller->setWholeCloudStandsIn(templatesForm->wholeTemplateIfNoContour());
+        controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
+        controller->setBorderSweep(templatesForm->borderSweep());
 
-    runInBackground(templatesCard, tr("Templates: sweeping..."), tr("Template computation"),
-                    [this](std::function<void ()> done) {
-                        return controller->startTemplates(templatesForm->takeEpsilon(),
-                                                          templatesForm->grids(),
-                                                          templatesForm->cudaSelected(),
-                                                          std::move(done));
-                    },
-                    [this, nichols]() {
-                        templateViewer->setData(controller->templates(),
-                                                controller->contour(),
-                                                controller->omega()->values(),
-                                                controller->epsilon());
-                        templateViewer->plotDiagram(nichols);
-                    });
+        const bool nichols = templatesForm->nicholsSelected();
+
+        runInBackground(templatesCard, tr("Templates: sweeping..."), tr("Template computation"),
+                        [this](std::function<void ()> done) {
+                            return controller->startTemplates(templatesForm->takeEpsilon(),
+                                                              templatesForm->grids(),
+                                                              templatesForm->cudaSelected(),
+                                                              std::move(done));
+                        },
+                        [this, nichols]() {
+                            templateViewer->setData(controller->templates(),
+                                                    controller->contour(),
+                                                    controller->omega()->values(),
+                                                    controller->epsilon());
+                            templateViewer->plotDiagram(nichols);
+                        });
+    });
 }
 
 void MainWindow::proposeTemplateEpsilon(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric)
 {
-    controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
-    controller->setBorderSweep(templatesForm->borderSweep());
+    if (!idle(tr("Epsilon proposal"))) {
+        return;
+    }
 
-    runInBackground(templatesCard, tr("Templates: proposing epsilon..."), tr("Epsilon proposal"),
-                    [this, grids = std::move(grids), metric](std::function<void ()> done) mutable {
-                        return controller->startEpsilonProposal(std::move(grids), metric, std::move(done));
-                    },
-                    [this]() {
-                        templatesForm->showProposals(controller->epsilonProposals());
-                    });
+    reportingErrors(tr("Epsilon proposal"), [this, &grids, metric]() {
+        controller->setAlphaShapeContour(templatesForm->alphaShapeContour());
+        controller->setBorderSweep(templatesForm->borderSweep());
+
+        runInBackground(templatesCard, tr("Templates: proposing epsilon..."), tr("Epsilon proposal"),
+                        [this, grids = std::move(grids), metric](std::function<void ()> done) mutable {
+                            return controller->startEpsilonProposal(std::move(grids), metric, std::move(done));
+                        },
+                        [this]() {
+                            templatesForm->showProposals(controller->epsilonProposals());
+                        });
+    });
 }
 
 void MainWindow::on_boundariesButton_clicked()
 {
-    ensureBoundariesPhase();
-    boundaryGridForm->clearAcceptance();
-    showPhase(boundariesCard);
+    reportingErrors(tr("Boundaries"), [this]() {
+        ensureBoundariesPhase();
+        boundaryGridForm->clearAcceptance();
+        showPhase(boundariesCard);
+    });
 }
 
 void MainWindow::applyBoundaries()
@@ -917,51 +937,63 @@ void MainWindow::applyBoundaries()
 
 void MainWindow::on_controllerButton_clicked()
 {
-    ensureControllerPhase();
-    controllerForm->clearAcceptance();
-    showPhase(controllerCard);
+    reportingErrors(tr("Controller structure"), [this]() {
+        ensureControllerPhase();
+        controllerForm->clearAcceptance();
+        showPhase(controllerCard);
+    });
 }
 
 void MainWindow::applyController()
 {
-    std::unique_ptr<LtiSystem> described = controllerForm->takeControllerStructure();
-    if (described == nullptr){
-        return;
-    }
+    reportingErrors(tr("Controller structure"), [this]() {
+        std::unique_ptr<LtiSystem> described = controllerForm->takeControllerStructure();
+        if (described == nullptr){
+            return;
+        }
 
-    controller->setControllerStructure(std::move(described));
+        controller->setControllerStructure(std::move(described));
+    });
 }
 
 void MainWindow::on_loopButton_clicked()
 {
-    ensureLoopShapingPhase();
+    reportingErrors(tr("Loop shaping"), [this]() {
+        ensureLoopShapingPhase();
 
-    loopShapingForm->clearAcceptance();
-    showPhase(loopShapingCard);
+        loopShapingForm->clearAcceptance();
+        showPhase(loopShapingCard);
+    });
 }
 
 void MainWindow::applyLoopShaping()
 {
-    controller->applySettings(m_settings);
+    if (!idle(tr("Loop Shaping"))) {
+        return;
+    }
 
-    const bool linSpace = loopShapingForm->isLinSpace();
+    reportingErrors(tr("Loop Shaping"), [this]() {
+        controller->applySettings(m_settings);
 
-    runInBackground(loopShapingCard, tr("Loop: searching..."), tr("Loop Shaping"),
-                    [this](std::function<void ()> done) {
-                        return controller->startLoopShaping(loopShapingForm->epsilonValue(),
-                                                            loopShapingForm->algorithmValue(),
-                                                            loopShapingForm->range(),
-                                                            loopShapingForm->pointCountValue(),
-                                                            loopShapingForm->initialisationValue(),
-                                                            std::move(done));
-                    },
-                    [this, linSpace]() {
-                        loopShapingViewer->setData(controller->unionBoundaries(),
-                                                   controller->omega()->values(),
-                                                   controller->loopShapingResult(),
-                                                   controller->plant(), linSpace);
-                        loopShapingViewer->showDiagram();
-                    });
+        const bool linSpace = loopShapingForm->isLinSpace();
+
+        runInBackground(loopShapingCard, tr("Loop: searching..."), tr("Loop Shaping"),
+                        [this](std::function<void ()> done) {
+                            return controller->startLoopShaping(loopShapingForm->epsilonValue(),
+                                                                loopShapingForm->algorithmValue(),
+                                                                loopShapingForm->range(),
+                                                                loopShapingForm->pointCountValue(),
+                                                                loopShapingForm->initialisationValue(),
+                                                                std::move(done));
+                        },
+                        [this, linSpace]() {
+                            loopShapingViewer->setData(controller->unionBoundaries(),
+                                                       controller->omega()->values(),
+                                                       controller->loopShapingResult(),
+                                                       controller->plant(), linSpace);
+                            loopShapingViewer->showDiagram();
+                        });
+    });
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -996,11 +1028,7 @@ void MainWindow::on_actionSaveAs_triggered()
 }
 
 void MainWindow::saveProject(){
-    try {
-        controller->save(saveFilePath.toStdString());
-    } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Save file"), translated(e));
-    }
+    reportingErrors(tr("Save file"), [this]() { controller->save(saveFilePath.toStdString()); });
 }
 
 void MainWindow::on_actionOpen_triggered()
@@ -1014,57 +1042,55 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::openProject(const QString & fileName)
 {
-
     qftbx::StepSet loaded;
-
-    try {
-        loaded = controller->load(fileName.toStdString());
-    } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Open project"), translated(e));
+    if (!reportingErrors(tr("Open project"), [this, &fileName, &loaded]() {
+            loaded = controller->load(fileName.toStdString());
+        })) {
         return;
     }
 
-    destroyPhases();
+    reportingErrors(tr("Open project"), [this, &fileName, &loaded]() {
+        destroyPhases();
 
-    saveFilePath = qftbx::isShippedExample(fileName) ? QString() : fileName;
+        saveFilePath = qftbx::isShippedExample(fileName) ? QString() : fileName;
 
-    if (loaded.has(qftbx::Step::Plant)) {
-        ensurePlantPhase();
-    }
-    if (loaded.has(qftbx::Step::Frequencies)) {
-        ensureFrequenciesPhase();
-    }
-    if (loaded.has(qftbx::Step::Specifications)) {
-        ensureSpecificationsPhase();
-    }
-    if (loaded.has(qftbx::Step::Templates)) {
-        ensureTemplatesPhase();
-    }
-    if (loaded.has(qftbx::Step::Boundaries)) {
-        ensureBoundariesPhase();
-    }
-    if (loaded.has(qftbx::Step::Controller)) {
-        ensureControllerPhase();
-    }
-    if (loaded.has(qftbx::Step::LoopShaping)) {
-        ensureLoopShapingPhase();
-    }
-
-    showResults();
-
-    for (PhaseCard * card : {plantCard, templatesCard, boundariesCard, loopShapingCard}) {
-        if (card != nullptr) {
-            card->showForm(false);
+        if (loaded.has(qftbx::Step::Plant)) {
+            ensurePlantPhase();
         }
-    }
+        if (loaded.has(qftbx::Step::Frequencies)) {
+            ensureFrequenciesPhase();
+        }
+        if (loaded.has(qftbx::Step::Specifications)) {
+            ensureSpecificationsPhase();
+        }
+        if (loaded.has(qftbx::Step::Templates)) {
+            ensureTemplatesPhase();
+        }
+        if (loaded.has(qftbx::Step::Boundaries)) {
+            ensureBoundariesPhase();
+        }
+        if (loaded.has(qftbx::Step::Controller)) {
+            ensureControllerPhase();
+        }
+        if (loaded.has(qftbx::Step::LoopShaping)) {
+            ensureLoopShapingPhase();
+        }
+
+        showResults();
+
+        for (PhaseCard * card : {plantCard, templatesCard, boundariesCard, loopShapingCard}) {
+            if (card != nullptr) {
+                card->showForm(false);
+            }
+        }
+    });
 }
 
 void MainWindow::runInBackground(PhaseCard * card, const QString & what, const QString & title,
                                  const std::function<bool (std::function<void ()>)> & start,
                                  const std::function<void ()> & collected)
 {
-    if (m_computing != nullptr) {
-        errorMessage(tr("Another phase is computing. Wait for it or cancel it."), title);
+    if (!idle(title)) {
         return;
     }
 
@@ -1073,27 +1099,28 @@ void MainWindow::runInBackground(PhaseCard * card, const QString & what, const Q
             card->setBusy(false);
             m_computing = nullptr;
 
-            controller->collectComputation();
+            reportingErrors(title, [this, title, collected]() {
+                controller->collectComputation();
 
-            if (!controller->lastComputationError().empty()) {
-                errorMessage(QString::fromStdString(controller->lastComputationError()), title);
-                return;
-            }
-            if (controller->lastComputationCancelled() || !controller->lastComputationProduced()) {
-                return;
-            }
+                if (!controller->lastComputationError().empty()) {
+                    errorMessage(QString::fromStdString(controller->lastComputationError()), title);
+                    return;
+                }
+                if (controller->lastComputationCancelled() || !controller->lastComputationProduced()) {
+                    return;
+                }
 
-            collected();
+                collected();
+            });
         }, Qt::QueuedConnection);
     };
 
-    try {
-        if (!start(whenDone)) {
-            errorMessage(tr("A computation is already running."), title);
-            return;
-        }
-    } catch (const qftbx::Exception & e) {
-        errorMessage(translated(e), title);
+    bool started = false;
+    if (!reportingErrors(title, [&started, &start, &whenDone]() { started = start(whenDone); })) {
+        return;
+    }
+    if (!started) {
+        errorMessage(tr("A computation is already running."), title);
         return;
     }
 
@@ -1101,13 +1128,18 @@ void MainWindow::runInBackground(PhaseCard * card, const QString & what, const Q
     card->setBusy(true, what);
 }
 
+bool MainWindow::idle(const QString & title)
+{
+    if (m_computing != nullptr) {
+        errorMessage(tr("Another phase is computing. Wait for it or cancel it."), title);
+        return false;
+    }
+    return true;
+}
+
 void MainWindow::showResults()
 {
-    try {
-        drawResults();
-    } catch (const qftbx::Exception & e) {
-        QMessageBox::critical(this, tr("Open project"), translated(e));
-    }
+    reportingErrors(tr("Open project"), [this]() { drawResults(); });
 }
 
 void MainWindow::drawResults()
@@ -1204,9 +1236,9 @@ bool MainWindow::drawBodeIfPossible()
 
     try {
         bodeViewer->drawBode(controller->plant(), controller->omega());
-    } catch (const qftbx::Exception & e) {
+    } catch (const std::exception & e) {
         bodeViewer->clear();
-        QMessageBox::critical(this, tr("Bode diagram"), translated(e));
+        errorMessage(translated(e), tr("Bode diagram"));
     }
 
     return true;

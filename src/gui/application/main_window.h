@@ -251,6 +251,8 @@ private:
     void installContourRecomputer();
     void recomputeContour(std::vector<double> epsilon);
 
+    bool idle(const QString & title);
+
     void createSession();
     void destroySession();
 

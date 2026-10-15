@@ -666,6 +666,10 @@ public:
 
 TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
 {
+#ifdef Q_OS_MACOS
+    GTEST_SKIP() << "Qt on macOS is built so that an exception cannot cross its frames, so this last "
+                    "resort cannot be reached there and every handler reports its own errors";
+#endif
     ThrowingObject victim;
     QEvent event(QEvent::User);
 
@@ -2053,6 +2057,33 @@ TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
     EXPECT_EQ(progress->value(), steps) << "a cancelled sweep changed what the project holds";
     EXPECT_TRUE(m_reported.isEmpty())
         << "giving up is not an error: " << m_reported.join(" | ").toStdString();
+}
+
+TEST_F(GuiSmoke, AStepAppliedWhileAnotherComputesIsReportedAndNothingEscapes)
+{
+    const QString path = QStringLiteral(QFTBX_SOURCE_DIR "/examples/msf.qft");
+    MainWindow window;
+    window.setFileChooser([path](bool) { return path; });
+    window.findChild<QAction *>("actionOpen")->trigger();
+
+    TemplatesForm * templates = panelIn<TemplatesForm>(&window);
+    PlantForm * plant = panelIn<PlantForm>(&window);
+    ASSERT_NE(templates, nullptr);
+    ASSERT_NE(plant, nullptr);
+
+    check(templates, "allVariablesRadio");
+    check(templates, "linspaceRadio");
+    type(templates, "globalPointCount", "25");
+    press(templates, "okButton");
+    ASSERT_TRUE(window.isComputing()) << "the sweep was meant to take a while";
+
+    EXPECT_NO_THROW(verifyAndApply(plant)) << "the refusal escaped into Qt, which ends the program on macOS";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("computation is running"))
+        << m_reported.join(" | ").toStdString();
+
+    window.findChild<QToolButton *>("templatesCardCancel")->click();
+    waitForComputation(window);
+    EXPECT_FALSE(window.isComputing());
 }
 
 TEST_F(GuiSmoke, OpeningAProjectShowsTheGridsAndTheEpsilonOfItsTemplates)
