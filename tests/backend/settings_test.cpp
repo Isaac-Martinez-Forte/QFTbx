@@ -82,11 +82,13 @@ class IsolatedEnvironment
 public:
     IsolatedEnvironment()
         : m_home(saved("HOME")),
+          m_appData(saved("APPDATA")),
           m_config(saved("QFTBX_CONFIG")),
           m_researchConfig(saved("QFTBX_RESEARCH_CONFIG")),
           m_workingDirectory(std::filesystem::current_path())
     {
         qputenv("HOME", QByteArray::fromStdString(home()));
+        qputenv("APPDATA", QByteArray::fromStdString(home() + "/.config"));
         qunsetenv("QFTBX_CONFIG");
         qunsetenv("QFTBX_RESEARCH_CONFIG");
         std::filesystem::create_directories(workingDirectory());
@@ -97,6 +99,7 @@ public:
     {
         std::filesystem::current_path(m_workingDirectory);
         restore("HOME", m_home);
+        restore("APPDATA", m_appData);
         restore("QFTBX_CONFIG", m_config);
         restore("QFTBX_RESEARCH_CONFIG", m_researchConfig);
     }
@@ -130,6 +133,7 @@ private:
 
     QTemporaryDir m_folder;
     std::optional<std::string> m_home;
+    std::optional<std::string> m_appData;
     std::optional<std::string> m_config;
     std::optional<std::string> m_researchConfig;
     std::filesystem::path m_workingDirectory;
