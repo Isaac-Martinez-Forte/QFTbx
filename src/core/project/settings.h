@@ -18,7 +18,8 @@
  * Research holds what is not for a user: the variants that reproduce the
  * published algorithms and the switches the measurements turn, read from a
  * file of their own, qftbx-research.conf, found as qftbx.conf is
- * (QFTBX_RESEARCH_CONFIG, the working directory, ~/.config/qftbx). Each
+ * (QFTBX_RESEARCH_CONFIG, the working directory, ~/.config/qftbx or
+ * %APPDATA%\qftbx on Windows). Each
  * file takes only its own keys, the benchmark and the command-line solver
  * read both, and the defaults are the program's own way of working: MC2
  * reads the points exactly, contracts the gain of every box and goes

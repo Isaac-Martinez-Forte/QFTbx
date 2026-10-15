@@ -16,6 +16,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <string>
 
 #include <algorithm>
@@ -62,7 +64,7 @@ std::complex<double> articleController(double w)
 {
     const double beta = 0.787;
     return std::complex<double>(2.785, 0.0)
-            + 1.968 * std::polar(std::pow(w, beta), beta * M_PI / 2.0);
+            + 1.968 * std::polar(std::pow(w, beta), beta * qftbx::math::kPi / 2.0);
 }
 
 double allowedSpreadDb(double w)

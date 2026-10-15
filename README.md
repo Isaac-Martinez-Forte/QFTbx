@@ -54,7 +54,7 @@ experimental.
 | Dependency | Version | Needed for | How it is obtained |
 |---|---|---|---|
 | C++ compiler | C++20: GCC 8 or later, Clang 11 or later, MinGW-w64 | everything | installed by hand |
-| CMake | 3.17 or later | the build | installed by hand |
+| CMake | 3.17 or later, 3.21 for the presets | the build | installed by hand |
 | Qt | 6.x (Core, Widgets, PrintSupport, LinguistTools) | the application and the GUI tests | installed by hand |
 | OpenMP | any supported by the compiler | parallel templates and boundaries, optional | comes with the compiler |
 | CUDA | 11 or later | GPU kernels, optional, off by default | installed by hand |
@@ -74,21 +74,26 @@ access; after that the build is self-contained.
 
 Linux:
 
-    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-    cmake --build build -j
-    ./build/QFTbx
+    cmake --preset native
+    cmake --build --preset native -j
+    ./build-native/QFTbx
 
 Windows (MinGW-w64, from a shell where the compiler is on the path):
 
-    cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.6.2/mingw_64
-    cmake --build build -j
-    build\QFTbx.exe
+    cmake --preset native -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH=C:/Qt/6.6.2/mingw_64
+    cmake --build --preset native -j
+    build-native\QFTbx.exe
 
-If Qt is not found, pass `-DCMAKE_PREFIX_PATH=<Qt installation>`. Every
-option, the compilers, the interval backends and the documentation target are
-described in [docs/BUILDING.md](docs/BUILDING.md).
+The `native` preset builds the fastest program for the machine that compiles
+it, which is what building from the sources is for. `reproducible` gives up a
+few per cent to give exactly the results of the published packages, and
+`portable` is the build of those packages, for a binary that runs on other
+machines. If Qt is not found, pass `-DCMAKE_PREFIX_PATH=<Qt installation>`.
+Every option, the presets, the compilers, the interval backends and the
+documentation target are described in [docs/BUILDING.md](docs/BUILDING.md).
 
-The tests are built with the project and run with `ctest --test-dir build`.
+The tests are built with `-DQFTBX_BUILD_TESTS=ON` and run with
+`ctest --test-dir build-native`.
 
 No installer is provided yet; the application runs from the build directory.
 

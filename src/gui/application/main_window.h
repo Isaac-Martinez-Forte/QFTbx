@@ -16,7 +16,8 @@
  * one, which the GUI tests use so that a test never inherits the
  * developer's own settings file. The file chooser is replaceable, so the
  * open and save paths can be driven by a test, and isComputing() is what a
- * test waits on. One phase computes at a time, the pipeline being
+ * test waits on. openProject() is public so that the program opens the
+ * project it was started with. One phase computes at a time, the pipeline being
  * sequential, and what a run produced is drawn back on the GUI thread.
  *
  * Every form, viewer and card has the window as its Qt parent, so Qt owns
@@ -93,6 +94,8 @@ public:
 
     bool isComputing() const { return m_computing != nullptr; }
 
+    void openProject(const QString & fileName);
+
 private slots:
     void applyPlant();
     void applySpecifications();
@@ -129,8 +132,6 @@ private slots:
 
 private:
     void changeEvent(QEvent * event) override;
-
-    void openProject(const QString & fileName);
 
     void buildExamplesMenu();
 
@@ -250,6 +251,8 @@ private:
 
     void installContourRecomputer();
     void recomputeContour(std::vector<double> epsilon);
+
+    bool idle(const QString & title);
 
     void createSession();
     void destroySession();

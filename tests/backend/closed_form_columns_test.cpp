@@ -16,6 +16,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <cmath>
 #include <complex>
 #include <cstdio>
@@ -39,7 +41,7 @@ namespace {
 double magnitudeOf(SpecificationType type, std::complex<double> p0, std::complex<double> p,
                    std::complex<double> q, double g, double phaseDegrees)
 {
-    const std::complex<double> L = std::polar(g, phaseDegrees * M_PI / 180.0);
+    const std::complex<double> L = std::polar(g, phaseDegrees * qftbx::math::kPi / 180.0);
     const std::complex<double> d = q + L;
     switch (type) {
     case SpecificationType::Stability:
@@ -64,7 +66,7 @@ bool contains(const RangeUnion & set, double g)
 TEST(ClosedFormColumns, TheQuadraticAgreesWithTheInequalityItSolves)
 {
     std::mt19937 rng(7);
-    std::uniform_real_distribution<double> mag(-2.0, 2.0), ang(-M_PI, M_PI), ph(-360.0, 0.0), db(-20.0, 20.0);
+    std::uniform_real_distribution<double> mag(-2.0, 2.0), ang(-qftbx::math::kPi, qftbx::math::kPi), ph(-360.0, 0.0), db(-20.0, 20.0);
     const SpecificationType types[] = {SpecificationType::Stability, SpecificationType::OutputDisturbance,
                                        SpecificationType::InputDisturbance, SpecificationType::ControlEffort};
     std::size_t checked = 0, disagreements = 0;
@@ -120,7 +122,7 @@ TEST(ClosedFormColumns, OnExampleTwoTheColumnsMatchTheSheetToItsInterpolationErr
         std::vector<std::vector<double>> sheet(magnitudes.size(), std::vector<double>(phases.size()));
         for (std::size_t k = 0; k < magnitudes.size(); ++k) {
             for (std::size_t j = 0; j < phases.size(); ++j) {
-                const std::complex<double> L = std::polar(std::pow(10.0, magnitudes[k] / 20.0), phases[j] * M_PI / 180.0);
+                const std::complex<double> L = std::polar(std::pow(10.0, magnitudes[k] / 20.0), phases[j] * qftbx::math::kPi / 180.0);
                 sheet[k][j] = 20.0 * std::log10(locus.guard(worstCaseAt(p0, L, cloud, q), L, p0).stabilityNoise);
             }
         }

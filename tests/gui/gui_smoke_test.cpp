@@ -50,6 +50,7 @@
 #include <QSlider>
 #include <QSplitter>
 #include <QMouseEvent>
+#include <QFileOpenEvent>
 #include <QProgressBar>
 #include <QTabWidget>
 #include <QPushButton>
@@ -74,6 +75,7 @@
 #include "src/core/system/system_formula.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/language.h"
+#include "src/gui/application/application.h"
 #include "src/gui/application/main_window.h"
 #include "src/gui/application/phase_card.h"
 #include "src/gui/application/theme.h"
@@ -666,6 +668,10 @@ public:
 
 TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
 {
+#ifdef Q_OS_MACOS
+    GTEST_SKIP() << "Qt on macOS is built so that an exception cannot cross its frames, so this last "
+                    "resort cannot be reached there and every handler reports its own errors";
+#endif
     ThrowingObject victim;
     QEvent event(QEvent::User);
 
@@ -675,6 +681,29 @@ TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
     ASSERT_FALSE(m_reported.empty()) << "the escaped error must be reported";
     EXPECT_TRUE(m_reported.join(QChar(' ')).contains("refused something"))
         << m_reported.join(QChar(' ')).toStdString();
+}
+
+TEST_F(GuiSmoke, TheApplicationPassesOnAFileTheSystemAsksToOpen)
+{
+    auto * application = qobject_cast<qftbx::Application *>(qApp);
+    ASSERT_NE(application, nullptr);
+
+    QObject listener;
+    QString heard;
+    QObject::connect(application, &qftbx::Application::fileOpenAsked, &listener,
+                     [&heard](const QString & fileName) { heard = fileName; });
+
+    const QString project = QStringLiteral(QFTBX_SOURCE_DIR "/examples/fopdt.qft");
+    QFileOpenEvent asked(project);
+    QCoreApplication::sendEvent(application, &asked);
+
+    EXPECT_EQ(heard, project) << "the window was not told which file to open";
+    EXPECT_EQ(application->takeAskedFile(), project) << "a file asked for before the window existed was lost";
+    EXPECT_TRUE(application->takeAskedFile().isEmpty()) << "the same file would be opened twice";
+
+    MainWindow window;
+    window.openProject(project);
+    EXPECT_EQ(child<QProgressBar>(&window, "progressBar")->value(), 7) << m_reported.join(" | ").toStdString();
 }
 
 TEST_F(GuiSmoke, ControllerFormBuildsTheControllerStructure)
@@ -2026,23 +2055,22 @@ TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
 
 TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
 {
+    const QString path = QStringLiteral(QFTBX_SOURCE_DIR "/examples/msf.qft");
     MainWindow window;
+    window.setFileChooser([path](bool) { return path; });
+    window.findChild<QAction *>("actionOpen")->trigger();
 
-    child<QPushButton>(&window, "plantButton")->click();
-    fillPlant(panelIn<PlantForm>(&window), "cancelled");
-    child<QPushButton>(&window, "frequenciesButton")->click();
-    fillFrequencies(panelIn<FrequenciesForm>(&window));
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    const int steps = progress->value();
 
-    child<QPushButton>(&window, "templatesButton")->click();
     TemplatesForm * templates = panelIn<TemplatesForm>(&window);
     ASSERT_NE(templates, nullptr);
-
-    type(templates, "epsilonEdit", "0.5");
-    check(templates, "linspaceRadio");
-    type(templates, "globalPointCount", "400");
     check(templates, "allVariablesRadio");
-    check(templates, "nicholsRadio");
+    check(templates, "linspaceRadio");
+    type(templates, "globalPointCount", "25");
     press(templates, "okButton");
+    ASSERT_TRUE(window.isComputing()) << "the sweep was meant to take a while";
 
     QToolButton * cancel = window.findChild<QToolButton *>("templatesCardCancel");
     ASSERT_NE(cancel, nullptr);
@@ -2050,11 +2078,37 @@ TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
 
     waitForComputation(window);
 
-    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
-    ASSERT_NE(progress, nullptr);
-    EXPECT_EQ(progress->value(), 2) << "a cancelled sweep left templates behind";
+    EXPECT_FALSE(window.isComputing());
+    EXPECT_EQ(progress->value(), steps) << "a cancelled sweep changed what the project holds";
     EXPECT_TRUE(m_reported.isEmpty())
         << "giving up is not an error: " << m_reported.join(" | ").toStdString();
+}
+
+TEST_F(GuiSmoke, AStepAppliedWhileAnotherComputesIsReportedAndNothingEscapes)
+{
+    const QString path = QStringLiteral(QFTBX_SOURCE_DIR "/examples/msf.qft");
+    MainWindow window;
+    window.setFileChooser([path](bool) { return path; });
+    window.findChild<QAction *>("actionOpen")->trigger();
+
+    TemplatesForm * templates = panelIn<TemplatesForm>(&window);
+    PlantForm * plant = panelIn<PlantForm>(&window);
+    ASSERT_NE(templates, nullptr);
+    ASSERT_NE(plant, nullptr);
+
+    check(templates, "allVariablesRadio");
+    check(templates, "linspaceRadio");
+    type(templates, "globalPointCount", "25");
+    press(templates, "okButton");
+    ASSERT_TRUE(window.isComputing()) << "the sweep was meant to take a while";
+
+    EXPECT_NO_THROW(verifyAndApply(plant)) << "the refusal escaped into Qt, which ends the program on macOS";
+    EXPECT_TRUE(m_reported.join(QChar(' ')).contains("computation is running"))
+        << m_reported.join(" | ").toStdString();
+
+    window.findChild<QToolButton *>("templatesCardCancel")->click();
+    waitForComputation(window);
+    EXPECT_FALSE(window.isComputing());
 }
 
 TEST_F(GuiSmoke, OpeningAProjectShowsTheGridsAndTheEpsilonOfItsTemplates)

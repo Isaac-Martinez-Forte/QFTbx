@@ -33,6 +33,22 @@ Everything else is vendored under `3rd-party/`.
 
 ## Configure and build
 
+    cmake --preset native
+    cmake --build --preset native -j
+    ./build-native/QFTbx
+
+`CMakePresets.json` names three builds, each in its own directory
+`build-<preset>`:
+
+| Preset | What it builds |
+|---|---|
+| `native` | Release, tuned for the machine that compiles it (`-march=native`), with products and sums fused into one instruction where the processor has it. The fastest, and the one to use when building from the sources |
+| `reproducible` | `native` without fusing products and sums: about 3 % slower here, and on x86-64 exactly the results of the published packages, last bits included |
+| `portable` | Release for the baseline of the processor family, so the binary runs on any machine of it: the build of the published packages, about 15 % slower than `native` here |
+
+The presets need CMake 3.21 or later. Without them the same builds are
+spelled out with the options below; `native` is what a plain configure gives:
+
     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
     cmake --build build -j
     ./build/QFTbx
@@ -50,7 +66,12 @@ installed elsewhere, name the installation:
 On Windows the build defaults to `C:/Qt/6.6.2/mingw_64` when nothing is
 given, and `-DCMAKE_PREFIX_PATH` overrides it as above.
 
-**Windows.** Build with MinGW-w64 and the MinGW build of Qt:
+**Windows.** Build with MinGW-w64 and the MinGW build of Qt; with a preset,
+the generator and the Qt installation go on the command line:
+
+    cmake --preset native -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH=C:/Qt/6.6.2/mingw_64
+
+or without one:
 
     cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.6.2/mingw_64
     cmake --build build -j
@@ -67,13 +88,15 @@ from an optional `qftbx.conf`, described in [CONFIGURATION.md](CONFIGURATION.md)
 ## Options
 
 Every option is passed to CMake as `-D<option>=<value>` and is remembered by
-the build tree.
+the build tree. They are all declared together at the top of
+`CMakeLists.txt`.
 
 | Option | Default | Effect |
 |---|---|---|
-| `CMAKE_BUILD_TYPE` | none | `Release` for use and measurement, `Debug` for development |
+| `CMAKE_BUILD_TYPE` | `Release` | `Release` for use and measurement, `Debug` for development. A configure that names none builds `Release` |
 | `USE_OpenMP` | `ON` | Parallel templates and boundaries when the compiler supports OpenMP |
 | `USE_NATIVE_ARCH` | `ON` | `-march=native`: the numeric code tuned for the machine that builds it. Turn off for a binary that must run on other machines, and for tools that cannot run the wide vector instructions (Valgrind). With AVX-512 the compiler is also asked to keep its vectors at 256 bits, which measured faster here |
+| `USE_FP_CONTRACTION` | `ON` | Let the compiler fuse a product and a sum into one instruction where the processor has it. About 3 % faster in a native build, at the price of last bits that differ from a build without it; off, a native build gives exactly the results of the `portable` build of the packages |
 | `USE_CLANG` | `OFF` | Compile with Clang when it is installed. The compiler is chosen before the project is configured and cannot change afterwards, so this takes effect in a fresh build directory; an explicit `-DCMAKE_CXX_COMPILER` always wins |
 | `USE_CUDA` | `OFF` | The CUDA kernels of the templates and boundaries, when a CUDA compiler is found. `CMAKE_CUDA_ARCHITECTURES` names the cards (default 61, 75 and 86) |
 | `QFTBX_BUILD_TESTS` | `OFF` | Build the two test binaries and register them with CTest. Off so a build for use needs no network to fetch GoogleTest; the program is the same either way |

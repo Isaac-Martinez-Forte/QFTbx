@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="QFTbx" Language="1033" Codepage="1252" Version="$(var.Version)"
+           Manufacturer="Isaac Martínez Forte, Joaquín Cervera López"
+           UpgradeCode="5AC59924-D793-4B08-811C-26A133D145BF">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64"
+             SummaryCodepage="1252" Description="QFTbx $(var.Version) beta, quantitative feedback theory toolbox" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of QFTbx is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="qftbx.ico" SourceFile="$(var.IconFile)" />
+    <Property Id="ARPPRODUCTICON" Value="qftbx.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Isaac-Martinez-Forte/QFTbx" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="QFTbx" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder" />
+    </Directory>
+
+    <DirectoryRef Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="CD4731BC-9D80-41A0-8E69-B2C9A50A0E08" Win64="yes">
+        <Shortcut Id="QFTbxShortcut" Name="QFTbx" Description="Quantitative feedback theory toolbox"
+                  Target="[INSTALLFOLDER]QFTbx.exe" WorkingDirectory="INSTALLFOLDER" Icon="qftbx.ico" />
+        <RegistryValue Root="HKCU" Key="Software\QFTbx" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="ProjectFiles" Guid="9CB7CABF-3DB3-4D6C-9351-2D8384A979C5" Win64="yes">
+        <RegistryValue Root="HKLM" Key="Software\Classes\.qft" Type="string" Value="QFTbx.Project" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\QFTbx.Project" Type="string" Value="QFTbx project" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\QFTbx.Project\DefaultIcon" Type="string" Value="[INSTALLFOLDER]QFTbx.exe,0" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\QFTbx.Project\shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]QFTbx.exe&quot; &quot;%1&quot;" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Main" Title="QFTbx" Level="1">
+      <ComponentGroupRef Id="QFTbxFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="ProjectFiles" />
+    </Feature>
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UIRef Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+  </Product>
+</Wix>

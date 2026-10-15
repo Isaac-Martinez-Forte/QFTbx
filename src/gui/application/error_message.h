@@ -12,6 +12,12 @@
  * so the text is translated (context "Core" of the translation file) and
  * the arguments put back; a parse error gets its file and line around the
  * translated message; any other exception is shown as it is.
+ *
+ * reportingErrors() runs what a slot or an event handler does and reports
+ * whatever it throws, returning whether it finished. Nothing may be let
+ * through to Qt: on macOS Qt is built so that an exception cannot cross
+ * its frames and the program ends there, so a catch in the application's
+ * notify() is only a last resort on the other systems.
  */
 
 #ifndef QFTBX_GUI_ERROR_MESSAGE_H
@@ -36,6 +42,8 @@ ErrorReporter setErrorReporter(ErrorReporter reporter);
 QString translated(const std::exception & failure);
 
 QString translated(const Message & message);
+
+bool reportingErrors(const QString & title, const std::function<void ()> & action);
 
 }
 

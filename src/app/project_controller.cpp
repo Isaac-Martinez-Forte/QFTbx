@@ -411,14 +411,20 @@ void ProjectController::collectComputation()
 
     const Announce announce(*this);
 
+    const bool finished = !m_background.cancelled() && m_background.error().empty();
+
     switch (m_lastComputation) {
     case Computation::Templates:
-        dropBoundariesAndBelow();
+        if (finished) {
+            dropBoundariesAndBelow();
+        }
         break;
     case Computation::Proposal:
         break;
     case Computation::Boundaries:
-        dropLoopShaping();
+        if (finished) {
+            dropLoopShaping();
+        }
         break;
     case Computation::LoopShaping:
     case Computation::None:

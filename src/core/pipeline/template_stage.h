@@ -6,8 +6,8 @@
  * frequencies and extracts the epsilon-hull contour of each cloud. Like
  * every stage it owns its preconditions, its engine, its parameters, its
  * outputs and the publishing of them into the project; it does not own the
- * dependency graph, which the facade applies. The engine is created on
- * first use and kept, because it holds the clouds that a later recontour
+ * dependency graph, which the facade applies. The engine of the last run
+ * that finished is kept, because it holds the clouds that a later recontour
  * with a new epsilon walks, and templates loaded from a file are fed to it
  * by adopt() for the same reason, the engine and the project each keeping
  * a copy. A run given no epsilon contours at the epsilon the engine

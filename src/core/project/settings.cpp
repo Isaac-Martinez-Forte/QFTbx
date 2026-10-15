@@ -15,7 +15,10 @@
  * of the [research] section, are read from qftbx-research.conf when the
  * settings are loaded, and only there: each file reports the other's keys as
  * unknown. A file read on its own, as the benchmark and the command-line
- * solver read theirs, takes both.
+ * solver read theirs, takes both. The user's own files live under
+ * %APPDATA%\qftbx on Windows and $HOME/.config/qftbx elsewhere, and the
+ * record goes by default to %LOCALAPPDATA%\qftbx there and to the XDG state
+ * directory elsewhere.
  */
 
 #include "src/core/common/record.h"
@@ -404,8 +407,14 @@ std::string environmentPath(const char * variable)
     return named != nullptr ? std::string(named) : std::string();
 }
 
-std::string homePath(const char * file)
+std::string userConfigPath(const char * file)
 {
+#ifdef _WIN32
+    const char * appData = std::getenv("APPDATA");
+    if (appData != nullptr && *appData != '\0') {
+        return std::string(appData) + "/qftbx/" + file;
+    }
+#endif
     const char * home = std::getenv("HOME");
     if (home == nullptr) {
         return std::string();
@@ -519,7 +528,7 @@ Settings readSettings(const std::string & path)
 
 std::string userSettingsPath()
 {
-    return homePath("qftbx.conf");
+    return userConfigPath("qftbx.conf");
 }
 
 void writeSetting(const std::string & path, const std::string & key, const std::string & value)
@@ -617,6 +626,12 @@ void openRecord(const Settings & settings)
     }
 
     std::string path = settings.log.path;
+#ifdef _WIN32
+    const char * local = std::getenv("LOCALAPPDATA");
+    if (path.empty() && local != nullptr && *local != '\0') {
+        path = std::string(local) + "/qftbx/qftbx.log";
+    }
+#endif
     if (path.empty()) {
         const char * state = std::getenv("XDG_STATE_HOME");
         const char * home = std::getenv("HOME");
@@ -655,7 +670,7 @@ Settings loadSettings()
         settings.researchSource = research;
         readInto(research, Scope::Research, settings);
     } else {
-        for (const std::string & candidate : {std::string("qftbx-research.conf"), homePath("qftbx-research.conf")}) {
+        for (const std::string & candidate : {std::string("qftbx-research.conf"), userConfigPath("qftbx-research.conf")}) {
             if (readable(candidate)) {
                 settings.researchSource = candidate;
                 readInto(candidate, Scope::Research, settings);

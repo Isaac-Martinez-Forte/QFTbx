@@ -27,7 +27,9 @@
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include <gtest/gtest.h>
 
+#include <QByteArray>
 #include <QTemporaryDir>
+#include <QtGlobal>
 
 #include <cstdlib>
 #include <filesystem>
@@ -80,13 +82,15 @@ class IsolatedEnvironment
 public:
     IsolatedEnvironment()
         : m_home(saved("HOME")),
+          m_appData(saved("APPDATA")),
           m_config(saved("QFTBX_CONFIG")),
           m_researchConfig(saved("QFTBX_RESEARCH_CONFIG")),
           m_workingDirectory(std::filesystem::current_path())
     {
-        ::setenv("HOME", home().c_str(), 1);
-        ::unsetenv("QFTBX_CONFIG");
-        ::unsetenv("QFTBX_RESEARCH_CONFIG");
+        qputenv("HOME", QByteArray::fromStdString(home()));
+        qputenv("APPDATA", QByteArray::fromStdString(home() + "/.config"));
+        qunsetenv("QFTBX_CONFIG");
+        qunsetenv("QFTBX_RESEARCH_CONFIG");
         std::filesystem::create_directories(workingDirectory());
         std::filesystem::current_path(workingDirectory());
     }
@@ -95,6 +99,7 @@ public:
     {
         std::filesystem::current_path(m_workingDirectory);
         restore("HOME", m_home);
+        restore("APPDATA", m_appData);
         restore("QFTBX_CONFIG", m_config);
         restore("QFTBX_RESEARCH_CONFIG", m_researchConfig);
     }
@@ -120,14 +125,15 @@ private:
     static void restore(const char * variable, const std::optional<std::string> & value)
     {
         if (value.has_value()) {
-            ::setenv(variable, value->c_str(), 1);
+            qputenv(variable, QByteArray::fromStdString(*value));
         } else {
-            ::unsetenv(variable);
+            qunsetenv(variable);
         }
     }
 
     QTemporaryDir m_folder;
     std::optional<std::string> m_home;
+    std::optional<std::string> m_appData;
     std::optional<std::string> m_config;
     std::optional<std::string> m_researchConfig;
     std::filesystem::path m_workingDirectory;
@@ -385,7 +391,7 @@ TEST(Settings, AFileNamedInTheEnvironmentIsUsed)
     const IsolatedEnvironment environment;
     const std::string path = writtenAt(environment.elsewhere("from-environment.conf"), "[search]\nmax-live-nodes = 77\n");
 
-    ::setenv("QFTBX_CONFIG", path.c_str(), 1);
+    qputenv("QFTBX_CONFIG", QByteArray::fromStdString(path));
     const qftbx::Settings settings = qftbx::loadSettings();
 
     EXPECT_EQ(settings.search.maxLiveNodes, 77u);
@@ -415,8 +421,8 @@ TEST(Settings, TheWorkingDirectoryComesBeforeTheHomeAndTheEnvironmentBeforeBoth)
 
     const std::string named = writtenAt(environment.elsewhere("named.conf"), "[search]\nmax-live-nodes = 33\n");
     const std::string researchNamed = writtenAt(environment.elsewhere("named-research.conf"), "[research]\nexact-guide = conservative\n");
-    ::setenv("QFTBX_CONFIG", named.c_str(), 1);
-    ::setenv("QFTBX_RESEARCH_CONFIG", researchNamed.c_str(), 1);
+    qputenv("QFTBX_CONFIG", QByteArray::fromStdString(named));
+    qputenv("QFTBX_RESEARCH_CONFIG", QByteArray::fromStdString(researchNamed));
     settings = qftbx::loadSettings();
     EXPECT_EQ(settings.source, named);
     EXPECT_EQ(settings.search.maxLiveNodes, 33u);
@@ -433,8 +439,8 @@ TEST(Settings, EachFileTakesOnlyItsOwnKeys)
     const std::string research = writtenAt(environment.elsewhere("research-keys.conf"),
                                            "[research]\ncolumns = nearest\n[search]\nmax-live-nodes = 5\n");
 
-    ::setenv("QFTBX_CONFIG", user.c_str(), 1);
-    ::setenv("QFTBX_RESEARCH_CONFIG", research.c_str(), 1);
+    qputenv("QFTBX_CONFIG", QByteArray::fromStdString(user));
+    qputenv("QFTBX_RESEARCH_CONFIG", QByteArray::fromStdString(research));
     const qftbx::Settings settings = qftbx::loadSettings();
     const qftbx::Settings alone = qftbx::readSettings(user);
 
@@ -455,7 +461,7 @@ TEST(Settings, EachFileTakesOnlyItsOwnKeys)
 TEST(Settings, AFileNamedInTheEnvironmentThatCannotBeReadIsAnError)
 {
     const IsolatedEnvironment environment;
-    ::setenv("QFTBX_CONFIG", environment.elsewhere("missing.conf").c_str(), 1);
+    qputenv("QFTBX_CONFIG", QByteArray::fromStdString(environment.elsewhere("missing.conf")));
 
     EXPECT_THROW(qftbx::loadSettings(), qftbx::FileError);
 }

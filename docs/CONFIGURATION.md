@@ -13,7 +13,8 @@ The first one that exists wins:
 1. the file named by the `QFTBX_CONFIG` environment variable (naming a file
    that cannot be read is an error);
 2. `./qftbx.conf`, in the directory the program was started from;
-3. `$HOME/.config/qftbx/qftbx.conf`.
+3. `$HOME/.config/qftbx/qftbx.conf`, or `%APPDATA%\qftbx\qftbx.conf` on
+   Windows.
 
 ## Syntax
 
@@ -43,7 +44,7 @@ per stage.
 | Key | Default | Range | Meaning |
 |---|---|---|---|
 | `enabled` | `0` | 0 or 1 | Whether the record is written |
-| `path` | empty | a path | Empty means `$XDG_STATE_HOME/qftbx/qftbx.log`, or `$HOME/.local/state/qftbx/qftbx.log`; a path that cannot be written leaves the record closed |
+| `path` | empty | a path | Empty means `$XDG_STATE_HOME/qftbx/qftbx.log`, or `$HOME/.local/state/qftbx/qftbx.log`, and `%LOCALAPPDATA%\qftbx\qftbx.log` on Windows; a path that cannot be written leaves the record closed |
 | `size-limit-kilobytes` | `1024` | 16 to 1048576 | Past this size the file becomes the previous generation (`.1`); two generations are kept |
 
 **`[limits]`**. Ceilings against typos. They only refuse input, so none

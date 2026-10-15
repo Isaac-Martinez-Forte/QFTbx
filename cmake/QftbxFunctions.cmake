@@ -89,11 +89,12 @@ Type=Application\n\
 Version=1.0\n\
 Name=${target}\n\
 Comment=Quantitative Feedback Theory toolbox (robust control)\n\
-Exec=$<TARGET_FILE:${target}>\n\
+Exec=$<TARGET_FILE:${target}> %f\n\
 Path=${CMAKE_BINARY_DIR}\n\
 Icon=${icon}\n\
 Terminal=false\n\
 Categories=Science;Engineering;\n\
+MimeType=application/x-qftbx;\n\
 StartupNotify=true\n"
   )
 

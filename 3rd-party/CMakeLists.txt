@@ -33,12 +33,15 @@ if(QFTBX_INTERVAL_BACKEND STREQUAL "kv")
   # Dekker's splitting unless KV_USE_TPFMA asks for the fused multiply-add,
   # which halves the cost of a product on a machine that has the
   # instruction, so it goes with the native-architecture build (elsewhere
-  # fma() would be a library call and slower than the splitting).
+  # fma() would be a library call and slower than the splitting). On 64-bit
+  # ARM the instruction is always there and the compilers fuse a product
+  # and a sum on their own, which Dekker's splitting does not survive, so
+  # the fused product is taken there whatever the build.
   add_library(kv INTERFACE)
   add_library(kv::kv ALIAS kv)
   target_include_directories(kv SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/kv")
   target_compile_definitions(kv INTERFACE KV_NOHWROUND)
-  if(USE_NATIVE_ARCH)
+  if(USE_NATIVE_ARCH OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$")
     target_compile_definitions(kv INTERFACE KV_USE_TPFMA=1)
   endif()
   target_link_libraries(qftbx_interval INTERFACE kv::kv)

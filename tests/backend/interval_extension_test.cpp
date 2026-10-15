@@ -19,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <string>
 
 #include <cmath>
@@ -50,7 +52,7 @@ NicholsPoint zpkAt(double k, double z, double p, double w, Complex p0)
 {
     const Complex s(0.0, w);
     const Complex value = k * (s + z) / (s + p) * p0;
-    double phase = std::arg(value) * 180.0 / M_PI;
+    double phase = std::arg(value) * 180.0 / qftbx::math::kPi;
     if (phase > 0.0) {
         phase -= 360.0;
     }
@@ -199,7 +201,7 @@ TEST(NaturalIntervalExtension, TheUnitModulusIsAskedAsTheEnclosureAnswers)
     std::size_t asked = 0;
     for (int trial = 0; trial < 50000; ++trial) {
         const double w = logUniform(1e-3, 1e3);
-        const Complex p0 = std::polar(logUniform(1e-4, 1e4), -2.0 * M_PI * unit(generator));
+        const Complex p0 = std::polar(logUniform(1e-4, 1e4), -2.0 * qftbx::math::kPi * unit(generator));
         const double zero = logUniform(1e-2, 1e3);
         const double pole = logUniform(1e-2, 1e3);
         const double zeroWidth = trial % 3 == 0 ? 0.0 : logUniform(1e-12, 1e-1);

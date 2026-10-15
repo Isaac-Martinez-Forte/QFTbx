@@ -1,0 +1,194 @@
+name: Packages
+
+on:
+  push:
+    branches: [feature/packaging]
+  workflow_dispatch:
+
+concurrency:
+  group: packages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          cache: true
+
+      - name: Install what the packaging needs
+        run: sudo apt-get update && sudo apt-get install -y libxcb-cursor0
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_NATIVE_ARCH=OFF -DUSE_FP_CONTRACTION=OFF
+          -DQFTBX_BUILD_TESTS=ON -DINSTALL_GTEST=OFF -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build the program
+        run: cmake --build build --target QFTbx -j"$(nproc)"
+
+      - name: Package
+        run: |
+          version=$(sed -n 's/^project(QFTbx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          DESTDIR="$PWD/AppDir" cmake --install build
+          curl -fsSLo linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -fsSLo linuxdeploy-plugin-qt https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy linuxdeploy-plugin-qt
+          export APPIMAGE_EXTRACT_AND_RUN=1 QMAKE="$QT_ROOT_DIR/bin/qmake"
+          export LDAI_OUTPUT="QFTbx-$version-beta-linux-x86_64.AppImage"
+          ./linuxdeploy --appdir AppDir --plugin qt --output appimage \
+            --desktop-file AppDir/usr/share/applications/qftbx.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/qftbx.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QFTbx-linux-x86_64
+          path: QFTbx-*.AppImage
+
+      - name: Build the tests
+        continue-on-error: true
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Test
+        continue-on-error: true
+        run: ctest --test-dir build --output-on-failure --no-tests=error -j"$(nproc)"
+
+  windows:
+    runs-on: windows-2022
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt and its MinGW
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          arch: win64_mingw
+          tools: 'tools_mingw1310,qt.tools.win64_mingw1310'
+          cache: true
+
+      - name: Install Ninja
+        run: pip install ninja
+
+      - name: Configure
+        run: |
+          export PATH="$(cygpath -u "$IQTA_TOOLS")/mingw1310_64/bin:$(cygpath -u "$QT_ROOT_DIR")/bin:$PATH"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DUSE_NATIVE_ARCH=OFF -DUSE_FP_CONTRACTION=OFF \
+            -DQFTBX_BUILD_TESTS=ON -DINSTALL_GTEST=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+
+      - name: Build the program
+        run: |
+          export PATH="$(cygpath -u "$IQTA_TOOLS")/mingw1310_64/bin:$(cygpath -u "$QT_ROOT_DIR")/bin:$PATH"
+          cmake --build build --target QFTbx -j"$(nproc)"
+
+      - name: Package
+        run: |
+          mingw="$(cygpath -u "$IQTA_TOOLS")/mingw1310_64/bin"
+          export PATH="$mingw:$(cygpath -u "$QT_ROOT_DIR")/bin:$PATH"
+          cmake --install build --prefix dist
+          windeployqt --release --compiler-runtime dist/QFTbx.exe
+          cp "$mingw"/libstdc++-6.dll "$mingw"/libgcc_s_seh-1.dll "$mingw"/libwinpthread-1.dll "$mingw"/libgomp-1.dll dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QFTbx-windows-x86_64
+          path: dist
+
+      - name: Build the installers
+        run: |
+          version=$(sed -n 's/^project(QFTbx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          if [ ! -x "$iscc" ]; then choco install innosetup -y --no-progress; fi
+          MSYS_NO_PATHCONV=1 "$iscc" "/DSourceDir=$(cygpath -w "$PWD/dist")" "/DAppVersion=$version" \
+            "/O$(cygpath -w "$PWD")" packaging/windows/qftbx.iss
+          if [ -z "${WIX:-}" ]; then
+            choco install wixtoolset -y --no-progress
+            WIX='C:\Program Files (x86)\WiX Toolset v3.14\'
+          fi
+          wix="$(cygpath -u "$WIX")bin"
+          mkdir -p build/msi
+          python packaging/windows/license_rtf.py LICENSE build/msi/license.rtf
+          "$wix/heat.exe" dir dist -nologo -cg QFTbxFiles -dr INSTALLFOLDER -gg -sfrag -srd -sreg -scom \
+            -var var.SourceDir -out build/msi/files.wxs
+          "$wix/candle.exe" -nologo -arch x64 -dSourceDir=dist -dVersion="$version" \
+            -dIconFile=Resources/Icon/qftbx.ico -dLicenseRtf=build/msi/license.rtf -out build/msi/ \
+            packaging/windows/qftbx.wxs build/msi/files.wxs
+          "$wix/light.exe" -nologo -ext WixUIExtension -cultures:en-us \
+            -out "QFTbx-$version-beta-windows-x86_64.msi" build/msi/qftbx.wixobj build/msi/files.wixobj
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QFTbx-windows-x86_64-installers
+          path: |
+            QFTbx-*-setup.exe
+            QFTbx-*.msi
+
+      - name: Build the tests
+        continue-on-error: true
+        run: |
+          export PATH="$(cygpath -u "$IQTA_TOOLS")/mingw1310_64/bin:$(cygpath -u "$QT_ROOT_DIR")/bin:$PATH"
+          cmake --build build -j"$(nproc)"
+
+      - name: Test
+        continue-on-error: true
+        run: |
+          export PATH="$(cygpath -u "$IQTA_TOOLS")/mingw1310_64/bin:$(cygpath -u "$QT_ROOT_DIR")/bin:$PATH"
+          ctest --test-dir build --output-on-failure --no-tests=error -j"$(nproc)"
+
+  macos:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          cache: true
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_NATIVE_ARCH=OFF -DUSE_FP_CONTRACTION=OFF
+          -DQFTBX_BUILD_TESTS=ON -DINSTALL_GTEST=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+
+      - name: Build the program
+        run: cmake --build build --target QFTbx -j"$(sysctl -n hw.ncpu)"
+
+      - name: Package
+        run: |
+          version=$(sed -n 's/^project(QFTbx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          cmake --install build --prefix dist
+          macdeployqt dist/QFTbx.app
+          codesign --force --deep --sign - dist/QFTbx.app
+          hdiutil create -volname QFTbx -srcfolder dist/QFTbx.app -ov -format UDZO \
+            "QFTbx-$version-beta-macos-arm64.dmg"
+
+      - name: Check the bundle
+        run: |
+          plutil -lint dist/QFTbx.app/Contents/Info.plist
+          plutil -p dist/QFTbx.app/Contents/Info.plist
+          ls -la dist/QFTbx.app/Contents/Resources
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QFTbx-macos-arm64
+          path: QFTbx-*.dmg
+
+      - name: Build the tests
+        continue-on-error: true
+        run: cmake --build build -j"$(sysctl -n hw.ncpu)"
+
+      - name: Test
+        continue-on-error: true
+        run: ctest --test-dir build --output-on-failure --no-tests=error -j"$(sysctl -n hw.ncpu)"
