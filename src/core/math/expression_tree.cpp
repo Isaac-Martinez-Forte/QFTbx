@@ -10,7 +10,9 @@
  * and reports the box inconsistent as soon as one is empty; projections that
  * could abort inside the interval library (a negative range into a power, an
  * inverse trigonometric function outside its branch, a divisor straddling
- * zero) are skipped rather than risked.
+ * zero) are skipped rather than risked. A small whole power of a complex
+ * number is taken by repeated squaring, as libstdc++ does, so a power of
+ * j*omega is exact on every standard library and not only on that one.
  */
 
 #include "src/core/math/expression_tree.h"
@@ -1120,6 +1122,19 @@ bool isSmallWholeNumber(double value)
     return value == std::floor(value) && std::abs(value) <= 64.0;
 }
 
+std::complex<double> wholePower(std::complex<double> base, int exponent)
+{
+    unsigned count = exponent < 0 ? 0u - static_cast<unsigned>(exponent) : static_cast<unsigned>(exponent);
+    std::complex<double> power = count % 2 != 0 ? base : std::complex<double>(1.0, 0.0);
+    while ((count >>= 1) != 0) {
+        base = base * base;
+        if (count % 2 != 0) {
+            power = power * base;
+        }
+    }
+    return exponent < 0 ? std::complex<double>(1.0, 0.0) / power : power;
+}
+
 }
 
 double ExpressionTree::evaluate(const std::vector<double> & values) const
@@ -1192,7 +1207,7 @@ std::complex<double> ExpressionTree::evaluateComplex(const exp_node * node,
         const exp_node * exponent = node->right.get();
 
         if (exponent->type == CONSTANT && isSmallWholeNumber(exponent->c_const)) {
-            return std::pow(base, static_cast<int>(exponent->c_const));
+            return wholePower(base, static_cast<int>(exponent->c_const));
         }
 
         return std::pow(base, evaluateComplex(exponent, values));
