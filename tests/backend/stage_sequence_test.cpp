@@ -8,7 +8,9 @@
  * the one before it standing. A null publish and a reserved parameter name are
  * refused at publication, and recomputing a stage drops exactly what depends
  * on it. Cancellation travels out as its own exception, publishes nothing and
- * does not linger into the next run; a search off the calling thread closes
+ * does not linger into the next run; a cancelled sweep of the templates leaves
+ * the project, its grids and the clouds a recontour walks as they were, and
+ * drops nothing that depends on them; a search off the calling thread closes
  * the project while it runs and reports its failures instead of throwing from
  * the worker. The completed steps are derived from what the project holds, a
  * loaded file replaces the project, and every change announces exactly once.
@@ -34,6 +36,7 @@
 #include "src/core/system/parameter.h"
 #include "src/core/system/polynomial_form.h"
 #include "src/core/system/zero_pole_gain.h"
+#include "tests/backend/published_problems.h"
 
 using namespace qftbx;
 
@@ -370,6 +373,36 @@ TEST(BackgroundSearch, CancellingFromAnotherThreadStopsTheSearch)
         EXPECT_TRUE(controller.lastComputationProduced());
         EXPECT_NE(controller.loopShapingResult(), nullptr);
     }
+}
+
+TEST(BackgroundSearch, ACancelledSweepLeavesTheProjectAndItsRecontourAsTheyWere)
+{
+    ProjectController controller;
+    controller.load(qftbx_tests::problem("msf.qft"));
+    ASSERT_FALSE(controller.templates().empty());
+    ASSERT_NE(controller.epsilon(), nullptr);
+
+    const CloudSet templates = controller.templates();
+    const ParameterGrids grids = controller.sweepGrids();
+    const std::vector<double> epsilon = *controller.epsilon();
+    const StepSet steps = controller.completed();
+
+    ParameterGrids denser;
+    for (const auto & [name, values] : grids) {
+        denser[name] = values.size() > 1 ? qftbx::math::linspace(values.front(), values.back(), 25) : values;
+    }
+
+    ASSERT_TRUE(controller.startTemplates({}, denser, false));
+    controller.cancelComputation();
+    controller.waitForComputation();
+    controller.collectComputation();
+
+    ASSERT_TRUE(controller.lastComputationCancelled()) << "the sweep was meant to take a while";
+    EXPECT_EQ(controller.templates(), templates);
+    EXPECT_EQ(controller.sweepGrids(), grids) << "the grids of a sweep that never finished were published";
+    EXPECT_EQ(*controller.epsilon(), epsilon);
+    EXPECT_TRUE(controller.completed() == steps) << "a cancelled sweep dropped what depends on the templates";
+    EXPECT_NO_THROW(controller.recomputeContour(epsilon)) << "the clouds a recontour walks were lost";
 }
 
 TEST(BackgroundSearch, AFailedSearchIsReportedAndNotThrownFromTheWorker)

@@ -2,15 +2,17 @@
  * @file
  * @brief Implementation of the template stage.
  *
- * The cancellation token and every engine setting are applied on each run,
- * so nothing lingers from a previous one on the engine that is kept between
- * runs. A run publishes straight from the engine's own copies rather than
- * through adoption, which is for clouds computed elsewhere. Only the epsilon
- * used is kept for the persistence, the one given or the one the engine
- * proposed, since the sweep neither reorders nor replaces the frequencies.
- * A run counts as produced when it yields both clouds and contours. A
- * proposal before the sweep is given every sweep option before it sweeps,
- * since the border sweep changes the cloud it proposes for.
+ * A run sweeps on an engine of its own, given the cancellation token and
+ * every setting, and only once it has finished are its grids, clouds,
+ * contours and epsilon published and its engine kept, so a run that is
+ * cancelled or fails leaves the project and the clouds a recontour walks
+ * as they were. A run publishes straight from the engine's own copies
+ * rather than through adoption, which is for clouds computed elsewhere.
+ * Only the epsilon used is kept for the persistence, the one given or the
+ * one the engine proposed, since the sweep neither reorders nor replaces
+ * the frequencies. A run counts as produced when it yields both clouds and
+ * contours. A proposal before the sweep is given every sweep option before
+ * it sweeps, since the border sweep changes the cloud it proposes for.
  */
 
 #include "src/core/pipeline/template_stage.h"
@@ -44,28 +46,30 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
 {
     requirePrerequisites(data);
 
-    TemplateEngine & sweep = engine();
+    auto sweep = std::make_unique<TemplateEngine>();
 
-    sweep.setCancellation(cancellation);
+    sweep->setCancellation(cancellation);
 
-    sweep.setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
-    sweep.setWholeCloudStandsIn(m_wholeCloudStandsIn);
-    sweep.setAlphaShapeContour(m_alphaShape);
-    sweep.setBorderSweep(m_borderSweep);
-    sweep.setEpsilon(std::move(epsilon));
-    data.setSweepGrids(grids);
-    sweep.setGrids(std::move(grids));
+    sweep->setHullMetric(data.epsilonMetric().metric, data.epsilonMetric().dbPerDegree);
+    sweep->setWholeCloudStandsIn(m_wholeCloudStandsIn);
+    sweep->setAlphaShapeContour(m_alphaShape);
+    sweep->setBorderSweep(m_borderSweep);
+    sweep->setEpsilon(std::move(epsilon));
+    sweep->setGrids(grids);
 
-    sweep.compute(data.plant(), data.omega()->values(), cuda);
+    sweep->compute(data.plant(), data.omega()->values(), cuda);
 
-    const bool produced = !sweep.clouds().empty() && !sweep.contours().empty();
+    const bool produced = !sweep->clouds().empty() && !sweep->contours().empty();
 
-    data.setTemplates(sweep.clouds());
-    if (!sweep.contours().empty()) {
-        data.setContour(sweep.contours());
+    data.setSweepGrids(std::move(grids));
+    data.setTemplates(sweep->clouds());
+    if (!sweep->contours().empty()) {
+        data.setContour(sweep->contours());
     }
 
-    data.setEpsilon(sweep.epsilon());
+    data.setEpsilon(sweep->epsilon());
+
+    m_engine = std::move(sweep);
 
     return produced;
 }

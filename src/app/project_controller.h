@@ -11,8 +11,10 @@
  * was computed from the old one; that dependency graph lives in this one
  * class and every publish and compute method applies it. A publish returns
  * whether it dropped anything, which it decides by comparing the new input
- * with the old by value, here and nowhere else. Publishing null is refused,
- * since removing a step is not something the pipeline does. A computation in
+ * with the old by value, here and nowhere else. A computation that is
+ * cancelled or fails has changed nothing, so it drops nothing either.
+ * Publishing null is refused, since removing a step is not something the
+ * pipeline does. A computation in
  * flight has the data to itself and anything that would change it throws
  * meanwhile, a proposal of the epsilon on the templates swept included,
  * since it keeps what it proposed; the loop shaping runs on a worker and

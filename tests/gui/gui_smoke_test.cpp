@@ -2026,23 +2026,22 @@ TEST_F(GuiSmoke, AComputationRunsOnAWorkerAndTheWindowStaysAlive)
 
 TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
 {
+    const QString path = QStringLiteral(QFTBX_SOURCE_DIR "/examples/msf.qft");
     MainWindow window;
+    window.setFileChooser([path](bool) { return path; });
+    window.findChild<QAction *>("actionOpen")->trigger();
 
-    child<QPushButton>(&window, "plantButton")->click();
-    fillPlant(panelIn<PlantForm>(&window), "cancelled");
-    child<QPushButton>(&window, "frequenciesButton")->click();
-    fillFrequencies(panelIn<FrequenciesForm>(&window));
+    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
+    ASSERT_NE(progress, nullptr);
+    const int steps = progress->value();
 
-    child<QPushButton>(&window, "templatesButton")->click();
     TemplatesForm * templates = panelIn<TemplatesForm>(&window);
     ASSERT_NE(templates, nullptr);
-
-    type(templates, "epsilonEdit", "0.5");
-    check(templates, "linspaceRadio");
-    type(templates, "globalPointCount", "400");
     check(templates, "allVariablesRadio");
-    check(templates, "nicholsRadio");
+    check(templates, "linspaceRadio");
+    type(templates, "globalPointCount", "25");
     press(templates, "okButton");
+    ASSERT_TRUE(window.isComputing()) << "the sweep was meant to take a while";
 
     QToolButton * cancel = window.findChild<QToolButton *>("templatesCardCancel");
     ASSERT_NE(cancel, nullptr);
@@ -2050,9 +2049,8 @@ TEST_F(GuiSmoke, ACancelledComputationLeavesTheProjectAsItWas)
 
     waitForComputation(window);
 
-    QProgressBar * progress = child<QProgressBar>(&window, "progressBar");
-    ASSERT_NE(progress, nullptr);
-    EXPECT_EQ(progress->value(), 2) << "a cancelled sweep left templates behind";
+    EXPECT_FALSE(window.isComputing());
+    EXPECT_EQ(progress->value(), steps) << "a cancelled sweep changed what the project holds";
     EXPECT_TRUE(m_reported.isEmpty())
         << "giving up is not an error: " << m_reported.join(" | ").toStdString();
 }
