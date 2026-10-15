@@ -76,6 +76,7 @@
 #include "src/gui/application/about.h"
 #include "src/gui/application/language.h"
 #include "src/gui/application/application.h"
+#include "src/gui/application/canvas_content.h"
 #include "src/gui/application/main_window.h"
 #include "src/gui/application/phase_card.h"
 #include "src/gui/application/theme.h"
@@ -681,6 +682,35 @@ TEST_F(GuiSmoke, TheApplicationReportsABackendErrorInsteadOfDyingOfIt)
     ASSERT_FALSE(m_reported.empty()) << "the escaped error must be reported";
     EXPECT_TRUE(m_reported.join(QChar(' ')).contains("refused something"))
         << m_reported.join(QChar(' ')).toStdString();
+}
+
+TEST_F(GuiSmoke, TheEmptyCanvasShowsTheBannerUntilAStepIsShown)
+{
+    MainWindow window;
+    window.resize(1280, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    auto * canvas = window.findChild<qftbx::CanvasContent *>("canvasContent");
+    ASSERT_NE(canvas, nullptr);
+    EXPECT_TRUE(canvas->showsBanner()) << "a window with nothing in it shows no banner";
+
+    const QImage drawn = canvas->grab().toImage();
+    QSet<QRgb> colours;
+    for (int y = 0; y < drawn.height(); y += 7) {
+        for (int x = 0; x < drawn.width(); x += 7) {
+            colours.insert(drawn.pixel(x, y));
+        }
+    }
+    EXPECT_GT(colours.size(), 50) << "the banner was not painted";
+
+    child<QPushButton>(&window, "plantButton")->click();
+    QCoreApplication::processEvents();
+    EXPECT_FALSE(canvas->showsBanner()) << "the banner stays behind a card";
+
+    window.findChild<QAction *>("actionNew")->trigger();
+    QCoreApplication::processEvents();
+    EXPECT_TRUE(canvas->showsBanner()) << "a new session left the canvas blank";
 }
 
 TEST_F(GuiSmoke, TheApplicationPassesOnAFileTheSystemAsksToOpen)

@@ -19,8 +19,9 @@ target_compile_definitions(qftbx_gui PRIVATE
 add_dependencies(qftbx_gui qftbx_version_header)
 target_include_directories(qftbx_gui PRIVATE "${CMAKE_BINARY_DIR}/generated")
 
-# The figures of the families a plant or a controller can be written in, and
-# the icon of the application, as resources OF THIS TARGET. The file-based
+# The figures of the families a plant or a controller can be written in, the
+# icon of the application and the banner the empty canvas shows, as
+# resources OF THIS TARGET. The file-based
 # qt6_add_resources() compiles a .qrc into an object file and nothing else:
 # in a STATIC library the linker drops that object, since nothing refers to
 # a symbol in it, and the resources are not there at run time - the figures
@@ -37,6 +38,12 @@ qt_add_resources(qftbx_gui "figures"
     "${CMAKE_SOURCE_DIR}/Resources/Images/figures/copol.png"
     "${CMAKE_SOURCE_DIR}/Resources/Images/figures/kgan.png"
     "${CMAKE_SOURCE_DIR}/Resources/Images/figures/knogan.png"
+)
+qt_add_resources(qftbx_gui "banner"
+  PREFIX "/"
+  BASE "${CMAKE_SOURCE_DIR}/docs"
+  FILES
+    "${CMAKE_SOURCE_DIR}/docs/qftbx_banner.svg"
 )
 qt_add_resources(qftbx_gui "icons"
   PREFIX "/icons"
