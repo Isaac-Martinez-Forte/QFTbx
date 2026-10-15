@@ -1,3 +1,17 @@
+/**
+ * @file
+ * @brief The program: the application, its settings, and the main window.
+ *
+ * The numeric side always reads and writes with the decimal point, whatever
+ * locale the application adopts. The settings are read once, here, and
+ * handed down immutable; with no file anywhere the compiled defaults apply,
+ * and a file named in QFTBX_CONFIG that cannot be read stops the program,
+ * since naming it says it was meant to be used. The record is opened before
+ * anything computes, and the theme and the language are applied before any
+ * window is built. The window then opens the project the program was
+ * started with, from the command line or, on macOS, from the system.
+ */
+
 #include "src/core/common/exception.h"
 #include "src/core/common/record.h"
 #include "src/core/project/settings.h"
@@ -14,32 +28,16 @@
 
 int main(int argc, char *argv[])
 {
-    //Reports a backend error instead of letting it kill the process.
     qftbx::Application a(argc, argv);
 
-    //QApplication adopts the system locale (LC_ALL); under a decimal-comma
-    //locale (es_ES, de_DE...) the number readers of the C library stop
-    //accepting literals such as "0.1" and no expression with decimals
-    //evaluates. The numeric side of the program always works with the
-    //decimal point.
     std::setlocale(LC_NUMERIC, "C");
 
-    //Every size the window manager may ask for, in one icon: the title bar
-    //takes a small one and the task switcher a large one, and an icon with
-    //a single 256-pixel image is scaled down for both.
     QIcon icon;
     for (const char * size : {"16", "32", "64", "128", "256"}) {
         icon.addFile(QString(":/icons/qftbx_%1.png").arg(size));
     }
     a.setWindowIcon(icon);
 
-
-    //The settings are read ONCE, here, and handed down: immutable afterwards,
-    //which is what makes them safe next to OpenMP and the search's worker.
-    //With no settings file anywhere this succeeds with the compiled defaults,
-    //so the program starts as it always has; a file named in QFTBX_CONFIG
-    //that cannot be read is an error, and it is worth failing loudly on
-    //because naming it says it was meant to be used.
     qftbx::Settings settings;
 
     try {
@@ -53,22 +51,13 @@ int main(int argc, char *argv[])
         std::cout << "settings: " << settings.source << std::endl;
     }
 
-    //The record of what the engines do and how long they take, if the
-    //settings ask for one. Opened before anything computes, so that a run
-    //that dies still leaves what it got through.
     qftbx::openRecord(settings);
     if (qftbx::record::isOpen()) {
         std::cout << "record: " << qftbx::record::path() << std::endl;
     }
 
-    //The look, from the settings, BEFORE any window is built: flat, square
-    //and quiet, with the blue of the icon as its accent. Without this the
-    //application took whatever style each machine had - on Linux, the grey
-    //relief of a decade ago.
     qftbx::applyTheme(QString::fromStdString(settings.interface.theme));
 
-    //The interface language, from the settings: the system's unless the
-    //file says otherwise (the View menu writes the choice there).
     qftbx::applyLanguage(QString::fromStdString(settings.interface.language));
 
     for (const std::string & unknown : settings.unknownKeys) {
@@ -76,8 +65,6 @@ int main(int argc, char *argv[])
                   << "\" is not a setting this build knows" << std::endl;
     }
 
-    //The window takes the application's icon by itself; setting it again
-    //here was the same picture twice.
     auto w = std::make_unique<qftbx::MainWindow>(settings);
     w->show();
 
