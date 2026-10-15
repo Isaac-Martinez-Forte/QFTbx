@@ -15,6 +15,7 @@
  */
 
 #include "src/gui/application/main_window.h"
+#include "src/gui/application/canvas_content.h"
 #include "src/gui/common/flow_layout.h"
 #include "src/gui/application/about.h"
 #include "src/gui/application/examples_dialog.h"
@@ -162,7 +163,7 @@ MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     connect(m_aboutQtAction, &QAction::triggered, this, []() { QApplication::aboutQt(); });
     retranslate();
 
-    m_canvasContent = new QWidget;
+    m_canvasContent = new CanvasContent;
     m_canvasContent->setObjectName("canvasContent");
     m_canvasLayout = new FlowLayout(m_canvasContent);
 
