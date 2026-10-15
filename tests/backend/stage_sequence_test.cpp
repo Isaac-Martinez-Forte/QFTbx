@@ -387,9 +387,11 @@ TEST(BackgroundSearch, ACancelledSweepLeavesTheProjectAndItsRecontourAsTheyWere)
     const std::vector<double> epsilon = *controller.epsilon();
     const StepSet steps = controller.completed();
 
-    ParameterGrids denser;
-    for (const auto & [name, values] : grids) {
-        denser[name] = values.size() > 1 ? qftbx::math::linspace(values.front(), values.back(), 25) : values;
+    ParameterGrids denser = grids;
+    for (auto & [name, values] : denser) {
+        if (values.size() > 1) {
+            values = qftbx::math::linspace(values.front(), values.back(), 25);
+        }
     }
 
     ASSERT_TRUE(controller.startTemplates({}, denser, false));
