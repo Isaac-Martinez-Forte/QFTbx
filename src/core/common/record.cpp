@@ -14,6 +14,7 @@
 
 #include <cstdio>
 #include <ctime>
+#include <filesystem>
 #include <iomanip>
 #include <locale>
 #include <mutex>
@@ -50,7 +51,11 @@ std::string stamp()
                                   now.time_since_epoch()).count() % 1000;
 
     std::tm broken{};
+#ifdef _WIN32
+    localtime_s(&broken, &seconds);
+#else
     localtime_r(&seconds, &broken);
+#endif
 
     char text[32];
     std::strftime(text, sizeof text, "%Y-%m-%d %H:%M:%S", &broken);
@@ -62,11 +67,8 @@ std::string stamp()
 
 void makeDirectories(const std::string & path)
 {
-    std::string::size_type at = path.find('/', 1);
-    while (at != std::string::npos) {
-        ::mkdir(path.substr(0, at).c_str(), 0755);
-        at = path.find('/', at + 1);
-    }
+    std::error_code ignored;
+    std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ignored);
 }
 
 long long sizeOf(const std::string & path)

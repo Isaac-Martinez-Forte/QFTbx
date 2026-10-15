@@ -19,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <cmath>
 #include <complex>
 #include <cstdio>
@@ -38,7 +40,7 @@ namespace {
 
 Complex atNichols(double phaseDegrees, double db)
 {
-    return std::polar(std::pow(10.0, db / 20.0), phaseDegrees * M_PI / 180.0);
+    return std::polar(std::pow(10.0, db / 20.0), phaseDegrees * qftbx::math::kPi / 180.0);
 }
 
 ParameterGrids gridsOf(LtiSystem * plant, int points)

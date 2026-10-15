@@ -16,6 +16,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <cmath>
 #include <complex>
 #include <limits>
@@ -174,7 +176,7 @@ TEST(SingularLocus, APointInsideExample2sTemplateIsForbiddenFromEitherSample)
         const Complex pInterior = (5.5 * 5.5) / (s * (s + 5.5));
         const Complex minusR = -p0 / pInterior;
 
-        double phase = std::arg(minusR) * 180.0 / M_PI;
+        double phase = std::arg(minusR) * 180.0 / qftbx::math::kPi;
         if (phase > 0.0) phase -= 360.0;
         const double magnitude = 20.0 * std::log10(std::abs(minusR));
 

@@ -24,6 +24,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <cmath>
 #include <cstdio>
 #include <complex>
@@ -247,7 +249,7 @@ TEST(GainContractor, ContractsAsMuchAsTheExactPhaseOfTheBoxAllows)
                     modulusLow /= std::hypot(w, q.range().max);
                     modulusHigh /= std::hypot(w, q.range().min);
                 }
-                const Range phase(phaseLow * 180.0 / M_PI, phaseHigh * 180.0 / M_PI);
+                const Range phase(phaseLow * 180.0 / qftbx::math::kPi, phaseHigh * 180.0 / qftbx::math::kPi);
                 const bool turn = phase.max - phase.min < 360.0 && std::floor(phase.max / 360.0) > std::floor(phase.min / 360.0);
                 const double before = expected.min, beforeMax = expected.max;
                 const ExactPointCheck::SectorVerdict verdict = exact.sectorVerdict(

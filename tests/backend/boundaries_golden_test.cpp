@@ -19,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include "src/core/math/constants.h"
+
 #include <string>
 
 #include <algorithm>
@@ -259,8 +261,8 @@ TEST(BoundaryCriticalPoint, CriticalCellViolatesEverySpecification)
     std::vector<double>* omega = controller.omega()->values();
     const qftbx::CloudSet & templates = controller.templates();
 
-    const std::complex<double> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * M_PI / 180.0),
-                                std::pow(10.0, 0.0 / 20.0) * std::sin(-180.0 * M_PI / 180.0));
+    const std::complex<double> L(std::pow(10.0, 0.0 / 20.0) * std::cos(-180.0 * qftbx::math::kPi / 180.0),
+                                std::pow(10.0, 0.0 / 20.0) * std::sin(-180.0 * qftbx::math::kPi / 180.0));
 
     for (int i = 0; i < omega->size(); ++i) {
         const std::complex<double> p0 = plant->evaluate(omega->at(i));
