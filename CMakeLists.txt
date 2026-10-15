@@ -217,7 +217,18 @@ if(WIN32)
 endif()
 
 if(APPLE)
-  set_target_properties(QFTbx PROPERTIES MACOSX_BUNDLE TRUE)
+  set(QFTBX_MACOS_ICON "${CMAKE_SOURCE_DIR}/Resources/Icon/qftbx.icns")
+  target_sources(QFTbx PRIVATE "${QFTBX_MACOS_ICON}")
+  set_source_files_properties("${QFTBX_MACOS_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  set_target_properties(QFTbx PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/Resources/macos/Info.plist.in"
+    MACOSX_BUNDLE_BUNDLE_NAME "QFTbx"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.isaac-martinez-forte.qftbx"
+    MACOSX_BUNDLE_ICON_FILE "qftbx.icns"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+  )
 endif()
 
 if(UNIX AND NOT APPLE)
