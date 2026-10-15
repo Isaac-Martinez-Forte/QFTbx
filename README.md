@@ -49,6 +49,20 @@ experimental.
 
 ---
 
+## Download
+
+Packages for Linux, Windows and macOS are attached to each version on the
+[releases page](https://github.com/Isaac-Martinez-Forte/QFTbx/releases): an
+AppImage for Linux; an installer, an MSI and a portable folder for Windows;
+and a disk image for macOS on Apple silicon. They are not signed yet, so the
+first time each system asks: make the AppImage executable, choose *Run
+anyway* when Windows SmartScreen warns, or *Open Anyway* in the Privacy &
+Security settings of macOS. The packages run on any machine of their kind;
+building from the sources, below, gives the fastest program for the machine
+that compiles it.
+
+---
+
 ## Requirements
 
 | Dependency | Version | Needed for | How it is obtained |
@@ -94,8 +108,6 @@ documentation target are described in [docs/BUILDING.md](docs/BUILDING.md).
 
 The tests are built with `-DQFTBX_BUILD_TESTS=ON` and run with
 `ctest --test-dir build-native`.
-
-No installer is provided yet; the application runs from the build directory.
 
 ---
 

@@ -2,7 +2,7 @@ name: Packages
 
 on:
   push:
-    branches: [feature/packaging]
+    tags: ['v*']
   workflow_dispatch:
 
 concurrency:
@@ -15,6 +15,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Name the build
+        run: bash packaging/name-the-build.sh
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -35,13 +38,12 @@ jobs:
 
       - name: Package
         run: |
-          version=$(sed -n 's/^project(QFTbx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
           DESTDIR="$PWD/AppDir" cmake --install build
           curl -fsSLo linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           curl -fsSLo linuxdeploy-plugin-qt https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy linuxdeploy-plugin-qt
           export APPIMAGE_EXTRACT_AND_RUN=1 QMAKE="$QT_ROOT_DIR/bin/qmake"
-          export LDAI_OUTPUT="QFTbx-$version-beta-linux-x86_64.AppImage"
+          export LDAI_OUTPUT="QFTbx-$LABEL-linux-x86_64.AppImage"
           ./linuxdeploy --appdir AppDir --plugin qt --output appimage \
             --desktop-file AppDir/usr/share/applications/qftbx.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/qftbx.png
@@ -68,6 +70,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Name the build
+        run: bash packaging/name-the-build.sh
 
       - name: Install Qt and its MinGW
         uses: jurplel/install-qt-action@v4
@@ -98,18 +103,14 @@ jobs:
           cmake --install build --prefix dist
           windeployqt --release --compiler-runtime dist/QFTbx.exe
           cp "$mingw"/libstdc++-6.dll "$mingw"/libgcc_s_seh-1.dll "$mingw"/libwinpthread-1.dll "$mingw"/libgomp-1.dll dist/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: QFTbx-windows-x86_64
-          path: dist
+          cp -r dist QFTbx
+          7z a -tzip "QFTbx-$LABEL-windows-x86_64-portable.zip" QFTbx > /dev/null
 
       - name: Build the installers
         run: |
-          version=$(sed -n 's/^project(QFTbx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
           iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
           if [ ! -x "$iscc" ]; then choco install innosetup -y --no-progress; fi
-          MSYS_NO_PATHCONV=1 "$iscc" "/DSourceDir=$(cygpath -w "$PWD/dist")" "/DAppVersion=$version" \
+          MSYS_NO_PATHCONV=1 "$iscc" "/DSourceDir=$(cygpath -w "$PWD/dist")" "/DAppVersion=$VERSION" "/DAppLabel=$LABEL" \
             "/O$(cygpath -w "$PWD")" packaging/windows/qftbx.iss
           if [ -z "${WIX:-}" ]; then
             choco install wixtoolset -y --no-progress
@@ -120,16 +121,17 @@ jobs:
           python packaging/windows/license_rtf.py LICENSE build/msi/license.rtf
           "$wix/heat.exe" dir dist -nologo -cg QFTbxFiles -dr INSTALLFOLDER -gg -sfrag -srd -sreg -scom \
             -var var.SourceDir -out build/msi/files.wxs
-          "$wix/candle.exe" -nologo -arch x64 -dSourceDir=dist -dVersion="$version" \
+          "$wix/candle.exe" -nologo -arch x64 -dSourceDir=dist -dVersion="$VERSION" -dLabel="$LABEL" \
             -dIconFile=Resources/Icon/qftbx.ico -dLicenseRtf=build/msi/license.rtf -out build/msi/ \
             packaging/windows/qftbx.wxs build/msi/files.wxs
           "$wix/light.exe" -nologo -ext WixUIExtension -cultures:en-us \
-            -out "QFTbx-$version-beta-windows-x86_64.msi" build/msi/qftbx.wixobj build/msi/files.wixobj
+            -out "QFTbx-$LABEL-windows-x86_64.msi" build/msi/qftbx.wixobj build/msi/files.wixobj
 
       - uses: actions/upload-artifact@v4
         with:
-          name: QFTbx-windows-x86_64-installers
+          name: QFTbx-windows-x86_64
           path: |
+            QFTbx-*-portable.zip
             QFTbx-*-setup.exe
             QFTbx-*.msi
 
@@ -151,6 +153,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Name the build
+        run: bash packaging/name-the-build.sh
+
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -167,12 +172,11 @@ jobs:
 
       - name: Package
         run: |
-          version=$(sed -n 's/^project(QFTbx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
           cmake --install build --prefix dist
           macdeployqt dist/QFTbx.app
           codesign --force --deep --sign - dist/QFTbx.app
           hdiutil create -volname QFTbx -srcfolder dist/QFTbx.app -ov -format UDZO \
-            "QFTbx-$version-beta-macos-arm64.dmg"
+            "QFTbx-$LABEL-macos-arm64.dmg"
 
       - name: Check the bundle
         run: |
@@ -192,3 +196,33 @@ jobs:
       - name: Test
         continue-on-error: true
         run: ctest --test-dir build --output-on-failure --no-tests=error -j"$(sysctl -n hw.ncpu)"
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Name the build
+        run: bash packaging/name-the-build.sh
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: QFTbx-*
+          path: release
+          merge-multiple: true
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd release && sha256sum QFTbx-* > SHA256SUMS)
+          prerelease=""
+          case "$LABEL" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" $prerelease --verify-tag --title "QFTbx $LABEL" \
+            --notes-file packaging/release-notes.md release/*

@@ -80,9 +80,10 @@ or without one:
 The Qt DLLs have to be on the path or next to the executable (`windeployqt`
 copies them).
 
-**Running.** The application runs from the build directory; there is no
-installer yet. On Linux the build writes a `.desktop` entry next to the
-executable, so the application can be added to a launcher. Settings are read
+**Running.** A build runs from its build directory; the packages of each
+version are on the releases page, as the README says. On Linux the build
+writes a `.desktop` entry next to the executable, so the application can be
+added to a launcher. Settings are read
 from an optional `qftbx.conf`, described in [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Options

@@ -2,7 +2,7 @@
 AppId={{CCA7592C-91D7-4637-BC71-E1DD50185E66}
 AppName=QFTbx
 AppVersion={#AppVersion}
-AppVerName=QFTbx {#AppVersion} beta
+AppVerName=QFTbx {#AppLabel}
 AppPublisher=Isaac Martínez Forte, Joaquín Cervera López
 AppPublisherURL=https://github.com/Isaac-Martinez-Forte/QFTbx
 AppSupportURL=https://github.com/Isaac-Martinez-Forte/QFTbx/issues
@@ -16,7 +16,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 LicenseFile={#SourcePath}\..\..\LICENSE
 SetupIconFile={#SourcePath}\..\..\Resources\Icon\qftbx.ico
 UninstallDisplayIcon={app}\QFTbx.exe
-OutputBaseFilename=QFTbx-{#AppVersion}-beta-windows-x86_64-setup
+OutputBaseFilename=QFTbx-{#AppLabel}-windows-x86_64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

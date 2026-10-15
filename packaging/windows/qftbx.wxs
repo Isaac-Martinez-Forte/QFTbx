@@ -4,7 +4,7 @@
            Manufacturer="Isaac Martínez Forte, Joaquín Cervera López"
            UpgradeCode="5AC59924-D793-4B08-811C-26A133D145BF">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64"
-             SummaryCodepage="1252" Description="QFTbx $(var.Version) beta, quantitative feedback theory toolbox" />
+             SummaryCodepage="1252" Description="QFTbx $(var.Label), quantitative feedback theory toolbox" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of QFTbx is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
