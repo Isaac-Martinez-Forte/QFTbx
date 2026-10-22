@@ -151,6 +151,8 @@ void AlgorithmMc2::prepare()
 
     exactReading = certifier != nullptr;
     gainContraction = exactReading && m_settings.research.mc2GainContraction;
+    exactHistory = exactReading && m_settings.research.mc2ExactHistory;
+    exactQsfact = exactReading && m_settings.research.mc2ExactQsfact;
     contractor.reset();
     if (gainContraction) {
         contractor = std::make_unique<GainContractor>(*exact, *family, *omega, nominalPlantValues);
@@ -204,11 +206,16 @@ bool AlgorithmMc2::solve()
 
         std::unique_ptr<McSearchNode> node = liveList->takeFirstAs<McSearchNode>();
 
+        if (exact != nullptr) {
+            exact->clearProvenRegion();
+        }
+
         if (cannotImprove(node->system()->gain().range().min)) {
             continue;
         }
 
         node->setSystem(capGain(node->releaseSystem(), bestCertifiedGain));
+        setProvenRegion(*node);
 
         if (contractor != nullptr && node->system()->gain().isUncertain()) {
             const GainContractor::Contraction contraction = contractor->contract(node->system());
@@ -523,6 +530,8 @@ LoopShapingStatistics AlgorithmMc2::statistics() const
         statistics.certificate.laddersExhausted = reading.laddersExhausted;
         statistics.certificate.roundLimitsReached = reading.roundLimitsReached;
         statistics.certificate.largestWorkingSet = reading.largestWorkingSet;
+        statistics.certificate.feasibilityProofs = reading.feasibilityProofs;
+        statistics.certificate.provenSkips = reading.provenSkips;
     }
     return statistics;
 }
@@ -566,6 +575,17 @@ bool AlgorithmMc2::analyse(McSearchNode * node, NodeAnalysis & out)
         }
 
         const BoxFlag verdict = classification.flag();
+
+        if (exactHistory && verdict == feasible
+                && exact->sectorFeasible(i, phaseRangeOf(projection), magnitudeRangeOf(projection))) {
+            node->markFrequencyProven(i);
+            node->markFrequencyFeasible(i);
+            ++certificate.provenFrequencies;
+            setProvenRegion(*node);
+            out.classification.push_back(std::nullopt);
+            out.projection.push_back(std::nullopt);
+            continue;
+        }
 
         out.classification.push_back(std::move(classification));
         out.projection.push_back(projection);
@@ -725,7 +745,7 @@ bool AlgorithmMc2::accepts(const PointController & point)
            && stability->isNominallyStable(point) && family->isStable(point);
 }
 
-void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
+void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box, bool proven)
 {
     const double gainInf = box->gain().range().min;
 
@@ -760,7 +780,50 @@ void AlgorithmMc2::insertFeasibleBox(std::unique_ptr<LtiSystem> box)
     if (verdict.has_value()) {
         t->setCornerVerdict(*verdict);
     }
+    if (proven) {
+        for (std::size_t i = 0; i < omega->size(); ++i) {
+            t->markFrequencyProven(i);
+            t->markFrequencyFeasible(i);
+        }
+    }
     liveList->insert(std::move(t));
+}
+
+bool AlgorithmMc2::provenAt(LtiSystem * box, std::size_t freqIndex)
+{
+    const NicholsBox projection = conversion->nicholsBox(box, omega->at(freqIndex), nominalPlantValues.at(freqIndex));
+    return exact->sectorFeasible(freqIndex, phaseRangeOf(projection), magnitudeRangeOf(projection));
+}
+
+bool AlgorithmMc2::provenEverywhere(LtiSystem * box, const McSearchNode & node)
+{
+    for (std::size_t i = 0; i < omega->size(); ++i) {
+        if (!node.isFrequencyProven(i) && !provenAt(box, i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void AlgorithmMc2::setProvenRegion(const McSearchNode & node)
+{
+    if (!(exactHistory || exactQsfact)) {
+        return;
+    }
+
+    LtiSystem * box = node.system();
+    ExactPointCheck::ProvenRegion region;
+    region.frequencies = node.provenFrequencies();
+    region.frequencies.resize(omega->size(), 0);
+    region.gain = parameterRange(box, 0);
+    const std::int32_t zeros = static_cast<std::int32_t>(box->numerator().size());
+    for (std::int32_t j = 0; j < zeros; ++j) {
+        region.zeros.push_back(parameterRange(box, j + 1));
+    }
+    for (std::int32_t j = 0; j < static_cast<std::int32_t>(box->denominator().size()); ++j) {
+        region.poles.push_back(parameterRange(box, zeros + j + 1));
+    }
+    exact->setProvenRegion(std::move(region));
 }
 
 PointController AlgorithmMc2::lowestGainOnRay(const PointController & point)
@@ -965,11 +1028,11 @@ void AlgorithmMc2::feasibleCuts(McSearchNode * node, const NodeAnalysis & analys
 
                 std::unique_ptr<LtiSystem> um = replaceParameter(box, parameter, feasiblePart);
 
-                if (!boxIsFeasible(um.get())) {
+                if (exactQsfact ? !provenEverywhere(um.get(), *node) : !boxIsFeasible(um.get())) {
                     continue;
                 }
 
-                insertFeasibleBox(std::move(um));
+                insertFeasibleBox(std::move(um), exactQsfact);
 
                 std::unique_ptr<LtiSystem> remainder = replaceParameter(box, parameter,
                                                                        ambiguousPart);
@@ -1137,6 +1200,32 @@ inline std::int32_t AlgorithmMc2::widestByMeasure(McSearchNode * node, std::size
     return best;
 }
 
+std::int32_t AlgorithmMc2::widestRange(McSearchNode * node, bool relative)
+{
+    LtiSystem * box = node->system();
+    std::int32_t best = -1;
+    double bestValue = -1.0;
+
+    for (std::int32_t parameter = 0; parameter < parameterCount(box); ++parameter) {
+        const Parameter & var = parameter == 0
+                ? box->gain()
+                : (parameter <= static_cast<std::int32_t>(box->numerator().size())
+                       ? box->numerator()[static_cast<std::size_t>(parameter - 1)]
+                       : box->denominator()[static_cast<std::size_t>(parameter - 1) - box->numerator().size()]);
+        if (!var.isUncertain() || (gainContraction && !splittable(var))) {
+            continue;
+        }
+        const Range range = var.range();
+        const double value = relative && range.min > 0.0 ? std::log(range.max / range.min) : range.width();
+        if (value > bestValue) {
+            bestValue = value;
+            best = parameter;
+        }
+    }
+
+    return best;
+}
+
 qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAnalysis & analysis,
                                               const std::vector<FeasibleThreshold> & thresholds)
 {
@@ -1169,7 +1258,13 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
             McSearchNode * feasibleChild = (bestThreshold->upperSide
                     ? children.t2 : children.t1).get();
 
-            if (boxIsFeasibleAt(feasibleChild->system(), freq)) {
+            if (exactQsfact) {
+                if (!feasibleChild->isFrequencyProven(freq) && provenAt(feasibleChild->system(), freq)) {
+                    feasibleChild->markFrequencyProven(freq);
+                    feasibleChild->markFrequencyFeasible(freq);
+                    ++certificate.provenFrequencies;
+                }
+            } else if (boxIsFeasibleAt(feasibleChild->system(), freq)) {
                 feasibleChild->markFrequencyFeasible(freq);
             }
 
@@ -1177,12 +1272,20 @@ qftbx::McBisectionResult AlgorithmMc2::bisect(McSearchNode * node, const NodeAna
         }
     }
 
-    const std::optional<NicholsBox> & main = analysis.projection.at(analysis.mainFrequency);
-    const Range magnitude = main.has_value() ? magnitudeRangeOf(*main) : Range();
-    const Range phase = main.has_value() ? phaseRangeOf(*main) : Range();
-    const WidthMeasure measure = phase.width() > magnitude.width() ? WidthMeasure::Phase : WidthMeasure::Magnitude;
+    using Bisection = Settings::Research::Bisection;
+    const Bisection rule = m_settings.research.mc2Bisection;
+    std::int32_t parameter = -1;
 
-    std::int32_t parameter = widestByMeasure(node, analysis.mainFrequency, measure);
+    if (rule == Bisection::Widest) {
+        const std::optional<NicholsBox> & main = analysis.projection.at(analysis.mainFrequency);
+        const Range magnitude = main.has_value() ? magnitudeRangeOf(*main) : Range();
+        const Range phase = main.has_value() ? phaseRangeOf(*main) : Range();
+        const WidthMeasure measure = phase.width() > magnitude.width() ? WidthMeasure::Phase : WidthMeasure::Magnitude;
+
+        parameter = widestByMeasure(node, analysis.mainFrequency, measure);
+    } else if (rule == Bisection::Width || rule == Bisection::LogWidth) {
+        parameter = widestRange(node, rule == Bisection::LogWidth);
+    }
 
     if (parameter < 0) {
         parameter = widestByMeasure(node, analysis.mainFrequency, WidthMeasure::Area);

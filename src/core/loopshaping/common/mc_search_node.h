@@ -21,7 +21,9 @@
  * Shared by MC of the thesis, which uses the whole history, and by MC2,
  * which has no stages and alone asks for the corner verdict. The feasible
  * frequencies are kept by their index, and a child of a bisection inherits
- * the history of its parent whole. McBisectionResult holds the two
+ * the history of its parent whole. MC2 under the exact reading also keeps
+ * the frequencies at which the node's box is proven to meet the
+ * specifications, which a sub-box inherits as they are. McBisectionResult holds the two
  * children of a bisection for whoever receives them, to be inserted in the
  * live list or dropped.
  */
@@ -43,6 +45,10 @@ public:
     void markFrequencyFeasible(std::size_t frequency);
     bool isFrequencyFeasible(std::size_t frequency) const;
 
+    void markFrequencyProven(std::size_t frequency);
+    bool isFrequencyProven(std::size_t frequency) const;
+    const std::vector<char> & provenFrequencies() const { return m_provenAt; }
+
     void inheritHistoryFrom(const McSearchNode & parent);
 
     void setCornerVerdict(bool certified);
@@ -53,6 +59,7 @@ private:
     bool m_cutsEnabled = true;
     Stage m_stage = Stage::Initial;
     std::vector<char> m_feasibleAt;
+    std::vector<char> m_provenAt;
     std::optional<bool> m_cornerVerdict;
 };
 

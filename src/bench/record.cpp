@@ -131,6 +131,9 @@ const CertificateCount kCertificateCounts[] = {
     {"ladders_exhausted", &LoopShapingStatistics::Certificate::laddersExhausted},
     {"round_limits_reached", &LoopShapingStatistics::Certificate::roundLimitsReached},
     {"largest_working_set", &LoopShapingStatistics::Certificate::largestWorkingSet},
+    {"proven_frequencies", &LoopShapingStatistics::Certificate::provenFrequencies},
+    {"feasibility_proofs", &LoopShapingStatistics::Certificate::feasibilityProofs},
+    {"proven_skips", &LoopShapingStatistics::Certificate::provenSkips},
 };
 
 }

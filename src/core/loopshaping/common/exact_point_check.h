@@ -65,6 +65,16 @@
  * verdict visits only the ones in that window. The last verdict of each
  * frequency is remembered while its working set stands.
  *
+ * sectorFeasible asks the other side of the same geometry: a plant's
+ * quadratic is smallest at the smallest cosine over the phase interval, and
+ * if that is at or above a relative margin at every magnitude of the sector,
+ * for every plant, every bound lowered by the tolerance and, for the
+ * tracking spread, every plant against every vertex of the hull, the whole
+ * box meets the specifications at that frequency with a proof. A proven
+ * region holds the frequencies so proven for a box; a point inside the box,
+ * or a gain range with its zeros and poles, skips them in admits and in the
+ * admissible gains, and provenOver answers the same for a sub-box.
+ *
  * Without templates for every design frequency the check is unusable and
  * MC2 refuses to run. checkOf gives the full list of a point's excesses.
  */
@@ -105,6 +115,19 @@ public:
 
     SectorVerdict sectorVerdict(std::size_t omegaIndex, Range phaseDegrees, Range magnitudeDb);
 
+    bool sectorFeasible(std::size_t omegaIndex, Range phaseDegrees, Range magnitudeDb);
+
+    struct ProvenRegion {
+        std::vector<char> frequencies;
+        Range gain;
+        std::vector<Range> zeros;
+        std::vector<Range> poles;
+    };
+
+    void setProvenRegion(ProvenRegion region);
+    void clearProvenRegion();
+    bool provenOver(std::size_t omegaIndex, LtiSystem * box) const;
+
     struct Statistics {
         std::size_t verdicts = 0;
         std::size_t kernelPasses = 0;
@@ -115,6 +138,8 @@ public:
         std::size_t roundLimitsReached = 0;
         std::size_t largestWorkingSet = 0;
         std::size_t sectorVerdicts = 0;
+        std::size_t feasibilityProofs = 0;
+        std::size_t provenSkips = 0;
     };
     const Statistics & statistics() const { return m_statistics; }
 
@@ -184,6 +209,8 @@ private:
 
     void requireUsable() const;
 
+    bool insideProven(const std::vector<double> & zeros, const std::vector<double> & poles, Range gains) const;
+
     std::complex<double> loopAt(const FrequencyReference & at, const PointController & point) const;
 
     bool admitsFrom(const PointController & point, std::size_t & firstToAsk);
@@ -211,6 +238,7 @@ private:
     std::vector<std::vector<PlantWindow>> m_windows;
     std::vector<TrackingPairs> m_pairs;
     std::vector<RememberedSector> m_sectors;
+    std::optional<ProvenRegion> m_proven;
     Scratch m_scratch;
     std::vector<double> m_forbiddenLower;
     std::vector<double> m_forbiddenUpper;

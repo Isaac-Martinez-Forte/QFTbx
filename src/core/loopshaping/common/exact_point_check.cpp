@@ -99,6 +99,11 @@ struct Arc {
         }
         return std::max(cosine * fromCosine + sine * fromSine, cosine * toCosine + sine * toSine);
     }
+
+    double smallestCosine(double cosine, double sine) const
+    {
+        return -largestCosine(-cosine, -sine);
+    }
 };
 
 constexpr double kWindowMargin = 1e-6;
@@ -114,6 +119,32 @@ double halfWidthOf(double modulus, double a, double c, double shift)
 {
     const double kappa = (shift - std::sqrt(a * c)) / modulus;
     return std::acos(std::clamp(-kappa, -1.0, 1.0));
+}
+
+constexpr double kFeasibleMargin = 1e-9;
+constexpr double kSectorWidening = 1e-12;
+
+bool nonNegativeOver(double a, double b, double c, double g1, double g2)
+{
+    double smallest = std::min(a * g1 * g1 + b * g1 + c, a * g2 * g2 + b * g2 + c);
+    if (a > 0.0) {
+        const double vertex = -b / (2.0 * a);
+        if (vertex > g1 && vertex < g2) {
+            smallest = std::min(smallest, a * vertex * vertex + b * vertex + c);
+        }
+    }
+    const double scale = std::abs(a) * g2 * g2 + std::abs(b) * g2 + std::abs(c);
+    return smallest >= kFeasibleMargin * scale;
+}
+
+Range rangeOf(const Parameter & parameter)
+{
+    return parameter.isUncertain() ? parameter.range() : Range(parameter.nominal(), parameter.nominal());
+}
+
+bool within(Range inner, Range outer)
+{
+    return outer.min <= inner.min && inner.max <= outer.max;
 }
 
 double largestOver(double a, double b, double c, double g1, double g2)
@@ -256,9 +287,14 @@ bool ExactPointCheck::admitsFrom(const PointController & point, std::size_t & fi
 
     const std::vector<FrequencyReference> & frequencies = m_reference->frequencies();
     const std::size_t count = frequencies.size();
+    const bool inside = insideProven(point.zeros, point.poles, Range(point.gain, point.gain));
 
     for (std::size_t step = 0; step < count; ++step) {
         const std::size_t i = (firstToAsk + step) % count;
+        if (inside && frequencies[i].index < m_proven->frequencies.size() && m_proven->frequencies[frequencies[i].index] != 0) {
+            ++m_statistics.provenSkips;
+            continue;
+        }
         ++m_statistics.kernelPasses;
         if (!(frequencies[i].worstExcessAt(loopAt(frequencies[i], point)) <= -kToleranceDb)) {
             firstToAsk = i;
@@ -386,10 +422,15 @@ RangeUnion ExactPointCheck::admissibleGainsDbOver(const std::vector<double> & ze
 
     const std::vector<FrequencyReference> & frequencies = m_reference->frequencies();
     const double delay = m_controller->delay().nominal();
+    const bool inside = insideProven(zeros, poles, gainRange);
 
     for (std::size_t f = 0; f < frequencies.size() && !gains.isEmpty(); ++f) {
         const FrequencyReference & at = frequencies[f];
         if (at.bounds.empty()) {
+            continue;
+        }
+        if (inside && at.index < m_proven->frequencies.size() && m_proven->frequencies[at.index] != 0) {
+            ++m_statistics.provenSkips;
             continue;
         }
 
@@ -640,6 +681,112 @@ ExactPointCheck::SectorVerdict ExactPointCheck::sectorVerdict(std::size_t omegaI
 
     remembered = {true, m_working[f].size(), phaseDegrees, magnitudeDb, verdict};
     return verdict;
+}
+
+bool ExactPointCheck::sectorFeasible(std::size_t omegaIndex, Range phaseDegrees, Range magnitudeDb)
+{
+    requireUsable();
+
+    if (omegaIndex >= m_referenceOf.size() || m_referenceOf[omegaIndex] == std::numeric_limits<std::size_t>::max()) {
+        return false;
+    }
+    const std::size_t f = m_referenceOf[omegaIndex];
+    const FrequencyReference & at = m_reference->frequencies()[f];
+    const std::vector<Quotient> & quotients = m_quotients[f];
+    const std::vector<std::complex<double>> & q = at.nominalOverValueSet;
+    const Arc arc(phaseDegrees.min * math::kPi / 180.0, phaseDegrees.max * math::kPi / 180.0);
+    const double g1 = dbToLinear(magnitudeDb.min) * (1.0 - kSectorWidening);
+    const double g2 = dbToLinear(magnitudeDb.max) * (1.0 + kSectorWidening);
+    if (!(g1 >= 0.0) || !(g2 < kInfinity) || !(phaseDegrees.min <= phaseDegrees.max)) {
+        return false;
+    }
+
+    for (const FrequencyReference::Bound & bound : at.bounds) {
+        const double boundDb = bound.boundDb - kToleranceDb;
+
+        if (bound.type == SpecificationType::TrackingLower) {
+            const double dm1 = trackingFactor(boundDb);
+            const double d2 = dm1 + 1.0;
+            for (const std::size_t n : m_hull[f]) {
+                for (std::size_t j = 0; j < q.size(); ++j) {
+                    const std::complex<double> w = d2 * q[j] - q[n];
+                    const double modulus = std::abs(w);
+                    const double rho = modulus > 0.0 ? modulus * arc.smallestCosine(std::real(w) / modulus, std::imag(w) / modulus)
+                                                     : 0.0;
+                    if (!nonNegativeOver(dm1, 2.0 * rho, d2 * std::norm(q[j]) - std::norm(q[n]), g1, g2)) {
+                        return false;
+                    }
+                }
+            }
+            continue;
+        }
+
+        const double W = dbToLinear(boundDb);
+        const double nominalModulus = std::abs(at.nominalPlant);
+        for (const Quotient & quotient : quotients) {
+            const std::optional<Disc> disc = discOf(bound.type, W, quotient.modulus, nominalModulus, quotient.plantModulus);
+            if (!disc.has_value()) {
+                return false;
+            }
+            const double s = disc->s, t = disc->t;
+            const double cmin = quotient.modulus * arc.smallestCosine(quotient.cosine, quotient.sine);
+            if (!nonNegativeOver(1.0 - s * s, 2.0 * (cmin - s * t), quotient.norm - t * t, g1, g2)) {
+                return false;
+            }
+        }
+    }
+
+    ++m_statistics.feasibilityProofs;
+    return true;
+}
+
+void ExactPointCheck::setProvenRegion(ProvenRegion region)
+{
+    m_proven = std::move(region);
+}
+
+void ExactPointCheck::clearProvenRegion()
+{
+    m_proven.reset();
+}
+
+bool ExactPointCheck::insideProven(const std::vector<double> & zeros, const std::vector<double> & poles, Range gains) const
+{
+    if (!m_proven.has_value() || zeros.size() != m_proven->zeros.size() || poles.size() != m_proven->poles.size()
+            || !within(gains, m_proven->gain)) {
+        return false;
+    }
+    for (std::size_t j = 0; j < zeros.size(); ++j) {
+        if (!m_proven->zeros[j].contains(zeros[j])) {
+            return false;
+        }
+    }
+    for (std::size_t j = 0; j < poles.size(); ++j) {
+        if (!m_proven->poles[j].contains(poles[j])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ExactPointCheck::provenOver(std::size_t omegaIndex, LtiSystem * box) const
+{
+    if (!m_proven.has_value() || omegaIndex >= m_proven->frequencies.size() || m_proven->frequencies[omegaIndex] == 0
+            || box->numerator().size() != m_proven->zeros.size() || box->denominator().size() != m_proven->poles.size()
+            || !within(rangeOf(box->gain()), m_proven->gain)) {
+        return false;
+    }
+    for (std::size_t j = 0; j < box->numerator().size(); ++j) {
+        if (!within(rangeOf(box->numerator()[j]), m_proven->zeros[j])) {
+            return false;
+        }
+    }
+    for (std::size_t j = 0; j < box->denominator().size(); ++j) {
+        if (!within(rangeOf(box->denominator()[j]), m_proven->poles[j])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 const ExactPointCheck::TrackingPairs & ExactPointCheck::trackingPairs(std::size_t frequency, std::size_t bound)

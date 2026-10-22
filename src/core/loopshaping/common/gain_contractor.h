@@ -14,7 +14,8 @@
  * copy of the gains, since what it proves of the whole interval holds of
  * any part. The strip ends are floating-point roots, as in the search's
  * cuts, and rest on the 1e-12 dB the certification funnel keeps from every
- * bound.
+ * bound. A frequency at which the box is proven to meet the specifications
+ * (ExactPointCheck::provenOver) forbids nothing and is skipped.
  */
 
 #ifndef QFTBX_LOOPSHAPING_GAIN_CONTRACTOR_H
