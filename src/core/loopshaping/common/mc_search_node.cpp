@@ -47,11 +47,25 @@ bool McSearchNode::isFrequencyFeasible(std::size_t frequency) const
     return frequency < m_feasibleAt.size() && m_feasibleAt[frequency] != 0;
 }
 
+void McSearchNode::markFrequencyProven(std::size_t frequency)
+{
+    if (frequency >= m_provenAt.size()) {
+        m_provenAt.resize(frequency + 1, 0);
+    }
+    m_provenAt[frequency] = 1;
+}
+
+bool McSearchNode::isFrequencyProven(std::size_t frequency) const
+{
+    return frequency < m_provenAt.size() && m_provenAt[frequency] != 0;
+}
+
 void McSearchNode::inheritHistoryFrom(const McSearchNode & parent)
 {
     m_cutsEnabled = parent.m_cutsEnabled;
     m_stage = parent.m_stage;
     m_feasibleAt = parent.m_feasibleAt;
+    m_provenAt = parent.m_provenAt;
 }
 
 void McSearchNode::setCornerVerdict(bool certified)

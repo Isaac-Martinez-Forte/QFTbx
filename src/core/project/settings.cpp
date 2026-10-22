@@ -396,6 +396,25 @@ const std::vector<Binding> & bindings()
          flag([](Settings & into) -> bool & { return into.research.mc2.treeBisection; })},
         {"research.mc2.gain-contraction",
          flag([](Settings & into) -> bool & { return into.research.mc2GainContraction; })},
+        {"research.mc2.exact-history",
+         flag([](Settings & into) -> bool & { return into.research.mc2ExactHistory; })},
+        {"research.mc2.exact-qsfact",
+         flag([](Settings & into) -> bool & { return into.research.mc2ExactQsfact; })},
+        {"research.mc2.bisection",
+         [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
+             using Bisection = Settings::Research::Bisection;
+             if (text == "widest") {
+                 into.research.mc2Bisection = Bisection::Widest;
+             } else if (text == "area") {
+                 into.research.mc2Bisection = Bisection::Area;
+             } else if (text == "width") {
+                 into.research.mc2Bisection = Bisection::Width;
+             } else if (text == "log-width") {
+                 into.research.mc2Bisection = Bisection::LogWidth;
+             } else {
+                 refuse(key, line, "widest, area, width or log-width, not \"" + text + "\"");
+             }
+         }},
     };
 
     return table;

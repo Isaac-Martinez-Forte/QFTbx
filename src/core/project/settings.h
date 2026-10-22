@@ -156,6 +156,14 @@ struct Settings {
 
         bool mc2GainContraction = true;
 
+        bool mc2ExactHistory = false;
+
+        bool mc2ExactQsfact = false;
+
+        enum class Bisection { Widest, Area, Width, LogWidth };
+
+        Bisection mc2Bisection = Bisection::Widest;
+
         bool conservativeColumnsInForce() const
         {
             return mc2Reading == PointReading::Exact ? exactGuide == BoundaryGuide::Conservative

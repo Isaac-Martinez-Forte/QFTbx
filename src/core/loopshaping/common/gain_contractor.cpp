@@ -73,13 +73,16 @@ bool GainContractor::contractBySpecifications(LtiSystem * box, Range & gains)
         return true;
     }
 
-    if (m_lastEmptiedAt < m_omega.size()) {
+    if (m_lastEmptiedAt < m_omega.size() && !m_exact.provenOver(m_lastEmptiedAt, box)) {
         Range trial = gains;
         if (!contractAt(box, m_lastEmptiedAt, trial)) {
             return false;
         }
     }
     for (std::size_t i = 0; i < m_omega.size(); ++i) {
+        if (m_exact.provenOver(i, box)) {
+            continue;
+        }
         if (!contractAt(box, i, gains)) {
             m_lastEmptiedAt = i;
             return false;

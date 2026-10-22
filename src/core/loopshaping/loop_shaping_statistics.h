@@ -93,6 +93,9 @@ struct LoopShapingStatistics
         std::size_t laddersExhausted = 0;
         std::size_t roundLimitsReached = 0;
         std::size_t largestWorkingSet = 0;
+        std::size_t provenFrequencies = 0;
+        std::size_t feasibilityProofs = 0;
+        std::size_t provenSkips = 0;
     };
     Certificate certificate;
 };

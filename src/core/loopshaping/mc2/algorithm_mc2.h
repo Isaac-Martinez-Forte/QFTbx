@@ -87,6 +87,24 @@
  * and the grid's discards counted apart; research.mc2-reading = columns
  * gives the published formulation, bit for bit, with the certificate as
  * bookkeeping alone.
+ *
+ * Two switches, off by default, bring the node history and the feasible
+ * cuts of the thesis to the exact reading. research.mc2.exact-history: a
+ * frequency the columns read as feasible is asked of
+ * ExactPointCheck::sectorFeasible, and when the whole box is proven to meet
+ * the specifications there, the node keeps it, its sub-boxes inherit it,
+ * and the points, gains and contractions inside the box skip it; a box
+ * proven at every frequency has its corner of least gain certified at
+ * once, which is the feasible box of the 2021 article with a proof.
+ * research.mc2.exact-qsfact: a feasible slab and the child a tree bisection
+ * marks are accepted only when sectorFeasible proves them, and are kept as
+ * proven.
+ *
+ * research.mc2.bisection chooses the parameter a box is split along when no
+ * tree bisection applies: widest, the default, the parameter that most
+ * narrows the wider side of the projection; area, the one that most narrows
+ * its area; width, the widest range, as NT and NK split; log-width, the
+ * widest range relative to its size.
  */
 namespace qftbx {
 
@@ -140,7 +158,7 @@ private:
     Step resolveFeasibleCorner(McSearchNode & node, double gainInf);
     Step resolveEpsilonBox(McSearchNode & node, double gainInf);
     bool pruneUnstableBox(McSearchNode & node, double gainInf);
-    void expand(McSearchNode & node, NodeAnalysis & analysis);
+    void expand(std::unique_ptr<McSearchNode> node, NodeAnalysis & analysis);
 
     void discardUnproven(double gainInf);
     void discardGridBacked(double gainInf);
@@ -168,10 +186,15 @@ private:
                                     const std::vector<FeasibleThreshold> & thresholds);
     qftbx::McBisectionResult bisectAt(McSearchNode * node, std::int32_t parameter, double point);
     inline std::int32_t widestByMeasure(McSearchNode * node, std::size_t mainFrequency, WidthMeasure measure);
+    std::int32_t widestRange(McSearchNode * node, bool relative);
 
     bool boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex);
     bool boxIsFeasible(LtiSystem * box);
-    void insertFeasibleBox(std::unique_ptr<LtiSystem> box);
+    void insertFeasibleBox(std::unique_ptr<LtiSystem> box, bool proven = false);
+
+    bool provenAt(LtiSystem * box, std::size_t freqIndex);
+    bool provenEverywhere(LtiSystem * box, const McSearchNode & node);
+    void setProvenRegion(const McSearchNode & node);
 
     std::optional<PointController> bestEpsilonCandidate(LtiSystem * box);
     PointController lowestGainOnRay(const PointController & point);
@@ -201,6 +224,8 @@ private:
 
     bool exactReading = false;
     bool gainContraction = false;
+    bool exactHistory = false;
+    bool exactQsfact = false;
     Settings::Research::McStrategies strategies;
     double phaseGridStep = 0;
     Range initialGainRange;
