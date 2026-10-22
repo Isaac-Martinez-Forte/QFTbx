@@ -158,7 +158,7 @@ private:
     Step resolveFeasibleCorner(McSearchNode & node, double gainInf);
     Step resolveEpsilonBox(McSearchNode & node, double gainInf);
     bool pruneUnstableBox(McSearchNode & node, double gainInf);
-    void expand(McSearchNode & node, NodeAnalysis & analysis);
+    void expand(std::unique_ptr<McSearchNode> node, NodeAnalysis & analysis);
 
     void discardUnproven(double gainInf);
     void discardGridBacked(double gainInf);

@@ -45,6 +45,14 @@ bool splittable(const Parameter & parameter)
            && range.width() > 1e-12 * std::max(std::abs(range.min), std::abs(range.max));
 }
 
+bool anySplittable(LtiSystem * box)
+{
+    bool any = splittable(box->gain());
+    for (const Parameter & z : box->numerator()) any = any || splittable(z);
+    for (const Parameter & p : box->denominator()) any = any || splittable(p);
+    return any;
+}
+
 void cornerVectors(LtiSystem * box, bool zerosAtSup, bool polesAtSup,
                    std::vector<double> & zeros, std::vector<double> & poles)
 {
@@ -266,7 +274,7 @@ bool AlgorithmMc2::solve()
             continue;
         }
 
-        expand(*node, analysis);
+        expand(std::move(node), analysis);
     }
 }
 
@@ -409,19 +417,25 @@ bool AlgorithmMc2::pruneUnstableBox(McSearchNode & node, double gainInf)
     return true;
 }
 
-void AlgorithmMc2::expand(McSearchNode & node, NodeAnalysis & analysis)
+void AlgorithmMc2::expand(std::unique_ptr<McSearchNode> node, NodeAnalysis & analysis)
 {
     std::vector<FeasibleThreshold> thresholds;
-    if (!improveNode(&node, analysis, thresholds)) {
+    if (!improveNode(node.get(), analysis, thresholds)) {
         ++certificate.provenInfeasible;
         return;
     }
 
-    if (cannotImprove(node.system()->gain().range().min)) {
+    if (cannotImprove(node->system()->gain().range().min)) {
         return;
     }
 
-    qftbx::McBisectionResult children = bisect(&node, analysis, thresholds);
+    if (gainContraction && !anySplittable(node->system())) {
+        node->setIndex(node->system()->gain().range().min);
+        liveList->insert(std::move(node));
+        return;
+    }
+
+    qftbx::McBisectionResult children = bisect(node.get(), analysis, thresholds);
 
     for (std::unique_ptr<McSearchNode> * slot : {&children.t1, &children.t2}) {
         std::unique_ptr<McSearchNode> child = std::move(*slot);
@@ -633,14 +647,8 @@ bool AlgorithmMc2::boxIsFeasibleAt(LtiSystem * box, std::size_t freqIndex)
 
 bool AlgorithmMc2::isEpsilonSmall(McSearchNode * node, const NodeAnalysis & analysis)
 {
-    if (gainContraction) {
-        LtiSystem * box = node->system();
-        bool anySplittable = splittable(box->gain());
-        for (const Parameter & z : box->numerator()) anySplittable = anySplittable || splittable(z);
-        for (const Parameter & p : box->denominator()) anySplittable = anySplittable || splittable(p);
-        if (!anySplittable) {
-            return true;
-        }
+    if (gainContraction && !anySplittable(node->system())) {
+        return true;
     }
 
     for (std::size_t i = 0; i < omega->size(); ++i) {
