@@ -7,7 +7,10 @@
  * error and not 23. Pi and e are enclosures, not nearest doubles, so an
  * interval evaluation contains the true constant. The backward pass of the
  * contractor intersects each child projection with the child's forward value
- * and reports the box inconsistent as soon as one is empty; projections that
+ * and reports the box inconsistent as soon as one is empty. A variable
+ * written several times keeps the intersection of what every occurrence
+ * projects, and a square projects onto the roots on the side of its base's
+ * sign, both halves only when the base straddles zero. Projections that
  * could abort inside the interval library (a negative range into a power, an
  * inverse trigonometric function outside its branch, a divisor straddling
  * zero) are skipped rather than risked. A small whole power of a complex
@@ -473,7 +476,11 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
 
     case VAR  :
     {
-        *node->slot = enclosure;
+        Interval narrowedSlot;
+        if (!safeIntersection(*node->slot, enclosure, narrowedSlot)) {
+            return false;
+        }
+        *node->slot = narrowedSlot;
         return true;
     }
 
@@ -568,8 +575,14 @@ bool ExpressionTree::eval_tree_out(exp_node *node, Interval enclosure){
         }
 
         const Interval root = sqrt(nonNegative);
-        if (!safeIntersection(node->left->enclosure,
-                                Interval(-root.upper(), root.upper()), candidate)) {
+        const Interval & base = node->left->enclosure;
+        Interval projection(-root.upper(), root.upper());
+        if (base.lower() >= 0.0) {
+            projection = Interval(root.lower(), root.upper());
+        } else if (base.upper() <= 0.0) {
+            projection = Interval(-root.upper(), -root.lower());
+        }
+        if (!safeIntersection(base, projection, candidate)) {
             return false;
         }
         return eval_tree_out(node->left.get(), candidate);
