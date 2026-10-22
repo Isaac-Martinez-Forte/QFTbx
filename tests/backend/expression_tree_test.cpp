@@ -9,7 +9,9 @@
  * must be exact with no imaginary residue, since a residue keeps an undamped
  * resonance from ever hitting its zero; the in-memory construction the
  * constraint propagation of algorithm MR builds on, each tree owning its own
- * nodes; the reserved names, with the unit-multiplier letters such as `k`
+ * nodes; the propagation itself, which keeps what every occurrence of a
+ * variable narrows, in whatever order they are written, and narrows a square
+ * from below on the side of its sign; the reserved names, with the unit-multiplier letters such as `k`
  * being ordinary variables; and the free-form plant, which refuses an
  * unreadable expression or an undeclared parameter where it is built.
  */
@@ -184,6 +186,48 @@ TEST(ExpressionBuilder, AnExpressionIsABuildingBlockOfManyTrees)
     EXPECT_TRUE(second.propagate(&domains));
     EXPECT_DOUBLE_EQ(domains.at("g").lower(), 2.0);
     EXPECT_DOUBLE_EQ(domains.at("g").upper(), 5.0);
+}
+
+TEST(ExpressionPropagation, AVariableWrittenTwiceKeepsWhatEitherOccurrenceNarrows)
+{
+    const Expression x = Expression::variable("x");
+    ExpressionTree rootFirst(sqrt(x) + Expression(0.001) * x - Expression(9.5), 0.0, qftbx::GREATER_EQUAL);
+    ExpressionTree rootLast(Expression(0.001) * x + sqrt(x) - Expression(9.5), 0.0, qftbx::GREATER_EQUAL);
+    rootFirst.bind({"x"});
+    rootLast.bind({"x"});
+
+    std::vector<Interval> first{Interval(0.0, 100.0)};
+    std::vector<Interval> last{Interval(0.0, 100.0)};
+    EXPECT_TRUE(rootFirst.propagate(first));
+    EXPECT_TRUE(rootLast.propagate(last));
+
+    EXPECT_NEAR(first.at(0).lower(), 9.4 * 9.4, 1e-9);
+    EXPECT_LE(first.at(0).lower(), 9.4 * 9.4 + 1e-12);
+    EXPECT_EQ(first.at(0), last.at(0));
+    EXPECT_DOUBLE_EQ(first.at(0).upper(), 100.0);
+}
+
+TEST(ExpressionPropagation, ASquareNarrowsFromBelowOnTheSideOfItsSign)
+{
+    const Expression x = Expression::variable("x");
+    ExpressionTree tree(pow(x, Expression(2.0)) - Expression(4.0), 0.0, qftbx::GREATER_EQUAL);
+    tree.bind({"x"});
+
+    std::vector<Interval> positive{Interval(0.0, 10.0)};
+    std::vector<Interval> negative{Interval(-10.0, 0.0)};
+    std::vector<Interval> both{Interval(-10.0, 10.0)};
+    EXPECT_TRUE(tree.propagate(positive));
+    EXPECT_TRUE(tree.propagate(negative));
+    EXPECT_TRUE(tree.propagate(both));
+
+    EXPECT_NEAR(positive.at(0).lower(), 2.0, 1e-12);
+    EXPECT_LE(positive.at(0).lower(), 2.0);
+    EXPECT_DOUBLE_EQ(positive.at(0).upper(), 10.0);
+    EXPECT_DOUBLE_EQ(negative.at(0).lower(), -10.0);
+    EXPECT_NEAR(negative.at(0).upper(), -2.0, 1e-12);
+    EXPECT_GE(negative.at(0).upper(), -2.0);
+    EXPECT_DOUBLE_EQ(both.at(0).lower(), -10.0);
+    EXPECT_DOUBLE_EQ(both.at(0).upper(), 10.0);
 }
 
 TEST(ExpressionBuilder, AnOperatorWithoutAnOperandIsRefused)

@@ -8,7 +8,7 @@
  * specifications demand a loop above their open boundaries and no gain in
  * the stored range satisfies them, so NT, NK, MC1 and MC of the thesis must
  * report that no solution exists. MR works from the specifications rather
- * than the boundaries and is pinned at a gain of 378.157; its stop is the
+ * than the boundaries and is pinned at a gain of 378.276; its stop is the
  * width of the controller parameter box (Kalla and Nataraj 2010, section 5)
  * where the other four measure the Nichols box, so the accuracy of 0.5
  * means different things per algorithm.
@@ -84,7 +84,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         GoldenResult{"NT", qftbx::nt, false, 0.0, 0.0},
         GoldenResult{"NK", qftbx::nk, false, 0.0, 0.0},
-        GoldenResult{"MR", qftbx::mr, true, 378.15738155492267, 0.05},
+        GoldenResult{"MR", qftbx::mr, true, 378.27585529145881, 0.05},
         GoldenResult{"MC1", qftbx::mc1, false, 0.0, 0.0},
         GoldenResult{"McThesis", qftbx::mc_thesis, false, 0.0, 0.0}),
     [](const ::testing::TestParamInfo<GoldenResult>& info) {
