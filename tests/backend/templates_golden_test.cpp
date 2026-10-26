@@ -8,8 +8,12 @@
  * anchors fixing the sweep order; the contours are compared as cycles, same
  * sequence and direction from any starting point, since the faithful
  * `EPSHULL.M` walk closes on its first point, and every contour point must
- * belong to its cloud and start at the extreme the hybrid rule names. The
- * frequencies stay aligned with their templates whatever the thread count,
+ * belong to its cloud and start at the extreme the hybrid rule names. At
+ * 0.1 rad/s epsilon is 1/omega, the diameter of the arc the smallest gain
+ * draws, so the points of that arc lie together on the rolling circle and
+ * tie: which of them the walk stops at between the ends of the arc is left
+ * to the rounding of each platform, and there the contours are compared
+ * without them. The frequencies stay aligned with their templates whatever the thread count,
  * the input vectors survive the computation, a loaded project can recompute
  * its contour, and a missing grid or missing templates are refused.
  */
@@ -23,6 +27,8 @@
 #include <algorithm>
 
 #include <complex>
+
+#include <limits>
 
 #include "src/app/project_controller.h"
 #include "src/core/common/exception.h"
@@ -111,12 +117,38 @@ TEST_F(TemplatesGolden, ContourMatchesFixtureAsACycle)
         return cycle;
     };
 
+    const auto withoutTheInsideOfTheArc = [](std::vector<Complex> cycle, double omega) {
+        const double radius = 0.5 / omega;
+        const Complex centre(0.0, -radius);
+        const auto onTheArc = [&](const Complex & z) {
+            return std::abs(std::abs(z - centre) - radius) < 1e-9 * radius;
+        };
+        double rightmost = -std::numeric_limits<double>::infinity();
+        double leftmost = std::numeric_limits<double>::infinity();
+        for (const Complex & z : cycle) {
+            if (onTheArc(z)) {
+                rightmost = std::max(rightmost, z.real());
+                leftmost = std::min(leftmost, z.real());
+            }
+        }
+        cycle.erase(std::remove_if(cycle.begin(), cycle.end(), [&](const Complex & z) {
+                        return onTheArc(z) && z.real() < rightmost && z.real() > leftmost;
+                    }),
+                    cycle.end());
+        return cycle;
+    };
+
     const std::size_t expectedSizes[] = {30, 28, 28, 28, 28, 28};
     for (int f = 0; f < static_cast<int>(computed.size()); ++f) {
-        const std::vector<Complex> golden = asCycle(expected.at(f));
+        std::vector<Complex> golden = asCycle(expected.at(f));
         ASSERT_EQ(golden.size(), expectedSizes[f]) << "frequency " << f;
 
         std::vector<Complex> cycle = asCycle(computed.at(f));
+        if (epsilon.at(f) == 1.0 / omegaCopy.at(f)) {
+            golden = withoutTheInsideOfTheArc(golden, omegaCopy.at(f));
+            cycle = withoutTheInsideOfTheArc(cycle, omegaCopy.at(f));
+            EXPECT_EQ(golden.size(), 28u) << "frequency " << f;
+        }
         ASSERT_EQ(cycle.size(), golden.size()) << "frequency " << f;
 
         std::size_t offset = 0;

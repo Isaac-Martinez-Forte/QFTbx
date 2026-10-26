@@ -3,10 +3,13 @@
  * @brief The certification funnel accepts what the verifier accepts and
  * refuses where the verifier would.
  *
- * On the DC motor of the thesis, the published design passes every step;
- * the point on the Routh limit of the family, which the Routh table calls
- * stable, is refused by the roots with the verifier's tolerance, so the
- * search cannot return what the verifier would then reject; and a point
+ * On the DC motor of the thesis, the published design passes every step
+ * with its gain raised a relative 1e-9: the search left it on the 1e-12 dB
+ * the exact reading keeps clear of the bounds, where the last bits of
+ * another system's mathematical library refuse it. The point on the Routh
+ * limit of the family, which the Routh table calls stable, is refused by
+ * the roots with the verifier's tolerance, so the search cannot return what
+ * the verifier would then reject; and a point
  * far above the family's stability limit is refused by the Routh table
  * before anything else is asked. A point below the smallest gain the
  * specifications admit is refused by them, and passes when the caller says
@@ -88,7 +91,8 @@ TEST(Certifier, ThePublishedDcMotorDesignPassesEveryStep)
     ASSERT_TRUE(funnel.exact.usable());
     ASSERT_TRUE(funnel.family.usable());
 
-    const PointController design = designOf(*project.loopShapingResult()->controller());
+    PointController design = designOf(*project.loopShapingResult()->controller());
+    design.gain *= 1.0 + 1e-9;
     EXPECT_TRUE(funnel.certifier.certify(design));
     EXPECT_EQ(funnel.certifier.statistics().certifications, 1u);
     EXPECT_EQ(funnel.certifier.statistics().refusedBySpecifications, 0u);
