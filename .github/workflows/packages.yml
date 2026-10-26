@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Name the build
         run: bash packaging/name-the-build.sh
@@ -48,7 +48,7 @@ jobs:
             --desktop-file AppDir/usr/share/applications/qftbx.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/qftbx.png
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: QFTbx-linux-x86_64
           path: QFTbx-*.AppImage
@@ -69,7 +69,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Name the build
         run: bash packaging/name-the-build.sh
@@ -127,7 +127,7 @@ jobs:
           "$wix/light.exe" -nologo -ext WixUIExtension -cultures:en-us \
             -out "QFTbx-$LABEL-windows-x86_64.msi" build/msi/qftbx.wixobj build/msi/files.wixobj
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: QFTbx-windows-x86_64
           path: |
@@ -151,7 +151,7 @@ jobs:
     runs-on: macos-15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Name the build
         run: bash packaging/name-the-build.sh
@@ -184,7 +184,7 @@ jobs:
           plutil -p dist/QFTbx.app/Contents/Info.plist
           ls -la dist/QFTbx.app/Contents/Resources
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: QFTbx-macos-arm64
           path: QFTbx-*.dmg
@@ -200,18 +200,18 @@ jobs:
   release:
     if: github.ref_type == 'tag'
     needs: [linux, windows, macos]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Name the build
         run: bash packaging/name-the-build.sh
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: QFTbx-*
           path: release
