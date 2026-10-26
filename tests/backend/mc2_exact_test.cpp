@@ -10,19 +10,20 @@
  * sweep, the run records that it read the points exactly, the certificate's
  * lower bounds stay ordered and at or below the returned gain, and the gain
  * is pinned to the design the search returns on the machine the pins were
- * taken on. A compiler that fuses other products may land a few ulps away,
- * hence the relative tolerance; C-XSC rounds the contraction otherwise than
- * kv and reaches another design of the DC motor, so that pin is each
- * library's own. The certificate is kept and finished with the design; it is
- * kept, finished and read too when a gain box too low for any design leaves
- * the search without one, kept but not finished when the run is cancelled,
- * and not kept at all by another algorithm. With the contraction of the
- * gain, the first-order plant with a delay, whose search split one
- * degenerate parameter for ever, ends in a few thousand boxes with a design
- * the verifier accepts; and two problems without a design end with a proof
- * of it. The damped ACC'90, whose Routh table with the nominal plant asks
- * for k < 40.5 where the box starts at k = 1000, and the unstable maglev
- * with a second pole, which without the contraction ends with boxes
+ * taken on. The path of the search hangs on the last bits of the
+ * mathematical and interval libraries, and other libraries reach designs a
+ * few hundredths of a percent away: C-XSC on the DC motor, a newer glibc
+ * and macOS on the toolbox and on the DC motor with its gain; hence the
+ * relative tolerance of 1e-3. The certificate is kept and finished with the
+ * design; it is kept, finished and read too when a gain box too low for any
+ * design leaves the search without one, kept but not finished when the run
+ * is cancelled, and not kept at all by another algorithm. With the
+ * contraction of the gain, the first-order plant with a delay, whose search
+ * split one degenerate parameter for ever, ends in a few thousand boxes with
+ * a design the verifier accepts; and two problems without a design end with
+ * a proof of it. The damped ACC'90, whose Routh table with the nominal plant
+ * asks for k < 40.5 where the box starts at k = 1000, and the unstable
+ * maglev with a second pole, which without the contraction ends with boxes
  * discarded on the sweep alone.
  */
 
@@ -45,12 +46,6 @@
 using namespace qftbx;
 
 namespace {
-
-#if defined(QFTBX_INTERVAL_CXSC)
-constexpr double kDcmT33Gain = 41.102278928422926;
-#else
-constexpr double kDcmT33Gain = 41.101421995522088;
-#endif
 
 struct ExactCase {
     const char * name;
@@ -100,13 +95,13 @@ TEST_P(Mc2UnderTheExactReading, ReturnsADesignTheVerifierAcceptsWithItsCertifica
     EXPECT_LE(certificate.lowerBoundStrict, certificate.lowerBound) << c.name;
     EXPECT_LE(certificate.lowerBound, gain) << c.name;
 
-    EXPECT_NEAR(gain, c.gain, std::abs(c.gain) * 1e-6) << c.name;
+    EXPECT_NEAR(gain, c.gain, std::abs(c.gain) * 1e-3) << c.name;
 }
 
 INSTANTIATE_TEST_SUITE_P(
     PublishedProblems, Mc2UnderTheExactReading,
     ::testing::Values(
-        ExactCase{"DcmT33", "dcm-T33-plant-k.qft", kDcmT33Gain},
+        ExactCase{"DcmT33", "dcm-T33-plant-k.qft", 41.101421995522088},
         ExactCase{"Toolbox2", "toolbox-2.qft", 568.39377382547423},
         ExactCase{"DcmK", "dcm-k-plant-k.qft", 42527.370794761417}),
     [](const ::testing::TestParamInfo<ExactCase> & info) {
