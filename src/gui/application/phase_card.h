@@ -4,9 +4,13 @@
  * diagrams together.
  *
  * The form, which the card takes over, lives inside it, folded away, with
- * the diagrams below it, in tabs when there are several. Unfolding makes
- * the card taller and the canvas moves the rest out of the way; folding or
- * unfolding never changes the width the card was given. The card says when
+ * the diagrams below it, in tabs when there are several, any of which
+ * showView() brings to the front. A view aside, such as a report, goes
+ * beside the diagrams when the card is wide enough and among their tabs
+ * when it is not or when its button folds it, and asidePlaced() says
+ * which. Unfolding the form makes the card taller and the canvas moves the
+ * rest out of the way; folding or unfolding the form never changes the
+ * width the card was given. The card says when
  * its computation is running, disables the form meanwhile and offers
  * Cancel on its bar; it can be closed, which its owner answers by hiding
  * it until the phase's step button brings it back, and dragged by its bar,
@@ -32,9 +36,12 @@
 #include <utility>
 #include <vector>
 
+class QHBoxLayout;
 class QLabel;
 class QProgressBar;
+class QResizeEvent;
 class QScrollArea;
+class QTabWidget;
 class QToolButton;
 class QVBoxLayout;
 
@@ -47,11 +54,16 @@ class PhaseCard : public QFrame
 public:
     PhaseCard(const QString & title, const QString & name, QWidget * form,
               const std::vector<std::pair<QString, QWidget *>> & views,
+              const std::pair<QString, QWidget *> & aside = {},
               QWidget * parent = nullptr);
 
     bool isFormShown() const;
 
     void showForm(bool shown);
+
+    void showView(QWidget * view);
+
+    bool isAsideBeside() const { return m_asideBeside; }
 
     void setBusy(bool busy, const QString & what = QString());
     bool isBusy() const { return m_busy; }
@@ -79,15 +91,30 @@ signals:
 
     void dragFinished();
 
+    void asidePlaced(bool beside);
+
+protected:
+    void resizeEvent(QResizeEvent * event) override;
+
 private:
     bool eventFilter(QObject * watched, QEvent * event) override;
+
+    void placeAside(bool beside);
+    bool asideFits() const;
 
     QWidget * m_bar = nullptr;
     bool m_dragging = false;
     QWidget * m_form = nullptr;
     QScrollArea * m_formArea = nullptr;
     QWidget * m_views = nullptr;
+    QTabWidget * m_tabs = nullptr;
+    QHBoxLayout * m_row = nullptr;
+    QWidget * m_aside = nullptr;
+    QString m_asideTitle;
+    bool m_asideBeside = false;
+    bool m_asideShown = true;
     QToolButton * m_fold = nullptr;
+    QToolButton * m_asideFold = nullptr;
     QToolButton * m_cancel = nullptr;
     QProgressBar * m_progress = nullptr;
     bool m_busy = false;

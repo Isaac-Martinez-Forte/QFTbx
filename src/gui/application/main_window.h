@@ -60,6 +60,7 @@
 #include "src/gui/specifications/specifications_form.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
 #include "src/gui/loopshaping/loop_shaping_form.h"
+#include "src/gui/loopshaping/loop_shaping_report.h"
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
 #include "src/gui/plant/plant_form.h"
 
@@ -165,7 +166,8 @@ private:
 
     PhaseCard * addPhaseCard(const QString & title, const QString & name,
                              QWidget * form,
-                             const std::vector<std::pair<QString, QWidget *>> & views);
+                             const std::vector<std::pair<QString, QWidget *>> & views,
+                             const std::pair<QString, QWidget *> & aside = {});
 
     void showPhase(PhaseCard * card);
 
@@ -229,6 +231,7 @@ private:
     ControllerForm * controllerForm = nullptr;
     LoopShapingForm * loopShapingForm = nullptr;
     LoopShapingViewer * loopShapingViewer = nullptr;
+    LoopShapingReport * loopShapingReport = nullptr;
 
     PhaseCard * plantCard = nullptr;
     PhaseCard * frequenciesCard = nullptr;

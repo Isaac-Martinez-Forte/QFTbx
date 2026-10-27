@@ -5,13 +5,14 @@
  * The digits combo offers two to eight significant figures and the whole
  * double; it sets the global that everything drawn afterwards reads and
  * redraws the controller at those digits while the file keeps the rest.
- * The verdict is the controller checked against the specifications over
- * the templates, naming the worst frequency and specification, with the
- * whole table as tooltip; a design read from a file brings the verdict
- * without the table. Each boundary piece is a curve of its own. The
- * open-loop curve is drawn over a fixed dense logarithmic sweep, not the
- * range the form asks for, with phases folded into (-360, 0] and the curve
- * cut wherever the phase jumps by more than 100 degrees.
+ * The verdict is one line cut to the width of the column, with the whole
+ * sentence as tooltip, so it never takes the legend's room; Details asks
+ * for the report, which holds the rest, and the line goes away while the
+ * report is in sight beside the diagram. Each boundary piece is a curve of
+ * its own. The open-loop curve is drawn over a fixed dense logarithmic
+ * sweep, not the range the form asks for, with phases folded into
+ * (-360, 0] and the curve cut wherever the phase jumps by more than 100
+ * degrees.
  */
 
 #include "src/gui/common/qt_containers.h"
@@ -22,7 +23,10 @@
 #include "ui_loop_shaping_viewer.h"
 
 #include "src/gui/application/error_message.h"
+#include "src/gui/loopshaping/loop_shaping_report.h"
 #include <QComboBox>
+#include <QEvent>
+#include <QToolButton>
 
 #include "src/gui/common/field_mark.h"
 #include "src/gui/common/plot_setup.h"
@@ -50,6 +54,9 @@ LoopShapingViewer::LoopShapingViewer(QWidget *parent) :
     connect(legend, &FrequencyLegend::rowToggled, this, &LoopShapingViewer::applyCheckboxes);
 
     narrowSideColumn(ui->sideLayout);
+
+    ui->checkLabel->installEventFilter(this);
+    connect(ui->detailsButton, &QToolButton::clicked, this, &LoopShapingViewer::detailsAsked);
 
     fillDigitsCombo();
 
@@ -106,6 +113,10 @@ void LoopShapingViewer::clearDiagram(){
 void LoopShapingViewer::clear(){
 
     clearDiagram();
+    summary.clear();
+    ui->checkLabel->clear();
+    ui->checkLabel->setToolTip(QString());
+    markAs(ui->checkLabel, "verdict", QString());
     unionTraces.clear();
     omega = nullptr;
     plant = nullptr;
@@ -126,105 +137,27 @@ void LoopShapingViewer::showCheck(){
 
     const std::optional<qftbx::SpecificationCheck> & check = loopShapingData->check();
 
-    if (!check.has_value()) {
-        ui->checkLabel->setText(tr("Not checked against the specifications (no templates to check over)."));
-        ui->checkLabel->setToolTip(QString());
-        markAs(ui->checkLabel, "verdict", QString());
-        return;
-    }
-
-    const QString family = familyText(check->family) + nominalText(check->nominal);
-    const bool unstable = check->family.unstableMembers > 0 || (check->nominal.checked && !check->nominal.stable);
-
-    if (check->entries.empty()) {
-        ui->checkLabel->setToolTip(QString());
-        if (!std::isfinite(check->worstExcessDb)) {
-            ui->checkLabel->setText(tr("No specification was active at any design frequency.") + " " + family);
-            markAs(ui->checkLabel, "verdict", unstable ? QStringLiteral("exceeded") : QString());
-        } else if (check->worstExcessDb <= 0.0) {
-            ui->checkLabel->setText(tr("Satisfies every specification over the template, by %1 dB.")
-                                    .arg(qftbx::shownText(-check->worstExcessDb)) + " " + family);
-            markAs(ui->checkLabel, "verdict", unstable ? QStringLiteral("exceeded") : QStringLiteral("met"));
-        } else {
-            ui->checkLabel->setText(tr("EXCEEDS a specification over the template by %1 dB.")
-                                    .arg(qftbx::shownText(check->worstExcessDb)) + " " + family);
-            markAs(ui->checkLabel, "verdict", QStringLiteral("exceeded"));
-        }
-        return;
-    }
-
-    const qftbx::SpecificationExcess * worst = nullptr;
-    for (const qftbx::SpecificationExcess & e : check->entries) {
-        if (worst == nullptr || e.excessDb > worst->excessDb) {
-            worst = &e;
-        }
-    }
-
-    const QString name = specificationTitle(worst->type);
-
-    if (worst->excessDb <= 0.0) {
-        ui->checkLabel->setText(tr("Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.")
-                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(-worst->excessDb)) + " " + family);
-        markAs(ui->checkLabel, "verdict", unstable ? QStringLiteral("exceeded") : QStringLiteral("met"));
-    } else {
-        ui->checkLabel->setText(tr("EXCEEDS a specification over the template: w = %1 rad/s, %2, by %3 dB.")
-                                .arg(qftbx::shownText(worst->omega), name, qftbx::shownText(worst->excessDb)) + " " + family);
-        markAs(ui->checkLabel, "verdict", QStringLiteral("exceeded"));
-    }
-
-    QString table;
-    for (const qftbx::SpecificationExcess & e : check->entries) {
-        table += tr("w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB\n")
-                 .arg(qftbx::shownText(e.omega), specificationTitle(e.type),
-                      qftbx::shownText(e.valueDb), qftbx::shownText(e.boundDb),
-                      qftbx::shownText(e.excessDb));
-    }
-    ui->checkLabel->setToolTip(table.trimmed());
+    summary = LoopShapingReport::summaryOf(check);
+    ui->checkLabel->setToolTip("<p>" + withPowersOfTen(LoopShapingReport::verdictOf(check)) + "</p>");
+    markAs(ui->checkLabel, "verdict", LoopShapingReport::markOf(check));
+    elideSummary();
 }
 
-QString LoopShapingViewer::familyText(const qftbx::FamilyStability & family){
-    if (!family.checked) {
-        switch (family.notChecked) {
-        case qftbx::FamilyStability::NotChecked::NoSweepRecord:
-            return tr("Closed-loop stability of the family not checked: the project has no record of the sweep; recompute the templates.");
-        case qftbx::FamilyStability::NotChecked::Delay:
-            return tr("Closed-loop stability of the family not checked: the loop has a delay.");
-        case qftbx::FamilyStability::NotChecked::NotRational:
-            return tr("Closed-loop stability of the family not checked: the loop is not a rational function.");
-        case qftbx::FamilyStability::NotChecked::No:
-            break;
-        }
-        return tr("Closed-loop stability of the family not checked.");
-    }
-    if (family.unstableMembers == 0) {
-        return tr("Every one of the %1 plants is closed-loop stable (worst real part %2).")
-               .arg(family.members).arg(qftbx::shownText(family.worstRealPart));
-    }
-    return tr("%1 of the %2 plants are CLOSED-LOOP UNSTABLE (worst real part %3).")
-           .arg(family.unstableMembers).arg(family.members).arg(qftbx::shownText(family.worstRealPart));
+void LoopShapingViewer::setSummaryShown(bool shown){
+    ui->checkLabel->setVisible(shown);
+    ui->detailsButton->setVisible(shown);
 }
 
-QString LoopShapingViewer::nominalText(const qftbx::NominalStability & nominal){
-    if (!nominal.checked) {
-        return QString();
-    }
-    if (nominal.stable) {
-        return " " + tr("The nominal closed loop is stable (worst real part %1).").arg(qftbx::shownText(nominal.worstRealPart));
-    }
-    return " " + tr("The NOMINAL CLOSED LOOP IS UNSTABLE (worst real part %1).").arg(qftbx::shownText(nominal.worstRealPart));
+void LoopShapingViewer::elideSummary(){
+    ui->checkLabel->setText(ui->checkLabel->fontMetrics().elidedText(summary, Qt::ElideRight,
+                                                                      ui->checkLabel->width()));
 }
 
-QString LoopShapingViewer::specificationTitle(qftbx::SpecificationType type){
-    switch (type) {
-    case qftbx::SpecificationType::TrackingLower:
-    case qftbx::SpecificationType::TrackingUpper:     return tr("tracking");
-    case qftbx::SpecificationType::Stability:         return tr("stability");
-    case qftbx::SpecificationType::SensorNoise:       return tr("sensor noise");
-    case qftbx::SpecificationType::OutputDisturbance: return tr("output disturbance");
-    case qftbx::SpecificationType::InputDisturbance:  return tr("input disturbance");
-    case qftbx::SpecificationType::ControlEffort:     return tr("control effort");
+bool LoopShapingViewer::eventFilter(QObject * watched, QEvent * event){
+    if (watched == ui->checkLabel && event->type() == QEvent::Resize) {
+        elideSummary();
     }
-    return QString();
+    return QWidget::eventFilter(watched, event);
 }
 
 void LoopShapingViewer::showController(){

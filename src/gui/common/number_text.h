@@ -11,7 +11,14 @@
  * off an optimisation or a coefficient inside a drawn formula, is shown by
  * shownText() at a global count of significant digits, four unless the
  * settings change it through setShownDigits(); one global, because it is
- * one answer for the whole interface.
+ * one answer for the whole interface. A level in decibels, a value set
+ * against its bound or the margin between them, is shown by shownDbText()
+ * at a fixed number of decimals, the shown digits less one: the difference
+ * of two levels is exact to an absolute amount, not a relative one, so the
+ * significant digits of a margin of 1e-12 dB say nothing. shownAsZeroDb()
+ * tells a level that rounds to nothing there. withPowersOfTen() gives a
+ * text as rich text with its numbers in exponent notation raised to powers
+ * of ten.
  */
 
 #ifndef QFTBX_GUI_NUMBER_TEXT_H
@@ -35,6 +42,12 @@ inline QString shownText(double value)
 {
     return QString::fromStdString(qftbx::text::number(value, shownDigits()));
 }
+
+double shownDbResolution();
+QString shownDbText(double db);
+bool shownAsZeroDb(double db);
+
+QString withPowersOfTen(const QString & plain);
 
 }
 

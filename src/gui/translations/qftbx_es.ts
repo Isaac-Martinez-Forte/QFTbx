@@ -1005,6 +1005,14 @@
         <source>Writes the diagram to an image file.</source>
         <translation>Guarda el diagrama en un fichero de imagen.</translation>
     </message>
+    <message>
+        <source>The whole verdict, the stability and the certificate of the search.</source>
+        <translation>El veredicto completo, la estabilidad y el certificado de la búsqueda.</translation>
+    </message>
+    <message>
+        <source>Details ›</source>
+        <translation>Detalles ›</translation>
+    </message>
 </context>
 <context>
     <name>MainWindow</name>
@@ -1975,18 +1983,62 @@ del controlador</translation>
     </message>
 </context>
 <context>
-    <name>qftbx::LoopShapingViewer</name>
+    <name>qftbx::LoopShapingReport</name>
     <message>
-        <source>Loop Shaping</source>
-        <translation>Ajuste del lazo</translation>
+        <source>Copy the report</source>
+        <translation>Copiar el informe</translation>
     </message>
     <message>
-        <source>Loop-shaping plot</source>
-        <translation>Gráfica del ajuste del lazo</translation>
+        <source>Puts the whole report on the clipboard, with its tables.</source>
+        <translation>Copia el informe entero al portapapeles, con sus tablas.</translation>
+    </message>
+    <message>
+        <source>No design yet: the report appears when the search returns one.</source>
+        <translation>Todavía no hay diseño: el informe aparece cuando la búsqueda devuelve uno.</translation>
+    </message>
+    <message>
+        <source>Not checked against the specifications.</source>
+        <translation>Sin comprobar contra las especificaciones.</translation>
+    </message>
+    <message>
+        <source>No specification active</source>
+        <translation>Ninguna especificación activa</translation>
+    </message>
+    <message>
+        <source>Meets</source>
+        <translation>Cumple</translation>
+    </message>
+    <message>
+        <source>Exceeds by %1 dB at w = %2</source>
+        <translation>Excede %1 dB en w = %2</translation>
+    </message>
+    <message>
+        <source>Exceeds by %1 dB</source>
+        <translation>Excede %1 dB</translation>
+    </message>
+    <message>
+        <source>nominal UNSTABLE</source>
+        <translation>nominal INESTABLE</translation>
+    </message>
+    <message>
+        <source>family not checked</source>
+        <translation>familia sin comprobar</translation>
+    </message>
+    <message>
+        <source>%1/%2 stable</source>
+        <translation>%1/%2 estables</translation>
+    </message>
+    <message>
+        <source>%1/%2 UNSTABLE</source>
+        <translation>%1/%2 INESTABLES</translation>
     </message>
     <message>
         <source>Not checked against the specifications (no templates to check over).</source>
         <translation>Sin comprobar contra las especificaciones (no hay templates sobre los que comprobar).</translation>
+    </message>
+    <message>
+        <source>No specification was active at any design frequency.</source>
+        <translation>No había ninguna especificación activa en ninguna frecuencia de diseño.</translation>
     </message>
     <message>
         <source>Satisfies every specification over the template: tightest at w = %1 rad/s, %2, %3 dB of margin.</source>
@@ -1997,48 +2049,6 @@ del controlador</translation>
         <translation>INCUMPLE una especificación sobre el template: w = %1 rad/s, %2, por %3 dB.</translation>
     </message>
     <message>
-        <source>w = %1: %2 = %3 dB, bound %4 dB, excess %5 dB
-</source>
-        <translation>w = %1: %2 = %3 dB, cota %4 dB, exceso %5 dB
-</translation>
-    </message>
-    <message>
-        <source>tracking</source>
-        <translation>seguimiento</translation>
-    </message>
-    <message>
-        <source>stability</source>
-        <translation>estabilidad</translation>
-    </message>
-    <message>
-        <source>sensor noise</source>
-        <translation>ruido del sensor</translation>
-    </message>
-    <message>
-        <source>output disturbance</source>
-        <translation>perturbación a la salida</translation>
-    </message>
-    <message>
-        <source>input disturbance</source>
-        <translation>perturbación a la entrada</translation>
-    </message>
-    <message>
-        <source>control effort</source>
-        <translation>esfuerzo de control</translation>
-    </message>
-    <message>
-        <source>phase (degrees)</source>
-        <translation>fase (grados)</translation>
-    </message>
-    <message>
-        <source>magnitude (dB)</source>
-        <translation>magnitud (dB)</translation>
-    </message>
-    <message>
-        <source>No specification was active at any design frequency.</source>
-        <translation>No había ninguna especificación activa en ninguna frecuencia de diseño.</translation>
-    </message>
-    <message>
         <source>Satisfies every specification over the template, by %1 dB.</source>
         <translation>Cumple todas las especificaciones sobre el template, por %1 dB.</translation>
     </message>
@@ -2047,8 +2057,88 @@ del controlador</translation>
         <translation>INCUMPLE una especificación sobre el template por %1 dB.</translation>
     </message>
     <message>
-        <source>all</source>
-        <translation>todas</translation>
+        <source>Specifications</source>
+        <translation>Especificaciones</translation>
+    </message>
+    <message>
+        <source>w (rad/s)</source>
+        <translation>w (rad/s)</translation>
+    </message>
+    <message>
+        <source>Specification</source>
+        <translation>Especificación</translation>
+    </message>
+    <message>
+        <source>Value (dB)</source>
+        <translation>Valor (dB)</translation>
+    </message>
+    <message>
+        <source>Bound (dB)</source>
+        <translation>Cota (dB)</translation>
+    </message>
+    <message>
+        <source>Closed-loop stability</source>
+        <translation>Estabilidad en lazo cerrado</translation>
+    </message>
+    <message>
+        <source>Not checked: there are no templates, and so no record of the plants of the sweep.</source>
+        <translation>Sin comprobar: no hay templates y, por tanto, tampoco registro de las plantas del barrido.</translation>
+    </message>
+    <message>
+        <source>The plant nearest to instability: %1.</source>
+        <translation>La planta más cerca de la inestabilidad: %1.</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Búsqueda</translation>
+    </message>
+    <message>
+        <source>Algorithm %1, epsilon %2.</source>
+        <translation>Algoritmo %1, épsilon %2.</translation>
+    </message>
+    <message>
+        <source>The points were read exactly over the template.</source>
+        <translation>Los puntos se leyeron de forma exacta sobre el template.</translation>
+    </message>
+    <message>
+        <source>The boundaries were read on their phase grid, at the worst of the columns around each phase.</source>
+        <translation>Los boundaries se leyeron en su rejilla de fase, con la peor de las columnas que rodean cada fase.</translation>
+    </message>
+    <message>
+        <source>Certificate</source>
+        <translation>Certificado</translation>
+    </message>
+    <message>
+        <source>This algorithm keeps no certificate: nothing bounds how far its gain is from the least one.</source>
+        <translation>Este algoritmo no lleva certificado: nada acota cuánto se aleja su ganancia de la mínima.</translation>
+    </message>
+    <message>
+        <source>The search did not reach its end, so the certificate bounds nothing.</source>
+        <translation>La búsqueda no llegó al final, así que el certificado no acota nada.</translation>
+    </message>
+    <message>
+        <source>Nothing was set aside undecided, so no design of the search box has a gain below %1: this design has the least.</source>
+        <translation>No quedó nada sin decidir, así que ningún diseño de la caja de búsqueda tiene una ganancia menor que %1: este diseño tiene la mínima.</translation>
+    </message>
+    <message>
+        <source>No design of the search box has a gain below %1, so this one, with %2, is at most %3 % (%4 dB) above the least.</source>
+        <translation>Ningún diseño de la caja de búsqueda tiene una ganancia menor que %1, así que este, con %2, está como mucho un %3 % (%4 dB) por encima de la mínima.</translation>
+    </message>
+    <message>
+        <source>No design of the search box has a gain below %1; this one has %2.</source>
+        <translation>Ningún diseño de la caja de búsqueda tiene una ganancia menor que %1; este tiene %2.</translation>
+    </message>
+    <message>
+        <source>The bound comes from %1 boxes the search set aside without deciding them, each counted with the least gain it could hold.</source>
+        <translation>La cota sale de %1 cajas que la búsqueda apartó sin decidir, cada una con la menor ganancia que podía contener.</translation>
+    </message>
+    <message>
+        <source>It holds for the plants of the template at the design frequencies, not between them.</source>
+        <translation>Vale para las plantas del template en las frecuencias de diseño, no entre ellas.</translation>
+    </message>
+    <message>
+        <source>It holds for the plants of the template at the design frequencies, not between them, and for the boundaries as read on their phase grid.</source>
+        <translation>Vale para las plantas del template en las frecuencias de diseño, no entre ellas, y para los boundaries tal como se leyeron en su rejilla de fase.</translation>
     </message>
     <message>
         <source>Closed-loop stability of the family not checked: the project has no record of the sweep; recompute the templates.</source>
@@ -2081,6 +2171,81 @@ del controlador</translation>
     <message>
         <source>The NOMINAL CLOSED LOOP IS UNSTABLE (worst real part %1).</source>
         <translation>El lazo cerrado nominal es INESTABLE (peor parte real %1).</translation>
+    </message>
+    <message>
+        <source>tracking</source>
+        <translation>seguimiento</translation>
+    </message>
+    <message>
+        <source>stability</source>
+        <translation>estabilidad</translation>
+    </message>
+    <message>
+        <source>sensor noise</source>
+        <translation>ruido del sensor</translation>
+    </message>
+    <message>
+        <source>output disturbance</source>
+        <translation>perturbación a la salida</translation>
+    </message>
+    <message>
+        <source>input disturbance</source>
+        <translation>perturbación a la entrada</translation>
+    </message>
+    <message>
+        <source>control effort</source>
+        <translation>esfuerzo de control</translation>
+    </message>
+    <message>
+        <source>Taking as right the boxes the nominal criterion rejected on its grid, which is no proof, the bound rises to %1 (%2 %).</source>
+        <translation>Si se dan por buenas las cajas que el criterio nominal rechazó en su rejilla, que no es una prueba, la cota sube a %1 (%2 %).</translation>
+    </message>
+    <message>
+        <source>Taking as right the boxes the nominal criterion rejected on its grid, which is no proof, the bound rises to %1.</source>
+        <translation>Si se dan por buenas las cajas que el criterio nominal rechazó en su rejilla, que no es una prueba, la cota sube a %1.</translation>
+    </message>
+    <message>
+        <source>Satisfies every specification over the template; the tightest, %2 at w = %1 rad/s, sits on its bound.</source>
+        <translation>Cumple todas las especificaciones sobre el template; la más ajustada, %2 en w = %1 rad/s, queda en su cota.</translation>
+    </message>
+    <message>
+        <source>Satisfies every specification over the template; the tightest sits on its bound.</source>
+        <translation>Cumple todas las especificaciones sobre el template; la más ajustada queda en su cota.</translation>
+    </message>
+    <message>
+        <source>less than %1</source>
+        <translation>menos de %1</translation>
+    </message>
+    <message>
+        <source>This file does not carry the certificate of the search: it was saved before QFTbx kept it. Run the search again to have it.</source>
+        <translation>Este fichero no trae el certificado de la búsqueda: se guardó antes de que QFTbx lo guardara. Vuelva a ejecutar la búsqueda para tenerlo.</translation>
+    </message>
+    <message>
+        <source>Margin (dB)</source>
+        <translation>Margen (dB)</translation>
+    </message>
+</context>
+<context>
+    <name>qftbx::LoopShapingViewer</name>
+    <message>
+        <source>Loop Shaping</source>
+        <translation>Ajuste del lazo</translation>
+    </message>
+    <message>
+        <source>Loop-shaping plot</source>
+        <translation>Gráfica del ajuste del lazo</translation>
+    </message>
+    <message>
+        <source>phase (degrees)</source>
+        <translation>fase (grados)</translation>
+    </message>
+    <message>
+        <source>magnitude (dB)</source>
+        <translation>magnitud (dB)</translation>
+    </message>
+    <message>
+        <source>all</source>
+        <translation>todas</translation>
     </message>
 </context>
 <context>
@@ -2241,6 +2406,10 @@ del controlador</translation>
         <source>Epsilon proposal</source>
         <translation>Propuesta de épsilon</translation>
     </message>
+    <message>
+        <source>Report</source>
+        <translation>Informe</translation>
+    </message>
 </context>
 <context>
     <name>qftbx::PhaseCard</name>
@@ -2271,6 +2440,10 @@ del controlador</translation>
     <message>
         <source>Close this phase. Its button at the top of the window opens it again, with everything it holds.</source>
         <translation>Cerrar esta fase. Su botón de arriba vuelve a abrirla, con todo lo que tenga.</translation>
+    </message>
+    <message>
+        <source>Show or hide this beside the diagrams</source>
+        <translation>Muestra u oculta esto al lado de los diagramas</translation>
     </message>
 </context>
 <context>

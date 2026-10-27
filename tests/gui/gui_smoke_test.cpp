@@ -9,9 +9,12 @@
  * than waited on. The main window is driven through its panels and cards: what
  * a step publishes and unlocks, what every fixture project puts on the canvas
  * when opened, how cards fold, grow, wrap and change places, what the theme,
- * tooltips, legends and figure export must do, and that a computation runs off
- * the GUI thread and cancels leaving the project as it was. The probes that
- * render forms into `QFTBX_RENDER_DIR` are skipped unless that variable is set.
+ * tooltips, legends and figure export must do, what the one-line verdict and
+ * the report of a design hold, read back from a file as they were found,
+ * with levels in decibels at a fixed resolution and the margin of every
+ * specification, and that a computation runs off the GUI thread and cancels
+ * leaving the project as it was. The probes that render forms into
+ * `QFTBX_RENDER_DIR` are skipped unless that variable is set.
  */
 
 #include "src/core/loopshaping/loop_shaping_types.h"
@@ -53,6 +56,7 @@
 #include <QFileOpenEvent>
 #include <QProgressBar>
 #include <QTabWidget>
+#include <QTextBrowser>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QComboBox>
@@ -93,6 +97,7 @@
 #include "src/gui/plant/uncertainty_panel.h"
 #include "src/gui/boundaries/boundary_viewer.h"
 #include "src/gui/boundaries/boundary_union_viewer.h"
+#include "src/gui/loopshaping/loop_shaping_report.h"
 #include "src/gui/loopshaping/loop_shaping_viewer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
@@ -1412,7 +1417,260 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
 }
 
-TEST_F(GuiSmoke, TheFoldArrowPointsWhereTheFormOpensAndTurnsWhenPressed)
+std::unique_ptr<LoopShapingResult> checkedLoopShapingResult()
+{
+    std::vector<Parameter> one{Parameter(1.0)};
+    auto result = std::make_unique<LoopShapingResult>(std::make_unique<PolynomialForm>("k", one, one,
+                                                                                      Parameter(1.0), Parameter(0.0)),
+                                                      qftbx::Range(0.1, 100.0), 50);
+
+    qftbx::SpecificationCheck check;
+    check.entries.push_back({0, 1.0, qftbx::SpecificationType::Stability, 1.0, 2.0, -1.0});
+    check.entries.push_back({1, 10.0, qftbx::SpecificationType::TrackingUpper, 3.0, 3.5, -0.5});
+    check.worstExcessDb = -0.5;
+    check.family.checked = true;
+    check.family.notChecked = qftbx::FamilyStability::NotChecked::No;
+    check.family.members = 25;
+    check.family.worstRealPart = -0.3;
+    check.family.worstMember = {{"a", 2.0}};
+    check.nominal.checked = true;
+    check.nominal.stable = true;
+    check.nominal.worstRealPart = -0.5;
+    result->setCheck(check);
+    return result;
+}
+
+TEST_F(GuiSmoke, TheVerdictTakesOneLineAndItsWholeSentenceIsTheTooltip)
+{
+    LoopShapingViewer viewer;
+    std::vector<Parameter> numerator{Parameter(1.0)};
+    std::vector<Parameter> denominator{Parameter(1.0), Parameter(1.0)};
+    PolynomialForm plant("loop", numerator, denominator, Parameter(1.0), Parameter(0.0));
+    const std::unique_ptr<LoopShapingResult> result = checkedLoopShapingResult();
+    const qftbx::UnionTraces traces{{qftbx::NicholsPoint(-270.0, 10.0), qftbx::NicholsPoint(-180.0, 4.0)}};
+    std::vector<double> omega{1.0, 10.0};
+
+    viewer.resize(700, 480);
+    viewer.setData(traces, &omega, result.get(), &plant, false);
+    viewer.showDiagram();
+    viewer.show();
+    QCoreApplication::processEvents();
+
+    QLabel * verdict = child<QLabel>(&viewer, "checkLabel");
+    ASSERT_NE(verdict, nullptr);
+    EXPECT_TRUE(verdict->text().startsWith(QStringLiteral("✓ Meets"))) << verdict->text().toStdString();
+    EXPECT_FALSE(verdict->wordWrap());
+    EXPECT_FALSE(verdict->text().contains('\n'));
+    EXPECT_LE(verdict->fontMetrics().horizontalAdvance(verdict->text()), verdict->width());
+    EXPECT_TRUE(verdict->toolTip().contains("tightest at w = 10 rad/s")) << verdict->toolTip().toStdString();
+    EXPECT_TRUE(verdict->toolTip().contains("25 plants")) << verdict->toolTip().toStdString();
+}
+
+TEST_F(GuiSmoke, TheReportHoldsTheTableTheStabilityAndTheCertificate)
+{
+    const std::unique_ptr<LoopShapingResult> result = checkedLoopShapingResult();
+    qftbx::LoopShapingStatistics statistics;
+    statistics.milliseconds = 50.0;
+    statistics.nodesProcessed = 470;
+    statistics.peakLiveNodes = 134;
+    statistics.certificate.kept = true;
+    statistics.certificate.finished = true;
+    statistics.certificate.exactPoints = true;
+    statistics.certificate.lowerBound = 0.5;
+    statistics.certificate.lowerBoundStrict = 0.25;
+    statistics.certificate.epsilonResolved = 3;
+    statistics.certificate.residueNodes = 1;
+    result->setStatistics(statistics);
+
+    LoopShapingReport report;
+    report.setResult(result.get());
+    const QString text = report.plainText();
+    const QStringList lines = text.split('\n');
+
+    EXPECT_TRUE(lines.contains("w (rad/s)\tSpecification\tValue (dB)\tBound (dB)\tMargin (dB)")) << text.toStdString();
+    EXPECT_TRUE(lines.contains("10\ttracking\t3\t3.5\t0.5")) << text.toStdString();
+    EXPECT_TRUE(text.contains("nearest to instability: a = 2.")) << text.toStdString();
+    EXPECT_FALSE(text.contains("470")) << "what the search cost is not part of the report";
+    EXPECT_FALSE(text.contains("took")) << "what the search cost is not part of the report";
+    EXPECT_TRUE(text.contains("no design of the search box has a gain below 0.25", Qt::CaseInsensitive)) << text.toStdString();
+    EXPECT_TRUE(text.contains("at most 300 % (12.04 dB) above the least")) << text.toStdString();
+    EXPECT_TRUE(text.contains("rises to 0.5 (100 %)")) << text.toStdString();
+    EXPECT_TRUE(text.contains("from 4 boxes")) << text.toStdString();
+    EXPECT_TRUE(child<QPushButton>(&report, "reportCopy")->isEnabled());
+
+    report.clear();
+    EXPECT_TRUE(report.plainText().isEmpty());
+    EXPECT_FALSE(child<QPushButton>(&report, "reportCopy")->isEnabled());
+}
+
+TEST_F(GuiSmoke, AReportReadBackFromItsFileSaysWhatItSaidWhenTheDesignWasFound)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("report.qft").toStdString();
+
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    LoopShapingResult * found = project.loopShapingResult();
+    ASSERT_NE(found, nullptr);
+    found->setRun({qftbx::mc2, 0.05, false, Settings::Research::PointReading::Exact});
+    found->setCheck(*checkedLoopShapingResult()->check());
+    qftbx::LoopShapingStatistics statistics;
+    statistics.milliseconds = 50.0;
+    statistics.certificate.kept = true;
+    statistics.certificate.finished = true;
+    statistics.certificate.exactPoints = true;
+    statistics.certificate.lowerBound = 0.5;
+    statistics.certificate.lowerBoundStrict = 0.25;
+    statistics.certificate.epsilonResolved = 3;
+    statistics.certificate.gridBackedPrunes = 2;
+    found->setStatistics(statistics);
+
+    LoopShapingReport before;
+    before.setResult(found);
+    project.save(path);
+
+    ProjectController reopened;
+    reopened.load(path);
+    ASSERT_NE(reopened.loopShapingResult(), nullptr);
+    LoopShapingReport after;
+    after.setResult(reopened.loopShapingResult());
+
+    EXPECT_EQ(after.plainText().toStdString(), before.plainText().toStdString());
+    EXPECT_TRUE(after.plainText().contains("10\ttracking\t3\t3.5\t0.5")) << after.plainText().toStdString();
+    EXPECT_TRUE(after.plainText().contains("rises to 0.5")) << after.plainText().toStdString();
+}
+
+TEST_F(GuiSmoke, AnMc2DesignFromAFileOlderThanItsCertificateSaysSo)
+{
+    ProjectController project;
+    project.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(project.loopShapingResult(), nullptr);
+
+    LoopShapingReport report;
+    report.setResult(project.loopShapingResult());
+    EXPECT_TRUE(report.plainText().contains("keeps no certificate")) << report.plainText().toStdString();
+
+    project.loopShapingResult()->setRun({qftbx::mc2, 0.05, false, Settings::Research::PointReading::Exact});
+    report.refresh();
+    EXPECT_TRUE(report.plainText().contains("saved before QFTbx kept it")) << report.plainText().toStdString();
+}
+
+TEST_F(GuiSmoke, TheTableGivesTheMarginAndAnExceededRowIsNegativeAndRedNeverZero)
+{
+    EXPECT_EQ(shownDbText(-0.7571985554612644).toStdString(), "-0.757");
+    EXPECT_EQ(shownDbText(12.3).toStdString(), "12.3");
+    EXPECT_EQ(shownDbText(-1.0000229810902539e-12).toStdString(), "0");
+    EXPECT_EQ(shownDbText(1e-13).toStdString(), "0");
+
+    const std::unique_ptr<LoopShapingResult> result = checkedLoopShapingResult();
+    qftbx::SpecificationCheck check = *result->check();
+    check.entries.at(1).excessDb = -1.0000229810902539e-12;
+    check.worstExcessDb = -1.0000229810902539e-12;
+    result->setCheck(check);
+
+    LoopShapingReport report;
+    report.setResult(result.get());
+    EXPECT_TRUE(report.plainText().contains("the tightest, tracking at w = 10 rad/s, sits on its bound")) << report.plainText().toStdString();
+    EXPECT_TRUE(report.plainText().split('\n').contains("10\ttracking\t3\t3.5\t0")) << report.plainText().toStdString();
+    EXPECT_FALSE(report.plainText().contains("e-12")) << report.plainText().toStdString();
+    QTextBrowser * text = child<QTextBrowser>(&report, "reportText");
+    EXPECT_FALSE(text->toHtml().contains(wrongColour(report.palette()), Qt::CaseInsensitive)) << "a row met is red";
+
+    check.entries.at(1).excessDb = 1e-13;
+    check.worstExcessDb = 1e-13;
+    EXPECT_EQ(LoopShapingReport::summaryOf(check).toStdString(), "✗ Exceeds by less than 0.001 dB at w = 10 · 25/25 stable");
+    EXPECT_TRUE(LoopShapingReport::verdictOf(check).contains("by less than 0.001 dB")) << LoopShapingReport::verdictOf(check).toStdString();
+    result->setCheck(check);
+    report.refresh();
+    EXPECT_TRUE(report.plainText().split('\n').contains("10\ttracking\t3\t3.5\t-1e-13")) << report.plainText().toStdString();
+
+    check.entries.at(1).excessDb = 0.3;
+    check.worstExcessDb = 0.3;
+    result->setCheck(check);
+    report.refresh();
+    EXPECT_TRUE(report.plainText().split('\n').contains("10\ttracking\t3\t3.5\t-0.3")) << report.plainText().toStdString();
+    EXPECT_TRUE(report.plainText().split('\n').contains("1\tstability\t1\t2\t1")) << report.plainText().toStdString();
+    EXPECT_TRUE(text->toHtml().contains(wrongColour(report.palette()), Qt::CaseInsensitive)) << "the exceeded row is not red";
+
+    check.entries.clear();
+    check.worstExcessDb = -1.0000229810902539e-12;
+    EXPECT_TRUE(LoopShapingReport::verdictOf(check).startsWith("Satisfies every specification over the template; the tightest sits on its bound."))
+            << LoopShapingReport::verdictOf(check).toStdString();
+}
+
+TEST_F(GuiSmoke, TheReportSitsBesideTheLoopWhileTheCardIsTwoColumnsWide)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1400, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    PhaseCard * card = window.findChild<PhaseCard *>("loopShapingCard");
+    ASSERT_NE(card, nullptr);
+    LoopShapingReport * report = window.findChild<LoopShapingReport *>();
+    ASSERT_NE(report, nullptr);
+    QTabWidget * tabs = child<QTabWidget>(&window, "loopShapingCardViews");
+    ASSERT_NE(tabs, nullptr);
+
+    EXPECT_EQ(card->span(), 2) << "the loop did not ask for the room of its report";
+    EXPECT_TRUE(card->isAsideBeside());
+    EXPECT_LT(tabs->indexOf(report), 0) << "the report is beside the loop and among its tabs";
+    EXPECT_TRUE(report->isVisible());
+    EXPECT_FALSE(child<QLabel>(&window, "checkLabel")->isVisible()) << "the verdict is said twice";
+
+    card->findChild<QToolButton *>("loopShapingCardNarrower")->click();
+    QCoreApplication::processEvents();
+
+    EXPECT_FALSE(card->isAsideBeside());
+    EXPECT_GE(tabs->indexOf(report), 0) << "a narrow card lost its report";
+    EXPECT_TRUE(child<QLabel>(&window, "checkLabel")->isVisible());
+}
+
+TEST_F(GuiSmoke, TheReportFoldsIntoItsTabAndTheCardGivesItsColumnBack)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1400, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    PhaseCard * card = window.findChild<PhaseCard *>("loopShapingCard");
+    PhaseCard * boundaries = window.findChild<PhaseCard *>("boundariesCard");
+    ASSERT_NE(card, nullptr);
+    ASSERT_NE(boundaries, nullptr);
+    QToolButton * aside = child<QToolButton>(card, "loopShapingCardAside");
+    ASSERT_NE(aside, nullptr);
+    ASSERT_TRUE(card->isAsideBeside());
+    EXPECT_TRUE(aside->isChecked());
+
+    aside->click();
+    QCoreApplication::processEvents();
+    EXPECT_FALSE(card->isAsideBeside());
+    EXPECT_EQ(card->span(), 2) << "folding the report changed the size the card was given";
+    EXPECT_EQ(card->sizeHint().width(), boundaries->sizeHint().width()) << "the card kept the report's column";
+    EXPECT_GE(child<QTabWidget>(card, "loopShapingCardViews")->indexOf(window.findChild<LoopShapingReport *>()), 0);
+    EXPECT_TRUE(child<QLabel>(card, "checkLabel")->isVisible());
+
+    aside->click();
+    QCoreApplication::processEvents();
+    EXPECT_TRUE(card->isAsideBeside());
+    EXPECT_GT(card->sizeHint().width(), boundaries->sizeHint().width());
+
+    card->setSpan(1, true);
+    EXPECT_FALSE(aside->isChecked()) << "a card one column wide says its report is beside";
+    aside->click();
+    EXPECT_EQ(card->span(), 2) << "asking for the report beside did not make room for it";
+}
+
+TEST_F(GuiSmoke, TheFoldArrowsPointWhereTheyOpenAndTurnWhenPressed)
 {
     MainWindow window;
     window.setFileChooser([](bool) {
@@ -1433,13 +1691,48 @@ TEST_F(GuiSmoke, TheFoldArrowPointsWhereTheFormOpensAndTurnsWhenPressed)
     };
 
     FoldButton * data = window.findChild<FoldButton *>("loopShapingCardFold");
+    FoldButton * report = window.findChild<FoldButton *>("loopShapingCardAside");
     ASSERT_NE(data, nullptr);
+    ASSERT_NE(report, nullptr);
 
     EXPECT_EQ(data->arrowAngle(), 90.0) << "a folded form does not point down, where it opens";
+    EXPECT_EQ(report->arrowAngle(), 180.0) << "a report beside the loop does not point back to fold";
+
     data->click();
     EXPECT_TRUE(settled(data, 270.0)) << "the arrow of an open form did not turn up";
-    data->click();
-    EXPECT_TRUE(settled(data, 90.0)) << "the arrow of a folded form did not turn down again";
+    report->click();
+    EXPECT_TRUE(settled(report, 0.0)) << "the arrow of a folded report did not turn right";
+
+    window.findChild<PhaseCard *>("loopShapingCard")->setSpan(1, true);
+    EXPECT_TRUE(settled(report, 0.0));
+    EXPECT_FALSE(report->isChecked());
+}
+
+TEST_F(GuiSmoke, NumbersInExponentNotationAreRaisedToPowersOfTen)
+{
+    EXPECT_EQ(qftbx::withPowersOfTen("by 1.001e-12 dB"), QString::fromUtf8("by 1.001·10<sup>−12</sup> dB"));
+    EXPECT_EQ(qftbx::withPowersOfTen("k = 3.218e+06"), QString::fromUtf8("k = 3.218·10<sup>6</sup>"));
+    EXPECT_EQ(qftbx::withPowersOfTen("1e-12 and -1e-12"), QString::fromUtf8("10<sup>−12</sup> and -10<sup>−12</sup>"));
+    EXPECT_EQ(qftbx::withPowersOfTen("a1e5, 568.4 & 2 < 3"), QString("a1e5, 568.4 &amp; 2 &lt; 3"));
+}
+
+TEST_F(GuiSmoke, DetailsBringsTheReportToTheFront)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+
+    QTabWidget * tabs = child<QTabWidget>(&window, "loopShapingCardViews");
+    ASSERT_NE(tabs, nullptr);
+    LoopShapingReport * report = window.findChild<LoopShapingReport *>();
+    ASSERT_NE(report, nullptr);
+    EXPECT_NE(tabs->currentWidget(), report);
+
+    child<QToolButton>(&window, "detailsButton")->click();
+    EXPECT_EQ(tabs->currentWidget(), report);
+    EXPECT_FALSE(report->plainText().isEmpty()) << "the report of the file's design is empty";
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
@@ -1770,12 +2063,18 @@ TEST_F(GuiSmoke, ACardGrowsWhenItsFormIsUnfolded)
     EXPECT_EQ(open.width(), folded.width())
         << "unfolding a form must not widen the card: the row would break up every time";
 
-    for (const char * name : {"plantCard", "templatesCard", "boundariesCard", "loopShapingCard"}) {
+    for (const char * name : {"plantCard", "templatesCard", "boundariesCard"}) {
         PhaseCard * other = window.findChild<PhaseCard *>(name);
         ASSERT_NE(other, nullptr);
         EXPECT_EQ(other->sizeHint(), other->isFormShown() ? open : folded)
             << name << " asks for a size of its own";
     }
+
+    PhaseCard * loop = window.findChild<PhaseCard *>("loopShapingCard");
+    ASSERT_NE(loop, nullptr);
+    ASSERT_FALSE(loop->isFormShown());
+    EXPECT_EQ(loop->sizeHint().height(), folded.height()) << "the report beside the loop made the card taller";
+    EXPECT_GT(loop->sizeHint().width(), folded.width()) << "the loop has no room for its report beside it";
 
     for (const char * name : {"frequenciesCard", "controllerCard"}) {
         PhaseCard * other = window.findChild<PhaseCard *>(name);
@@ -2520,13 +2819,13 @@ TEST_F(GuiSmoke, TheWidthOfACardIsTheUsersAndTheFoldDoesNotTouchIt)
     });
     window.findChild<QAction *>("actionOpen")->trigger();
 
-    PhaseCard * card = window.findChild<PhaseCard *>("loopShapingCard");
+    PhaseCard * card = window.findChild<PhaseCard *>("boundariesCard");
     ASSERT_NE(card, nullptr);
     ASSERT_EQ(card->span(), 1);
 
     const QSize one = card->sizeHint();
 
-    card->findChild<QToolButton *>("loopShapingCardWider")->click();
+    card->findChild<QToolButton *>("boundariesCardWider")->click();
     EXPECT_EQ(card->span(), 2);
     EXPECT_GT(card->sizeHint().width(), one.width());
     EXPECT_GT(card->sizeHint().height(), one.height());
@@ -2539,14 +2838,14 @@ TEST_F(GuiSmoke, TheWidthOfACardIsTheUsersAndTheFoldDoesNotTouchIt)
     card->showForm(false);
     EXPECT_EQ(card->sizeHint(), wide);
 
-    card->findChild<QToolButton *>("loopShapingCardWider")->click();
-    card->findChild<QToolButton *>("loopShapingCardWider")->click();
-    card->findChild<QToolButton *>("loopShapingCardWider")->click();
+    card->findChild<QToolButton *>("boundariesCardWider")->click();
+    card->findChild<QToolButton *>("boundariesCardWider")->click();
+    card->findChild<QToolButton *>("boundariesCardWider")->click();
     EXPECT_EQ(card->span(), 3);
 
-    card->findChild<QToolButton *>("loopShapingCardNarrower")->click();
-    card->findChild<QToolButton *>("loopShapingCardNarrower")->click();
-    card->findChild<QToolButton *>("loopShapingCardNarrower")->click();
+    card->findChild<QToolButton *>("boundariesCardNarrower")->click();
+    card->findChild<QToolButton *>("boundariesCardNarrower")->click();
+    card->findChild<QToolButton *>("boundariesCardNarrower")->click();
     EXPECT_EQ(card->span(), 1);
 }
 

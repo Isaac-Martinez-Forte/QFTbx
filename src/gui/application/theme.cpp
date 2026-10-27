@@ -267,7 +267,7 @@ QString sheetOf(const QPalette & palette)
     const bool dark = palette.color(QPalette::Window).lightness() < 128;
 
     const QString arrow = dark ? ":/icons/arrow-down-light.svg" : ":/icons/arrow-down-dark.svg";
-    const QString wrong = dark ? "#e06c6c" : "#c0392b";
+    const QString wrong = wrongColour(palette);
     const QString met = dark ? "#5fbf7a" : "#1a7f37";
     const QString coarse = dark ? "#e0a860" : "#b45309";
 
@@ -301,6 +301,11 @@ QLabel[notice="coarse"] {
 )").arg(arrow, wrong, met, coarse);
 }
 
+}
+
+QString wrongColour(const QPalette & palette)
+{
+    return palette.color(QPalette::Window).lightness() < 128 ? QStringLiteral("#e06c6c") : QStringLiteral("#c0392b");
 }
 
 QStringList availableThemes()
