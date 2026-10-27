@@ -165,30 +165,6 @@ Formula convert(const exp_node & node, int digits)
     return formula::function(name, convert(*node.left, digits));
 }
 
-bool splitExponent(const std::string & text, std::string & mantissa, std::string & exponent)
-{
-    const std::size_t mark = text.find_first_of("eE");
-    if (mark == std::string::npos || mark + 1 >= text.size()) {
-        return false;
-    }
-
-    mantissa = text.substr(0, mark);
-    exponent = text.substr(mark + 1);
-
-    if (!exponent.empty() && (exponent.front() == '+' || exponent.front() == '-')) {
-        const char sign = exponent.front();
-        exponent.erase(exponent.begin());
-        while (exponent.size() > 1 && exponent.front() == '0') {
-            exponent.erase(exponent.begin());
-        }
-        if (sign == '-') {
-            exponent.insert(exponent.begin(), '-');
-        }
-    }
-
-    return !mantissa.empty() && !exponent.empty();
-}
-
 std::string latexNumber(const std::string & text)
 {
     if (text == kPi) {
@@ -197,7 +173,7 @@ std::string latexNumber(const std::string & text)
 
     std::string mantissa;
     std::string exponent;
-    if (splitExponent(text, mantissa, exponent)) {
+    if (formula::splitExponent(text, mantissa, exponent)) {
         if (mantissa == "1") {
             return "10^{" + exponent + "}";
         }
@@ -286,6 +262,45 @@ namespace formula {
 Formula number(const std::string & text)
 {
     return node(Formula::Kind::Number, text, {});
+}
+
+bool splitExponent(const std::string & text, std::string & mantissa, std::string & exponent)
+{
+    const std::size_t mark = text.find_first_of("eE");
+    if (mark == std::string::npos || mark + 1 >= text.size()) {
+        return false;
+    }
+
+    mantissa = text.substr(0, mark);
+    exponent = text.substr(mark + 1);
+
+    if (!exponent.empty() && (exponent.front() == '+' || exponent.front() == '-')) {
+        const char sign = exponent.front();
+        exponent.erase(exponent.begin());
+        while (exponent.size() > 1 && exponent.front() == '0') {
+            exponent.erase(exponent.begin());
+        }
+        if (sign == '-') {
+            exponent.insert(exponent.begin(), '-');
+        }
+    }
+
+    return !mantissa.empty() && !exponent.empty();
+}
+
+Formula scientific(const std::string & text)
+{
+    std::string mantissa;
+    std::string exponent;
+    if (!splitExponent(text, mantissa, exponent)) {
+        return number(text);
+    }
+
+    Formula tens = power(number("10"), number(exponent));
+    if (mantissa == "1") {
+        return tens;
+    }
+    return row({number(mantissa), op("*"), std::move(tens)});
 }
 
 Formula number(double value, int digits)

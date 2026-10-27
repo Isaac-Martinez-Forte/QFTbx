@@ -8,8 +8,9 @@
  * an exponent rises by half the ascent of its base, and exponents and
  * subscripts take seven tenths of the font. Parentheses are enlarged to
  * hold what they enclose and centred on it, not on the baseline; a product
- * is drawn as a centred dot, a function name upright, and the digits a
- * symbol ends in as a subscript. The widget draws the whole formula at one
+ * is drawn as a centred dot, a function name upright, the digits a symbol
+ * ends in as a subscript, and a number in exponent notation as its
+ * mantissa times a power of ten. The widget draws the whole formula at one
  * size, the largest between half and twice its font at which it fits, and
  * a pixel font is scaled by its pixel size since it has no point size.
  */
@@ -171,8 +172,13 @@ QString closingOf(const Formula & formula)
 Box measure(const Formula & formula, const QFont & font)
 {
     switch (formula.kind) {
-    case Formula::Kind::Number:
+    case Formula::Kind::Number: {
+        const Formula written = formula::scientific(formula.text);
+        if (written.kind != Formula::Kind::Number) {
+            return measure(written, font);
+        }
         return textBox(QString::fromStdString(formula.text), font);
+    }
 
     case Formula::Kind::Symbol: {
         QString stem;
@@ -275,6 +281,11 @@ void draw(QPainter & painter, const Formula & formula, const QFont & font,
 
     switch (formula.kind) {
     case Formula::Kind::Number: {
+        const Formula written = formula::scientific(formula.text);
+        if (written.kind != Formula::Kind::Number) {
+            draw(painter, written, font, x, baseline);
+            return;
+        }
         painter.setFont(font);
         painter.drawText(QPointF(x, baseline), QString::fromStdString(formula.text));
         return;

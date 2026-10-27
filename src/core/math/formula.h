@@ -19,7 +19,10 @@
  * formulaOf converts an expression with the parentheses the precedence
  * requires and no more, numbers at 'digits' significant digits; it and
  * formulaOfText give the empty formula when nothing was parsed. latexOf
- * writes the body of a math environment, without $.
+ * writes the body of a math environment, without $. A number in exponent
+ * notation is written as its mantissa times a power of ten: splitExponent
+ * cuts "1.5e-06" into "1.5" and "-6", and scientific builds 1.5 · 10^-6,
+ * or 10^-6 alone when the mantissa is 1.
  */
 
 #ifndef QFTBX_MATH_FORMULA_H
@@ -58,6 +61,8 @@ namespace formula {
 
 Formula number(const std::string & text);
 Formula number(double value, int digits);
+bool splitExponent(const std::string & text, std::string & mantissa, std::string & exponent);
+Formula scientific(const std::string & text);
 Formula symbol(const std::string & name);
 Formula op(const std::string & symbol);
 Formula row(std::vector<Formula> parts);
