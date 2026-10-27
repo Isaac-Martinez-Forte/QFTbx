@@ -4,9 +4,10 @@ Each file here is a published QFT design problem: the plant and its
 uncertainty, the specifications, the design frequencies and the structure of
 the controller are the paper's, except where a page below says otherwise, and
 the file carries everything QFTbx computed from them - the templates and their
-contours, the boundaries, the controller found and the verifier's verdict on
-it, the closed-loop stability of every plant of the sweep included. Each file records the sweep its templates came from, so
-the verdict can be recomputed from the file alone.
+contours, the boundaries, the controller found with the certificate of its
+search, and the verifier's verdict on it, the closed-loop stability of every
+plant of the sweep included. Each file records the sweep its templates came
+from, so the verdict can be recomputed from the file alone.
 
 Open any of them with QFTbx to see every phase.
 
@@ -18,11 +19,13 @@ design frequencies of each paper.
 
 Every controller here is MC2's, at a tolerance of 0.5 and reading every point of
 the templates exactly. It meets every specification at every point of the
-templates at the design frequencies, it closes a stable loop with every plant of
-the sweep, and its gain is the least that the controller's structure admits in
-the search box, to within the tolerance. Unless that gain is the floor of the
-box, a design found that way rests on the bound that holds it, so its worst
-excess over the specifications is zero to within 10⁻¹² dB.
+templates at the design frequencies and it closes a stable loop with every plant
+of the sweep. The certificate of the search is the least gain a design of the
+search box can have, so the report of each design says how far above the least
+its gain can be; where the search left nothing undecided, it is the least.
+Unless that gain is the floor of the box, a design found that way rests on the
+bound that holds it, so its worst excess over the specifications is zero to
+within 10⁻¹² dB.
 
 ## Two versions of a problem
 

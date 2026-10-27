@@ -2579,7 +2579,27 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-1.0001164393175221e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.03571338040703452" nominal-stable="true" nominal-worst-real-part="-0.04921245899775137" />
+            <check satisfied="true" worst-excess-db="-1.0001164393175221e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.03571338040703452" nominal-stable="true" nominal-worst-real-part="-0.04921245899775137">
+                <excess frequency="0" w="0.01" specification="tracking-lower" value-db="0.00012428881008694345" bound-db="0.0001242888110870599" excess-db="-1.0001164393175221e-12" />
+                <excess frequency="0" w="0.01" specification="stability" value-db="-5.2655426293686484e-05" bound-db="1.5836249209524964" excess-db="-1.58367757637879" />
+                <excess frequency="1" w="0.098" specification="tracking-lower" value-db="0.003454041923472793" bound-db="0.011930199808649601" excess-db="-0.008476157885176808" />
+                <excess frequency="1" w="0.098" specification="stability" value-db="0.0033271247404717493" bound-db="1.5836249209524964" excess-db="-1.5802977962120246" />
+                <excess frequency="2" w="0.309" specification="tracking-lower" value-db="0.032519261948524246" bound-db="0.1180256837256578" excess-db="-0.08550642177713355" />
+                <excess frequency="2" w="0.309" specification="stability" value-db="0.03332159848120548" bound-db="1.5836249209524964" excess-db="-1.550303322471291" />
+                <excess frequency="3" w="0.97" specification="tracking-lower" value-db="0.3120366466990897" bound-db="1.1083172933799574" excess-db="-0.7962806466808677" />
+                <excess frequency="3" w="0.97" specification="stability" value-db="0.32102688595174617" bound-db="1.5836249209524964" excess-db="-1.2625980350007502" />
+                <excess frequency="4" w="9.558" specification="tracking-lower" value-db="4.239488866969667" bound-db="13.409950819026621" excess-db="-9.170461952056954" />
+                <excess frequency="4" w="9.558" specification="stability" value-db="1.5833963472197259" bound-db="1.5836249209524964" excess-db="-0.00022857373277052062" />
+                <excess frequency="5" w="30" specification="tracking-lower" value-db="16.552795375185383" bound-db="27.095069599118233" excess-db="-10.54227422393285" />
+                <excess frequency="5" w="30" specification="stability" value-db="1.5615687518748746" bound-db="1.5836249209524964" excess-db="-0.022056169077621757" />
+                <family-worst-member>
+                    <parameter name="T1">28</parameter>
+                    <parameter name="T2">11</parameter>
+                    <parameter name="T3">4</parameter>
+                    <parameter name="k">32</parameter>
+                </family-worst-member>
+            </check>
+            <certificate finished="true" exact-points="true" lower-bound="228.12215480091726" lower-bound-trusting-the-grid="228.12215480091726" residue-boxes="24" resolved-boxes="6" unproven-discards="0" grid-backed-prunes="0" />
         </loop-shaping>
     </results>
 </QFT>
