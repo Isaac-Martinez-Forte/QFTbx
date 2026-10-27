@@ -141,20 +141,35 @@ boundaries and their `<union>` in `<union-buckets>`. A file without
 cell coarser.
 
 **`<loop-shaping>`**: the shaped controller and the plotted loop, with its
-`point-count`, and the verifier's verdict on the design:
+`point-count`, the verifier's verdict on the design and, from MC2, the
+certificate of its search:
 
     <check satisfied="true" worst-excess-db="-1.25"
            family-members="625" family-unstable="0" family-worst-real-part="-0.65"
-           nominal-stable="true" nominal-worst-real-part="-0.71"/>
+           nominal-stable="true" nominal-worst-real-part="-0.71">
+        <excess frequency="0" w="1" specification="stability"
+                value-db="1.75" bound-db="3" excess-db="-1.25"/>
+        <family-worst-member>
+            <parameter name="k">2</parameter>
+        </family-worst-member>
+    </check>
+    <certificate finished="true" exact-points="true" lower-bound="556.9"
+                 residue-boxes="0" resolved-boxes="3" unproven-discards="0"
+                 grid-backed-prunes="0"/>
 
 The worst excess over any active specification, in decibels, measured over
 the full value sets and not over the boundaries the search worked against;
-negative means satisfied and says by how much. The itemised table behind it
-is not stored - it is derivable from what the file already carries - and
-`worst-excess-db` is absent when no specification was active at any design
-frequency. The three `family-*` attributes are the closed loop with every
-plant of the sweep: how many plants, how many of them are closed-loop
-unstable, and the largest real part of a closed-loop pole over all of them.
+negative means satisfied and says by how much. `worst-excess-db` is absent
+when no specification was active at any design frequency. The table behind
+it is one `<excess>` per design frequency and active specification: the
+index of the frequency in `<omega>` and its value, the specification
+(`tracking-lower`, `stability`, `sensor-noise`, `output-disturbance`,
+`input-disturbance` or `control-effort`), and the closed-loop value, the
+bound and their difference in decibels. The three `family-*` attributes are
+the closed loop with every plant of the sweep: how many plants, how many of
+them are closed-loop unstable, and the largest real part of a closed-loop
+pole over all of them; `<family-worst-member>` gives the parameters of the
+plant it belongs to.
 When the family could not be checked they are replaced by
 `family-not-checked`, one of `no-sweep-record` (the templates came from a
 file without `<sweep>`), `delay` (the loop has a delay, so its
@@ -166,6 +181,16 @@ rational, and in files written before the nominal loop was checked.
 `satisfied` is true only when no specification is exceeded, no plant of the
 family is unstable and the nominal closed loop, where it was checked, is
 stable.
+
+`<certificate>` says what the search can claim about the gain: whether it
+reached its end, whether it read the points exactly, and `lower-bound`, the
+least gain a design of the search box can have. `lower-bound-trusting-the-grid`
+is the same bound taking as right the boxes the nominal criterion rejected on
+its frequency grid. Each is absent when nothing was left undecided, and
+neither is written for a search that did not finish. The four counts are the
+boxes set aside undecided that the bounds come from. What the search cost is
+not written. A file written before the table, the plant and the certificate
+were kept reads without them.
 
 ## Reading a file by hand
 

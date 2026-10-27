@@ -2414,7 +2414,19 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-1.0009770790020411e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.10523825067693503" nominal-stable="true" nominal-worst-real-part="-1.367006449358307" />
+            <check satisfied="true" worst-excess-db="-1.0009770790020411e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.10523825067693503" nominal-stable="true" nominal-worst-real-part="-1.367006449358307">
+                <excess frequency="0" w="0.1" specification="stability" value-db="2.0936015550601814" bound-db="6.444385894678386" excess-db="-4.350784339618205" />
+                <excess frequency="1" w="1" specification="stability" value-db="5.849025922113337" bound-db="6.444385894678386" excess-db="-0.5953599725650491" />
+                <excess frequency="2" w="2" specification="stability" value-db="6.394044586231425" bound-db="6.444385894678386" excess-db="-0.05034130844696083" />
+                <excess frequency="3" w="2.138" specification="stability" value-db="6.444385894677385" bound-db="6.444385894678386" excess-db="-1.0009770790020411e-12" />
+                <excess frequency="4" w="6" specification="stability" value-db="1.4291598134639503" bound-db="6.444385894678386" excess-db="-5.015226081214436" />
+                <excess frequency="5" w="50" specification="stability" value-db="-2.5061696309348083" bound-db="6.444385894678386" excess-db="-8.950555525613193" />
+                <family-worst-member>
+                    <parameter name="a">0.1</parameter>
+                    <parameter name="k">10</parameter>
+                </family-worst-member>
+            </check>
+            <certificate finished="true" exact-points="true" lower-bound="5.063042095439665" lower-bound-trusting-the-grid="5.063042095439665" residue-boxes="1" resolved-boxes="0" unproven-discards="0" grid-backed-prunes="0" />
         </loop-shaping>
     </results>
 </QFT>

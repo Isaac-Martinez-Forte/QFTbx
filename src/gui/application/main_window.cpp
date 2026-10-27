@@ -435,14 +435,16 @@ void MainWindow::destroyPhases(){
     controllerForm = nullptr;
     loopShapingForm = nullptr;
     loopShapingViewer = nullptr;
+    loopShapingReport = nullptr;
 
 }
 
 PhaseCard * MainWindow::addPhaseCard(const QString & title, const QString & name,
                                      QWidget * form,
-                                     const std::vector<std::pair<QString, QWidget *>> & views)
+                                     const std::vector<std::pair<QString, QWidget *>> & views,
+                                     const std::pair<QString, QWidget *> & aside)
 {
-    auto * card = new PhaseCard(title, name, form, views, m_canvasContent);
+    auto * card = new PhaseCard(title, name, form, views, aside, m_canvasContent);
 
     connect(card, &PhaseCard::sizeChanged, this, [this]() {
         m_canvasLayout->invalidate();
@@ -622,7 +624,13 @@ void MainWindow::ensureLoopShapingPhase()
                                      m_settings.limits.maxTemplatePoints);
         loopShapingForm->applyDefaults(m_settings.defaults);
         loopShapingViewer = new LoopShapingViewer(this);
+        loopShapingReport = new LoopShapingReport(this);
         connect(loopShapingForm, &StepPanel::accepted, this, &MainWindow::applyLoopShaping);
+        connect(loopShapingViewer, &LoopShapingViewer::digitsChanged, loopShapingReport,
+                &LoopShapingReport::refresh);
+        connect(loopShapingViewer, &LoopShapingViewer::detailsAsked, this, [this]() {
+            loopShapingCard->showView(loopShapingReport);
+        });
 
         connect(loopShapingViewer, &LoopShapingViewer::digitsChanged, this,
                 [this](int digits) {
@@ -638,7 +646,10 @@ void MainWindow::ensureLoopShapingPhase()
                     }
                 });
         loopShapingCard = addPhaseCard(tr("Loop shaping"), "loopShapingCard", loopShapingForm,
-                                       {{tr("Loop"), loopShapingViewer}});
+                                       {{tr("Loop"), loopShapingViewer}}, {tr("Report"), loopShapingReport});
+        connect(loopShapingCard, &PhaseCard::asidePlaced, loopShapingViewer, [this](bool beside) {
+            loopShapingViewer->setSummaryShown(!beside);
+        });
         loopShapingForm->setFromProject(controller->loopShapingResult());
     }
 }
@@ -698,6 +709,7 @@ void MainWindow::refreshAvailability()
 
     if (!done.has(qftbx::Step::LoopShaping) && loopShapingViewer != nullptr) {
         loopShapingViewer->clear();
+        loopShapingReport->clear();
     }
 
     if (specificationsForm != nullptr) {
@@ -993,6 +1005,7 @@ void MainWindow::applyLoopShaping()
                                                        controller->loopShapingResult(),
                                                        controller->plant(), linSpace);
                             loopShapingViewer->showDiagram();
+                            loopShapingReport->setResult(controller->loopShapingResult());
                         });
     });
 }
@@ -1171,6 +1184,7 @@ void MainWindow::drawResults()
                                    controller->loopShapingResult(), controller->plant(),
                                    loopShapingForm->isLinSpace());
         loopShapingViewer->showDiagram();
+        loopShapingReport->setResult(controller->loopShapingResult());
     }
 }
 

@@ -10,17 +10,29 @@
  * in a scroll area of fixed height, so unfolding it adds a band below the
  * diagram and never widens the card. A phase that is only a form has
  * nothing to fold, takes the whole card, and asks for two squares when its
- * form does not fit in one, until the user chooses a size. The bar is the
- * drag handle and shows the hand; its buttons keep the arrow.
+ * form does not fit in one, until the user chooses a size. A card with a
+ * view aside asks for two squares across and one down until then, the
+ * second for the aside, which at any size takes one column of the card and
+ * leaves the diagrams the rest; it sits beside them while the card is two
+ * columns wide and is one more tab when it is not. Its button on the bar
+ * folds it into the tabs, and the card gives that column back. The two
+ * fold buttons point the way they open, down for the form and right for
+ * the aside. The bar is the drag handle and shows the hand; its buttons
+ * keep the arrow.
  */
 
 #include "src/gui/application/phase_card.h"
 
+#include "src/gui/common/fold_button.h"
+
 #include <algorithm>
 
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSignalBlocker>
 #include <QTabWidget>
 #include <QToolButton>
 #include <QMouseEvent>
@@ -65,8 +77,9 @@ int heightOf(QSize unit, int rows)
 
 PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form,
                      const std::vector<std::pair<QString, QWidget *>> & views,
+                     const std::pair<QString, QWidget *> & aside,
                      QWidget * parent)
-    : QFrame(parent), m_form(form)
+    : QFrame(parent), m_form(form), m_aside(aside.second), m_asideTitle(aside.first)
 {
     setObjectName(name);
     setFrameShape(QFrame::StyledPanel);
@@ -110,12 +123,19 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     connect(m_cancel, &QToolButton::clicked, this, &PhaseCard::cancelAsked);
     barLayout->addWidget(m_cancel);
 
-    m_fold = new QToolButton(bar);
+    m_fold = new FoldButton(Qt::DownArrow, bar);
     m_fold->setObjectName(name + "Fold");
-    m_fold->setCheckable(true);
     m_fold->setText(tr("Data"));
     m_fold->setToolTip(tr("Show or hide what this phase was asked for"));
     barLayout->addWidget(m_fold);
+
+    m_asideFold = new FoldButton(Qt::RightArrow, bar);
+    m_asideFold->setObjectName(name + "Aside");
+    m_asideFold->setChecked(true);
+    m_asideFold->setText(aside.first);
+    m_asideFold->setToolTip(tr("Show or hide this beside the diagrams"));
+    m_asideFold->setVisible(aside.second != nullptr);
+    barLayout->addWidget(m_asideFold);
 
     m_narrower = new QToolButton(bar);
     m_narrower->setObjectName(name + "Narrower");
@@ -138,6 +158,7 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     barLayout->addWidget(m_close);
 
     for (QWidget * pressed : {static_cast<QWidget *>(m_fold),
+                              static_cast<QWidget *>(m_asideFold),
                               static_cast<QWidget *>(m_cancel),
                               static_cast<QWidget *>(m_narrower),
                               static_cast<QWidget *>(m_wider),
@@ -166,16 +187,27 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
 
     layout->addWidget(m_formArea);
 
-    if (views.size() == 1) {
+    if (views.size() == 1 && m_aside == nullptr) {
         m_views = views.front().second;
         m_views->setParent(this);
     } else if (!views.empty()) {
-        auto * tabs = new QTabWidget(this);
-        tabs->setObjectName(name + "Views");
+        m_tabs = new QTabWidget(this);
+        m_tabs->setObjectName(name + "Views");
         for (const auto & [tabTitle, view] : views) {
-            tabs->addTab(view, tabTitle);
+            m_tabs->addTab(view, tabTitle);
         }
-        m_views = tabs;
+        m_views = m_tabs;
+    }
+
+    if (m_tabs != nullptr && m_aside != nullptr) {
+        m_tabs->setTabBarAutoHide(true);
+        m_tabs->addTab(m_aside, m_asideTitle);
+        pad(m_aside);
+        m_views = new QWidget(this);
+        m_row = new QHBoxLayout(m_views);
+        m_row->setContentsMargins(0, 0, 0, 0);
+        m_row->setSpacing(kColumnSpacing);
+        m_row->addWidget(m_tabs, 1);
     }
 
     if (m_views != nullptr) {
@@ -195,6 +227,16 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
 
     connect(m_fold, &QToolButton::toggled, this, [this](bool on) {
         m_formArea->setVisible(on);
+        updateGeometry();
+        emit sizeChanged();
+    });
+
+    connect(m_asideFold, &QToolButton::toggled, this, [this](bool on) {
+        m_asideShown = on;
+        if (on && m_span < 2) {
+            setSpan(2, true);
+        }
+        placeAside(asideFits());
         updateGeometry();
         emit sizeChanged();
     });
@@ -258,6 +300,46 @@ bool PhaseCard::isFormShown() const
     return m_views == nullptr || m_fold->isChecked();
 }
 
+void PhaseCard::showView(QWidget * view)
+{
+    if (m_tabs != nullptr && m_tabs->indexOf(view) >= 0) {
+        m_tabs->setCurrentWidget(view);
+    }
+}
+
+void PhaseCard::resizeEvent(QResizeEvent * event)
+{
+    QFrame::resizeEvent(event);
+    if (m_row != nullptr) {
+        placeAside(asideFits());
+    }
+}
+
+bool PhaseCard::asideFits() const
+{
+    return m_asideShown && m_span >= 2 && width() >= 2 * kMinColumn;
+}
+
+void PhaseCard::placeAside(bool beside)
+{
+    if (beside == m_asideBeside) {
+        return;
+    }
+    m_asideBeside = beside;
+
+    if (beside) {
+        m_tabs->removeTab(m_tabs->indexOf(m_aside));
+        m_row->addWidget(m_aside, 1);
+        m_row->setStretch(0, std::max(1, m_span - 1));
+        m_aside->show();
+    } else {
+        m_row->removeWidget(m_aside);
+        m_tabs->addTab(m_aside, m_asideTitle);
+    }
+
+    emit asidePlaced(beside);
+}
+
 void PhaseCard::showForm(bool shown)
 {
     if (m_views == nullptr) {
@@ -293,6 +375,8 @@ void PhaseCard::setUnit(QSize unit)
 
     if (!m_spanChosen && m_views == nullptr) {
         setSpan(m_form->minimumWidth() > m_unit.width() ? 2 : 1);
+    } else if (!m_spanChosen && m_aside != nullptr) {
+        setSpan(2);
     }
 
     updateGeometry();
@@ -311,7 +395,17 @@ void PhaseCard::setSpan(int columns, bool chosen)
         return;
     }
 
+    if (m_row != nullptr && (wanted == 1 || m_span == 1)) {
+        m_asideShown = wanted > 1;
+        const QSignalBlocker quiet(m_asideFold);
+        m_asideFold->setChecked(m_asideShown);
+    }
+
     m_span = wanted;
+    if (m_row != nullptr) {
+        m_row->setStretch(0, std::max(1, m_span - 1));
+        placeAside(asideFits());
+    }
     updateGeometry();
     emit sizeChanged();
 }
@@ -319,13 +413,13 @@ void PhaseCard::setSpan(int columns, bool chosen)
 QSize PhaseCard::sizeHint() const
 {
     const QSize unit = m_unit.isValid() ? m_unit : unitFor(kMinColumn);
-    const int width = widthOf(unit, m_span);
+    const int width = widthOf(unit, m_aside != nullptr && !m_asideShown ? std::max(1, m_span - 1) : m_span);
 
     if (m_views == nullptr) {
         return QSize(width, unit.height());
     }
 
-    const int height = heightOf(unit, m_span);
+    const int height = heightOf(unit, m_aside != nullptr ? std::max(1, m_span - 1) : m_span);
 
     return QSize(width, isFormShown() ? height + kFormHeight : height);
 }

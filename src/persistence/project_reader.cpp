@@ -10,8 +10,10 @@
  * specification are stored per phase column as an interval count and the
  * ends of each interval, which may be infinite, and must cover the phase
  * grid exactly. The seven specification slots are positional, and one that
- * cannot be read whole stays unused without taking the others down. Only the
- * worst excess of the verifier's check is stored, so it comes back unitemised.
+ * cannot be read whole stays unused without taking the others down. The
+ * verifier's check comes back with its table and the plant nearest to
+ * instability, and of what the search counted only its certificate; a file
+ * written before they were kept reads without them.
  */
 
 #include <limits>
@@ -490,7 +492,46 @@ public:
                     check.nominal.worstRealPart = realAttribute(checkNode, "nominal-worst-real-part");
                 }
             }
+            for (const pugi::xml_node & row : checkNode.children(t.excess)) {
+                const std::string type = row.attribute(t.specification).value();
+                const std::optional<SpecificationType> known = specificationTypeFromName(type);
+                if (!known.has_value()) {
+                    throw ParseError(QFTBX_TR("Core", "unknown specification '%1' in the verdict's table").arg(type), lineOf(row), m_filePath);
+                }
+                SpecificationExcess entry;
+                entry.frequencyIndex = static_cast<std::size_t>(intAttribute(row, "frequency"));
+                entry.omega = realAttribute(row, "w");
+                entry.type = *known;
+                entry.valueDb = realAttribute(row, "value-db");
+                entry.boundDb = realAttribute(row, "bound-db");
+                entry.excessDb = realAttribute(row, "excess-db");
+                check.entries.push_back(entry);
+            }
+            if (const pugi::xml_node member = checkNode.child(t.familyWorstMember)) {
+                for (const pugi::xml_node & parameter : member.children(t.sweepParameter)) {
+                    check.family.worstMember.emplace_back(parameter.attribute(t.parameterName).value(), realText(parameter));
+                }
+            }
             result->setCheck(std::move(check));
+        }
+
+        if (const pugi::xml_node node = section.child(t.certificate)) {
+            LoopShapingStatistics statistics;
+            LoopShapingStatistics::Certificate & certificate = statistics.certificate;
+            certificate.kept = true;
+            certificate.finished = node.attribute("finished").as_bool();
+            certificate.exactPoints = node.attribute("exact-points").as_bool();
+            if (node.attribute("lower-bound")) {
+                certificate.lowerBoundStrict = realAttribute(node, "lower-bound");
+            }
+            if (node.attribute("lower-bound-trusting-the-grid")) {
+                certificate.lowerBound = realAttribute(node, "lower-bound-trusting-the-grid");
+            }
+            certificate.residueNodes = static_cast<std::size_t>(node.attribute("residue-boxes").as_ullong());
+            certificate.epsilonResolved = static_cast<std::size_t>(node.attribute("resolved-boxes").as_ullong());
+            certificate.unprovenDiscards = static_cast<std::size_t>(node.attribute("unproven-discards").as_ullong());
+            certificate.gridBackedPrunes = static_cast<std::size_t>(node.attribute("grid-backed-prunes").as_ullong());
+            result->setStatistics(statistics);
         }
 
         return result;

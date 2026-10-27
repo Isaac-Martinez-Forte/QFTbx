@@ -4445,7 +4445,33 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-1.0054179711005418e-12" family-members="625" family-unstable="0" family-worst-real-part="-2.4741942102765746" nominal-stable="true" nominal-worst-real-part="-2.4741942102765746" />
+            <check satisfied="true" worst-excess-db="-1.0054179711005418e-12" family-members="625" family-unstable="0" family-worst-real-part="-2.4741942102765746" nominal-stable="true" nominal-worst-real-part="-2.4741942102765746">
+                <excess frequency="0" w="0.1" specification="tracking-lower" value-db="0.005275424506554759" bound-db="0.010634908838033242" excess-db="-0.005359484331478483" />
+                <excess frequency="0" w="0.1" specification="stability" value-db="0.0041240295977095385" bound-db="1.5836249209524964" excess-db="-1.5795008913547868" />
+                <excess frequency="1" w="0.5" specification="tracking-lower" value-db="0.1295961144478419" bound-db="0.26357731285734004" excess-db="-0.13398119840949815" />
+                <excess frequency="1" w="0.5" specification="stability" value-db="0.10136981292277275" bound-db="1.5836249209524964" excess-db="-1.4822551080297237" />
+                <excess frequency="2" w="1" specification="tracking-lower" value-db="0.4903541507931136" bound-db="1.0269242956543199" excess-db="-0.5365701448612062" />
+                <excess frequency="2" w="1" specification="stability" value-db="0.3838936523746253" bound-db="1.5836249209524964" excess-db="-1.1997312685778712" />
+                <excess frequency="3" w="2" specification="tracking-lower" value-db="1.5437863096483346" bound-db="3.724630134276344" excess-db="-2.1808438246280097" />
+                <excess frequency="3" w="2" specification="stability" value-db="1.1967181772532371" bound-db="1.5836249209524964" excess-db="-0.38690674369925926" />
+                <excess frequency="4" w="2.917" specification="tracking-lower" value-db="2.151255388292686" bound-db="6.857822239674583" excess-db="-4.706566851381897" />
+                <excess frequency="4" w="2.917" specification="stability" value-db="1.5722631567884646" bound-db="1.5836249209524964" excess-db="-0.011361764164031785" />
+                <excess frequency="5" w="3.516" specification="tracking-lower" value-db="2.088527254941158" bound-db="8.696958582762512" excess-db="-6.6084313278213545" />
+                <excess frequency="5" w="3.516" specification="stability" value-db="1.3771383456419894" bound-db="1.5836249209524964" excess-db="-0.20648657531050696" />
+                <excess frequency="6" w="5.433" specification="tracking-lower" value-db="2.166017047624925" bound-db="10.489628866428728" excess-db="-8.323611818803803" />
+                <excess frequency="6" w="5.433" specification="stability" value-db="0.8672250026425711" bound-db="1.5836249209524964" excess-db="-0.7163999183099253" />
+                <excess frequency="7" w="15" specification="tracking-lower" value-db="11.327156811456017" bound-db="11.327156811457023" excess-db="-1.0054179711005418e-12" />
+                <excess frequency="7" w="15" specification="stability" value-db="0.15137481198401495" bound-db="1.5836249209524964" excess-db="-1.4322501089684814" />
+                <excess frequency="8" w="100" specification="tracking-lower" value-db="28.626783520971557" bound-db="35.22470298038387" excess-db="-6.59791945941231" />
+                <excess frequency="8" w="100" specification="stability" value-db="0.24716590311502962" bound-db="1.5836249209524964" excess-db="-1.3364590178374667" />
+                <excess frequency="9" w="217.3" specification="stability" value-db="1.2966797095825668" bound-db="1.5836249209524964" excess-db="-0.28694521136992956" />
+                <excess frequency="10" w="267.3" specification="stability" value-db="1.5749334867834448" bound-db="1.5836249209524964" excess-db="-0.008691434169051604" />
+                <family-worst-member>
+                    <parameter name="a">1</parameter>
+                    <parameter name="k">1</parameter>
+                </family-worst-member>
+            </check>
+            <certificate finished="true" exact-points="true" lower-bound="1261.9641939890912" lower-bound-trusting-the-grid="1261.9641939890912" residue-boxes="24" resolved-boxes="5" unproven-discards="0" grid-backed-prunes="0" />
         </loop-shaping>
     </results>
 </QFT>

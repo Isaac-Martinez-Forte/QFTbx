@@ -7,7 +7,8 @@
  * fraction, powers rise, functions take their usual notation, and only the
  * parentheses that change the meaning survive. A zero coefficient drops its
  * term, a unit one drops its factor, an uncertain one keeps both, and every
- * system family is written as its own literature writes it. An empty
+ * system family is written as its own literature writes it. A number in
+ * exponent notation is a mantissa times a power of ten. An empty
  * coefficient list is written as 1, which is what the evaluation uses for
  * it, so a numerator nobody filled in does not make the bound vanish.
  */
@@ -82,6 +83,28 @@ TEST(Formula, WritesTheConstantsAsConstants)
     EXPECT_EQ(latexOfText("pi*s"), "\\pi s");
     EXPECT_EQ(latexOf(formula::number(1.5e-06, 4)), "1.5 \\cdot 10^{-6}");
     EXPECT_EQ(latexOf(formula::number(1e-06, 4)), "10^{-6}");
+}
+
+TEST(Formula, AnExponentNotationNumberIsAMantissaTimesAPowerOfTen)
+{
+    std::string mantissa;
+    std::string exponent;
+    ASSERT_TRUE(formula::splitExponent("1.001e-12", mantissa, exponent));
+    EXPECT_EQ(mantissa, "1.001");
+    EXPECT_EQ(exponent, "-12");
+    ASSERT_TRUE(formula::splitExponent("3.218e+06", mantissa, exponent));
+    EXPECT_EQ(exponent, "6");
+    EXPECT_FALSE(formula::splitExponent("568.4", mantissa, exponent));
+
+    const Formula scaled = formula::scientific("3.218e+06");
+    ASSERT_EQ(scaled.kind, Formula::Kind::Row);
+    ASSERT_EQ(scaled.parts.size(), 3u);
+    EXPECT_EQ(scaled.parts[0].text, "3.218");
+    EXPECT_EQ(scaled.parts[2].kind, Formula::Kind::Power);
+    EXPECT_EQ(latexOf(scaled), "3.218 \\cdot 10^{6}");
+
+    EXPECT_EQ(formula::scientific("1e-12").kind, Formula::Kind::Power);
+    EXPECT_EQ(formula::scientific("568.4").kind, Formula::Kind::Number);
 }
 
 TEST(Formula, AnUnreadableExpressionGivesNothing)

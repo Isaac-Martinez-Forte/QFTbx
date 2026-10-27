@@ -4,6 +4,8 @@
 #include <QString>
 #include <QStringList>
 
+class QPalette;
+
 /**
  * @file
  * @brief The look of the interface: flat, square and quiet.
@@ -19,7 +21,8 @@
  * window, present or future, follows; an unknown code is the system theme.
  * availableThemes lists the codes in the order the menu shows them.
  * storeTheme writes the choice into the settings file in use, like the
- * language, and writes nothing given an empty path.
+ * language, and writes nothing given an empty path. wrongColour gives the
+ * red of a wrong field on a palette, for what draws its own text.
  */
 
 namespace qftbx {
@@ -37,6 +40,8 @@ QString themeName(const QString & code);
 void applyTheme(const QString & code);
 
 void storeTheme(const QString & code, const std::string & settingsPath);
+
+QString wrongColour(const QPalette & palette);
 
 }
 

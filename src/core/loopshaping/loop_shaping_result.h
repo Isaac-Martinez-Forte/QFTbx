@@ -16,12 +16,12 @@
  * the frequency window and point count the viewer plots it over.
  *
  * It OWNS the controller, and says so in the type. With it travel what the
- * run cost (zero for a result read from a file); the controller checked
- * against the specifications themselves, over the full template at every
- * design frequency, the last thing a run does before handing the result
- * over and what the interface shows next to the controller, absent for a
- * result read from a file and for a run whose project carried no templates
- * to check against; and what the run was asked for. A result does not mean
+ * run counted, of which a file keeps only the certificate; the controller
+ * checked against the specifications themselves, over the full template at
+ * every design frequency, the last thing a run does before handing the
+ * result over and what the interface shows next to the controller, absent
+ * for a run whose project carried no templates to check against; and what
+ * the run was asked for. A result does not mean
  * much without the last: the same problem answers 557.02 or 567.32
  * depending on how a phase between two boundary nodes was read, so the
  * algorithm, the termination tolerance, the column reading and the point

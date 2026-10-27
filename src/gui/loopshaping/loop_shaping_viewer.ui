@@ -89,10 +89,28 @@
       </layout>
      </item>
      <item>
-      <widget class="QLabel" name="checkLabel">
-       <property name="text"><string/></property>
-       <property name="wordWrap"><bool>true</bool></property>
-      </widget>
+      <layout class="QHBoxLayout" name="summaryRow">
+       <item>
+        <widget class="QLabel" name="checkLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text"><string/></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="detailsButton">
+         <property name="toolTip">
+          <string>The whole verdict, the stability and the certificate of the search.</string>
+         </property>
+         <property name="text"><string>Details ›</string></property>
+         <property name="autoRaise"><bool>true</bool></property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <widget class="QWidget" name="legendHolder" native="true">

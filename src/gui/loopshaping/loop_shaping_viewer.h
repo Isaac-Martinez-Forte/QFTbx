@@ -5,14 +5,14 @@
  * Declares the viewer of the loop-shaping result: the boundary union with
  * one legend row per frequency, the open-loop curve, a marker per design
  * frequency, the controller's coefficients and formula at the digits the
- * user chooses, and the verdict of the check against the specifications,
- * the closed-loop stability of the family and of the nominal plant
- * included. The plant and the
- * result are observers on the project; the plot owns the curves and the
- * viewer keeps the containers that tie a frequency's pieces to its legend
- * row. The frequency sweep it plots over is fixed rather than taken from
- * the user. clear() forgets what it was drawing when the project drops the
- * step, since the observers go with it.
+ * user chooses, and one line of the verdict on the specifications and the
+ * closed-loop stability, whose whole is in the report beside it
+ * (loop_shaping_report.h). The plant and the result are observers on the
+ * project; the plot owns the curves and the viewer keeps the containers
+ * that tie a frequency's pieces to its legend row. The frequency sweep it
+ * plots over is fixed rather than taken from the user. clear() forgets
+ * what it was drawing when the project drops the step, since the observers
+ * go with it.
  */
 #ifndef QFTBX_LOOP_SHAPING_VIEWER_H
 #define QFTBX_LOOP_SHAPING_VIEWER_H
@@ -51,8 +51,12 @@ public:
 
     void showDiagram();
 
+    void setSummaryShown(bool shown);
+
 signals:
     void digitsChanged(int digits);
+
+    void detailsAsked();
 
 private slots:
     void applyCheckboxes();
@@ -62,11 +66,13 @@ private slots:
     void on_saveImage_clicked();
 
 private:
+    bool eventFilter(QObject * watched, QEvent * event) override;
+
     void showCheck();
+    void elideSummary();
     void fillDigitsCombo();
-    QString specificationTitle(qftbx::SpecificationType type);
-    QString familyText(const qftbx::FamilyStability & family);
-    QString nominalText(const qftbx::NominalStability & nominal);
+
+    QString summary;
 
     qftbx::UnionTraces unionTraces;
     std::vector<double> * omega = nullptr;

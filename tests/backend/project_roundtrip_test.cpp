@@ -11,15 +11,17 @@
  * plant's description, the settings of the run and the verifier's verdict
  * survive, the nominal closed loop among them, an unstable one read back as
  * not satisfied, and the verdict with nothing active without its infinite
- * number. A
- * run written before it recorded its point reading reads as the columns, and
- * a point reading the build does not know is refused. A NaN and an
- * unwritable path are refused.
+ * number; the verdict's table, the plant nearest to instability and the
+ * certificate survive bit-exact, a bound of infinity among them, and what
+ * the search cost is not written. A run written before it recorded its
+ * point reading reads as the columns, and a point reading the build does not
+ * know is refused. A NaN and an unwritable path are refused.
  */
 
 #include "src/core/system/polynomial_form.h"
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <fstream>
 #include <iterator>
 #include <limits>
@@ -364,6 +366,9 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     EXPECT_TRUE(reloaded.loopShaping()->check()->nominal.stable);
     EXPECT_DOUBLE_EQ(reloaded.loopShaping()->check()->nominal.worstRealPart, -0.71);
 
+    EXPECT_TRUE(reloaded.loopShaping()->check()->entries.empty()) << "a verdict written without its table";
+    EXPECT_FALSE(reloaded.loopShaping()->statistics().certificate.kept) << "a run written without its certificate";
+
     SpecificationCheck unstable = check;
     unstable.nominal.stable = false;
     unstable.nominal.worstRealPart = 2.22;
@@ -374,6 +379,92 @@ TEST(RoundTripSettings, TheRunAndTheVerdictSurviveSaveAndLoad)
     ASSERT_TRUE(again.loopShaping()->check().has_value());
     EXPECT_FALSE(again.loopShaping()->check()->nominal.stable);
     EXPECT_FALSE(again.loopShaping()->check()->satisfied()) << "an unstable nominal loop is not satisfied";
+}
+
+TEST(RoundTripSettings, TheTableTheNearestPlantAndTheCertificateSurviveSaveAndLoad)
+{
+    QTemporaryDir temporary;
+    ASSERT_TRUE(temporary.isValid());
+    const std::string path = temporary.filePath("certificate.qft").toStdString();
+
+    ProjectReader original;
+    original.load(std::string(QFTBX_TEST_DATA_DIR "/planta1.qft"));
+    ASSERT_NE(original.loopShaping(), nullptr);
+
+    SpecificationCheck check;
+    check.entries.push_back({0, 0.5, SpecificationType::Stability, 2.5, 3.0, -0.5});
+    check.entries.push_back({3, 10.0, SpecificationType::ControlEffort, 1.0 / 3.0, 1.0 / 3.0, -1.0000229810902539e-12});
+    check.worstExcessDb = -1.0000229810902539e-12;
+    check.family.checked = true;
+    check.family.notChecked = FamilyStability::NotChecked::No;
+    check.family.members = 25;
+    check.family.worstRealPart = -9.603834627536589e-05;
+    check.family.worstMember = {{"k", 1.0 / 7.0}, {"a", -2.0}};
+    original.loopShaping()->setCheck(check);
+
+    LoopShapingStatistics statistics;
+    statistics.milliseconds = 12.0;
+    statistics.nodesProcessed = 99;
+    statistics.certificate.kept = true;
+    statistics.certificate.finished = true;
+    statistics.certificate.exactPoints = true;
+    statistics.certificate.lowerBound = 557.25;
+    statistics.certificate.lowerBoundStrict = 556.913;
+    statistics.certificate.residueNodes = 1;
+    statistics.certificate.epsilonResolved = 2;
+    statistics.certificate.unprovenDiscards = 3;
+    statistics.certificate.gridBackedPrunes = 4;
+    original.loopShaping()->setStatistics(statistics);
+
+    ProjectContent content;
+    content.plant = original.plant();
+    content.omega = original.omega();
+    content.templates = &original.templates();
+    content.epsilon = original.epsilon();
+    content.controller = original.controller();
+    content.loopShaping = original.loopShaping();
+
+    ProjectWriter writer;
+    writer.save(path, content);
+    ProjectReader reloaded;
+    reloaded.load(path);
+    ASSERT_NE(reloaded.loopShaping(), nullptr);
+    ASSERT_TRUE(reloaded.loopShaping()->check().has_value());
+
+    const SpecificationCheck & back = *reloaded.loopShaping()->check();
+    ASSERT_EQ(back.entries.size(), 2u);
+    for (std::size_t i = 0; i < 2; ++i) {
+        EXPECT_EQ(back.entries[i].frequencyIndex, check.entries[i].frequencyIndex);
+        EXPECT_EQ(back.entries[i].omega, check.entries[i].omega);
+        EXPECT_EQ(back.entries[i].type, check.entries[i].type);
+        EXPECT_EQ(back.entries[i].valueDb, check.entries[i].valueDb);
+        EXPECT_EQ(back.entries[i].boundDb, check.entries[i].boundDb);
+        EXPECT_EQ(back.entries[i].excessDb, check.entries[i].excessDb);
+    }
+    EXPECT_EQ(back.family.worstRealPart, check.family.worstRealPart);
+    EXPECT_EQ(back.family.worstMember, check.family.worstMember);
+
+    const LoopShapingStatistics::Certificate & certificate = reloaded.loopShaping()->statistics().certificate;
+    EXPECT_TRUE(certificate.kept);
+    EXPECT_TRUE(certificate.finished);
+    EXPECT_TRUE(certificate.exactPoints);
+    EXPECT_EQ(certificate.lowerBound, 557.25);
+    EXPECT_EQ(certificate.lowerBoundStrict, 556.913);
+    EXPECT_EQ(certificate.residueNodes, 1u);
+    EXPECT_EQ(certificate.epsilonResolved, 2u);
+    EXPECT_EQ(certificate.unprovenDiscards, 3u);
+    EXPECT_EQ(certificate.gridBackedPrunes, 4u);
+    EXPECT_EQ(reloaded.loopShaping()->statistics().milliseconds, 0.0) << "what the search cost is not written";
+    EXPECT_EQ(reloaded.loopShaping()->statistics().nodesProcessed, 0u) << "what the search cost is not written";
+
+    statistics.certificate.lowerBound = std::numeric_limits<double>::infinity();
+    statistics.certificate.lowerBoundStrict = std::numeric_limits<double>::infinity();
+    original.loopShaping()->setStatistics(statistics);
+    writer.save(path, content);
+    ProjectReader optimal;
+    optimal.load(path);
+    EXPECT_TRUE(std::isinf(optimal.loopShaping()->statistics().certificate.lowerBoundStrict)) << "nothing left undecided";
+    EXPECT_TRUE(std::isinf(optimal.loopShaping()->statistics().certificate.lowerBound));
 }
 
 TEST(RoundTripSettings, ARunWithoutItsPointReadingReadsTheColumnsAndAnUnknownOneIsRefused)

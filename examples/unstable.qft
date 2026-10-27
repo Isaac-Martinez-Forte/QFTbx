@@ -2038,7 +2038,18 @@
                     </parameter>
                 </type>
             </controller>
-            <check satisfied="true" worst-excess-db="-1.007194327939942e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.10526936196190317" nominal-stable="true" nominal-worst-real-part="-1.352355327414064" />
+            <check satisfied="true" worst-excess-db="-1.007194327939942e-12" family-members="625" family-unstable="0" family-worst-real-part="-0.10526936196190317" nominal-stable="true" nominal-worst-real-part="-1.352355327414064">
+                <excess frequency="0" w="0.1" specification="stability" value-db="2.10421024055051" bound-db="6.444385894678386" excess-db="-4.340175654127876" />
+                <excess frequency="1" w="1" specification="stability" value-db="5.895285779903853" bound-db="6.444385894678386" excess-db="-0.5491001147745331" />
+                <excess frequency="2" w="2" specification="stability" value-db="6.444385894677379" bound-db="6.444385894678386" excess-db="-1.007194327939942e-12" />
+                <excess frequency="3" w="6" specification="stability" value-db="1.4304840908258085" bound-db="6.444385894678386" excess-db="-5.013901803852578" />
+                <excess frequency="4" w="50" specification="stability" value-db="-2.529454344093746" bound-db="6.444385894678386" excess-db="-8.973840238772132" />
+                <family-worst-member>
+                    <parameter name="a">0.1</parameter>
+                    <parameter name="k">10</parameter>
+                </family-worst-member>
+            </check>
+            <certificate finished="true" exact-points="true" lower-bound="5.035557544288215" lower-bound-trusting-the-grid="5.035557544288215" residue-boxes="1" resolved-boxes="0" unproven-discards="0" grid-backed-prunes="0" />
         </loop-shaping>
     </results>
 </QFT>
