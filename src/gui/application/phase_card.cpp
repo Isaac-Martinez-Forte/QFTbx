@@ -10,11 +10,14 @@
  * in a scroll area of fixed height, so unfolding it adds a band below the
  * diagram and never widens the card. A phase that is only a form has
  * nothing to fold, takes the whole card, and asks for two squares when its
- * form does not fit in one, until the user chooses a size. The bar is the
- * drag handle and shows the hand; its buttons keep the arrow.
+ * form does not fit in one, until the user chooses a size. The fold button
+ * points down, the way the form opens. The bar is the drag handle and shows
+ * the hand; its buttons keep the arrow.
  */
 
 #include "src/gui/application/phase_card.h"
+
+#include "src/gui/common/fold_button.h"
 
 #include <algorithm>
 
@@ -110,9 +113,8 @@ PhaseCard::PhaseCard(const QString & title, const QString & name, QWidget * form
     connect(m_cancel, &QToolButton::clicked, this, &PhaseCard::cancelAsked);
     barLayout->addWidget(m_cancel);
 
-    m_fold = new QToolButton(bar);
+    m_fold = new FoldButton(Qt::DownArrow, bar);
     m_fold->setObjectName(name + "Fold");
-    m_fold->setCheckable(true);
     m_fold->setText(tr("Data"));
     m_fold->setToolTip(tr("Show or hide what this phase was asked for"));
     barLayout->addWidget(m_fold);

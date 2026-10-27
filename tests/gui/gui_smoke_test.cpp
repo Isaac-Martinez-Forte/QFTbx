@@ -61,6 +61,7 @@
 #include <QDockWidget>
 #include <limits>
 #include <QToolButton>
+#include <QElapsedTimer>
 #include <QStackedWidget>
 #include <QTableWidget>
 #include <QString>
@@ -70,6 +71,7 @@
 #include "src/gui/common/number_text.h"
 #include "src/gui/common/formula_delegate.h"
 #include "src/gui/common/field_mark.h"
+#include "src/gui/common/fold_button.h"
 #include "src/gui/common/trace_segments.h"
 #include "src/gui/common/formula_view.h"
 #include "src/core/system/system_formula.h"
@@ -1408,6 +1410,36 @@ TEST_F(GuiSmoke, LoopShapingViewerDrawsTheShapedLoop)
     QCustomPlot * plot = child<QCustomPlot>(&viewer, "plot");
     ASSERT_NE(plot, nullptr);
     EXPECT_GT(plot->plottableCount(), 0) << "nothing was drawn";
+}
+
+TEST_F(GuiSmoke, TheFoldArrowPointsWhereTheFormOpensAndTurnsWhenPressed)
+{
+    MainWindow window;
+    window.setFileChooser([](bool) {
+        return QString(QFTBX_TEST_DATA_DIR "/planta1.qft");
+    });
+    window.findChild<QAction *>("actionOpen")->trigger();
+    window.resize(1400, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    const auto settled = [](FoldButton * button, qreal angle) {
+        QElapsedTimer clock;
+        clock.start();
+        while (button->arrowAngle() != angle && clock.elapsed() < 2000) {
+            QCoreApplication::processEvents();
+        }
+        return button->arrowAngle() == angle;
+    };
+
+    FoldButton * data = window.findChild<FoldButton *>("loopShapingCardFold");
+    ASSERT_NE(data, nullptr);
+
+    EXPECT_EQ(data->arrowAngle(), 90.0) << "a folded form does not point down, where it opens";
+    data->click();
+    EXPECT_TRUE(settled(data, 270.0)) << "the arrow of an open form did not turn up";
+    data->click();
+    EXPECT_TRUE(settled(data, 90.0)) << "the arrow of a folded form did not turn down again";
 }
 
 TEST_F(GuiSmoke, TheMainWindowBuildsItsWholeWidgetTree)
