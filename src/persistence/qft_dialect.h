@@ -11,8 +11,9 @@
  * by position, so a file still says which algorithm produced a design after
  * another one is added to the list; algorithmFromName gives nothing for a
  * name this build does not have. The file also names why the verifier left
- * the family's stability unchecked. Internal to src/persistence, shared by
- * the reader and the writer.
+ * the family's stability unchecked, and the specification of each row of
+ * its table. Internal to src/persistence, shared by the reader and the
+ * writer.
  */
 
 #ifndef QFTBX_QFT_DIALECT_H
@@ -87,6 +88,9 @@ struct Tags {
     const char * sweep;
     const char * sweepParameter;
     const char * doiAttribute;
+    const char * certificate;
+    const char * excess;
+    const char * familyWorstMember;
 };
 
 inline constexpr int kVersion = 4;
@@ -107,6 +111,7 @@ inline const Tags kV4 = {
     "columns",
     "sweep", "parameter",
     "doi",
+    "certificate", "excess", "family-worst-member",
 };
 
 inline const char * familyNotCheckedName(FamilyStability::NotChecked why)
@@ -125,6 +130,31 @@ inline std::optional<FamilyStability::NotChecked> familyNotCheckedFromName(const
     if (name == "no-sweep-record") return FamilyStability::NotChecked::NoSweepRecord;
     if (name == "delay")           return FamilyStability::NotChecked::Delay;
     if (name == "not-rational")    return FamilyStability::NotChecked::NotRational;
+    return std::nullopt;
+}
+
+inline const char * specificationTypeName(SpecificationType type)
+{
+    switch (type) {
+    case SpecificationType::TrackingLower:     return "tracking-lower";
+    case SpecificationType::TrackingUpper:     return "tracking-upper";
+    case SpecificationType::Stability:         return "stability";
+    case SpecificationType::SensorNoise:       return "sensor-noise";
+    case SpecificationType::OutputDisturbance: return "output-disturbance";
+    case SpecificationType::InputDisturbance:  return "input-disturbance";
+    case SpecificationType::ControlEffort:     return "control-effort";
+    }
+    return "";
+}
+
+inline std::optional<SpecificationType> specificationTypeFromName(const std::string & name)
+{
+    for (std::size_t i = 0; i < kSpecificationCount; ++i) {
+        const SpecificationType type = static_cast<SpecificationType>(i);
+        if (name == specificationTypeName(type)) {
+            return type;
+        }
+    }
     return std::nullopt;
 }
 

@@ -733,6 +733,10 @@
         <source>Some plants of the sweep have a pole on the imaginary axis exactly at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty, where the template is unbounded and cannot be contoured. Move those frequencies a little, or sweep the parameters so that no plant falls exactly on them.</source>
         <translation>Algunas plantas del barrido tienen un polo sobre el eje imaginario justo en las frecuencias de diseño %1 rad/s: una resonancia sin amortiguar dentro de la incertidumbre, donde el template no está acotado y no se puede contornear. Mueva un poco esas frecuencias, o barra los parámetros de modo que ninguna planta caiga justo en ellas.</translation>
     </message>
+    <message>
+        <source>unknown specification &apos;%1&apos; in the verdict&apos;s table</source>
+        <translation>especificación desconocida «%1» en la tabla del veredicto</translation>
+    </message>
 </context>
 <context>
     <name>FrequenciesForm</name>

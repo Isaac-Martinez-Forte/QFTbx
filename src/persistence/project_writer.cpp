@@ -10,8 +10,11 @@
  * reparametrising expression is applied, since the reader takes what it finds
  * as the state and applying the expression on every save would compound it.
  * A description, a skipped-frequency list or a worst excess is written only
- * when there is one. The verifier's verdict is stored because it cannot be
- * recovered without recomputing it; the itemised list behind it is derived.
+ * when there is one. The verifier's verdict goes with its table and the
+ * plant nearest to instability, and the search's certificate with it, so a
+ * design read back reports what it did when it was found. A lower bound is
+ * written only when there is one, infinity meaning nothing was left
+ * undecided.
  */
 
 #include <vector>
@@ -356,6 +359,42 @@ void writeLoopShaping(pugi::xml_node root, LoopShapingResult * loopShaping)
                 check.append_attribute("nominal-worst-real-part") = number(nominal.worstRealPart).c_str();
             }
         }
+        for (const SpecificationExcess & entry : loopShaping->check()->entries) {
+            pugi::xml_node row = check.append_child(t.excess);
+            row.append_attribute("frequency") = static_cast<std::int64_t>(entry.frequencyIndex);
+            row.append_attribute("w") = number(entry.omega).c_str();
+            row.append_attribute(t.specification) = specificationTypeName(entry.type);
+            row.append_attribute("value-db") = number(entry.valueDb).c_str();
+            row.append_attribute("bound-db") = number(entry.boundDb).c_str();
+            row.append_attribute("excess-db") = number(entry.excessDb).c_str();
+        }
+        if (family.checked && !family.worstMember.empty()) {
+            pugi::xml_node member = check.append_child(t.familyWorstMember);
+            for (const auto & [name, value] : family.worstMember) {
+                pugi::xml_node parameter = member.append_child(t.sweepParameter);
+                parameter.append_attribute(t.parameterName) = name.c_str();
+                parameter.text().set(number(value).c_str());
+            }
+        }
+    }
+
+    const LoopShapingStatistics::Certificate & certificate = loopShaping->statistics().certificate;
+    if (certificate.kept) {
+        pugi::xml_node node = section.append_child(t.certificate);
+        node.append_attribute("finished") = certificate.finished;
+        node.append_attribute("exact-points") = certificate.exactPoints;
+        if (certificate.finished) {
+            if (std::isfinite(certificate.lowerBoundStrict)) {
+                node.append_attribute("lower-bound") = number(certificate.lowerBoundStrict).c_str();
+            }
+            if (std::isfinite(certificate.lowerBound)) {
+                node.append_attribute("lower-bound-trusting-the-grid") = number(certificate.lowerBound).c_str();
+            }
+        }
+        node.append_attribute("residue-boxes") = static_cast<std::int64_t>(certificate.residueNodes);
+        node.append_attribute("resolved-boxes") = static_cast<std::int64_t>(certificate.epsilonResolved);
+        node.append_attribute("unproven-discards") = static_cast<std::int64_t>(certificate.unprovenDiscards);
+        node.append_attribute("grid-backed-prunes") = static_cast<std::int64_t>(certificate.gridBackedPrunes);
     }
 }
 
