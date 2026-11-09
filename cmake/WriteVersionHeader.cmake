@@ -9,7 +9,7 @@ endif()
 
 set(commit "")
 find_program(git_program NAMES git)
-if(git_program)
+if(git_program AND EXISTS "${SOURCE_DIR}/.git")
   execute_process(
     COMMAND "${git_program}" -C "${SOURCE_DIR}" rev-parse --short HEAD
     OUTPUT_VARIABLE commit

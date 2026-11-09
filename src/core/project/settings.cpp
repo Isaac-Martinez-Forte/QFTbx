@@ -16,8 +16,8 @@
  * settings are loaded, and only there: each file reports the other's keys as
  * unknown. A file read on its own, as the benchmark and the command-line
  * solver read theirs, takes both. The user's own files live under
- * %APPDATA%\qftbx on Windows and $HOME/.config/qftbx elsewhere, and the
- * record goes by default to %LOCALAPPDATA%\qftbx there and to the XDG state
+ * `%APPDATA%\qftbx` on Windows and $HOME/.config/qftbx elsewhere, and the
+ * record goes by default to `%LOCALAPPDATA%\qftbx` there and to the XDG state
  * directory elsewhere.
  */
 

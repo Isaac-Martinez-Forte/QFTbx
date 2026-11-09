@@ -1,27 +1,46 @@
 # The dependencies, each exposed as a namespaced target.
 
-# pugixml: the .qft reader and writer. Fetched, pinned by tag.
 include(FetchContent)
-# EXCLUDE_FROM_ALL keeps pugixml's own install rules out of ours: it ships a
-# static library, its headers, a CMake package and a pkg-config file, none of
-# which belongs in a package of the application. The keyword arrived in CMake
-# 3.28, and where it is not available the files are installed and harmless.
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
-  FetchContent_Declare(pugixml
-    GIT_REPOSITORY https://github.com/zeux/pugixml.git
-    GIT_TAG        v1.16
-    EXCLUDE_FROM_ALL
+if(QFTBX_USE_SYSTEM_LIBS)
+  # GLOBAL imported targets are needed by the sibling src/ and tests/ trees.
+  if(CMAKE_VERSION VERSION_LESS 3.24)
+    message(FATAL_ERROR "QFTBX_USE_SYSTEM_LIBS requires CMake 3.24 or later")
+  endif()
+  find_package(pugixml 1.16 CONFIG REQUIRED GLOBAL)
+
+  find_path(QCUSTOMPLOT_INCLUDE_DIR NAMES qcustomplot.h REQUIRED)
+  find_library(QCUSTOMPLOT_LIBRARY NAMES qcustomplot REQUIRED)
+  add_library(qcustomplot::qcustomplot UNKNOWN IMPORTED GLOBAL)
+  set_target_properties(qcustomplot::qcustomplot PROPERTIES
+    IMPORTED_LOCATION "${QCUSTOMPLOT_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${QCUSTOMPLOT_INCLUDE_DIR}"
+    INTERFACE_COMPILE_DEFINITIONS QCUSTOMPLOT_USE_LIBRARY
+    INTERFACE_LINK_LIBRARIES "Qt6::Core;Qt6::Gui;Qt6::Widgets;Qt6::PrintSupport"
   )
 else()
-  FetchContent_Declare(pugixml
-    GIT_REPOSITORY https://github.com/zeux/pugixml.git
-    GIT_TAG        v1.16
-  )
-endif()
-FetchContent_MakeAvailable(pugixml)
+  # pugixml: the .qft reader and writer. Fetched, pinned by tag.
+  # EXCLUDE_FROM_ALL keeps pugixml's own install rules out of ours: it ships a
+  # static library, its headers, a CMake package and a pkg-config file, none of
+  # which belongs in a package of the application. The keyword arrived in CMake
+  # 3.28, and where it is not available the files are installed and harmless.
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
+    FetchContent_Declare(pugixml
+      GIT_REPOSITORY https://github.com/zeux/pugixml.git
+      GIT_TAG        v1.16
+      EXCLUDE_FROM_ALL
+    )
+  else()
+    FetchContent_Declare(pugixml
+      GIT_REPOSITORY https://github.com/zeux/pugixml.git
+      GIT_TAG        v1.16
+    )
+  endif()
+  FetchContent_MakeAvailable(pugixml)
 
-# QCustomPlot draws the plots of the GUI. Vendored, built on demand.
-add_subdirectory(qcustomplot EXCLUDE_FROM_ALL)
+  # QCustomPlot draws the plots of the GUI. Vendored, built on demand.
+  add_subdirectory(qcustomplot EXCLUDE_FROM_ALL)
+
+endif()
 
 # The interval arithmetic, as the single target qftbx_interval: the chosen
 # library plus the macro that selects the backend section of interval.h.
@@ -46,6 +65,16 @@ if(QFTBX_INTERVAL_BACKEND STREQUAL "kv")
   endif()
   target_link_libraries(qftbx_interval INTERFACE kv::kv)
   target_compile_definitions(qftbx_interval INTERFACE QFTBX_INTERVAL_KV=1)
+elseif(QFTBX_USE_SYSTEM_LIBS)
+  find_path(CXSC_INCLUDE_DIR NAMES interval.hpp PATH_SUFFIXES cxsc REQUIRED)
+  find_library(CXSC_LIBRARY NAMES cxsc REQUIRED)
+  add_library(cxsc::cxsc UNKNOWN IMPORTED GLOBAL)
+  set_target_properties(cxsc::cxsc PROPERTIES
+    IMPORTED_LOCATION "${CXSC_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${CXSC_INCLUDE_DIR}"
+  )
+  target_link_libraries(qftbx_interval INTERFACE cxsc::cxsc)
+  target_compile_definitions(qftbx_interval INTERFACE QFTBX_INTERVAL_CXSC=1)
 else()
   # C-XSC: fetched from the fork that builds with a current compiler, pinned
   # by tag, and built untouched as an external project with its own CMake.

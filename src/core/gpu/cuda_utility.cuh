@@ -8,7 +8,7 @@
 
 #include <cuda_runtime.h>
 
-#include "Modelo/Herramientas/exception.h"
+#include "src/core/common/exception.h"
 
 namespace qftbx {
 

@@ -4,3 +4,5 @@ add_executable(qftbx-bench main.cpp)
 set_target_properties(qftbx-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_link_libraries(qftbx-bench PRIVATE qftbx_bench)
 qftbx_warnings(qftbx-bench)
+
+install(TARGETS qftbx-bench RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")

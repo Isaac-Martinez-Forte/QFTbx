@@ -18,6 +18,7 @@ option(USE_FP_CONTRACTION "Let the compiler fuse a product and a sum into one in
 option(USE_OpenMP         "Use OpenMP" ON)
 option(USE_CLANG          "Compile with Clang when available" OFF)
 option(USE_CUDA           "Use CUDA" OFF)
+option(QFTBX_USE_SYSTEM_LIBS "Use installed pugixml, QCustomPlot and (if selected) C-XSC" OFF)
 
 # The tests, off unless asked for. They are the author's, not something a
 # build for use needs: they fetch GoogleTest, which a build without network
@@ -129,10 +130,12 @@ set(CMAKE_AUTORCC ON)
 
 # The commit the build is made from, for the benchmark records; "unknown"
 # outside a repository.
-execute_process(COMMAND git rev-parse --short HEAD
-                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-                OUTPUT_VARIABLE QFTBX_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE
-                ERROR_QUIET)
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  execute_process(COMMAND git rev-parse --short HEAD
+                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                  OUTPUT_VARIABLE QFTBX_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE
+                  ERROR_QUIET)
+endif()
 if(NOT QFTBX_GIT_COMMIT)
   set(QFTBX_GIT_COMMIT "unknown")
 endif()
@@ -147,7 +150,10 @@ if(QFTBX_SANITIZERS)
 endif()
 
 if(NOT USE_FP_CONTRACTION AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  add_compile_options(-ffp-contract=off)
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:-ffp-contract=off>"
+    "$<$<COMPILE_LANGUAGE:CUDA>:--fmad=false>"
+  )
 endif()
 
 # Where Qt lives on Windows when nothing says otherwise; pass
@@ -168,17 +174,24 @@ if(USE_CUDA)
   include(CheckLanguage)
   check_language(CUDA)
   if(CMAKE_CUDA_COMPILER)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND "$ENV{CUDAARCHS}" STREQUAL "")
+      set(QFTBX_DEFAULT_CUDA_ARCHITECTURES TRUE)
+    endif()
     enable_language(CUDA)
     message(STATUS "CUDA found: ${CMAKE_CUDA_COMPILER}")
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     # Sensible defaults; override with -DCMAKE_CUDA_ARCHITECTURES=... for
-    # the card at hand.
-    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(CMAKE_CUDA_ARCHITECTURES 61 75 86)
+    # the card at hand. CUDA 13 no longer supports Pascal (61).
+    if(QFTBX_DEFAULT_CUDA_ARCHITECTURES)
+      if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
+        set(CMAKE_CUDA_ARCHITECTURES "75;86" CACHE STRING "CUDA architectures" FORCE)
+      else()
+        set(CMAKE_CUDA_ARCHITECTURES "61;75;86" CACHE STRING "CUDA architectures" FORCE)
+      endif()
     endif()
   else()
-    message(STATUS "CUDA not found")
+    message(FATAL_ERROR "USE_CUDA is enabled but a CUDA compiler was not found")
   endif()
 endif()
 

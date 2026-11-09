@@ -14,7 +14,7 @@ system GCC is older, Clang needs `--gcc-toolchain` pointed at a newer one.
 
 **CMake 3.17 or later.**
 
-**Qt 6.** The application links the Core, Widgets and PrintSupport modules,
+**Qt 6.** The application links the Core, Widgets, PrintSupport and Svg modules,
 and the build uses LinguistTools for the Spanish translation. Qt 6.5 is what
 the continuous integration builds against. The computational core and the
 persistence link no Qt at all, and a build target checks that they do not
@@ -23,9 +23,10 @@ persistence link no Qt at all, and a build target checks that they do not
 **Optional.** OpenMP, for the parallel template sweep and boundary
 computation; it comes with the compiler and is used when found. CUDA 11 or
 later for the GPU kernels, off by default. Doxygen, with Graphviz for the
-diagrams, for the API reference.
+diagrams, for the API reference. The Markdown formula filter also uses `sh`
+and `sed` (available with Git for Windows).
 
-**Fetched at configure time.** pugixml 1.14 (the `.qft` reader and writer)
+**Fetched at configure time.** pugixml 1.16 (the `.qft` reader and writer)
 and GoogleTest 1.14 (the tests) are downloaded with FetchContent the first
 time a build tree is configured, so that configuration needs network access.
 C-XSC is fetched the same way when it is chosen as the interval backend.
@@ -99,15 +100,35 @@ the build tree. They are all declared together at the top of
 | `USE_NATIVE_ARCH` | `ON` | `-march=native`: the numeric code tuned for the machine that builds it. Turn off for a binary that must run on other machines, and for tools that cannot run the wide vector instructions (Valgrind). With AVX-512 the compiler is also asked to keep its vectors at 256 bits, which measured faster here |
 | `USE_FP_CONTRACTION` | `ON` | Let the compiler fuse a product and a sum into one instruction where the processor has it. About 3 % faster in a native build, at the price of last bits that differ from a build without it; off, a native build gives exactly the results of the `portable` build of the packages |
 | `USE_CLANG` | `OFF` | Compile with Clang when it is installed. The compiler is chosen before the project is configured and cannot change afterwards, so this takes effect in a fresh build directory; an explicit `-DCMAKE_CXX_COMPILER` always wins |
-| `USE_CUDA` | `OFF` | The CUDA kernels of the templates and boundaries, when a CUDA compiler is found. `CMAKE_CUDA_ARCHITECTURES` names the cards (default 61, 75 and 86) |
+| `USE_CUDA` | `OFF` | The CUDA kernels of the templates and boundaries, when a CUDA compiler is found. `CMAKE_CUDA_ARCHITECTURES` names the cards (75 and 86 with CUDA >= 13; 61, 75 and 86 with older toolkits) |
 | `QFTBX_BUILD_TESTS` | `OFF` | Build the two test binaries and register them with CTest. Off so a build for use needs no network to fetch GoogleTest; the program is the same either way |
 | `QFTBX_BUILD_BENCHMARK` | `OFF` | Build the benchmark tool `qftbx-bench`, its tests and the benchmark planner of the interface. For measuring the algorithms, not for using them; see [BENCHMARKING.md](BENCHMARKING.md) |
+| `QFTBX_USE_SYSTEM_LIBS` | `OFF` | Use installed pugixml >= 1.16, QCustomPlot for Qt 6 and, with `cxsc`, C-XSC. Requires CMake >= 3.24; configuration fails if a required library is missing |
 | `QFTBX_INTERVAL_BACKEND` | `kv` | The interval arithmetic library: `kv` or `cxsc`. See [INTERVAL_ARITHMETIC.md](INTERVAL_ARITHMETIC.md) |
 | `QFTBX_SANITIZERS` | empty | Comma-separated sanitizers for a development build, e.g. `address,undefined`; needs the corresponding runtimes |
 | `FETCHCONTENT_SOURCE_DIR_CXSC` | none | A local checkout of the C-XSC fork, for a `cxsc` build without network access |
 
 Other compilers are chosen the CMake way, `-DCMAKE_CXX_COMPILER=<path>`, in
 a fresh build directory.
+
+## Distribution builds without network access
+
+With `QFTBX_USE_SYSTEM_LIBS=ON`, the application uses installed pugixml and
+QCustomPlot instead of fetching or compiling private copies. A `cxsc` build
+also uses the installed C-XSC library. Header and library paths can be
+supplied through `CMAKE_PREFIX_PATH`; C-XSC headers may live under
+`include/cxsc`.
+
+For offline tests, point `FETCHCONTENT_SOURCE_DIR_GOOGLETEST` at unpacked
+GoogleTest 1.14.0 sources. `FETCHCONTENT_FULLY_DISCONNECTED=ON` prevents
+FetchContent downloads. The compiler and architecture can still be selected
+through the usual CMake compiler and flags variables; distribution builds
+should disable `USE_NATIVE_ARCH` if their flags already select the target CPU.
+
+An explicitly enabled CUDA build fails if no CUDA compiler is available.
+CUDA 13 and later default to architectures 75 and 86; older toolkits retain
+61, 75 and 86. `CMAKE_CUDA_ARCHITECTURES` overrides these defaults. Disabling
+`USE_FP_CONTRACTION` also passes `--fmad=false` to CUDA kernels.
 
 ## Targets
 
