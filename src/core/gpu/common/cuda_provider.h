@@ -5,7 +5,7 @@
  * Installed by the application at start in a build with CUDA. It reads the
  * card the first time it is asked, not at start, so a program that never
  * offers the GPU never initialises CUDA. The engines it gives are those
- * built so far: the templates.
+ * built so far: the templates and the boundaries.
  */
 
 #ifndef QFTBX_GPU_CUDA_PROVIDER_H
@@ -24,6 +24,7 @@ public:
     const GpuStatus & status() const override;
 
     std::unique_ptr<TemplateComputation> templateComputation() const override;
+    std::unique_ptr<BoundaryComputation> boundaryComputation() const override;
 
 private:
     mutable std::once_flag m_once;

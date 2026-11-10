@@ -204,7 +204,9 @@ A case with phases also keeps, under `phases` in its record:
 - the time of the templates and of the boundaries;
 - the time of every step the engines write to the program's record, under
   its stage and detail (`templates/sweep`, `contours/walk`,
-  `boundaries/sheets (OpenMP)`, `boundaries/union`…);
+  `boundaries/sheets (OpenMP)`, `boundaries/union`…; on the GPU
+  `templates/sweep (GPU)`, `boundaries/sheets (GPU)` and
+  `boundaries/traces (OpenMP)`, the part still read on the processor);
 - what the card's first use cost, apart;
 - the size of what it computed: frequencies, plants, contour points and
   cells of the Nichols grid.

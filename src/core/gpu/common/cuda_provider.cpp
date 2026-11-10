@@ -6,6 +6,7 @@
 #include "src/core/gpu/common/cuda_provider.h"
 
 #include "src/core/gpu/common/device_probe.h"
+#include "src/core/gpu/boundaries/gpu_boundary_engine.h"
 #include "src/core/gpu/templates/gpu_template_engine.h"
 
 namespace qftbx::gpu {
@@ -48,6 +49,11 @@ const GpuStatus & CudaProvider::status() const
 std::unique_ptr<TemplateComputation> CudaProvider::templateComputation() const
 {
     return std::make_unique<GpuTemplateEngine>();
+}
+
+std::unique_ptr<BoundaryComputation> CudaProvider::boundaryComputation() const
+{
+    return std::make_unique<GpuBoundaryEngine>();
 }
 
 std::unique_ptr<GpuProvider> makeCudaProvider()

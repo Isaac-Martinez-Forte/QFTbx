@@ -9,8 +9,8 @@
  * and width of the index, 32 bits while the combinations stay under 2^31,
  * so that the stride cannot wrap, and dispatch() picks it when launching.
  * A warp that met a plant that is not finite marks its frequency with one
- * vote and one write. The libcu++ complex is laid out as std::complex, two
- * doubles, so the clouds come back with a plain copy.
+ * vote and one write. The clouds come back with a plain copy
+ * (DeviceComplex).
  */
 
 #include "src/core/gpu/templates/plant_sweep.h"
@@ -32,8 +32,6 @@
 #include "src/core/gpu/templates/plant_evaluation.cuh"
 
 namespace qftbx::gpu {
-
-static_assert(sizeof(DeviceComplex) == sizeof(std::complex<double>), "the two complex types share a layout");
 
 namespace {
 

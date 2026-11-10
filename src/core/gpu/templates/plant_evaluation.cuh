@@ -30,12 +30,11 @@
 
 #include <cuda/std/complex>
 
+#include "src/core/gpu/common/device_complex.cuh"
 #include "src/core/gpu/common/host_device.h"
 #include "src/core/gpu/templates/plant_model.h"
 
 namespace qftbx::gpu {
-
-using DeviceComplex = cuda::std::complex<double>;
 
 struct PlantView
 {

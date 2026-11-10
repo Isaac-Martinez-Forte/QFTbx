@@ -14,3 +14,4 @@ qftbx_native_arch(qftbx_cuda)
 
 add_subdirectory(common)
 add_subdirectory(templates)
+add_subdirectory(boundaries)
