@@ -27,6 +27,7 @@
 #include <cstdint>
 #include "src/core/common/record.h"
 #include "src/core/templates/template_engine.h"
+#include "src/core/templates/sweep_plan.h"
 
 #include "src/core/math/polynomial.h"
 #include "src/core/templates/alpha_shape.h"
@@ -89,6 +90,11 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega){
                               + " " + qftbx::record::number("points", points));
     }
 
+    return contourClouds();
+}
+
+bool TemplateEngine::contourClouds(){
+
     if (m_clouds.empty()){
         throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
     }
@@ -116,7 +122,6 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega){
     logContours(timer2);
 
     return result;
-
 }
 
 void TemplateEngine::logContours(std::chrono::steady_clock::time_point since) const
@@ -162,324 +167,27 @@ const CloudSet & TemplateEngine::contours() const{
     return m_contours;
 }
 
-const std::vector<double> & TemplateEngine::gridFor(const Parameter & a){
-
-    const auto found = m_grids.find(a.name());
-
-    if (found == m_grids.end()){
-        throw qftbx::InvalidInput(QFTBX_TR("Core", "Missing sweep grid for the uncertain parameter '%1'.").arg(a.name()));
-    }
-
-    return found->second;
-}
-
 CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *omega){
 
-    std::vector <std::string> names;
-
-    std::vector <const std::vector<double> *> grids;
-
-    m_combinationCount = 1;
-
-    auto collect = [&](Parameter & var){
-        if (var.isUncertain() &&
-                std::find(names.begin(), names.end(), var.name()) == names.end()){
-            const std::vector<double> & grid = gridFor(var);
-            names.push_back(var.name());
-            grids.push_back(&grid);
-            m_combinationCount *= grid.size();
-        }
-    };
-
-    for (Parameter & var : plant->numerator())
-        collect(var);
-    for (Parameter & var : plant->denominator())
-        collect(var);
-    collect(plant->gain());
-    collect(plant->delay());
-
-    const std::size_t digitCount = names.size();
-    const std::size_t frequencyCount = omega->size();
-
-    const std::optional<std::vector<std::complex<double>>> nominalPoles = plant->nominalPoles();
-    const std::vector<double> nominalResonances = nominalPoles.has_value()
-            ? qftbx::math::imaginaryAxisFrequencies(*nominalPoles) : std::vector<double>{};
-    for (const double w : *omega){
-        const std::complex<double> nominal = plant->evaluate(w);
-        bool onAPole = !std::isfinite(nominal.real()) || !std::isfinite(nominal.imag());
-        for (const double r : nominalResonances){
-            onAPole = onAPole || std::abs(w - r) <= 1e-9 * r;
-        }
-        if (onAPole){
-            throw qftbx::InvalidInput(QFTBX_TR("Core", "The nominal plant has a pole on the imaginary axis at %1 rad/s, which is a design frequency: the nominal loop is infinite there and no boundary can be drawn for it. Take a frequency a little to either side, such as %2 or %3 rad/s.")
-                    .arg(qftbx::text::number(w)).arg(qftbx::text::number(0.99 * w)).arg(qftbx::text::number(1.01 * w)));
-        }
-    }
-
-    std::vector<std::array<double, 2>> border;
-    m_borderSweepApplied = false;
     m_proposals.reset();
-    if (m_borderSweep && digitCount == 2 && grids[0]->size() > 1 && grids[1]->size() > 1){
-        std::vector<std::vector<double>> sorted{*grids[0], *grids[1]};
-        std::sort(sorted[0].begin(), sorted[0].end());
-        std::sort(sorted[1].begin(), sorted[1].end());
-        if (sorted[0].front() < sorted[0].back() && sorted[1].front() < sorted[1].back()){
-            const auto along = [](const std::vector<double> & g, double t) {
-                const double x = t * static_cast<double>(g.size() - 1);
-                const std::size_t k = std::min(static_cast<std::size_t>(x), g.size() - 2);
-                return g[k] + (x - static_cast<double>(k)) * (g[k + 1] - g[k]);
-            };
-            const std::size_t perEdge = std::max<std::size_t>(2, m_combinationCount / 4);
-            border.reserve(4 * perEdge);
-            for (std::size_t i = 0; i < perEdge; ++i){
-                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({along(sorted[0], t), sorted[1].front()});
-            }
-            for (std::size_t i = 0; i < perEdge; ++i){
-                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({sorted[0].back(), along(sorted[1], t)});
-            }
-            for (std::size_t i = 0; i < perEdge; ++i){
-                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({along(sorted[0], 1.0 - t), sorted[1].back()});
-            }
-            for (std::size_t i = 0; i < perEdge; ++i){
-                const double t = static_cast<double>(i) / static_cast<double>(perEdge);
-                border.push_back({sorted[0].front(), along(sorted[1], 1.0 - t)});
-            }
-            m_combinationCount = border.size();
-            m_borderSweepApplied = true;
-        }
-    }
+    const SweepPlan plan = planSweep(*plant, *omega, m_grids, m_borderSweep);
+    adoptPlan(plan);
 
-    const auto slotOf = [&](Parameter & parameter) -> std::int32_t {
-        if (!parameter.isUncertain()) {
-            return -1;
-        }
-        const auto found = std::find(names.begin(), names.end(), parameter.name());
-        return found == names.end()
-                ? -1
-                : static_cast<std::int32_t>(std::distance(names.begin(), found));
-    };
+    return sweepOnProcessor(*plant, *omega, plan, m_cancellation);
+}
 
-    std::vector<std::int32_t> numeratorSlot, denominatorSlot;
-    std::vector<double> numeratorNominal, denominatorNominal;
+void TemplateEngine::adoptPlan(const SweepPlan & plan){
+    m_combinationCount = plan.combinationCount;
+    m_borderSweepApplied = plan.borderSweepApplied();
+    m_familyRhpPoles = plan.familyRhpPoles;
+    m_resonanceBands = plan.resonanceBands;
+}
 
-    for (Parameter & parameter : plant->numerator()){
-        numeratorSlot.push_back(slotOf(parameter));
-        numeratorNominal.push_back(parameter.nominal());
-    }
-    for (Parameter & parameter : plant->denominator()){
-        denominatorSlot.push_back(slotOf(parameter));
-        denominatorNominal.push_back(parameter.nominal());
-    }
-
-    const std::int32_t gainSlot = slotOf(plant->gain());
-    const std::int32_t delaySlot = slotOf(plant->delay());
-    const double gainNominal = plant->gain().nominal();
-    const double delayNominal = plant->delay().nominal();
-
-    CloudSet allClouds (frequencyCount);
-
-    m_familyRhpPoles.reset();
-    std::map<std::vector<double>, std::vector<double>> axisByDenominator;
-    {
-        std::vector<double> numeratorValues = numeratorNominal;
-        std::vector<double> denominatorValues = denominatorNominal;
-        std::vector<double> digit(digitCount);
-        std::map<std::vector<double>, int> countByDenominator;
-        std::optional<int> familyCount;
-        std::vector<double> firstDenominator;
-        bool placeable = true;
-
-        for (std::size_t i = 0; i < m_combinationCount && placeable; i++){
-            if (m_borderSweepApplied){
-                digit[0] = border[i][0];
-                digit[1] = border[i][1];
-            } else {
-                std::size_t rest = i;
-                for (std::size_t j = 0; j < digitCount; j++){
-                    const std::vector<double> & grid = *grids.at(j);
-                    digit[j] = grid[rest % grid.size()];
-                    rest /= grid.size();
-                }
-            }
-            for (std::size_t c = 0; c < numeratorSlot.size(); c++){
-                if (numeratorSlot[c] >= 0){
-                    numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
-                }
-            }
-            for (std::size_t c = 0; c < denominatorSlot.size(); c++){
-                if (denominatorSlot[c] >= 0){
-                    denominatorValues[c] = digit[static_cast<std::size_t>(denominatorSlot[c])];
-                }
-            }
-
-            const auto known = countByDenominator.find(denominatorValues);
-            int count = 0;
-            if (known != countByDenominator.end()){
-                count = known->second;
-            } else {
-                const std::optional<std::vector<std::complex<double>>> poles =
-                        plant->polesAt(numeratorValues, denominatorValues);
-                if (!poles.has_value()){
-                    placeable = false;
-                    break;
-                }
-                count = qftbx::math::rightHalfPlaneCount(*poles);
-                countByDenominator[denominatorValues] = count;
-                axisByDenominator[denominatorValues] = qftbx::math::imaginaryAxisFrequencies(*poles);
-            }
-
-            if (!familyCount.has_value()){
-                familyCount = count;
-                firstDenominator = denominatorValues;
-            } else if (count != *familyCount){
-                const auto listed = [](const std::vector<double> & values) {
-                    std::string text;
-                    for (std::size_t k = 0; k < values.size(); k++){
-                        text += (k ? ", " : "") + qftbx::text::number(values[k]);
-                    }
-                    return text;
-                };
-                throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.")
-                                          .arg(*familyCount).arg(listed(firstDenominator)).arg(count).arg(listed(denominatorValues)));
-            }
-        }
-
-        if (placeable){
-            m_familyRhpPoles = familyCount;
-        }
-    }
-
-    std::vector<std::array<double, 2>> bands;
-    for (const auto & [denominator, frequencies] : axisByDenominator){
-        for (std::size_t j = 0; j < frequencies.size(); j++){
-            if (bands.size() <= j){
-                bands.push_back({frequencies[j], frequencies[j]});
-            }
-            bands[j][0] = std::min(bands[j][0], frequencies[j]);
-            bands[j][1] = std::max(bands[j][1], frequencies[j]);
-        }
-    }
-    m_resonanceBands.assign(frequencyCount, std::nullopt);
-    for (std::size_t u = 0; u < frequencyCount; u++){
-        for (const std::array<double, 2> & band : bands){
-            if (band[0] < omega->at(u) && omega->at(u) < band[1]){
-                m_resonanceBands[u] = band;
-            }
-        }
-    }
-
-    std::vector<char> nonFiniteFrequencies (frequencyCount, 0);
-    std::vector <std::string> parserErrors (frequencyCount);
-
-#ifdef OpenMP_AVAILABLE
-#pragma omp parallel for
-#endif
-    for (std::size_t u = 0; u < frequencyCount; u++){
-
-        if (cancellationAsked(m_cancellation)) {
-            continue;
-        }
-
-        const double w = omega->at(u);
-
-        std::vector<double> numeratorValues = numeratorNominal;
-        std::vector<double> denominatorValues = denominatorNominal;
-
-        std::vector <double> digit (digitCount);
-        for (std::size_t j = 0; j < digitCount; j++){
-            digit[j] = (*grids.at(j))[0];
-        }
-
-        ComplexCloud cloud;
-        cloud.reserve(m_combinationCount);
-
-        std::vector <std::size_t> counter (digitCount + 1, 0);
-
-        bool nonFinite = false;
-
-        for (std::size_t i = 0; i < m_combinationCount; i++){
-
-            complex<double> value;
-
-            if (m_borderSweepApplied){
-                digit[0] = border[i][0];
-                digit[1] = border[i][1];
-            }
-
-            for (std::size_t c = 0; c < numeratorSlot.size(); c++){
-                if (numeratorSlot[c] >= 0){
-                    numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
-                }
-            }
-            for (std::size_t c = 0; c < denominatorSlot.size(); c++){
-                if (denominatorSlot[c] >= 0){
-                    denominatorValues[c] = digit[static_cast<std::size_t>(denominatorSlot[c])];
-                }
-            }
-
-            const double gainValue = gainSlot >= 0 ? digit[static_cast<std::size_t>(gainSlot)] : gainNominal;
-            const double delayValue = delaySlot >= 0 ? digit[static_cast<std::size_t>(delaySlot)] : delayNominal;
-
-            try {
-                value = plant->valueAt(w, numeratorValues, denominatorValues,
-                                       gainValue, delayValue);
-            } catch (const std::invalid_argument & error) {
-                parserErrors[u] = std::string(error.what());
-                break;
-            } catch (const qftbx::Exception & error) {
-                parserErrors[u] = std::string(error.what());
-                break;
-            }
-
-            nonFinite = nonFinite || !std::isfinite(value.real()) || !std::isfinite(value.imag());
-            cloud.push_back(value);
-
-            if (m_borderSweepApplied){
-                continue;
-            }
-            counter[0]++;
-            for (std::size_t j = 0; j < digitCount; j++){
-                if (counter.at(j) >= grids.at(j)->size()){
-                    counter[j] = 0;
-                    counter[j+1]++;
-                    digit[j] = (*grids.at(j))[0];
-                }else {
-                    digit[j] = (*grids.at(j))[counter.at(j)];
-                    break;
-                }
-            }
-        }
-
-        if (nonFinite){
-            nonFiniteFrequencies[u] = true;
-        }
-
-        allClouds[u] = std::move(cloud);
-    }
-
-    for (std::size_t u = 0; u < frequencyCount; u++){
-        if (!parserErrors.at(u).empty()){
-            const std::string message = parserErrors.at(u);
-            throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant expression could not be evaluated at %1 rad/s: %2").arg(omega->at(u)).arg(message));
-        }
-    }
-
-    std::vector<std::string> affected;
-    for (std::size_t u = 0; u < frequencyCount; u++){
-        if (nonFiniteFrequencies.at(u)){
-            affected.push_back(qftbx::text::number(omega->at(u)));
-        }
-    }
-
-    if (!affected.empty()){
-        throw qftbx::InvalidInput(QFTBX_TR("Core", "Some plants of the sweep have a pole on the imaginary axis exactly at the design frequencies %1 rad/s: an undamped resonance inside the uncertainty, where the template is unbounded and cannot be contoured. Move those frequencies a little, or sweep the parameters so that no plant falls exactly on them.")
-                .arg(qftbx::text::join(affected, ", ")));
-    }
-
-    return allClouds;
+void TemplateEngine::adoptSweep(CloudSet clouds, const SweepPlan & plan, std::vector<double> frequencies){
+    m_proposals.reset();
+    m_frequencies = std::move(frequencies);
+    m_clouds = std::move(clouds);
+    adoptPlan(plan);
 }
 
 const std::vector <double> & TemplateEngine::omega() const{

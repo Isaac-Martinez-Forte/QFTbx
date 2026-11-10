@@ -44,9 +44,11 @@
  * refuses a family whose plants differ in right half-plane poles, and marks
  * in the report the design frequencies inside a band swept by poles of its
  * plants on the imaginary axis, where the true template is unbounded and the
- * sweep only reaches as high as its plants go. The token
- * is read once per frequency and throws qftbx::Cancelled; null cannot be
- * cancelled. The engine keeps copies of all it is given, and the
+ * sweep only reaches as high as its plants go; the plan and the run of the
+ * sweep are in sweep_plan.h. An engine that sweeps elsewhere hands its
+ * clouds over with the plan (adoptSweep) and has them contoured here
+ * (contourClouds). The token is read once per frequency and throws
+ * qftbx::Cancelled; null cannot be cancelled. The engine keeps copies of all it is given, and the
  * combination count is a size_t: the product of grid sizes overflows 32
  * bits.
  */
@@ -69,6 +71,7 @@
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/templates/hull_metric.h"
+#include "src/core/templates/sweep_plan.h"
 #include "src/core/templates/template_computation.h"
 #include "src/core/system/parameter.h"
 
@@ -84,6 +87,10 @@ public:
     bool computeContours (std::vector <double> epsilon) override;
 
     CloudSet computeClouds(LtiSystem *plant, std::vector<double>* frequencies) override;
+
+    void adoptSweep(CloudSet clouds, const SweepPlan & plan, std::vector<double> frequencies);
+
+    bool contourClouds();
 
     bool computeContourSet();
 
@@ -141,7 +148,6 @@ public:
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
-    const std::vector<double> & gridFor(const Parameter & a);
 
     ParameterGrids m_grids;
     std::size_t m_combinationCount = 0;
@@ -160,6 +166,8 @@ private:
     CloudSet m_contours;
     std::vector<ContourReport> m_reports;
     std::vector <double> m_frequencies;
+
+    void adoptPlan(const SweepPlan & plan);
 
     class NeighbourGrid;
 
