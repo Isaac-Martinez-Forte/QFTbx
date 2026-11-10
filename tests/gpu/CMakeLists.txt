@@ -5,5 +5,6 @@ add_executable(qftbx_gpu_tests)
 qftbx_sources_here(qftbx_gpu_tests)
 target_link_libraries(qftbx_gpu_tests PRIVATE qftbx_app GTest::gtest)
 qftbx_warnings(qftbx_gpu_tests)
+target_compile_definitions(qftbx_gpu_tests PRIVATE QFTBX_EXAMPLES_DIR="${CMAKE_SOURCE_DIR}/examples")
 
 gtest_discover_tests(qftbx_gpu_tests DISCOVERY_TIMEOUT 60)

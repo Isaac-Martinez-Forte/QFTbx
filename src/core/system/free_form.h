@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "src/core/system/transfer_function.h"
+#include "src/core/math/expression_program.h"
 #include "src/core/math/expression_tree.h"
 
 /**
@@ -17,6 +18,10 @@
  * parameters named in them; the expression (numerator)/(denominator) is
  * parsed once, when the system is built, and evaluated at s = j omega with
  * the parameter values bound by position. A parameter cannot be called s.
+ * evaluation() gives what valueAt() evaluates, for an engine that evaluates
+ * it elsewhere: the ratio as a postfix program, the slot of every
+ * numerator and denominator parameter in the value vector, slot 0 being s,
+ * and the vector's size.
  */
 namespace qftbx {
 
@@ -50,6 +55,16 @@ public:
 
     /// The Laplace variable as the user writes it: "s".
     static const std::string & laplaceName();
+
+    struct Evaluation
+    {
+        ExpressionProgram ratio;
+        std::vector<std::size_t> numeratorSlots;
+        std::vector<std::size_t> denominatorSlots;
+        std::size_t valueCount = 0;
+    };
+
+    Evaluation evaluation() const;
 
 private:
     void bindNames(ExpressionTree & ratio, ExpressionTree & denominator);

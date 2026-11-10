@@ -199,6 +199,16 @@ std::complex <double> FreeForm::valueAt(double w, const std::vector<double> & nu
     return gain * ratio * std::exp(-s * delay);
 }
 
+FreeForm::Evaluation FreeForm::evaluation() const
+{
+    Evaluation evaluation;
+    evaluation.ratio = ExpressionProgram::compile(*m_ratio);
+    evaluation.numeratorSlots = m_numeratorSlots;
+    evaluation.denominatorSlots = m_denominatorSlots;
+    evaluation.valueCount = m_valueCount;
+    return evaluation;
+}
+
 const std::string & FreeForm::laplaceName()
 {
     static const std::string name("s");
