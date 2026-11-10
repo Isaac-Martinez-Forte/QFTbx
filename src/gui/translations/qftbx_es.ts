@@ -86,10 +86,6 @@
         <translation>Template completo</translation>
     </message>
     <message>
-        <source>CUDA</source>
-        <translation>CUDA</translation>
-    </message>
-    <message>
         <source>CPU</source>
         <translation>CPU</translation>
     </message>
@@ -144,6 +140,10 @@
     <message>
         <source>Computes one boundary per design frequency over this grid.</source>
         <translation>Calcula un boundary por cada frecuencia de diseño sobre esta rejilla.</translation>
+    </message>
+    <message>
+        <source>GPU</source>
+        <translation>GPU</translation>
     </message>
 </context>
 <context>
@@ -506,10 +506,6 @@
         <translation>Los contornos necesitan un épsilon por frecuencia de diseño: se dieron %1 para %2 frecuencias.</translation>
     </message>
     <message>
-        <source>Could not compute the template contours.</source>
-        <translation>No se han podido calcular los contornos de los templates.</translation>
-    </message>
-    <message>
         <source>missing &lt;%1&gt; element</source>
         <translation>falta el elemento &lt;%1&gt;</translation>
     </message>
@@ -736,6 +732,42 @@
     <message>
         <source>unknown specification &apos;%1&apos; in the verdict&apos;s table</source>
         <translation>especificación desconocida «%1» en la tabla del veredicto</translation>
+    </message>
+    <message>
+        <source>This build of QFTbx cannot compute the boundaries on the GPU.</source>
+        <translation>Esta compilación de QFTbx no puede calcular las fronteras en la GPU.</translation>
+    </message>
+    <message>
+        <source>No NVIDIA driver was found.</source>
+        <translation>No se ha encontrado el controlador de NVIDIA.</translation>
+    </message>
+    <message>
+        <source>No NVIDIA card was found.</source>
+        <translation>No se ha encontrado ninguna tarjeta NVIDIA.</translation>
+    </message>
+    <message>
+        <source>The NVIDIA driver supports CUDA %1, and this build needs CUDA %2: update the driver.</source>
+        <translation>El controlador de NVIDIA admite CUDA %1, y esta compilación necesita CUDA %2: actualice el controlador.</translation>
+    </message>
+    <message>
+        <source>This build has no code for the %1 (compute capability %2.%3): build it for that card.</source>
+        <translation>Esta compilación no tiene código para la %1 (capacidad de cómputo %2.%3): compílela para esa tarjeta.</translation>
+    </message>
+    <message>
+        <source>The GPU cannot be used: %1</source>
+        <translation>No se puede usar la GPU: %1</translation>
+    </message>
+    <message>
+        <source>This build of QFTbx has no GPU support: compute on the processor.</source>
+        <translation>Esta compilación de QFTbx no tiene soporte de GPU: calcule en el procesador.</translation>
+    </message>
+    <message>
+        <source>The GPU failed: %1</source>
+        <translation>La GPU ha fallado: %1</translation>
+    </message>
+    <message>
+        <source>This build of QFTbx cannot compute the templates on the GPU.</source>
+        <translation>Esta compilación de QFTbx no puede calcular los templates en la GPU.</translation>
     </message>
 </context>
 <context>

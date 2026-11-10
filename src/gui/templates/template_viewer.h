@@ -74,10 +74,10 @@ public:
 
     void setContourRecomputer(ContourRecomputer recompute);
 
-    using EpsilonProposer = std::function<std::vector<qftbx::TemplateEngine::EpsilonProposal> ()>;
+    using EpsilonProposer = std::function<std::vector<qftbx::EpsilonProposal> ()>;
     void setEpsilonProposer(EpsilonProposer propose);
 
-    using ContourReporter = std::function<std::vector<qftbx::TemplateEngine::ContourReport> ()>;
+    using ContourReporter = std::function<std::vector<qftbx::ContourReport> ()>;
     void setContourReporter(ContourReporter report);
 
     void refreshContour(const qftbx::CloudSet & contour,
@@ -107,7 +107,7 @@ private:
     std::vector<QLabel *> gapLabels;
     std::vector<QLabel *> stateLabels;
     void showContourState();
-    std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
+    std::vector<qftbx::EpsilonProposal> m_proposals;
     void showProposals();
     bool plotted = false;
     void plotCloud(const std::vector<double> & phases, const std::vector<double> & magnitudes,

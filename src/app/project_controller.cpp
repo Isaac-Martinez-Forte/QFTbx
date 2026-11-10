@@ -158,14 +158,14 @@ const qftbx::CloudSet & ProjectController::contour(){
     return m_data.contour();
 }
 
-bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, bool cuda){
+bool ProjectController::computeTemplates(std::vector <double> epsilon, qftbx::ParameterGrids grids, qftbx::Processor processor){
 
     requireNotComputing();
 
     const Announce announce(*this);
 
     const bool produced = m_templates.run(m_data, std::move(epsilon),
-                                          std::move(grids), cuda);
+                                          std::move(grids), processor);
 
     dropBoundariesAndBelow();
 
@@ -184,7 +184,7 @@ void ProjectController::setEpsilonMetric(qftbx::EpsilonMetric metric){
     m_data.setEpsilonMetric(metric);
 }
 
-std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(){
+std::vector<EpsilonProposal> ProjectController::proposeEpsilon(){
     requireNotComputing();
     return m_templates.proposeEpsilon(m_data);
 }
@@ -217,12 +217,12 @@ bool ProjectController::closedFormColumns() const{
     return m_boundaries.closedFormColumns();
 }
 
-const std::vector<TemplateEngine::ContourReport> & ProjectController::contourReports() const{
+const std::vector<ContourReport> & ProjectController::contourReports() const{
     return m_templates.contourReports();
 }
 
-std::vector<TemplateEngine::EpsilonProposal> ProjectController::proposeEpsilon(qftbx::ParameterGrids grids,
-                                                                               qftbx::EpsilonMetric metric){
+std::vector<EpsilonProposal> ProjectController::proposeEpsilon(qftbx::ParameterGrids grids,
+                                                               qftbx::EpsilonMetric metric){
     requireNotComputing();
     return m_templates.proposeEpsilon(m_data, std::move(grids), metric);
 }
@@ -236,7 +236,7 @@ const qftbx::CloudSet & ProjectController::recomputeContour(std::vector <double>
 }
 
 bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
-                                     std::int32_t magnitudeCount, double exportInfinity, bool contour, bool cuda){
+                                     std::int32_t magnitudeCount, double exportInfinity, bool contour, qftbx::Processor processor){
 
     requireNotComputing();
 
@@ -244,7 +244,7 @@ bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t 
 
     const bool produced = m_boundaries.run(m_data, phaseRange, phaseCount,
                                            magnitudeRange, magnitudeCount,
-                                           exportInfinity, contour, cuda);
+                                           exportInfinity, contour, processor);
 
     dropLoopShaping();
 
@@ -336,7 +336,7 @@ bool ProjectController::startLoopShaping(double epsilon, qftbx::LoopShapingAlgor
 }
 
 bool ProjectController::startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids,
-                                      bool cuda, std::function<void ()> finished)
+                                      qftbx::Processor processor, std::function<void ()> finished)
 {
     if (m_background.running()) {
         return false;
@@ -349,9 +349,9 @@ bool ProjectController::startTemplates(std::vector<double> epsilon, qftbx::Param
     m_lastComputation = Computation::Templates;
 
     return m_background.start(
-        [this, epsilon = std::move(epsilon), grids = std::move(grids), cuda]() mutable {
+        [this, epsilon = std::move(epsilon), grids = std::move(grids), processor]() mutable {
             return m_templates.run(m_data, std::move(epsilon), std::move(grids),
-                                   cuda, &m_cancellation);
+                                   processor, &m_cancellation);
         },
         std::move(finished));
 }
@@ -380,7 +380,7 @@ bool ProjectController::startEpsilonProposal(qftbx::ParameterGrids grids, qftbx:
 
 bool ProjectController::startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
                                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
-                                        double exportInfinity, bool contour, bool cuda,
+                                        double exportInfinity, bool contour, qftbx::Processor processor,
                                         std::function<void ()> finished)
 {
     if (m_background.running()) {
@@ -395,10 +395,10 @@ bool ProjectController::startBoundaries(qftbx::Range phaseRange, std::int32_t ph
 
     return m_background.start(
         [this, phaseRange, phaseCount, magnitudeRange, magnitudeCount, exportInfinity,
-         contour, cuda]() {
+         contour, processor]() {
             return m_boundaries.run(m_data, phaseRange, phaseCount,
                                     magnitudeRange, magnitudeCount,
-                                    exportInfinity, contour, cuda, &m_cancellation);
+                                    exportInfinity, contour, processor, &m_cancellation);
         },
         std::move(finished));
 }

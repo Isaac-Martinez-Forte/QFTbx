@@ -149,7 +149,7 @@ void TemplateViewer::showContourState(){
     if (!report || stateLabels.empty()){
         return;
     }
-    const std::vector<qftbx::TemplateEngine::ContourReport> reports = report();
+    const std::vector<qftbx::ContourReport> reports = report();
     for (std::size_t i = 0; i < stateLabels.size(); ++i){
         const bool whole = i < reports.size() && reports[i].wholeCloud;
         const bool open = !whole && i < reports.size() && reports[i].relaxed;
@@ -198,7 +198,7 @@ void TemplateViewer::showProposals(){
     }
     m_proposals = propose();
     for (std::size_t i = 0; i < gapLabels.size() && i < m_proposals.size(); ++i){
-        const qftbx::TemplateEngine::EpsilonProposal & p = m_proposals[i];
+        const qftbx::EpsilonProposal & p = m_proposals[i];
         const QString gap = QString::number(100.0 * p.coarseness(), 'f', 1);
         gapLabels[i]->setText(tr("needs %1 (gap %2%)").arg(shownText(p.epsilon), gap));
         gapLabels[i]->setVisible(true);
@@ -335,7 +335,7 @@ void TemplateViewer::plotContour(const std::vector<double> & phases,
 
     std::vector<std::size_t> starts{0};
     if (report) {
-        const std::vector<qftbx::TemplateEngine::ContourReport> reports = report();
+        const std::vector<qftbx::ContourReport> reports = report();
         if (static_cast<std::size_t>(frequency) < reports.size()
                 && reports[frequency].componentStarts.size() > 1) {
             starts = reports[frequency].componentStarts;

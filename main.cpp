@@ -12,6 +12,7 @@
  * started with, from the command line or, on macOS, from the system.
  */
 
+#include "src/app/gpu_support.h"
 #include "src/core/common/exception.h"
 #include "src/core/common/record.h"
 #include "src/core/project/settings.h"
@@ -29,6 +30,8 @@
 int main(int argc, char *argv[])
 {
     qftbx::Application a(argc, argv);
+
+    qftbx::installGpuSupport();
 
     std::setlocale(LC_NUMERIC, "C");
 

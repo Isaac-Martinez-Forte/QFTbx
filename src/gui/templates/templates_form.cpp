@@ -31,6 +31,7 @@
 #include "src/core/common/exception.h"
 #include "ui_templates_form.h"
 #include "src/gui/common/field_mark.h"
+#include "src/gui/common/gpu_choice.h"
 
 #include "src/gui/application/error_message.h"
 
@@ -108,9 +109,7 @@ TemplatesForm::TemplatesForm(QWidget *parent) :
     ui->globalPointCount->setText(
         qftbx::numberText(qftbx::Settings().defaults.templatePointCount));
 
-#ifndef CUDA_AVAILABLE
-    ui->cudaCheck->setVisible(false);
-#endif
+    qftbx::offerGpu(*ui->gpuCheck);
 
     selectDefaultsWhereEmpty();
 }
@@ -363,7 +362,7 @@ void TemplatesForm::showEpsilon(const QString & text)
     ui->epsilonEdit->setToolTip(m_epsilonToolTip);
 }
 
-void TemplatesForm::showProposals(std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals)
+void TemplatesForm::showProposals(std::vector<qftbx::EpsilonProposal> proposals)
 {
     if (proposals.empty()){
         return;
@@ -374,7 +373,7 @@ void TemplatesForm::showProposals(std::vector<qftbx::TemplateEngine::EpsilonProp
     QStringList detail;
     double worstGap = 0.0;
     for (std::size_t i = 0; i < m_proposals.size(); ++i){
-        const qftbx::TemplateEngine::EpsilonProposal & p = m_proposals[i];
+        const qftbx::EpsilonProposal & p = m_proposals[i];
         values.push_back(numberText(p.epsilon));
         detail.push_back(p.closes
                              ? tr("frequency %1: %2 (connected from %3, gap %4%)")
@@ -582,7 +581,7 @@ void TemplatesForm::on_okButton_clicked()
     else if (ui->nicholsRadio->isChecked())
         nicholsDiagram = true;
 
-    cudaEnabled = ui->cudaCheck->isChecked();
+    processorChoice = qftbx::processorChosen(*ui->gpuCheck);
 
     gridMap.clear();
     duplicateNames.clear();
@@ -867,8 +866,8 @@ bool TemplatesForm::nicholsSelected(){
     return nicholsDiagram;
 }
 
-bool TemplatesForm::cudaSelected(){
-    return cudaEnabled;
+qftbx::Processor TemplatesForm::processor() const{
+    return processorChoice;
 }
 
 }

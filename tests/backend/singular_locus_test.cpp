@@ -165,7 +165,7 @@ TEST(SingularLocus, APointInsideExample2sTemplateIsForbiddenFromEitherSample)
         ProjectController controller;
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
         ASSERT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441,
-                                                 1.0e6, fromContour, false));
+                                                 1.0e6, fromContour));
 
         const std::vector<double> & omega = *controller.omega()->values();
         const std::size_t last = omega.size() - 1;

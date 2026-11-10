@@ -77,7 +77,7 @@ protected:
         engine.compute(parser.omega()->values(), parser.plant(),
                              parser.contour(), true, parser.specifications(),
                              qftbx::Range(-360.0, 0.0), 361, qftbx::Range(-60.0, 60.0), 121,
-                             -1.0, false);
+                             -1.0);
 
         got = engine.boundaryData();
         gold = parser.boundaries();
@@ -181,7 +181,7 @@ TEST_F(BoundariesGolden, ContourInputIsEquivalentToFullTemplates)
     engine2.compute(parser2.omega()->values(), parser2.plant(),
                           parser2.templates(), false, parser2.specifications(),
                           qftbx::Range(-360.0, 0.0), 361, qftbx::Range(-60.0, 60.0), 121,
-                          -1.0, false);
+                          -1.0);
     const BoundaryData other = engine2.boundaryData();
 
     const qftbx::BoundarySet & a = got->boundaries();
@@ -230,7 +230,7 @@ TEST(BoundariesGuard, GuardedSweepDeviatesOnlyNextToTheSingularLocus)
     for (BoundaryEngine * engine : {&raw, &guarded}) {
         engine->compute(parser.omega()->values(), parser.plant(), parser.contour(), true,
                         parser.specifications(), qftbx::Range(-360.0, 0.0), 361,
-                        qftbx::Range(-60.0, 60.0), 121, -1.0, false);
+                        qftbx::Range(-60.0, 60.0), 121, -1.0);
     }
     const BoundaryData a = raw.boundaryData();
     const BoundaryData b = guarded.boundaryData();
@@ -312,7 +312,7 @@ TEST(BoundaryCriticalPoint, UndampedResonanceIsRejectedWithAdvice)
     qftbx::ParameterGrids grids{{std::string("ev"), {0.5}}};
 
     try {
-        controller.computeTemplates(epsilon, grids, false);
+        controller.computeTemplates(epsilon, grids);
         FAIL() << "an undamped resonance must be reported, not swept under";
     } catch (const qftbx::Exception & error) {
         const std::string message = std::string(error.what());
@@ -347,7 +347,7 @@ TEST(BoundaryCriticalPoint, ADesignFrequencyOnANominalPoleIsRefused)
     const std::vector<double> onThePole{1.0};
     controller.setOmega(std::make_unique<Omega>(1.0, 1.0, 1, onThePole, Omega::Manual));
     try {
-        controller.computeTemplates(epsilon, grids, false);
+        controller.computeTemplates(epsilon, grids);
         FAIL() << "a design frequency on a pole of the nominal plant must be refused";
     } catch (const qftbx::Exception & error) {
         const std::string message = std::string(error.what());
@@ -358,7 +358,7 @@ TEST(BoundaryCriticalPoint, ADesignFrequencyOnANominalPoleIsRefused)
 
     const std::vector<double> beside{1.01};
     controller.setOmega(std::make_unique<Omega>(1.01, 1.01, 1, beside, Omega::Manual));
-    EXPECT_NO_THROW(controller.computeTemplates(epsilon, grids, false));
+    EXPECT_NO_THROW(controller.computeTemplates(epsilon, grids));
 }
 
 }

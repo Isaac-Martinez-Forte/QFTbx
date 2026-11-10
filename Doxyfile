@@ -49,7 +49,9 @@ INPUT                  = docs \
                          tests/data/README.md
 USE_MDFILE_AS_MAINPAGE = docs/ARCHITECTURE.md
 
-FILE_PATTERNS          = *.h *.cpp *.md
+FILE_PATTERNS          = *.h *.cpp *.cu *.cuh *.md
+EXTENSION_MAPPING      = cu=C++ cuh=C++
+PREDEFINED             = __global__= __device__= __host__=
 FILTER_PATTERNS        = "*.md=sh cmake/doxygen-markdown.sh"
 RECURSIVE              = YES
 

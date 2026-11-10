@@ -16,8 +16,9 @@
  * that costs one sweep, which the token can cancel, and publishes nothing.
  *
  * requirePrerequisites throws InvalidInput naming the missing input, so a
- * stage whose inputs were just invalidated says what it needs. run returns
- * true when it produced both clouds and contours. recomputeContour and the
+ * stage whose inputs were just invalidated says what it needs. run sweeps on
+ * the processor asked for, the GPU through the installed provider, and
+ * returns true when it produced both clouds and contours. recomputeContour and the
  * proposal from the published templates throw InvalidInput when there are
  * no templates. The contour options apply to every computation from then
  * on, and contourReports is empty until a contour has been computed.
@@ -28,10 +29,11 @@
 
 #include <memory>
 #include "src/core/pipeline/cancellation.h"
+#include "src/core/pipeline/processor.h"
 #include <vector>
 
 #include "src/core/project/project_data.h"
-#include "src/core/templates/template_engine.h"
+#include "src/core/templates/template_computation.h"
 
 namespace qftbx {
 
@@ -41,18 +43,18 @@ public:
     void requirePrerequisites(const ProjectData & data) const;
 
     bool run(ProjectData & data, std::vector<double> epsilon,
-             ParameterGrids grids, bool cuda,
+             ParameterGrids grids, Processor processor,
              const CancellationToken * cancellation = nullptr);
 
     const CloudSet & recomputeContour(ProjectData & data,
                                       std::vector<double> epsilon);
 
-    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data);
+    std::vector<EpsilonProposal> proposeEpsilon(const ProjectData & data);
 
-    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(const ProjectData & data,
-                                                                ParameterGrids grids,
-                                                                EpsilonMetric metric,
-                                                                const CancellationToken * cancellation = nullptr) const;
+    std::vector<EpsilonProposal> proposeEpsilon(const ProjectData & data,
+                                                ParameterGrids grids,
+                                                EpsilonMetric metric,
+                                                const CancellationToken * cancellation = nullptr) const;
 
     void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
 
@@ -62,15 +64,15 @@ public:
     void setBorderSweep(bool border) { m_borderSweep = border; }
     bool borderSweep() const { return m_borderSweep; }
 
-    const std::vector<TemplateEngine::ContourReport> & contourReports() const;
+    const std::vector<ContourReport> & contourReports() const;
 
     void adopt(ProjectData & data, CloudSet clouds, CloudSet contour,
                bool hasContour, ParameterGrids grids = ParameterGrids());
 
 private:
-    TemplateEngine & engine();
+    TemplateComputation & engine();
 
-    std::unique_ptr<TemplateEngine> m_engine;
+    std::unique_ptr<TemplateComputation> m_engine;
     bool m_wholeCloudStandsIn = true;
     bool m_alphaShape = false;
     bool m_borderSweep = false;

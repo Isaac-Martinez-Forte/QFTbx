@@ -51,7 +51,7 @@ TEST(UnstableFamily, AFamilyThatCrossesTheAxisIsRefusedAtTheSweep)
     qftbx::ParameterGrids grids;
     grids[std::string("a")] = qftbx::math::linspace(-1.0, 1.0, 3);
 
-    EXPECT_THROW(controller.computeTemplates(std::vector<double>(3, 10.0), grids, false), qftbx::InvalidInput);
+    EXPECT_THROW(controller.computeTemplates(std::vector<double>(3, 10.0), grids), qftbx::InvalidInput);
 }
 
 TEST(UnstableFamily, AFamilyOnOneSideSweeps)
@@ -60,10 +60,10 @@ TEST(UnstableFamily, AFamilyOnOneSideSweeps)
     setUp(unstable, qftbx::Range(1.0, 2.0), 1.5);
     qftbx::ParameterGrids grids;
     grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
-    EXPECT_TRUE(unstable.computeTemplates(std::vector<double>(3, 10.0), grids, false));
+    EXPECT_TRUE(unstable.computeTemplates(std::vector<double>(3, 10.0), grids));
 
     ProjectController stable;
     setUp(stable, qftbx::Range(-3.0, -2.0), -2.5);
     grids[std::string("a")] = qftbx::math::linspace(-3.0, -2.0, 3);
-    EXPECT_TRUE(stable.computeTemplates(std::vector<double>(3, 10.0), grids, false));
+    EXPECT_TRUE(stable.computeTemplates(std::vector<double>(3, 10.0), grids));
 }

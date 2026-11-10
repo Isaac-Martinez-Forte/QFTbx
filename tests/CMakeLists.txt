@@ -14,6 +14,11 @@ include(GoogleTest)
 add_subdirectory(backend)
 add_subdirectory(gui)
 
+# The GPU suite, with the GPU engines.
+if(QFTBX_CUDA)
+  add_subdirectory(gpu)
+endif()
+
 # The benchmark library's own tests, with the tool.
 if(QFTBX_BUILD_BENCHMARK)
   add_subdirectory(bench)

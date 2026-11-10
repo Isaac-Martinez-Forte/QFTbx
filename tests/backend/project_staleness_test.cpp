@@ -70,7 +70,7 @@ protected:
         controller.setPlant(makePlant(std::string("first")));
         controller.setOmega(makeOmega());
 
-        ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+        ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
         ASSERT_FALSE(controller.templates().empty());
     }
 
@@ -158,7 +158,7 @@ TEST_F(Staleness, TheTemplatesCanBeRecomputedAfterTheirInputsChange)
     controller.setPlant(makePlant(std::string("third")));
     ASSERT_TRUE(controller.templates().empty());
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
 
     EXPECT_FALSE(controller.templates().empty())
         << "the project could not be brought back to a computed state";

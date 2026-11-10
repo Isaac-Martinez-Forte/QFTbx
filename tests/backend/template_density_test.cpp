@@ -50,7 +50,7 @@ CloudSet cloudsAt(const std::string & file, int points, std::size_t frequencies)
     add(dense.plant()->gain());
     add(dense.plant()->delay());
 
-    dense.computeTemplates(std::vector<double>(frequencies, 0.5), grids, false);
+    dense.computeTemplates(std::vector<double>(frequencies, 0.5), grids);
     return dense.templates();
 }
 

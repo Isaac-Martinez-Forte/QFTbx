@@ -13,6 +13,7 @@
  */
 
 #include "src/gui/boundaries/boundary_grid_form.h"
+#include "src/gui/common/gpu_choice.h"
 #include "src/gui/common/number_text.h"
 #include "ui_boundary_grid_form.h"
 
@@ -40,10 +41,7 @@ BoundaryGridForm::BoundaryGridForm(QWidget *parent) :
 
     setWindowTitle(tr("Boundary grid input"));
 
-#ifndef CUDA_AVAILABLE
-    ui->cudaCheck->setVisible(false);
-    ui->cpu->setVisible(false);
-#endif
+    qftbx::offerGpu(*ui->gpuRadio, ui->cpuRadio);
 
 }
 
@@ -141,13 +139,13 @@ void BoundaryGridForm::on_okButton_clicked()
         return;
     }
 
-    cudaCheck = ui->cudaCheck->isChecked();
+    processorChoice = qftbx::processorChosen(*ui->gpuRadio);
 
     markAccepted();
 }
 
-bool BoundaryGridForm::cudaSelected(){
-    return cudaCheck;
+qftbx::Processor BoundaryGridForm::processor() const{
+    return processorChoice;
 }
 
 }

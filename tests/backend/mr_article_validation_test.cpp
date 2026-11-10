@@ -160,7 +160,7 @@ std::unique_ptr<ProjectController> articleProblem(bool withTracking)
 
     const std::vector<double> contourEpsilon(kOmega.size(), 10.0);
 
-    project->computeTemplates(contourEpsilon, grids, false);
+    project->computeTemplates(contourEpsilon, grids);
 
     return project;
 }

@@ -275,7 +275,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="cudaCheck">
+      <widget class="QCheckBox" name="gpuCheck">
        <property name="toolTip">
          <string>Sweep the family on the GPU.</string>
         </property>

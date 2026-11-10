@@ -71,7 +71,7 @@ that compiles it.
 | CMake | 3.17 or later, 3.21 for the presets | the build | installed by hand |
 | Qt | 6.x (Core, Widgets, PrintSupport, LinguistTools) | the application and the GUI tests | installed by hand |
 | OpenMP | any supported by the compiler | parallel templates and boundaries, optional | comes with the compiler |
-| CUDA | 11 or later | GPU kernels, optional, off by default | installed by hand |
+| CUDA | 11.8 or later | GPU engines, optional: built whenever it is found, unless `-DUSE_CUDA=OFF` | installed by hand |
 | Doxygen and Graphviz | recent | the API documentation, optional | installed by hand |
 | kv | 0.4.62 | interval arithmetic (default backend) | vendored in `3rd-party/kv` |
 | C-XSC | 2.5.4, [QFTbx fork](https://github.com/Isaac-Martinez-Forte/cxsc-cpp17) | interval arithmetic (alternative backend), optional | fetched at configure time |
@@ -108,6 +108,11 @@ documentation target are described in [docs/BUILDING.md](docs/BUILDING.md).
 
 The tests are built with `-DQFTBX_BUILD_TESTS=ON` and run with
 `ctest --test-dir build-native`.
+
+If CUDA 11.8 or later is installed, the build also compiles the GPU engines
+for the templates and the boundaries; configure with `-DUSE_CUDA=OFF` to
+leave them out. The program uses the GPU only when it is chosen, and only on
+a card it can use.
 
 ---
 

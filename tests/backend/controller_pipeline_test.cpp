@@ -93,7 +93,7 @@ TEST(ControllerPipeline, RecomputedBoundariesMatchTheLoadedProject)
 
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 361,
                                               qftbx::Range(-60.0, 60.0), 121,
-                                              -1.0, true, false));
+                                              -1.0, true));
 
     BoundaryData* recomputed = controller.boundaries();
     ASSERT_NE(recomputed, nullptr);

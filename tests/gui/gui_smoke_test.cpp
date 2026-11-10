@@ -1005,7 +1005,7 @@ TEST_F(GuiSmoke, TemplatesDialogProposesOnlyWhenAsked)
     EXPECT_EQ(lastGrids.at("a").size(), 3u) << "the default point count was not used";
     EXPECT_EQ(lastMetric.metric, qftbx::HullMetric::ComplexPlane);
 
-    std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
+    std::vector<qftbx::EpsilonProposal> proposals(2);
     proposals[0].connected = 2.7731;
     proposals[0].epsilon = 2.78;
     proposals[0].diameter = 100.0;
@@ -1328,7 +1328,7 @@ TEST_F(GuiSmoke, ProposingAnEpsilonFillsTheFieldsAndComputesNothing)
     std::vector<double> walkedWith;
     viewer.setContourRecomputer([&](std::vector<double> eps){ ++walked; walkedWith = eps; });
     viewer.setEpsilonProposer([]{
-        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals(2);
+        std::vector<qftbx::EpsilonProposal> proposals(2);
         proposals[0].epsilon = 0.25;
         proposals[0].closes = true;
         proposals[1].epsilon = 0.75;
@@ -2608,7 +2608,7 @@ TEST_F(GuiSmoke, ZZContours)
 
     project.recomputeContour(*project.epsilon());
 
-    const std::vector<qftbx::TemplateEngine::ContourReport> & reports = project.contourReports();
+    const std::vector<qftbx::ContourReport> & reports = project.contourReports();
     const qftbx::CloudSet & contour = project.contour();
 
     for (std::size_t i = 0; i < reports.size(); ++i) {
@@ -2622,7 +2622,7 @@ TEST_F(GuiSmoke, ZZContours)
                     reports[i].components, (int) (std::abs(first - last) < 1e-12));
     }
 
-    const std::vector<qftbx::TemplateEngine::EpsilonProposal> asked = project.proposeEpsilon();
+    const std::vector<qftbx::EpsilonProposal> asked = project.proposeEpsilon();
     std::vector<double> proposed;
     for (std::size_t i = 0; i < asked.size(); ++i) {
         std::printf("   w[%zu] needs epsilon %g (connected from %g, diameter %g), closes %d\n",
@@ -2633,7 +2633,7 @@ TEST_F(GuiSmoke, ZZContours)
 
     project.recomputeContour(proposed);
 
-    const std::vector<qftbx::TemplateEngine::ContourReport> & after = project.contourReports();
+    const std::vector<qftbx::ContourReport> & after = project.contourReports();
     for (std::size_t i = 0; i < after.size(); ++i) {
         const std::complex<double> first = project.contour().at(i).front();
         const std::complex<double> last = project.contour().at(i).back();
@@ -2645,15 +2645,15 @@ TEST_F(GuiSmoke, ZZContours)
 
     project.setAlphaShapeContour(true);
 
-    const std::vector<qftbx::TemplateEngine::EpsilonProposal> alpha = project.proposeEpsilon();
+    const std::vector<qftbx::EpsilonProposal> alpha = project.proposeEpsilon();
     std::vector<double> alphaEpsilon;
-    for (const qftbx::TemplateEngine::EpsilonProposal & one : alpha) {
+    for (const qftbx::EpsilonProposal & one : alpha) {
         alphaEpsilon.push_back(one.epsilon);
     }
 
     project.recomputeContour(alphaEpsilon);
 
-    const std::vector<qftbx::TemplateEngine::ContourReport> & shapes = project.contourReports();
+    const std::vector<qftbx::ContourReport> & shapes = project.contourReports();
     for (std::size_t i = 0; i < shapes.size(); ++i) {
         std::printf("   alpha: w[%zu] epsilon %g, %zu of %zu points, components %zu\n",
                     i, alphaEpsilon[i], shapes[i].contourPoints, shapes[i].cloudPoints,
@@ -2664,7 +2664,7 @@ TEST_F(GuiSmoke, ZZContours)
         const std::vector<double> same(alphaEpsilon.size(), radius);
         project.recomputeContour(same);
 
-        const std::vector<qftbx::TemplateEngine::ContourReport> & at = project.contourReports();
+        const std::vector<qftbx::ContourReport> & at = project.contourReports();
         for (std::size_t i = 0; i < at.size(); ++i) {
             std::printf("   alpha e=%g: w[%zu] %zu of %zu points, components %zu\n",
                         radius, i, at[i].contourPoints, at[i].cloudPoints, at[i].components);

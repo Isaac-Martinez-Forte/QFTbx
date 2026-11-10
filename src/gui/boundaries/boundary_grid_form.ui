@@ -142,23 +142,26 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
-        <widget class="QRadioButton" name="cudaCheck">
+        <widget class="QRadioButton" name="gpuRadio">
          <property name="toolTip">
           <string>Sweep the grid on the GPU.</string>
          </property>
          <property name="text">
-          <string>CUDA</string>
+          <string>GPU</string>
          </property>
           <attribute name="buttonGroup"><string notr="true">processor</string></attribute>
         </widget>
        </item>
        <item>
-        <widget class="QRadioButton" name="cpu">
+        <widget class="QRadioButton" name="cpuRadio">
          <property name="toolTip">
           <string>Sweep the grid on the processor.</string>
          </property>
          <property name="text">
           <string>CPU</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
           <attribute name="buttonGroup"><string notr="true">processor</string></attribute>
         </widget>

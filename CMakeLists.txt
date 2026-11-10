@@ -17,8 +17,14 @@ option(USE_NATIVE_ARCH    "Tune the code for the machine that builds it (-march=
 option(USE_FP_CONTRACTION "Let the compiler fuse a product and a sum into one instruction" ON)
 option(USE_OpenMP         "Use OpenMP" ON)
 option(USE_CLANG          "Compile with Clang when available" OFF)
-option(USE_CUDA           "Use CUDA" OFF)
 option(QFTBX_USE_SYSTEM_LIBS "Use installed pugixml, QCustomPlot and (if selected) C-XSC" OFF)
+
+# USE_CUDA: AUTO builds the GPU engines when it finds CUDA 11.8 or later and
+# leaves them out, saying why, when it does not; ON requires them and OFF
+# leaves them out. 11.8 is what the engines use: the memory pools (11.2),
+# libcu++'s atomic_ref (11.6) and the code for Ada and Hopper (11.8).
+set(USE_CUDA AUTO CACHE STRING "GPU engines: AUTO when CUDA 11.8 or later is found, ON required, OFF never")
+set_property(CACHE USE_CUDA PROPERTY STRINGS AUTO ON OFF)
 
 # The tests, off unless asked for. They are the author's, not something a
 # build for use needs: they fetch GoogleTest, which a build without network
@@ -169,29 +175,66 @@ if(USE_OpenMP)
   find_package(OpenMP)
 endif()
 
-# CUDA as a first-class CMake language; the kernels live in src/core/gpu.
-if(USE_CUDA)
-  include(CheckLanguage)
-  check_language(CUDA)
-  if(CMAKE_CUDA_COMPILER)
+# CUDA as a first-class CMake language; the GPU engines live in
+# src/core/gpu, and QFTBX_CUDA says whether they are built. nvcc is looked
+# for where CMake looks (CUDACXX, PATH, CUDA_PATH) and where Linux installs
+# it, and its version is read before the language is enabled, since an
+# enabled language cannot be taken back. By default every card the toolkit
+# still supports gets its own code, from Pascal before CUDA 13 and from
+# Turing since, and the newest architecture also a PTX the driver compiles
+# for the cards that come after; -DCMAKE_CUDA_ARCHITECTURES=native builds
+# for the machine's card only, which compiles faster.
+set(QFTBX_CUDA OFF)
+string(TOUPPER "${USE_CUDA}" qftbx_cuda_request)
+if(NOT qftbx_cuda_request MATCHES "^(OFF|NO|FALSE|N|0|)$")
+  set(qftbx_cuda_missing "")
+  if(CMAKE_VERSION VERSION_LESS 3.18)
+    set(qftbx_cuda_missing "it needs CMake 3.18 or later")
+  else()
+    if(NOT DEFINED CMAKE_CUDA_COMPILER AND "$ENV{CUDACXX}" STREQUAL "")
+      find_program(QFTBX_NVCC nvcc PATHS /usr/local/cuda/bin /opt/cuda/bin)
+      if(QFTBX_NVCC)
+        set(CMAKE_CUDA_COMPILER "${QFTBX_NVCC}" CACHE FILEPATH "The CUDA compiler")
+      endif()
+    endif()
+    include(CheckLanguage)
+    check_language(CUDA)
+    if(NOT CMAKE_CUDA_COMPILER)
+      set(qftbx_cuda_missing "no CUDA compiler was found")
+    else()
+      execute_process(COMMAND "${CMAKE_CUDA_COMPILER}" --version
+                      OUTPUT_VARIABLE qftbx_nvcc_banner ERROR_QUIET)
+      string(REGEX MATCH "release ([0-9]+\\.[0-9]+)" qftbx_nvcc_release "${qftbx_nvcc_banner}")
+      if(NOT CMAKE_MATCH_1 OR CMAKE_MATCH_1 VERSION_LESS 11.8)
+        set(qftbx_cuda_missing "they need CUDA 11.8 or later, and ${CMAKE_CUDA_COMPILER} is ${CMAKE_MATCH_1}")
+      endif()
+    endif()
+  endif()
+
+  if(qftbx_cuda_missing STREQUAL "")
     if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND "$ENV{CUDAARCHS}" STREQUAL "")
       set(QFTBX_DEFAULT_CUDA_ARCHITECTURES TRUE)
     endif()
     enable_language(CUDA)
-    message(STATUS "CUDA found: ${CMAKE_CUDA_COMPILER}")
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    # Sensible defaults; override with -DCMAKE_CUDA_ARCHITECTURES=... for
-    # the card at hand. CUDA 13 no longer supports Pascal (61).
     if(QFTBX_DEFAULT_CUDA_ARCHITECTURES)
       if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
-        set(CMAKE_CUDA_ARCHITECTURES "75;86" CACHE STRING "CUDA architectures" FORCE)
+        set(qftbx_cuda_architectures "75-real;80-real;86-real;89-real;90-real;100-real;120")
+      elseif(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.8)
+        set(qftbx_cuda_architectures "61-real;70-real;75-real;80-real;86-real;89-real;90-real;100-real;120")
       else()
-        set(CMAKE_CUDA_ARCHITECTURES "61;75;86" CACHE STRING "CUDA architectures" FORCE)
+        set(qftbx_cuda_architectures "61-real;70-real;75-real;80-real;86-real;89-real;90")
       endif()
+      set(CMAKE_CUDA_ARCHITECTURES "${qftbx_cuda_architectures}" CACHE STRING "CUDA architectures" FORCE)
+      string(APPEND CMAKE_CUDA_FLAGS " -Wno-deprecated-gpu-targets")
     endif()
+    set(QFTBX_CUDA ON)
+    message(STATUS "GPU engines: CUDA ${CMAKE_CUDA_COMPILER_VERSION} for ${CMAKE_CUDA_ARCHITECTURES} (${CMAKE_CUDA_COMPILER})")
+  elseif(qftbx_cuda_request STREQUAL "AUTO")
+    message(STATUS "GPU engines left out: ${qftbx_cuda_missing}")
   else()
-    message(FATAL_ERROR "USE_CUDA is enabled but a CUDA compiler was not found")
+    message(FATAL_ERROR "USE_CUDA is ${USE_CUDA}, but the GPU engines cannot be built: ${qftbx_cuda_missing}")
   endif()
 endif()
 

@@ -72,7 +72,7 @@ Numbers sweep(int threads)
     TemplateEngine engine;
     engine.setEpsilon(epsilon);
     engine.setGrids(grids);
-    engine.compute(plant, &frequencies, false);
+    engine.compute(plant, &frequencies);
 
     Numbers numbers;
     appendAll(engine.clouds(), numbers);

@@ -18,10 +18,28 @@
 #include "src/core/pipeline/template_stage.h"
 
 #include "src/core/common/exception.h"
+#include "src/core/pipeline/gpu_provider.h"
+#include "src/core/templates/template_engine.h"
 
 namespace qftbx {
 
-TemplateEngine & TemplateStage::engine()
+namespace {
+
+std::unique_ptr<TemplateComputation> templateComputation(Processor processor)
+{
+    if (processor == Processor::Cpu) {
+        return std::make_unique<TemplateEngine>();
+    }
+    std::unique_ptr<TemplateComputation> engine = requireGpu().templateComputation();
+    if (engine == nullptr) {
+        throw ComputationError(QFTBX_TR("Core", "This build of QFTbx cannot compute the templates on the GPU."));
+    }
+    return engine;
+}
+
+}
+
+TemplateComputation & TemplateStage::engine()
 {
     if (m_engine == nullptr) {
         m_engine = std::make_unique<TemplateEngine>();
@@ -41,12 +59,12 @@ void TemplateStage::requirePrerequisites(const ProjectData & data) const
 }
 
 bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
-                        ParameterGrids grids, bool cuda,
+                        ParameterGrids grids, Processor processor,
                         const CancellationToken * cancellation)
 {
     requirePrerequisites(data);
 
-    auto sweep = std::make_unique<TemplateEngine>();
+    std::unique_ptr<TemplateComputation> sweep = templateComputation(processor);
 
     sweep->setCancellation(cancellation);
 
@@ -57,7 +75,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
     sweep->setEpsilon(std::move(epsilon));
     sweep->setGrids(grids);
 
-    sweep->compute(data.plant(), data.omega()->values(), cuda);
+    sweep->compute(data.plant(), data.omega()->values());
 
     const bool produced = !sweep->clouds().empty() && !sweep->contours().empty();
 
@@ -92,7 +110,7 @@ const CloudSet & TemplateStage::recomputeContour(ProjectData & data,
     return data.contour();
 }
 
-std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data)
+std::vector<EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data)
 {
     if (m_engine == nullptr || data.templates().empty()) {
         throw InvalidInput(QFTBX_TR("Core", "There are no templates to propose an epsilon for."));
@@ -102,10 +120,10 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
     return m_engine->proposeEpsilon();
 }
 
-std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data,
-                                                                           ParameterGrids grids,
-                                                                           EpsilonMetric metric,
-                                                                           const CancellationToken * cancellation) const
+std::vector<EpsilonProposal> TemplateStage::proposeEpsilon(const ProjectData & data,
+                                                           ParameterGrids grids,
+                                                           EpsilonMetric metric,
+                                                           const CancellationToken * cancellation) const
 {
     requirePrerequisites(data);
 
@@ -120,9 +138,9 @@ std::vector<TemplateEngine::EpsilonProposal> TemplateStage::proposeEpsilon(const
     return sweep.proposeEpsilon();
 }
 
-const std::vector<TemplateEngine::ContourReport> & TemplateStage::contourReports() const
+const std::vector<ContourReport> & TemplateStage::contourReports() const
 {
-    static const std::vector<TemplateEngine::ContourReport> none;
+    static const std::vector<ContourReport> none;
     return m_engine != nullptr ? m_engine->contourReports() : none;
 }
 

@@ -77,7 +77,7 @@ TEST_F(FailedComputation, AMissingSweepGridIsReportedAndLeavesNoTemplates)
 {
     const std::vector<double> epsilon(3, 10.0);
 
-    EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(std::string("kv")), false),
+    EXPECT_THROW(controller.computeTemplates(epsilon, gridsMissing(std::string("kv"))),
                  qftbx::InvalidInput);
 
     EXPECT_TRUE(controller.templates().empty())
@@ -91,14 +91,14 @@ TEST_F(FailedComputation, TheProjectStillWorksAfterAFailedComputation)
     const std::vector<double> badEpsilon(3, 10.0);
     const qftbx::ParameterGrids badGrids = gridsMissing(std::string("a"));
 
-    EXPECT_THROW(controller.computeTemplates(badEpsilon, badGrids, false),
+    EXPECT_THROW(controller.computeTemplates(badEpsilon, badGrids),
                  qftbx::InvalidInput);
 
     qftbx::ParameterGrids grids;
     grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     grids[std::string("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids, false))
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids))
         << "the project never recovered from the earlier failure";
     EXPECT_FALSE(controller.templates().empty());
 
@@ -112,7 +112,7 @@ TEST_F(FailedComputation, BoundariesRefuseWithoutTheTemplatesInsteadOfCrashing)
 
     EXPECT_THROW(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 361,
                                              qftbx::Range(-60.0, 60.0), 121, 0.0,
-                                             false, false),
+                                             false),
                  qftbx::InvalidInput);
 
     EXPECT_EQ(controller.boundaries(), nullptr);
@@ -132,11 +132,11 @@ TEST_F(FailedComputation, TemplatesRefuseWithoutAPlantOrFrequencies)
     qftbx::ParameterGrids grids;
 
     ProjectController empty;
-    EXPECT_THROW(empty.computeTemplates(epsilon, grids, false), qftbx::InvalidInput);
+    EXPECT_THROW(empty.computeTemplates(epsilon, grids), qftbx::InvalidInput);
 
     ProjectController plantOnly;
     plantOnly.setPlant(makePlant());
-    EXPECT_THROW(plantOnly.computeTemplates(epsilon, {}, false), qftbx::InvalidInput);
+    EXPECT_THROW(plantOnly.computeTemplates(epsilon, {}), qftbx::InvalidInput);
 }
 
 }

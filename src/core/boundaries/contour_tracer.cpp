@@ -10,8 +10,6 @@
  * multiplying, and axes map an index from their bottom end.
  */
 
-#include <limits>
-#include <algorithm>
 #include <vector>
 #include <cstdint>
 #include "src/core/boundaries/contour_tracer.h"
@@ -22,13 +20,6 @@ ContourTracer::ContourTracer(double thresholdDb, const BoundarySheet & sheet)
     : m_thresholdDb(thresholdDb), m_sheet(&sheet)
 {
 }
-
-#ifdef CUDA_AVAILABLE
-ContourTracer::ContourTracer(double thresholdDb, const float *sheet)
-    : m_thresholdDb(thresholdDb), m_cudaSheet(sheet)
-{
-}
-#endif
 
 namespace {
 
@@ -132,24 +123,5 @@ TraceSet ContourTracer::trace(double phaseSpan, double magnitudeSpan,
     return traceCells(width, height, m_thresholdDb, cellAt,
                       phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
 }
-
-#ifdef CUDA_AVAILABLE
-TraceSet ContourTracer::trace(double phaseSpan, double phaseCount, double magnitudeSpan,
-                              double magnitudeCount, double phaseBottom, double magnitudeBottom){
-
-    const std::int32_t width = static_cast<std::int32_t>(
-                std::min(phaseCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
-    const std::int32_t height = static_cast<std::int32_t>(
-                std::min(magnitudeCount, static_cast<double>(std::numeric_limits<std::int32_t>::max())));
-
-    const auto cellAt = [this, height](std::int32_t x, std::int32_t y) {
-        return static_cast<double>(m_cudaSheet[static_cast<std::size_t>(x) * static_cast<std::size_t>(height)
-                                               + static_cast<std::size_t>(y)]);
-    };
-
-    return traceCells(width, height, m_thresholdDb, cellAt,
-                      phaseSpan, magnitudeSpan, phaseBottom, magnitudeBottom);
-}
-#endif
 
 }

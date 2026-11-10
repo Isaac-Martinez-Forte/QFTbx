@@ -45,7 +45,7 @@ Solution solveFrom(bool fromContour)
     const auto t0 = std::chrono::steady_clock::now();
     const bool bounds = controller.computeBoundaries(Range(-360.0, 0.0), 361,
                                                      Range(-60.0, 160.0), 441,
-                                                     1.0e6, fromContour, false);
+                                                     1.0e6, fromContour);
     const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
     EXPECT_TRUE(bounds);
 

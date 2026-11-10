@@ -21,8 +21,10 @@ persistence link no Qt at all, and a build target checks that they do not
 (`qftbx_core_noqt`, see below).
 
 **Optional.** OpenMP, for the parallel template sweep and boundary
-computation; it comes with the compiler and is used when found. CUDA 11 or
-later for the GPU kernels, off by default. Doxygen, with Graphviz for the
+computation; it comes with the compiler and is used when found. CUDA 11.8
+or later for the GPU engines: **a build that finds it compiles them, unless
+it is configured with `-DUSE_CUDA=OFF`**, and one that does not find it
+leaves them out and says so. Doxygen, with Graphviz for the
 diagrams, for the API reference. The Markdown formula filter also uses `sh`
 and `sed` (available with Git for Windows).
 
@@ -100,7 +102,7 @@ the build tree. They are all declared together at the top of
 | `USE_NATIVE_ARCH` | `ON` | `-march=native`: the numeric code tuned for the machine that builds it. Turn off for a binary that must run on other machines, and for tools that cannot run the wide vector instructions (Valgrind). With AVX-512 the compiler is also asked to keep its vectors at 256 bits, which measured faster here |
 | `USE_FP_CONTRACTION` | `ON` | Let the compiler fuse a product and a sum into one instruction where the processor has it. About 3 % faster in a native build, at the price of last bits that differ from a build without it; off, a native build gives exactly the results of the `portable` build of the packages |
 | `USE_CLANG` | `OFF` | Compile with Clang when it is installed. The compiler is chosen before the project is configured and cannot change afterwards, so this takes effect in a fresh build directory; an explicit `-DCMAKE_CXX_COMPILER` always wins |
-| `USE_CUDA` | `OFF` | The CUDA kernels of the templates and boundaries, when a CUDA compiler is found. `CMAKE_CUDA_ARCHITECTURES` names the cards (75 and 86 with CUDA >= 13; 61, 75 and 86 with older toolkits) |
+| `USE_CUDA` | `AUTO` | The GPU engines, with CUDA 11.8 or later: `AUTO` builds them when it finds it (`CUDACXX`, `PATH`, `CUDA_PATH`, `/usr/local/cuda`) and says why when it does not, `ON` requires them and `OFF` leaves them out. By default the build makes code for every card the toolkit supports, from Pascal (architectures 61, 70, 75, 80, 86, 89 and 90, and 100 and 120 from CUDA 12.8; CUDA 13 starts at 75), and a PTX of the newest, which the driver compiles for the cards that come later; `CMAKE_CUDA_ARCHITECTURES` names others, and `native` the machine's card only, which compiles faster |
 | `QFTBX_BUILD_TESTS` | `OFF` | Build the two test binaries and register them with CTest. Off so a build for use needs no network to fetch GoogleTest; the program is the same either way |
 | `QFTBX_BUILD_BENCHMARK` | `OFF` | Build the benchmark tool `qftbx-bench`, its tests and the benchmark planner of the interface. For measuring the algorithms, not for using them; see [BENCHMARKING.md](BENCHMARKING.md) |
 | `QFTBX_USE_SYSTEM_LIBS` | `OFF` | Use installed pugixml >= 1.16, QCustomPlot for Qt 6 and, with `cxsc`, C-XSC. Requires CMake >= 3.24; configuration fails if a required library is missing |
@@ -125,10 +127,14 @@ FetchContent downloads. The compiler and architecture can still be selected
 through the usual CMake compiler and flags variables; distribution builds
 should disable `USE_NATIVE_ARCH` if their flags already select the target CPU.
 
-An explicitly enabled CUDA build fails if no CUDA compiler is available.
-CUDA 13 and later default to architectures 75 and 86; older toolkits retain
-61, 75 and 86. `CMAKE_CUDA_ARCHITECTURES` overrides these defaults. Disabling
-`USE_FP_CONTRACTION` also passes `--fmad=false` to CUDA kernels.
+With `USE_CUDA=ON` the configuration fails if no CUDA compiler is available
+or it is older than CUDA 11.8; with `AUTO` it goes on without the GPU engines.
+11.8 is what the engines use: the memory pools, libcu++'s `atomic_ref` and the
+code for Ada and Hopper.
+The value stays in the build directory's cache, as every option does. Disabling `USE_FP_CONTRACTION` also passes
+`--fmad=false` to CUDA kernels. The program looks for the card when it is
+first asked for: without a usable one, the choice of the GPU is shown
+disabled with the reason, and everything is computed on the processor.
 
 ## Targets
 

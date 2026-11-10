@@ -36,6 +36,7 @@
 #ifndef QFTBX_TEMPLATES_FORM_H
 #define QFTBX_TEMPLATES_FORM_H
 
+#include "src/core/pipeline/processor.h"
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_panel.h"
 #include <memory>
@@ -95,7 +96,7 @@ public:
 
     bool nicholsSelected();
 
-    bool cudaSelected();
+    qftbx::Processor processor() const;
 
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
@@ -109,9 +110,9 @@ public:
     bool borderSweep() const;
     void setBorderSweep(bool border);
 
-    void showProposals(std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals);
+    void showProposals(std::vector<qftbx::EpsilonProposal> proposals);
 
-    const std::vector<qftbx::TemplateEngine::EpsilonProposal> & proposals() const { return m_proposals; }
+    const std::vector<qftbx::EpsilonProposal> & proposals() const { return m_proposals; }
 
     struct ThreeRadioButtons{
         QRadioButton * linear = nullptr;
@@ -145,7 +146,7 @@ private:
 
     void showEpsilon(const QString & text);
 
-    std::vector<qftbx::TemplateEngine::EpsilonProposal> m_proposals;
+    std::vector<qftbx::EpsilonProposal> m_proposals;
     QString m_epsilonToolTip;
 
     std::unique_ptr<Ui::TemplatesForm> ui;
@@ -168,7 +169,7 @@ private:
     LtiSystem * plant = nullptr;
 
     bool rowsBuilt = false;
-    bool cudaEnabled = false;
+    qftbx::Processor processorChoice = qftbx::Processor::Cpu;
 
     bool nicholsDiagram  = true;
 

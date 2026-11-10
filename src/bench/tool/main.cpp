@@ -28,6 +28,7 @@
 #include <QFileInfo>
 #include <QTemporaryFile>
 
+#include "src/app/gpu_support.h"
 #include "src/bench/measurement.h"
 #include "src/bench/plan.h"
 #include "src/bench/runner.h"
@@ -137,6 +138,8 @@ int main(int argc, char ** argv)
     QCoreApplication application(argc, argv);
 
     std::setlocale(LC_NUMERIC, "C");
+
+    qftbx::installGpuSupport();
 
     const std::vector<std::string> args(argv + 1, argv + argc);
     if (args.empty()) {

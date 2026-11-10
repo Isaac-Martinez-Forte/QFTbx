@@ -193,7 +193,7 @@ TEST(ClosedFormColumns, TheSearchOnExampleTwoLandsWithinTheInterpolationError)
     }
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
         controller.setClosedFormColumns(closedForm);
-        EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, true, false));
+        EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, true));
         EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100));
         return controller.loopShapingResult()->controller()->gain().nominal();
     };
@@ -220,7 +220,7 @@ TEST(ClosedFormColumns, ACloudKeepsTheSheetsColumns)
     }
         controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
         controller.setClosedFormColumns(closedForm);
-        EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, false, false));
+        EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441, 1.0e6, false));
         EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100));
         return controller.loopShapingResult()->controller()->gain().nominal();
     };

@@ -73,7 +73,7 @@ protected:
 
         templates.setEpsilon(epsilon);
         templates.setGrids(mapa);
-        templates.compute(plant, &omegaCopy, false);
+        templates.compute(plant, &omegaCopy);
     }
 
     ProjectReader parser;
@@ -259,7 +259,7 @@ TEST(TemplatesValidation, MissingSweepGridThrowsInvalidInput)
     TemplateEngine t;
     t.setEpsilon(std::vector<double>(6, 10.0));
     t.setGrids(mapa);
-    EXPECT_THROW(t.compute(plant, &omega, false), qftbx::InvalidInput);
+    EXPECT_THROW(t.compute(plant, &omega), qftbx::InvalidInput);
 }
 
 TEST(TemplatesValidation, RecontourWithoutTemplatesThrowsInvalidInput)

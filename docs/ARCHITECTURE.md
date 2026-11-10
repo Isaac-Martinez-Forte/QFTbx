@@ -48,16 +48,17 @@ in [docs/algorithms](algorithms/README.md).
 | `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/`, `mc2/`, `mc3/` one algorithm each |
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
 | `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |
-| `src/core/gpu/` | Optional CUDA kernels for templates/boundaries (`USE_CUDA`) |
+| `src/core/gpu/` | The GPU engines (`USE_CUDA`): a library of their own, `qftbx_cuda`, that implements what the core declares, the engine of each phase (`TemplateComputation`, `BoundaryComputation`) and the provider of them (`src/core/pipeline/gpu_provider.h`), which the application installs at start; `common/` is the base, from the errors, memory and streams to the probe of the card |
 | `src/persistence/` | Load/save of `.qft` project files (pugixml; the version-2 dialect, see [PROJECT_FORMAT.md](PROJECT_FORMAT.md)) |
 | `src/app/` | `ProjectController`: the single mediator between GUI and core, one method per design step |
 | `src/gui/` | Qt Widgets HMI: one folder per design step with its dialog and viewers (QCustomPlot), plus `application/` (shell, main window) and `common/` (shared widgets and helpers) |
 | `src/bench/` | The benchmark library and the `qftbx-bench` tool (plans, measured runs in their own processes, summaries), and `src/gui/bench/` its planner; only with `QFTBX_BUILD_BENCHMARK`, see [BENCHMARKING.md](BENCHMARKING.md) |
-| `tests/` | GoogleTest suites in `backend/` and `gui/` (and `bench/` with the benchmark); golden `.qft` projects in `tests/data/` |
+| `tests/` | GoogleTest suites in `backend/` and `gui/` (and `bench/` with the benchmark, `gpu/` with CUDA); golden `.qft` projects in `tests/data/` |
 
 Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,
 `qftbx_app` (the mediator), `qftbx_gui`, and the `QFTbx` executable on top of them;
-`qftbx_tests` links the facade. Every folder has a `CMakeLists.txt` that adds its own
+`qftbx_tests` links the facade. With CUDA, `qftbx_cuda` sits between the core and the
+mediator: it depends on the core, and the core never on it. Every folder has a `CMakeLists.txt` that adds its own
 files to the target it belongs to (`cmake/QftbxFunctions.cmake`), so no file list is
 kept by hand.
 

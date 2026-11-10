@@ -118,7 +118,7 @@ TEST(BorderSweep, OnExampleTwoTheBorderIsDenserAndTheBoundariesAgree)
 
     controller.setEpsilonMetric({HullMetric::Nichols, 1.0});
     controller.setBorderSweep(true);
-    const std::vector<TemplateEngine::EpsilonProposal> proposals =
+    const std::vector<EpsilonProposal> proposals =
         controller.proposeEpsilon(gridsOf(controller.plant(), 25), {HullMetric::Nichols, 1.0});
     ASSERT_EQ(proposals.size(), f);
     std::vector<double> epsilon;
@@ -127,14 +127,14 @@ TEST(BorderSweep, OnExampleTwoTheBorderIsDenserAndTheBoundariesAgree)
         epsilon.push_back(p.epsilon);
     }
 
-    ASSERT_TRUE(controller.computeTemplates(epsilon, gridsOf(controller.plant(), 25), false));
+    ASSERT_TRUE(controller.computeTemplates(epsilon, gridsOf(controller.plant(), 25)));
     ASSERT_EQ(controller.templates()[0].size(), 624u);
     for (std::size_t i = 0; i < f; ++i) {
         EXPECT_GT(controller.contour()[i].size(), 4u);
     }
 
     ASSERT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441,
-                                             1.0e6, true, false));
+                                             1.0e6, true));
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100));
     const double k = controller.loopShapingResult()->controller()->gain().nominal();
     const double excess = controller.loopShapingResult()->check()->worstExcessDb;
@@ -157,7 +157,7 @@ TEST(BorderSweep, TheContourOfABorderCloudIgnoresAnOversizedEpsilon)
     const std::size_t f = controller.omega()->values()->size();
 
     controller.setBorderSweep(true);
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(f, 10.0), gridsOf(controller.plant(), 25), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(f, 10.0), gridsOf(controller.plant(), 25)));
     for (std::size_t i = 0; i < f; ++i) {
         EXPECT_LE(controller.contour()[i].size(), controller.templates()[i].size() + 1) << "frequency " << i;
         EXPECT_GT(controller.contour()[i].size(), 4u) << "frequency " << i;
@@ -172,10 +172,10 @@ TEST(BorderSweep, TheProposalBeforeTheSweepIsMadeOnTheBorderCloud)
     controller.setBorderSweep(true);
     const ParameterGrids grids = gridsOf(controller.plant(), 25);
 
-    const std::vector<TemplateEngine::EpsilonProposal> before =
+    const std::vector<EpsilonProposal> before =
         controller.proposeEpsilon(grids, controller.epsilonMetric());
-    ASSERT_TRUE(controller.computeTemplates({}, grids, false));
-    const std::vector<TemplateEngine::EpsilonProposal> after = controller.proposeEpsilon();
+    ASSERT_TRUE(controller.computeTemplates({}, grids));
+    const std::vector<EpsilonProposal> after = controller.proposeEpsilon();
 
     ASSERT_EQ(before.size(), after.size());
     for (std::size_t i = 0; i < before.size(); ++i) {

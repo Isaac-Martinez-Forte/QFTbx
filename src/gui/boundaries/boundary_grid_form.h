@@ -19,6 +19,7 @@
 #define QFTBX_BOUNDARY_GRID_FORM_H
 
 #include "src/core/boundaries/boundary_data.h"
+#include "src/core/pipeline/processor.h"
 #include "src/core/project/settings.h"
 #include "src/gui/application/step_panel.h"
 #include <memory>
@@ -64,7 +65,7 @@ public:
 
     bool contourSelected();
 
-    bool cudaSelected();
+    qftbx::Processor processor() const;
 
 private slots:
     void on_okButton_clicked();
@@ -77,7 +78,7 @@ private:
     qint32 phaseCount = 0;
     qint32 magnitudeCount = 0;
     qreal infinityEdit = 0.0;
-    bool cudaCheck = false;
+    qftbx::Processor processorChoice = qftbx::Processor::Cpu;
 
     std::int64_t m_maxGridCells = qftbx::Settings().limits.maxGridCells;
 

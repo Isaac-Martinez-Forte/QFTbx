@@ -740,7 +740,7 @@ void MainWindow::installContourRecomputer(){
         recomputeContour(std::move(epsilon));
     });
     templateViewer->setEpsilonProposer([this]() {
-        std::vector<qftbx::TemplateEngine::EpsilonProposal> proposals;
+        std::vector<qftbx::EpsilonProposal> proposals;
         if (!controller->isComputing()) {
             reportingErrors(tr("Template computation"), [this, &proposals]() {
                 proposals = controller->proposeEpsilon();
@@ -883,7 +883,7 @@ void MainWindow::applyTemplates()
                         [this](std::function<void ()> done) {
                             return controller->startTemplates(templatesForm->takeEpsilon(),
                                                               templatesForm->grids(),
-                                                              templatesForm->cudaSelected(),
+                                                              templatesForm->processor(),
                                                               std::move(done));
                         },
                         [this, nichols]() {
@@ -935,7 +935,7 @@ void MainWindow::applyBoundaries()
                                                            boundaryGridForm->magnitudeCountValue(),
                                                            boundaryGridForm->infinityValue(),
                                                            boundaryGridForm->contourSelected(),
-                                                           boundaryGridForm->cudaSelected(),
+                                                           boundaryGridForm->processor(),
                                                            std::move(done));
                     },
                     [this]() {

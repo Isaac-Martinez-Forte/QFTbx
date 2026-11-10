@@ -45,10 +45,6 @@
 
 using namespace std;
 
-#ifdef CUDA_AVAILABLE
-#include "src/core/gpu/template_contour_cuda.h"
-#endif
-
 namespace qftbx {
 
 void TemplateEngine::setGrids(ParameterGrids grids){
@@ -72,9 +68,7 @@ void TemplateEngine::setAlphaShapeContour(bool alphaShape){
     m_alphaShape = alphaShape;
 }
 
-bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool cuda){
-    m_useCuda = cuda;
-
+bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega){
     const auto timer = std::chrono::steady_clock::now();
     m_frequencies = *omega;
 
@@ -111,7 +105,7 @@ bool TemplateEngine::compute(LtiSystem *plant, std::vector<double> *omega, bool 
 
     const auto timer2 = std::chrono::steady_clock::now();
 
-    const bool result = computeContourSet(cuda);
+    const bool result = computeContourSet();
 
     if (cancellationAsked(m_cancellation)) {
         m_clouds.clear();
@@ -153,7 +147,7 @@ bool TemplateEngine::computeContours(std::vector<double> epsilon){
     m_epsilon = std::move(epsilon);
     const auto timer = std::chrono::steady_clock::now();
 
-    bool result = computeContourSet(m_useCuda);
+    bool result = computeContourSet();
 
     logContours(timer);
 
@@ -511,7 +505,7 @@ double roundedUpToThreeFigures(double value)
 
 }
 
-bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
+bool TemplateEngine::computeContourSet(){
 
     if (m_epsilon.size() != m_clouds.size()) {
         throw qftbx::InvalidInput(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(m_epsilon.size()).arg(m_clouds.size()));
@@ -529,32 +523,6 @@ bool TemplateEngine::computeContourSet([[maybe_unused]] bool cuda){
             m_reports[i].resonanceTo = (*m_resonanceBands[i])[1];
         }
     }
-
-#ifdef CUDA_AVAILABLE
-    if (cuda){
-        m_contours.clear();
-
-        for (std::size_t i = 0; i < digitCount; i++){
-
-            const ComplexCloud hull = epsilonHullCuda(
-                m_clouds[i],
-                m_epsilon.at(i));
-
-            if (hull.empty()){
-                succeeded = false;
-            }
-            m_contours.push_back(ComplexCloud(hull.begin(), hull.end()));
-            m_reports[i].contourPoints = hull.size();
-        }
-
-        if (!succeeded){
-
-            throw ComputationError(QFTBX_TR("Core", "Could not compute the template contours."));
-        }
-
-        return true;
-    }
-#endif
 
     m_contours = CloudSet(digitCount);
 
@@ -945,7 +913,7 @@ double TemplateEngine::withoutRetracing(const ComplexCloud & cloud, double closi
     return closing;
 }
 
-std::vector<TemplateEngine::EpsilonProposal> TemplateEngine::proposeEpsilon(){
+std::vector<EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
     if (m_proposals.has_value()){
         return *m_proposals;

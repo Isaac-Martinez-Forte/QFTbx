@@ -119,7 +119,7 @@ TEST(AlphaShape, TheEngineClosesAtTheConnectingEpsilonAndMarksNothing)
     engine.setHullMetric(TemplateEngine::HullMetric::Nichols, 1.0);
     engine.setAlphaShapeContour(true);
 
-    const std::vector<TemplateEngine::EpsilonProposal> proposals = engine.proposeEpsilon();
+    const std::vector<EpsilonProposal> proposals = engine.proposeEpsilon();
     ASSERT_EQ(proposals.size(), 6u);
     std::vector<double> epsilon;
     for (const auto & p : proposals) {
@@ -131,7 +131,7 @@ TEST(AlphaShape, TheEngineClosesAtTheConnectingEpsilonAndMarksNothing)
 
     ASSERT_TRUE(engine.computeContours(epsilon));
     for (std::size_t i = 0; i < 6; ++i) {
-        const TemplateEngine::ContourReport & r = engine.contourReports()[i];
+        const ContourReport & r = engine.contourReports()[i];
         EXPECT_FALSE(r.relaxed);
         EXPECT_FALSE(r.truncated);
         EXPECT_FALSE(r.wholeCloud);
@@ -161,7 +161,7 @@ TEST(AlphaShape, TheBoundariesFromTheAlphaShapeMatchTheWalksOnExampleTwo)
         const std::size_t f = controller.omega()->values()->size();
         controller.recomputeContour(std::vector<double>(f, 10.0));
         EXPECT_TRUE(controller.computeBoundaries(Range(-360.0, 0.0), 361, Range(-60.0, 160.0), 441,
-                                                 1.0e6, true, false));
+                                                 1.0e6, true));
         EXPECT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt, Range(1e-9, 10.0), 100));
         return controller.loopShapingResult()->controller()->gain().nominal();
     };

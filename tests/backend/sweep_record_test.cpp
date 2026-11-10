@@ -42,7 +42,7 @@ TEST(SweepRecord, TheGridsSurviveSaveAndLoad)
     }
     ASSERT_FALSE(grids.empty());
 
-    ASSERT_TRUE(project.computeTemplates(*project.epsilon(), grids, false));
+    ASSERT_TRUE(project.computeTemplates(*project.epsilon(), grids));
     EXPECT_EQ(project.sweepGrids(), grids);
 
     project.save(path);

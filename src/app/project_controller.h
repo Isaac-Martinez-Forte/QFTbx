@@ -44,6 +44,7 @@
 #include "src/core/loopshaping/loop_shaping_types.h"
 #include "src/core/pipeline/boundary_stage.h"
 #include "src/core/pipeline/loop_shaping_stage.h"
+#include "src/core/pipeline/processor.h"
 #include "src/core/pipeline/template_stage.h"
 #include "src/core/templates/template_engine.h"
 #include "src/core/templates/parameter_grids.h"
@@ -74,7 +75,8 @@ public:
 
     bool setOmega(std::unique_ptr<Omega> omega);
 
-    bool computeTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda);
+    bool computeTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids,
+                          qftbx::Processor processor = qftbx::Processor::Cpu);
 
     const qftbx::CloudSet & recomputeContour(std::vector<double> epsilon);
 
@@ -86,7 +88,7 @@ public:
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
 
-    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon();
+    std::vector<EpsilonProposal> proposeEpsilon();
 
     void setWholeCloudStandsIn(bool standsIn);
 
@@ -99,13 +101,14 @@ public:
     void setClosedFormColumns(bool on);
     bool closedFormColumns() const;
 
-    const std::vector<TemplateEngine::ContourReport> & contourReports() const;
+    const std::vector<ContourReport> & contourReports() const;
 
-    std::vector<TemplateEngine::EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
-                                                                qftbx::EpsilonMetric metric);
+    std::vector<EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
+                                                qftbx::EpsilonMetric metric);
 
     bool computeBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
-                           std::int32_t magnitudeCount, double exportInfinity, bool useContour, bool cuda);
+                           std::int32_t magnitudeCount, double exportInfinity, bool useContour,
+                           qftbx::Processor processor = qftbx::Processor::Cpu);
 
     BoundaryData * boundaries();
 
@@ -136,17 +139,17 @@ public:
                           std::int32_t initialisation = 0,
                           std::function<void ()> finished = std::function<void ()>());
 
-    bool startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, bool cuda,
+    bool startTemplates(std::vector<double> epsilon, qftbx::ParameterGrids grids, qftbx::Processor processor,
                         std::function<void ()> finished = std::function<void ()>());
 
     bool startEpsilonProposal(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric,
                               std::function<void ()> finished = std::function<void ()>());
 
-    const std::vector<TemplateEngine::EpsilonProposal> & epsilonProposals() const { return m_proposals; }
+    const std::vector<EpsilonProposal> & epsilonProposals() const { return m_proposals; }
 
     bool startBoundaries(qftbx::Range phaseRange, std::int32_t phaseCount,
                          qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
-                         double exportInfinity, bool contour, bool cuda,
+                         double exportInfinity, bool contour, qftbx::Processor processor,
                          std::function<void ()> finished = std::function<void ()>());
 
     enum class Computation { None, Templates, Proposal, Boundaries, LoopShaping };
@@ -219,7 +222,7 @@ private:
 
     Computation m_lastComputation = Computation::None;
 
-    std::vector<TemplateEngine::EpsilonProposal> m_proposals;
+    std::vector<EpsilonProposal> m_proposals;
 };
 
 }

@@ -1,11 +1,14 @@
-# The optional CUDA kernels for templates and boundaries. Added only when
-# USE_CUDA is on and a CUDA compiler was found; CUDA_AVAILABLE then reaches
-# every consumer of the core.
+# The GPU engines, built when the configuration finds CUDA (QFTBX_CUDA, see
+# USE_CUDA). A library of its own that depends on the core and not the other
+# way round: the core declares the engines and the provider
+# (src/core/pipeline/gpu_provider.h), this library implements them, and the
+# application installs the provider at start. The .cu files take from the
+# core only the cancellation token, so nvcc compiles them as C++17; the .cpp
+# files are the glue with the core.
 add_library(qftbx_cuda STATIC)
-qftbx_sources_here(qftbx_cuda)
 target_include_directories(qftbx_cuda PUBLIC "${CMAKE_SOURCE_DIR}")
-target_compile_definitions(qftbx_cuda PUBLIC CUDA_AVAILABLE=1)
-set_target_properties(qftbx_cuda PROPERTIES
-  CUDA_SEPARABLE_COMPILATION ON
-  CUDA_RESOLVE_DEVICE_SYMBOLS ON
-)
+target_link_libraries(qftbx_cuda PUBLIC qftbx_core)
+qftbx_warnings(qftbx_cuda)
+qftbx_native_arch(qftbx_cuda)
+
+add_subdirectory(common)

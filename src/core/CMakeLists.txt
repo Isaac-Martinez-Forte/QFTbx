@@ -28,7 +28,6 @@ add_subdirectory(specifications)
 add_subdirectory(system)
 add_subdirectory(templates)
 
-if(USE_CUDA AND CMAKE_CUDA_COMPILER)
+if(QFTBX_CUDA)
   add_subdirectory(gpu)
-  target_link_libraries(qftbx_core PUBLIC qftbx_cuda)
 endif()

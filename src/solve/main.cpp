@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include "src/app/gpu_support.h"
 #include "src/app/project_controller.h"
 #include "src/core/common/exception.h"
 #include "src/core/loopshaping/algorithm_name.h"
@@ -248,6 +249,8 @@ bool readOptions(int argc, char ** argv, Options & into)
 
 int main(int argc, char ** argv)
 {
+    qftbx::installGpuSupport();
+
     Options options;
 
     try {
@@ -275,7 +278,7 @@ int main(int argc, char ** argv)
 
         const qftbx::ParameterGrids grids = gridsOf(*project.plant(), points);
 
-        if (!project.computeTemplates({}, grids, false)) {
+        if (!project.computeTemplates({}, grids)) {
             throw qftbx::InvalidInput("the templates came out empty");
         }
 
@@ -287,7 +290,7 @@ int main(int argc, char ** argv)
                       << parameters << " uncertain parameters at " << points
                       << " points each, " << cloud << " points, contours " << contour << "\n";
 
-            const std::vector<qftbx::TemplateEngine::ContourReport> & reports = project.contourReports();
+            const std::vector<qftbx::ContourReport> & reports = project.contourReports();
             const std::vector<double> & frequencies = *project.omega()->values();
             std::vector<std::size_t> pending;
             for (std::size_t i = 0; i < reports.size() && i < frequencies.size(); ++i) {
@@ -296,7 +299,7 @@ int main(int argc, char ** argv)
                 }
             }
             while (!pending.empty()) {
-                const qftbx::TemplateEngine::ContourReport & band = reports[pending.front()];
+                const qftbx::ContourReport & band = reports[pending.front()];
                 std::ostringstream at;
                 std::vector<std::size_t> rest;
                 for (const std::size_t i : pending) {
@@ -327,7 +330,7 @@ int main(int argc, char ** argv)
 
         if (!project.computeBoundaries(qftbx::Range(phaseFrom, phaseTo), phasePoints,
                                        qftbx::Range(magnitudeFrom, magnitudeTo), magnitudePoints,
-                                       -1.0, true, false)) {
+                                       -1.0, true)) {
             throw qftbx::InvalidInput("the boundaries came out empty");
         }
 

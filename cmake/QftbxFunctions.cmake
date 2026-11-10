@@ -20,9 +20,12 @@ endfunction()
 
 # qftbx_warnings(<target>)
 #
-# The warning set every target of the project is built with.
+# The warning set every target of the project is built with; nvcc hands it
+# to the host compiler.
 function(qftbx_warnings target)
-  target_compile_options(${target} PRIVATE -Wall -Wextra)
+  target_compile_options(${target} PRIVATE
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra>"
+    "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall,-Wextra>")
 endfunction()
 
 # qftbx_native_arch(<target>)
@@ -41,7 +44,9 @@ endfunction()
 # absent.
 function(qftbx_native_arch target)
   if(USE_NATIVE_ARCH AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(${target} PRIVATE -march=native)
+    target_compile_options(${target} PRIVATE
+      "$<$<COMPILE_LANGUAGE:CXX>:-march=native>"
+      "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-march=native>")
 
     # GCC before 11 vectorises to 512 bits wherever it can; from 11 on its
     # own heuristic prefers 256 on the microarchitectures where that is
@@ -50,7 +55,9 @@ function(qftbx_native_arch target)
       include(CheckCXXCompilerFlag)
       check_cxx_compiler_flag(-mprefer-vector-width=256 QFTBX_HAS_PREFER_VECTOR_WIDTH)
       if(QFTBX_HAS_PREFER_VECTOR_WIDTH)
-        target_compile_options(${target} PRIVATE -mprefer-vector-width=256)
+        target_compile_options(${target} PRIVATE
+          "$<$<COMPILE_LANGUAGE:CXX>:-mprefer-vector-width=256>"
+          "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-mprefer-vector-width=256>")
       endif()
     endif()
   endif()

@@ -105,7 +105,7 @@ TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
 
     TemplateEngine engine;
     engine.setClouds({block});
-    const std::vector<TemplateEngine::EpsilonProposal> p = engine.proposeEpsilon();
+    const std::vector<EpsilonProposal> p = engine.proposeEpsilon();
     ASSERT_EQ(p.size(), 1u);
     EXPECT_NEAR(p[0].connected, 1.0, 1e-12);
     EXPECT_NEAR(p[0].diameter, 8.0 * std::sqrt(2.0), 1e-12);
@@ -116,7 +116,7 @@ TEST(HullMetric, TheProposedEpsilonIsTheLongestSpanningEdge)
     ComplexCloud two = block;
     for (const Complex & z : block) two.push_back(z + Complex(40.0, 0.0));
     engine.setClouds({two});
-    const TemplateEngine::EpsilonProposal bridge = engine.proposeEpsilon()[0];
+    const EpsilonProposal bridge = engine.proposeEpsilon()[0];
     EXPECT_NEAR(bridge.connected, 32.0, 1e-12);
     EXPECT_TRUE(bridge.closes);
     EXPECT_GE(bridge.epsilon, bridge.connected);
@@ -136,9 +136,9 @@ TEST(HullMetric, Example2AsksForOneEpsilonInNicholsAndTenThousandInTheComplexPla
     TemplateEngine engine;
     engine.setClouds(controller.templates());
 
-    const std::vector<TemplateEngine::EpsilonProposal> complexPlane = engine.proposeEpsilon();
+    const std::vector<EpsilonProposal> complexPlane = engine.proposeEpsilon();
     engine.setHullMetric(TemplateEngine::HullMetric::Nichols, 1.0);
-    const std::vector<TemplateEngine::EpsilonProposal> nichols = engine.proposeEpsilon();
+    const std::vector<EpsilonProposal> nichols = engine.proposeEpsilon();
     ASSERT_EQ(complexPlane.size(), 6u);
     ASSERT_EQ(nichols.size(), 6u);
 
@@ -170,22 +170,22 @@ TEST(HullMetric, ASweepGivenNoEpsilonContoursAtTheProposalOfItsOwnClouds)
     const ParameterGrids grids = gridsOf(controller.plant(), 12);
 
     std::vector<double> proposed;
-    for (const TemplateEngine::EpsilonProposal & p : controller.proposeEpsilon(grids, controller.epsilonMetric())) {
+    for (const EpsilonProposal & p : controller.proposeEpsilon(grids, controller.epsilonMetric())) {
         proposed.push_back(p.epsilon);
     }
 
-    ASSERT_TRUE(controller.computeTemplates({}, grids, false));
+    ASSERT_TRUE(controller.computeTemplates({}, grids));
     ASSERT_NE(controller.epsilon(), nullptr);
     EXPECT_EQ(*controller.epsilon(), proposed) << "the epsilon kept is not the proposal";
     const CloudSet proposedContour = controller.contour();
 
     std::vector<double> again;
-    for (const TemplateEngine::EpsilonProposal & p : controller.proposeEpsilon()) {
+    for (const EpsilonProposal & p : controller.proposeEpsilon()) {
         again.push_back(p.epsilon);
     }
     EXPECT_EQ(again, proposed) << "the templates swept propose something else";
 
-    ASSERT_TRUE(controller.computeTemplates(proposed, grids, false));
+    ASSERT_TRUE(controller.computeTemplates(proposed, grids));
     EXPECT_EQ(controller.contour(), proposedContour) << "the proposal given by hand draws another contour";
 }
 
@@ -200,7 +200,7 @@ TEST(HullMetric, ATemplateOfASinglePointNeedsNoEpsilon)
                                                 static_cast<std::int32_t>(frequencies.size()),
                                                 frequencies, Omega::Manual));
 
-    ASSERT_TRUE(controller.computeTemplates({}, ParameterGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates({}, ParameterGrids()));
     ASSERT_NE(controller.epsilon(), nullptr);
     ASSERT_EQ(controller.epsilon()->size(), frequencies.size());
     for (std::size_t i = 0; i < frequencies.size(); ++i) {

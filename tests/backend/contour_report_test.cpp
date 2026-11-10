@@ -46,12 +46,12 @@ TEST(ContourReport, OneReportPerFrequencyAndTheSizesAdd)
     engine.setClouds(controller.templates());
     ASSERT_TRUE(engine.computeContours(std::vector<double>(frequencies, 10.0)));
 
-    const std::vector<TemplateEngine::ContourReport> & reports = engine.contourReports();
+    const std::vector<ContourReport> & reports = engine.contourReports();
     ASSERT_EQ(reports.size(), frequencies);
 
     std::size_t relaxed = 0, truncated = 0;
     for (std::size_t i = 0; i < frequencies; ++i) {
-        const TemplateEngine::ContourReport & r = reports[i];
+        const ContourReport & r = reports[i];
         EXPECT_EQ(r.cloudPoints, controller.templates()[i].size());
         EXPECT_EQ(r.contourPoints, engine.contours()[i].size());
         EXPECT_GT(r.contourPoints, 0u);
@@ -74,11 +74,11 @@ TEST(ContourReport, TheProposedEpsilonIsTheOneThatDoesNotWalkAPointTwice)
         ProjectController controller;
         controller.load(std::string(QFTBX_TEST_DATA_DIR) + "/" + file);
 
-        const std::vector<TemplateEngine::EpsilonProposal> asked = controller.proposeEpsilon();
+        const std::vector<EpsilonProposal> asked = controller.proposeEpsilon();
         ASSERT_FALSE(asked.empty()) << file;
 
         std::vector<double> proposed, connecting;
-        for (const TemplateEngine::EpsilonProposal & one : asked) {
+        for (const EpsilonProposal & one : asked) {
             EXPECT_TRUE(one.closes) << file;
             EXPECT_GE(one.epsilon, one.connected) << file;
             proposed.push_back(one.epsilon);
@@ -105,7 +105,7 @@ TEST(ContourReport, TheContourOfExampleTwoIsSmallerThanItsCloud)
     controller.load(std::string(QFTBX_TEST_DATA_DIR "/qft_toolbox_ex2.qft"));
 
     std::vector<double> epsilon;
-    for (const TemplateEngine::EpsilonProposal & one : controller.proposeEpsilon()) {
+    for (const EpsilonProposal & one : controller.proposeEpsilon()) {
         epsilon.push_back(one.epsilon);
     }
     ASSERT_FALSE(controller.recomputeContour(epsilon).empty());
@@ -145,7 +145,7 @@ TEST(ContourReport, WhichFixturesTruncateIsPinned)
 
         std::size_t relaxed = 0, truncated = 0, split = 0;
         for (std::size_t i = 0; i < frequencies; ++i) {
-            const TemplateEngine::ContourReport & r = engine.contourReports()[i];
+            const ContourReport & r = engine.contourReports()[i];
             relaxed += r.relaxed ? 1 : 0;
             truncated += r.truncated ? 1 : 0;
             split += r.components > 1 ? 1 : 0;
@@ -204,9 +204,9 @@ TEST(ContourReport, AFrequencyInsideABandOfPolesOnTheAxisIsMarked)
                                                     frequencies, Omega::Manual));
 
         ASSERT_TRUE(controller.computeTemplates(std::vector<double>(frequencies.size(), 10.0),
-                                                ParameterGrids{{std::string("ev"), sweep}}, false));
+                                                ParameterGrids{{std::string("ev"), sweep}}));
 
-        const std::vector<TemplateEngine::ContourReport> & reports = controller.contourReports();
+        const std::vector<ContourReport> & reports = controller.contourReports();
         ASSERT_EQ(reports.size(), frequencies.size());
         for (std::size_t i = 0; i < frequencies.size(); ++i) {
             const bool inside = !damped && frequencies[i] > 1.0 && frequencies[i] < 2.0;

@@ -27,8 +27,7 @@
  * caller keeps the frequency vector, and invalid specification records
  * throw InvalidInput. The templates are the epsilon-hull contours or the
  * full clouds, which the guard near the singular locus (SingularLocus), on
- * by default, reads differently; the CUDA path, in CUDA builds only, skips
- * that guard. Closed-form columns, off by default, read the five magnitude
+ * by default, reads differently. Closed-form columns, off by default, read the five magnitude
  * specifications exactly instead of off their sheets, which the curves
  * still use; tracking keeps the sheet's columns, and so does a cloud,
  * whose guard has no closed form. The export infinity, negative when not
@@ -52,9 +51,6 @@
 #include <complex>
 #include <limits>
 #include <cmath>
-#ifdef CUDA_AVAILABLE
-#include "src/core/gpu/boundary_sheets_cuda.h"
-#endif
 
 #include "src/core/system/lti_system.h"
 #include "src/core/specifications/specification.h"
@@ -62,10 +58,11 @@
 #include "src/core/boundaries/contour_tracer.h"
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/boundaries/boundary_union_1d.h"
+#include "src/core/boundaries/boundary_computation.h"
 
 namespace qftbx {
 
-class BoundaryEngine
+class BoundaryEngine : public BoundaryComputation
 {
 public:
     BoundaryEngine() = default;
@@ -75,17 +72,17 @@ public:
     void compute(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
                  bool templatesAreContours,
                  const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange,
-                 std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity, bool cuda);
+                 std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount, double exportInfinity) override;
 
-    void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
+    void setCancellation(const qftbx::CancellationToken * token) override { m_cancellation = token; }
 
-    void setSingularLocusGuard(bool on) { m_guardSingularLocus = on; }
+    void setSingularLocusGuard(bool on) override { m_guardSingularLocus = on; }
     bool singularLocusGuard() const { return m_guardSingularLocus; }
 
-    void setClosedFormColumns(bool on) { m_closedFormColumns = on; }
+    void setClosedFormColumns(bool on) override { m_closedFormColumns = on; }
     bool closedFormColumns() const { return m_closedFormColumns; }
 
-    BoundaryData boundaryData();
+    BoundaryData boundaryData() override;
 
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
@@ -120,23 +117,6 @@ private:
 
     std::int32_t allowedZone(const Trace & trace, std::complex<double> p0, const ComplexCloud & valueSet, std::int32_t kind, double thresholdDb);
 
-#ifdef CUDA_AVAILABLE
-    void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
-                        const BoundarySheetsCuda & cudaSheets,
-                        std::map<std::string, TraceLabels> & traceMetadata,
-                        std::map<std::string, BoundaryColumns> & columns,
-                        std::complex <double> p0, const ComplexCloud & valueSet, std::size_t index,
-                        double phaseSpan, double magnitudeSpan, double phaseBottom, double magnitudeBottom);
-
-    BoundaryColumns sheetColumns(const float * sheet, double thresholdDb) const;
-
-    TraceSet traceBoundary(double thresholdDb, const float * sheet,
-                           TraceLabels & traceMetadata, std::complex<double> p0,
-                           const ComplexCloud & valueSet, std::int32_t kind,
-                           double phaseSpan, double magnitudeSpan,
-                           double phaseBottom, double magnitudeBottom);
-#endif
-
     qftbx::Range m_phaseRange;
     qftbx::Range m_magnitudeRange;
     std::int32_t m_phaseCount = 0;
@@ -158,7 +138,6 @@ private:
     std::vector<bool> m_openFlags;
     std::vector<bool> m_upperFlags;
 
-    bool m_cuda = false;
 
 };
 

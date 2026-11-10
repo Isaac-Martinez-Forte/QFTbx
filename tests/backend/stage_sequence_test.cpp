@@ -112,7 +112,7 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
     ASSERT_NE(controller.omega(), nullptr);
     ASSERT_EQ(controller.omega()->values()->size(), 3u);
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
     ASSERT_EQ(controller.templates().size(), 3u);
     for (const qftbx::ComplexCloud & cloud : controller.templates()) {
         EXPECT_FALSE(cloud.empty());
@@ -122,7 +122,7 @@ TEST(StageSequence, TheSevenStagesWalkedFromNothing)
 
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
-                                             -1.0, false, false));
+                                             -1.0, false));
     ASSERT_NE(controller.boundaries(), nullptr);
     EXPECT_FALSE(controller.templates().empty())
         << "computing the boundaries must not disturb the templates they came from";
@@ -203,13 +203,13 @@ TEST(StageSequence, RecomputingTheTemplatesDropsTheBoundaries)
     controller.setSpecifications(makeSpecifications());
     controller.setOmega(makeOmega());
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
-                                             -1.0, false, false));
+                                             -1.0, false));
     ASSERT_NE(controller.boundaries(), nullptr);
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 8.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 8.0), makeGrids()));
 
     EXPECT_EQ(controller.boundaries(), nullptr)
         << "boundaries computed from the previous templates must not survive a new sweep";
@@ -223,10 +223,10 @@ TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
     controller.setPlant(makePlant());
     controller.setSpecifications(makeSpecifications());
     controller.setOmega(makeOmega());
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
-                                             -1.0, false, false));
+                                             -1.0, false));
     controller.setControllerStructure(makeControllerStructure());
     ASSERT_TRUE(controller.computeLoopShaping(0.5, qftbx::nt,
                                               qftbx::Range(1e-3, 100.0), 100));
@@ -234,7 +234,7 @@ TEST(StageSequence, RecomputingTheBoundariesDropsTheLoopShaping)
 
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 25,
                                              qftbx::Range(-40.0, 40.0), 15,
-                                             -1.0, false, false));
+                                             -1.0, false));
 
     EXPECT_EQ(controller.loopShapingResult(), nullptr)
         << "a design found against the previous boundaries must not survive them";
@@ -248,10 +248,10 @@ void prepareForSearch(ProjectController & controller)
     controller.setPlant(makePlant());
     controller.setSpecifications(makeSpecifications());
     controller.setOmega(makeOmega());
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
-                                             -1.0, false, false));
+                                             -1.0, false));
     controller.setControllerStructure(makeControllerStructure());
 }
 
@@ -394,7 +394,7 @@ TEST(BackgroundSearch, ACancelledSweepLeavesTheProjectAndItsRecontourAsTheyWere)
         }
     }
 
-    ASSERT_TRUE(controller.startTemplates({}, denser, false));
+    ASSERT_TRUE(controller.startTemplates({}, denser, qftbx::Processor::Cpu));
     controller.cancelComputation();
     controller.waitForComputation();
     controller.collectComputation();
@@ -435,12 +435,12 @@ TEST(PipelineSteps, CompletedGrowsWithTheWalkAndIsDerived)
     controller.setOmega(makeOmega());
     EXPECT_EQ(controller.completed().count(), 3u);
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
     EXPECT_TRUE(controller.completed().has(qftbx::Step::Templates));
 
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
-                                             -1.0, false, false));
+                                             -1.0, false));
     EXPECT_TRUE(controller.completed().has(qftbx::Step::Boundaries));
 
     controller.setControllerStructure(makeControllerStructure());
@@ -563,7 +563,7 @@ TEST(ChangeHandler, EveryPublishAndEveryComputationAnnouncesOnce)
     controller.setControllerStructure(makeControllerStructure());
     EXPECT_EQ(announced, 4);
 
-    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids(), false));
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), makeGrids()));
     EXPECT_EQ(announced, 5) << "a computation is a change too";
 }
 

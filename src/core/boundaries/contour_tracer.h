@@ -10,10 +10,7 @@
  * coordinates. Each trace is extended with one synthetic point before its
  * first and after its last sample so the later 1D union closes open
  * contours against the window frame. The tracer keeps a pointer to the
- * sheet, which must outlive it. The CPU sheet and the GPU sheet, a flat
- * float array laid out as [phase * magnitudeCount + magnitude], differ
- * only in how a cell is read, so one walk serves both and the two cannot
- * trace different boundaries.
+ * sheet, which must outlive it.
  */
 
 #ifndef QFTBX_CONTOUR_TRACER_H
@@ -35,19 +32,9 @@ public:
     TraceSet trace (double phaseSpan, double magnitudeSpan,
                     double phaseBottom, double magnitudeBottom);
 
-#ifdef CUDA_AVAILABLE
-    ContourTracer (double thresholdDb, const float * sheet);
-
-    TraceSet trace (double phaseSpan, double phaseCount, double magnitudeSpan,
-                    double magnitudeCount, double phaseBottom, double magnitudeBottom);
-#endif
-
 private:
     double m_thresholdDb = 0.0;
     const BoundarySheet * m_sheet = nullptr;
-#ifdef CUDA_AVAILABLE
-    const float * m_cudaSheet = nullptr;
-#endif
 };
 
 }

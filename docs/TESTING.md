@@ -2,8 +2,10 @@
 
 The tests are built when the configure asks for them (`-DQFTBX_BUILD_TESTS=ON`,
 off by default) into two binaries, both GoogleTest: `qftbx_tests`, the backend suite, and
-`qftbx_gui_tests`, the headless smoke suite of the dialogs. CTest knows
-every test of both.
+`qftbx_gui_tests`, the headless smoke suite of the dialogs. A build with
+`USE_CUDA` adds a third, `qftbx_gpu_tests`, the GPU suite: what needs a card
+skips without a usable one, and the rest checks what the program found on
+the machine. CTest knows every test of all of them.
 
 ## Running
 

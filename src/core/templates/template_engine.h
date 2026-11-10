@@ -69,22 +69,23 @@
 #include "src/core/templates/parameter_grids.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/templates/hull_metric.h"
+#include "src/core/templates/template_computation.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {
 
-class TemplateEngine
+class TemplateEngine : public TemplateComputation
 {
 public:
-    bool compute(LtiSystem *plant, std::vector<double>* frequencies, bool cuda);
+    bool compute(LtiSystem *plant, std::vector<double>* frequencies) override;
 
-    void setCancellation(const qftbx::CancellationToken * token) { m_cancellation = token; }
+    void setCancellation(const qftbx::CancellationToken * token) override { m_cancellation = token; }
 
-    bool computeContours (std::vector <double> epsilon);
+    bool computeContours (std::vector <double> epsilon) override;
 
-    CloudSet computeClouds(LtiSystem *plant, std::vector<double>* frequencies);
+    CloudSet computeClouds(LtiSystem *plant, std::vector<double>* frequencies) override;
 
-    bool computeContourSet(bool cuda);
+    bool computeContourSet();
 
     void logContours(std::chrono::steady_clock::time_point since) const;
 
@@ -98,13 +99,13 @@ public:
 
     using HullMetric = qftbx::HullMetric;
 
-    void setHullMetric(HullMetric metric, double dbPerDegree = 1.0);
+    void setHullMetric(HullMetric metric, double dbPerDegree = 1.0) override;
     HullMetric hullMetric() const { return m_metric; }
 
-    void setAlphaShapeContour(bool alphaShape);
+    void setAlphaShapeContour(bool alphaShape) override;
     bool alphaShapeContour() const { return m_alphaShape; }
 
-    void setBorderSweep(bool border) { m_borderSweep = border; }
+    void setBorderSweep(bool border) override { m_borderSweep = border; }
 
     std::optional<int> familyRightHalfPlanePoles() const { return m_familyRhpPoles; }
     bool borderSweep() const { return m_borderSweep; }
@@ -116,49 +117,26 @@ public:
     double connectingEpsilon(const ComplexCloud & cloud) const;
     double dbPerDegree() const { return m_dbPerDegree; }
 
-    struct EpsilonProposal
-    {
-        double connected = 0.0;
-        double epsilon = 0.0;
-        double diameter = 0.0;
-        bool closes = false;
-        double coarseness() const { return diameter > 0.0 ? connected / diameter : 0.0; }
-    };
+    std::vector<EpsilonProposal> proposeEpsilon() override;
 
-    std::vector<EpsilonProposal> proposeEpsilon();
+    const std::vector<ContourReport> & contourReports() const override { return m_reports; }
 
-    struct ContourReport
-    {
-        std::size_t cloudPoints = 0;
-        std::size_t contourPoints = 0;
-        bool relaxed = false;
-        bool truncated = false;
-        bool wholeCloud = false;
-        std::size_t components = 1;
-        std::vector<std::size_t> componentStarts;
-        bool unbounded = false;
-        double resonanceFrom = 0.0;
-        double resonanceTo = 0.0;
-    };
-
-    const std::vector<ContourReport> & contourReports() const { return m_reports; }
-
-    void setWholeCloudStandsIn(bool standsIn) { m_wholeCloudStandsIn = standsIn; }
+    void setWholeCloudStandsIn(bool standsIn) override { m_wholeCloudStandsIn = standsIn; }
     bool wholeCloudStandsIn() const { return m_wholeCloudStandsIn; }
 
-    void setGrids (ParameterGrids grids);
+    void setGrids (ParameterGrids grids) override;
 
-    void setEpsilon (std::vector <double> epsilon);
+    void setEpsilon (std::vector <double> epsilon) override;
 
-    void setClouds (CloudSet clouds);
+    void setClouds (CloudSet clouds) override;
 
-    const CloudSet & clouds() const;
+    const CloudSet & clouds() const override;
 
-    const CloudSet & contours() const;
+    const CloudSet & contours() const override;
 
     const std::vector <double> & omega() const;
 
-    const std::vector <double> & epsilon () const;
+    const std::vector <double> & epsilon () const override;
 
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
@@ -170,7 +148,6 @@ private:
     std::vector <double> m_epsilon;
     HullMetric m_metric = HullMetric::ComplexPlane;
     double m_dbPerDegree = 1.0;
-    bool m_useCuda = false;
     bool m_wholeCloudStandsIn = true;
     bool m_alphaShape = false;
     bool m_borderSweep = false;

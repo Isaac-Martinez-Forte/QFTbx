@@ -143,7 +143,7 @@ TEST(EpsilonMetric, TheContourIsWalkedInTheProjectsPlane)
     const std::size_t frequencies = controller.omega()->values()->size();
 
     controller.setEpsilonMetric({HullMetric::Nichols, 1.0});
-    const std::vector<TemplateEngine::EpsilonProposal> proposals = controller.proposeEpsilon();
+    const std::vector<EpsilonProposal> proposals = controller.proposeEpsilon();
     ASSERT_EQ(proposals.size(), frequencies);
     EXPECT_NEAR(proposals.back().connected, 2.766, 0.03) << "what w = 100 asks for, in degrees and dB";
     for (const auto & p : proposals) {
@@ -184,17 +184,17 @@ TEST(EpsilonMetric, TheProposalBeforeComputingMatchesTheOneAfter)
     nichols.metric = qftbx::HullMetric::Nichols;
     nichols.dbPerDegree = 1.0;
 
-    const std::vector<TemplateEngine::EpsilonProposal> before = controller.proposeEpsilon(grids, nichols);
+    const std::vector<EpsilonProposal> before = controller.proposeEpsilon(grids, nichols);
     ASSERT_EQ(before.size(), 6u);
     EXPECT_EQ(controller.templates().at(0).size(), storedPoints)
         << "proposing an epsilon replaced the project's templates";
 
     std::vector<double> epsilon;
-    for (const TemplateEngine::EpsilonProposal & p : before) epsilon.push_back(p.epsilon);
+    for (const EpsilonProposal & p : before) epsilon.push_back(p.epsilon);
     controller.setEpsilonMetric(nichols);
-    ASSERT_TRUE(controller.computeTemplates(epsilon, grids, false));
+    ASSERT_TRUE(controller.computeTemplates(epsilon, grids));
     EXPECT_EQ(controller.templates().at(0).size(), 49u) << "two uncertain parameters at seven points each";
-    const std::vector<TemplateEngine::EpsilonProposal> after = controller.proposeEpsilon();
+    const std::vector<EpsilonProposal> after = controller.proposeEpsilon();
     ASSERT_EQ(after.size(), 6u);
     for (std::size_t i = 0; i < 6; ++i) {
         EXPECT_TRUE(before[i].closes) << "frequency " << i;

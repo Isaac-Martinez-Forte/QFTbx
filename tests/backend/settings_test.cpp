@@ -593,10 +593,10 @@ TEST(Settings, TheSearchBudgetReachesTheAlgorithms)
     grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     grids[std::string("kv")] = qftbx::math::linspace(1.0, 2.0, 3);
     ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0),
-                                            std::move(grids), false));
+                                            std::move(grids)));
     ASSERT_TRUE(controller.computeBoundaries(qftbx::Range(-360.0, 0.0), 37,
                                              qftbx::Range(-40.0, 40.0), 21,
-                                             -1.0, false, false));
+                                             -1.0, false));
 
     std::vector<Parameter> zero{Parameter(std::string("z"), qftbx::Range(0.1, 10.0), 1.0)};
     std::vector<Parameter> pole{Parameter(std::string("p"), qftbx::Range(0.1, 10.0), 1.0)};

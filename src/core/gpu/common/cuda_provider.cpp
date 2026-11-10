@@ -1,0 +1,52 @@
+/**
+ * @file
+ * @brief The provider of the CUDA engines, from the probe of the card.
+ */
+
+#include "src/core/gpu/common/cuda_provider.h"
+
+#include "src/core/gpu/common/device_probe.h"
+
+namespace qftbx::gpu {
+
+namespace {
+
+GpuAvailability availabilityOf(DeviceProbe::Outcome outcome)
+{
+    switch (outcome) {
+    case DeviceProbe::Outcome::Usable: return GpuAvailability::Usable;
+    case DeviceProbe::Outcome::NoDriver: return GpuAvailability::NoDriver;
+    case DeviceProbe::Outcome::NoDevice: return GpuAvailability::NoDevice;
+    case DeviceProbe::Outcome::OldDriver: return GpuAvailability::OldDriver;
+    case DeviceProbe::Outcome::NoCodeForCard: return GpuAvailability::NoCodeForCard;
+    case DeviceProbe::Outcome::Failed: break;
+    }
+    return GpuAvailability::Failed;
+}
+
+}
+
+const GpuStatus & CudaProvider::status() const
+{
+    std::call_once(m_once, [this] {
+        const DeviceProbe & found = probe();
+        m_status.availability = availabilityOf(found.outcome);
+        m_status.name = found.name;
+        m_status.computeMajor = found.computeMajor;
+        m_status.computeMinor = found.computeMinor;
+        m_status.memory = found.memory;
+        m_status.multiprocessors = found.multiprocessors;
+        m_status.doublePrecisionRatio = found.doublePrecisionRatio;
+        m_status.driverVersion = found.driverVersion;
+        m_status.runtimeVersion = found.runtimeVersion;
+        m_status.detail = found.detail;
+    });
+    return m_status;
+}
+
+std::unique_ptr<GpuProvider> makeCudaProvider()
+{
+    return std::make_unique<CudaProvider>();
+}
+
+}

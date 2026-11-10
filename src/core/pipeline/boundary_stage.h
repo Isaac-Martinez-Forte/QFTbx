@@ -10,7 +10,8 @@
  * applies that. Which template data must be present depends on whether the
  * computation reads each template's contour or the whole cloud, and a
  * missing one throws InvalidInput naming it. run() answers whether it
- * produced a set, and the choice of closed-form columns for the magnitude
+ * produced a set, computed on the processor asked for, the GPU through the
+ * installed provider; the choice of closed-form columns for the magnitude
  * specifications applies to every computation.
  */
 
@@ -19,9 +20,10 @@
 
 #include <cstdint>
 #include "src/core/pipeline/cancellation.h"
+#include "src/core/pipeline/processor.h"
 #include <memory>
 
-#include "src/core/boundaries/boundary_engine.h"
+#include "src/core/boundaries/boundary_computation.h"
 #include "src/core/project/project_data.h"
 #include "src/core/math/range.h"
 
@@ -34,17 +36,18 @@ public:
 
     bool run(ProjectData & data, Range phaseRange, std::int32_t phaseCount,
              Range magnitudeRange, std::int32_t magnitudeCount,
-             double exportInfinity, bool fromContour, bool cuda,
+             double exportInfinity, bool fromContour, Processor processor,
              const CancellationToken * cancellation = nullptr);
 
     void setClosedFormColumns(bool on) { m_closedForm = on; }
     bool closedFormColumns() const { return m_closedForm; }
 
 private:
-    BoundaryEngine & engine();
+    BoundaryComputation & engine(Processor processor);
     bool m_closedForm = false;
 
-    std::unique_ptr<BoundaryEngine> m_engine;
+    std::unique_ptr<BoundaryComputation> m_engine;
+    Processor m_engineProcessor = Processor::Cpu;
 };
 
 }
