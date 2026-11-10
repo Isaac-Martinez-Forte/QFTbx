@@ -14,6 +14,7 @@ target_compile_definitions(qftbx_tests
   PRIVATE QFTBX_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/data"
   PRIVATE QFTBX_EXAMPLE_CONFIG="${CMAKE_SOURCE_DIR}/qftbx.conf.example"
   PRIVATE QFTBX_EXAMPLES_DIR="${CMAKE_SOURCE_DIR}/examples"
+  PRIVATE QFTBX_MAY_FUSE_PRODUCTS=$<BOOL:${USE_FP_CONTRACTION}>
 )
 
 gtest_discover_tests(qftbx_tests DISCOVERY_TIMEOUT 60)
