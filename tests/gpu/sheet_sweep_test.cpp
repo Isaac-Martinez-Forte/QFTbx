@@ -11,8 +11,10 @@
  * double precision; samples single precision cannot tell apart; and a
  * template too large for single precision. A cloud's spacings are
  * SingularLocus's. The sheets of the whole grid, read by BoundaryEngine,
- * give the boundaries it computes itself. With a card, the engine of the
- * GPU gives the processor's boundaries on every example.
+ * give the boundaries it computes itself. With a card, the sheets the card
+ * computes are the processor's cell by cell, on a coarser grid of five
+ * examples in all four ways, and the engine of the GPU gives the
+ * processor's boundaries on every example.
  *
  * The card takes P0/P itself, and its last bit may differ from the
  * processor's. A cell's values are |N| over its distance d to the template,
@@ -22,7 +24,9 @@
  * guard widens by the spacing of the nearest sample, and which of several
  * samples at the same distance to double precision is the nearest depends
  * on the last bit on either side: the tolerance adds what the widening
- * spans over the samples within 1e-14 of the nearest distance. The traces
+ * spans over the samples within 1e-14 of the nearest distance, and the
+ * widening d / (d - h/2) magnifies the last bits of d and h as d nears
+ * h/2, which it adds in the same way as the distance. The traces
  * are read off the sheets by interpolation, which divides by the step
  * between neighbouring cells; they are compared within 1e-6.
  */
@@ -115,17 +119,25 @@ ProcessorCell processorCell(Complex p0, Complex L, const ComplexCloud & p, const
     }
     double tieDb = 0.0;
     if (locus != nullptr && !locus->isContour() && distance > 0.0) {
+        double scale = 0.0;
+        for (const Complex & value : q) {
+            scale = std::max(scale, std::abs(value));
+        }
         double least = kInfinity;
         double most = 0.0;
+        double condition = 0.0;
         for (std::size_t i = 0; i < q.size(); ++i) {
             if (std::abs(q[i] + L) <= distance * (1.0 + 1e-14)) {
                 const double half = 0.5 * locus->spacings()[i];
                 const double widen = distance > half ? distance / (distance - half) : kInfinity;
                 least = std::min(least, widen);
                 most = std::max(most, widen);
+                if (distance > half && half > 0.0) {
+                    condition = std::max(condition, half / (distance - half) * (scale / distance + scale / half));
+                }
             }
         }
-        tieDb = most > least ? 2.0 * 20 * std::log10(most / least) : 0.0;
+        tieDb = (most > least ? 2.0 * 20 * std::log10(most / least) : 0.0) + kConditionDb * condition;
     }
     return {{violatingDb(stability), violatingDb(stability - (20 * std::log10(w.trackingMin))),
              violatingDb(20 * std::log10(w.outputDisturbance)), violatingDb(20 * std::log10(w.inputDisturbance)),
@@ -535,6 +547,64 @@ TEST(SheetsOnTheCard, TheSheetsOfTheWholeGridReadByTheEngineGiveItsBoundaries)
         EXPECT_EQ(gap.differ, 0u) << name;
         EXPECT_LE(gap.largest, kTraceTolerance) << name;
     }
+}
+
+TEST(GpuBoundaries, TheSheetsOfTheCardAreTheProcessorsCellByCell)
+{
+    QFTBX_REQUIRE_CARD();
+
+    std::size_t compared = 0;
+    for (const char * name : {"toolbox-1.qft", "dcm-T33.qft", "acc90.qft", "maglev-upper.qft", "msf.qft"}) {
+        for (const bool fromContour : {true, false}) {
+            for (const bool guard : {true, false}) {
+                Loaded loaded;
+                ASSERT_TRUE(load(loaded, std::filesystem::path(QFTBX_EXAMPLES_DIR) / name)) << name;
+                const Grid g{loaded.grid.phaseRange, 91, loaded.grid.magnitudeRange, 81};
+                const CloudSet & templates = fromContour ? loaded.project.contour() : loaded.project.templates();
+                const BoundaryPlan plan = planBoundaries(loaded.omega, *loaded.project.specifications(), g.phaseRange,
+                                                         g.phaseCount, g.magnitudeRange, g.magnitudeCount);
+                const gpu::SheetProblem problem = gpu::sheetProblemOf(loaded.omega, *loaded.project.plant(), templates,
+                                                                      fromContour, guard, plan, g.phaseRange,
+                                                                      g.phaseCount, g.magnitudeRange, g.magnitudeCount);
+                const gpu::SheetsOnCard card = gpu::sheetsOnCard(problem, nullptr);
+                ASSERT_FALSE(card.cancelled);
+                ASSERT_EQ(card.sheets.size(), templates.size()) << name;
+
+                Tally tally;
+                for (std::size_t u = 0; u < templates.size(); ++u) {
+                    const Complex p0 = problem.nominal[u];
+                    const std::vector<Complex> q = nominalOverValueSet(p0, templates[u]);
+                    std::optional<SingularLocus> locus;
+                    if (guard) {
+                        locus.emplace(q, fromContour);
+                    }
+                    const double scale = scaleOf(q);
+                    const std::array<bool, 5> used = plan.sheetsUsed(u);
+                    for (std::size_t row = 0; row < problem.rowMagnitudes.size(); ++row) {
+                        for (std::size_t column = 0; column < problem.cosines.size(); ++column) {
+                            const Complex L(problem.rowMagnitudes[row] * problem.cosines[column],
+                                            problem.rowMagnitudes[row] * problem.sines[column]);
+                            ProcessorCell expected = processorCell(p0, L, templates[u], q, locus ? &*locus : nullptr);
+                            std::array<double, 5> got = expected.values;
+                            for (std::size_t k = 0; k < 5; ++k) {
+                                if (used[k]) {
+                                    ASSERT_EQ(card.sheets[u][k].size(), problem.rowMagnitudes.size()) << name;
+                                    got[k] = card.sheets[u][k][row][column];
+                                }
+                            }
+                            compareCell(expected, got, scale, tally,
+                                        std::string(name) + (fromContour ? " contour" : " cloud")
+                                                + (guard ? " guarded" : "") + " frequency " + std::to_string(u)
+                                                + " cell " + std::to_string(row) + "," + std::to_string(column));
+                        }
+                    }
+                }
+                EXPECT_EQ(tally.differ, 0u) << tally.first << " (largest gap " << tally.largest << " dB)";
+                compared += tally.cells;
+            }
+        }
+    }
+    EXPECT_GT(compared, 100000u);
 }
 
 TEST(GpuBoundaries, TheEngineOfTheCardGivesTheProcessorsBoundaries)
