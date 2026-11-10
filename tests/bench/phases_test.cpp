@@ -11,8 +11,9 @@
  * ones. A comparison whose GPU engines are the processor's own finds
  * nothing apart, the design included; without GPU support it fails with the
  * reason. comparePhases notices a plant moved, a contour point added and a
- * column end displaced, and the phases and the comparison survive their
- * JSON.
+ * column end displaced; it measures how far traces that keep their shape
+ * moved and counts those that change it. The phases and the comparison
+ * survive their JSON.
  */
 
 #include <gtest/gtest.h>
@@ -247,7 +248,9 @@ TEST(BenchmarkPhases, AComparisonWithTheSameEnginesFindsNothingApart)
     EXPECT_EQ(c.columnsDiffer, 0u);
     EXPECT_EQ(c.columnLargestDb, 0.0);
     EXPECT_EQ(c.traceSetsDiffer, 0u);
+    EXPECT_EQ(c.traceLargest, 0.0);
     EXPECT_EQ(c.unionsDiffer, 0u);
+    EXPECT_EQ(c.unionLargest, 0.0);
     EXPECT_EQ(c.cpuStatus, "solved");
     EXPECT_EQ(c.gpuStatus, "solved");
     EXPECT_EQ(c.gainRelative, 0.0);
@@ -299,6 +302,37 @@ TEST(BenchmarkPhases, TheComparisonNoticesWhatMoved)
     Comparison fewer;
     comparePhases(cpu, gpu, fewer);
     EXPECT_EQ(fewer.cloudSizesDiffer, 1u);
+}
+
+TEST(BenchmarkPhases, TracesAreComparedByTheirShapeAndTheirLargestGap)
+{
+    const auto boundariesWith = [](const Trace & trace) {
+        BoundarySet set(1);
+        set[0]["Stability"] = {trace};
+        return BoundaryData(set, {false}, {true}, 3, Range(-360.0, 0.0), {trace}, {}, 3, Range(-20.0, 20.0));
+    };
+    const Trace trace{{-180.0, 1.0}, {-170.0, 2.0}, {-160.0, 3.0}};
+    PhaseOutputs cpu;
+    cpu.boundaries = boundariesWith(trace);
+
+    PhaseOutputs gpu;
+    Trace moved = trace;
+    moved[1].magnitude += 1e-8;
+    gpu.boundaries = boundariesWith(moved);
+    Comparison near;
+    comparePhases(cpu, gpu, near);
+    EXPECT_EQ(near.traceSetsDiffer, 0u);
+    EXPECT_NEAR(near.traceLargest, 1e-8, 1e-15);
+    EXPECT_EQ(near.unionsDiffer, 0u);
+    EXPECT_NEAR(near.unionLargest, 1e-8, 1e-15);
+
+    Trace longer = trace;
+    longer.push_back({-150.0, 4.0});
+    gpu.boundaries = boundariesWith(longer);
+    Comparison reshaped;
+    comparePhases(cpu, gpu, reshaped);
+    EXPECT_EQ(reshaped.traceSetsDiffer, 1u);
+    EXPECT_EQ(reshaped.unionsDiffer, 1u);
 }
 
 TEST(BenchmarkPhases, ThePhasesAndTheComparisonSurviveTheirJson)

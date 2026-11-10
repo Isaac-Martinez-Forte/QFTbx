@@ -222,5 +222,6 @@ frequency, what differs:
 | `contour_points_differ`, `contour_largest_hausdorff` | points in one contour and not the other, and the largest Hausdorff distance between them over the frequency's epsilon |
 | `reports_differ`, `epsilons_differ` | contour reports and epsilons that differ |
 | `columns_differ`, `column_largest_db` | columns whose allowed intervals differ in number or in an infinite end, and the largest gap between finite ends, in dB |
-| `trace_sets_differ`, `unions_differ` | specifications whose traces differ, and frequencies whose union differs |
+| `trace_sets_differ`, `trace_largest` | specifications whose traces differ in shape (how many traces, how many points), and the largest gap between points that match, in degrees or dB |
+| `unions_differ`, `union_largest` | the same for the union of each frequency |
 | `cpu_status`, `gpu_status`, `gain_relative`, `same_design` | when it searches: how each search ended, the relative gap between the gains and whether the designs agree to the bit |

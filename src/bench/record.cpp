@@ -182,7 +182,9 @@ QJsonObject comparisonToJson(const Comparison & c)
     o["columns_differ"] = static_cast<qint64>(c.columnsDiffer);
     putNumber(o, "column_largest_db", c.columnLargestDb);
     o["trace_sets_differ"] = static_cast<qint64>(c.traceSetsDiffer);
+    putNumber(o, "trace_largest", c.traceLargest);
     o["unions_differ"] = static_cast<qint64>(c.unionsDiffer);
+    putNumber(o, "union_largest", c.unionLargest);
     if (!c.cpuStatus.empty() || !c.gpuStatus.empty()) {
         o["cpu_status"] = QString::fromStdString(c.cpuStatus);
         o["gpu_status"] = QString::fromStdString(c.gpuStatus);
@@ -206,7 +208,9 @@ Comparison comparisonFromJson(const QJsonObject & o)
     c.columnsDiffer = static_cast<std::size_t>(o["columns_differ"].toInteger());
     c.columnLargestDb = numberOr(o, "column_largest_db");
     c.traceSetsDiffer = static_cast<std::size_t>(o["trace_sets_differ"].toInteger());
+    c.traceLargest = numberOr(o, "trace_largest");
     c.unionsDiffer = static_cast<std::size_t>(o["unions_differ"].toInteger());
+    c.unionLargest = numberOr(o, "union_largest");
     c.cpuStatus = o["cpu_status"].toString().toStdString();
     c.gpuStatus = o["gpu_status"].toString().toStdString();
     c.gainRelative = numberOr(o, "gain_relative");

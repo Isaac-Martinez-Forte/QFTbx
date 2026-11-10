@@ -91,9 +91,36 @@ void compareColumns(const BoundaryColumns & a, const BoundaryColumns & b, Compar
     }
 }
 
+bool sameTraces(const TraceSet & a, const TraceSet & b, double & gap)
+{
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (std::size_t t = 0; t < a.size(); ++t) {
+        if (a[t].size() != b[t].size()) {
+            return false;
+        }
+    }
+    for (std::size_t t = 0; t < a.size(); ++t) {
+        for (std::size_t i = 0; i < a[t].size(); ++i) {
+            for (const auto & [p, q] : {std::make_pair(a[t][i].phase, b[t][i].phase),
+                                        std::make_pair(a[t][i].magnitude, b[t][i].magnitude)}) {
+                if (std::isfinite(p) && std::isfinite(q)) {
+                    gap = largest(gap, std::abs(p - q));
+                } else if (p != q) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
 void compareBoundaries(const BoundaryData & a, const BoundaryData & b, Comparison & into)
 {
     into.columnLargestDb = 0.0;
+    into.traceLargest = 0.0;
+    into.unionLargest = 0.0;
     const ColumnSet & columnsA = a.specificationColumns();
     const ColumnSet & columnsB = b.specificationColumns();
     for (std::size_t f = 0; f < std::max(columnsA.size(), columnsB.size()); ++f) {
@@ -134,7 +161,7 @@ void compareBoundaries(const BoundaryData & a, const BoundaryData & b, Compariso
         }
         for (const auto & [name, traces] : tracesA[f]) {
             const auto other = tracesB[f].find(name);
-            if (other == tracesB[f].end() || other->second != traces) {
+            if (other == tracesB[f].end() || !sameTraces(traces, other->second, into.traceLargest)) {
                 ++into.traceSetsDiffer;
             }
         }
@@ -148,7 +175,7 @@ void compareBoundaries(const BoundaryData & a, const BoundaryData & b, Compariso
     const UnionTraces & unionA = a.unionBoundaries();
     const UnionTraces & unionB = b.unionBoundaries();
     for (std::size_t f = 0; f < std::max(unionA.size(), unionB.size()); ++f) {
-        if (f >= unionA.size() || f >= unionB.size() || unionA[f] != unionB[f]) {
+        if (f >= unionA.size() || f >= unionB.size() || !sameTraces({unionA[f]}, {unionB[f]}, into.unionLargest)) {
             ++into.unionsDiffer;
         }
     }

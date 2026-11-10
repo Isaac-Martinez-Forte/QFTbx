@@ -13,7 +13,9 @@
  * - the columns of every specification, by the columns whose intervals
  *   differ in number and by the largest gap between finite ends that
  *   match, in dB;
- * - the traces of every specification and the union, exactly.
+ * - the traces of every specification and the union, by those whose
+ *   shape differs (how many traces, how many points each) and by the
+ *   largest gap between points that match, in degrees or dB.
  *
  * A distance that was never measured stays not-a-number. The search, when
  * the case runs one, is compared by the caller.
@@ -58,7 +60,9 @@ struct Comparison
     std::size_t columnsDiffer = 0;
     double columnLargestDb = std::numeric_limits<double>::quiet_NaN();
     std::size_t traceSetsDiffer = 0;
+    double traceLargest = std::numeric_limits<double>::quiet_NaN();
     std::size_t unionsDiffer = 0;
+    double unionLargest = std::numeric_limits<double>::quiet_NaN();
 
     std::string cpuStatus;
     std::string gpuStatus;
