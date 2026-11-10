@@ -73,7 +73,10 @@ int runPlan(const std::string & path, int jobs)
             if (event.kind == Runner::Event::Kind::Finished && event.record != nullptr) {
                 const Record & r = *event.record;
                 std::cout << "[" << event.done << "/" << event.total << "] " << r.caseId << ": " << r.status;
-                if (r.status == "solved") {
+                if (r.status == "computed") {
+                    std::cout << "  templates " << r.templatesMilliseconds / 1000.0 << " s  boundaries "
+                              << r.boundariesMilliseconds / 1000.0 << " s";
+                } else if (r.status == "solved") {
                     std::cout << "  k=" << r.gain << "  " << r.wallMilliseconds / 1000.0 << " s";
                     if (r.peakMemoryBytes > 0) {
                         std::cout << "  " << r.peakMemoryBytes / (1024.0 * 1024.0) << " MB";
@@ -105,16 +108,24 @@ int runOneCase(const std::string & path, const std::string & indexText)
     QDir().mkpath(QString::fromStdString(recordsDirectory(plan)));
     const Record record = runCase(plan, cases[index]);
     writeRecord(record, recordPath(plan, cases[index]));
-    return record.status == "solved" || record.status == "infeasible" ? 0 : 1;
+    return record.status == "solved" || record.status == "infeasible" || record.status == "computed" ? 0 : 1;
 }
 
 int listCases(const std::string & path)
 {
     const Plan plan = loadPlan(path);
     for (const Case & c : expandCases(plan)) {
-        std::cout << c.index << "  " << caseId(c) << "  " << structureLabel(plan, c.stepsApplied) << "  "
-                  << algorithmName(c.algorithm) << "  epsilon " << c.epsilon << "  repetition " << c.repetition
-                  << (c.warmUp ? " (warm-up)" : "") << "\n";
+        std::cout << c.index << "  " << caseId(c) << "  ";
+        if (c.withPhases) {
+            std::cout << caseKind(c) << "  ";
+        }
+        if (c.loopShaping) {
+            std::cout << structureLabel(plan, c.stepsApplied) << "  " << algorithmName(c.algorithm)
+                      << "  epsilon " << c.epsilon << "  ";
+        } else {
+            std::cout << "phases only  ";
+        }
+        std::cout << "repetition " << c.repetition << (c.warmUp ? " (warm-up)" : "") << "\n";
     }
     return 0;
 }

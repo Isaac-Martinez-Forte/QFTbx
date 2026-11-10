@@ -57,21 +57,25 @@ Spread spreadOf(std::vector<double> values)
 
 std::vector<Aggregate> summarize(const std::vector<Record> & records)
 {
-    using Key = std::tuple<std::size_t, std::string, double>;
+    using Key = std::tuple<std::string, std::size_t, std::string, double>;
     std::map<Key, std::vector<const Record *>> groups;
     for (const Record & record : records) {
-        groups[Key(record.stepsApplied, record.algorithm, record.epsilon)].push_back(&record);
+        if (record.processor == "compare") {
+            continue;
+        }
+        groups[Key(record.processor, record.stepsApplied, record.algorithm, record.epsilon)].push_back(&record);
     }
 
     std::vector<Aggregate> aggregates;
     for (const auto & [key, group] : groups) {
         Aggregate a;
-        a.stepsApplied = std::get<0>(key);
-        a.algorithm = std::get<1>(key);
-        a.epsilon = std::get<2>(key);
+        a.processor = std::get<0>(key);
+        a.stepsApplied = std::get<1>(key);
+        a.algorithm = std::get<2>(key);
+        a.epsilon = std::get<3>(key);
         a.structure = group.front()->structure;
 
-        std::vector<double> wall, cpu, peak, own;
+        std::vector<double> wall, cpu, peak, own, templates, boundaries;
         bool first = true;
         for (const Record * r : group) {
             if (r->warmUp) {
@@ -82,11 +86,20 @@ std::vector<Aggregate> summarize(const std::vector<Record> & records)
                 ++a.infeasible;
                 continue;
             }
-            if (r->status != "solved") {
+            if (r->status != "solved" && r->status != "computed") {
                 ++a.failed;
                 continue;
             }
             ++a.solved;
+            if (std::isfinite(r->templatesMilliseconds)) {
+                templates.push_back(r->templatesMilliseconds);
+            }
+            if (std::isfinite(r->boundariesMilliseconds)) {
+                boundaries.push_back(r->boundariesMilliseconds);
+            }
+            if (r->status == "computed") {
+                continue;
+            }
             wall.push_back(r->wallMilliseconds);
             cpu.push_back(r->cpuMilliseconds);
             peak.push_back(r->peakMemoryBytes / (1024.0 * 1024.0));
@@ -116,6 +129,8 @@ std::vector<Aggregate> summarize(const std::vector<Record> & records)
         a.cpuMilliseconds = spreadOf(cpu);
         a.peakMemoryMegabytes = spreadOf(peak);
         a.algorithmMemoryMegabytes = spreadOf(own);
+        a.templatesMilliseconds = spreadOf(templates);
+        a.boundariesMilliseconds = spreadOf(boundaries);
         aggregates.push_back(a);
     }
     return aggregates;
@@ -143,7 +158,8 @@ void writeCsv(const std::vector<Aggregate> & aggregates, const std::string & pat
            "cpu_ms_median,cpu_ms_mean,cpu_ms_std,"
            "peak_memory_mb_median,peak_memory_mb_max,algorithm_memory_mb_median,"
            "peak_live_nodes,nodes_processed,boxes_classified,boxes_feasible,boxes_infeasible,boxes_ambiguous,stability_verdicts,stability_profiles,"
-           "counters_agree,gain,digest,results_agree\n";
+           "counters_agree,gain,digest,results_agree,"
+           "processor,templates_ms_median,templates_ms_cv,boundaries_ms_median,boundaries_ms_cv\n";
     out.precision(17);
     for (const Aggregate & a : aggregates) {
         out << a.stepsApplied << "," << a.structure << "," << a.algorithm << "," << a.epsilon << ","
@@ -155,16 +171,30 @@ void writeCsv(const std::vector<Aggregate> & aggregates, const std::string & pat
             << a.statistics.peakLiveNodes << "," << a.statistics.nodesProcessed << "," << a.statistics.boxesClassified << ","
             << a.statistics.boxesFeasible << "," << a.statistics.boxesInfeasible << "," << a.statistics.boxesAmbiguous << ","
             << a.statistics.stabilityVerdicts << "," << a.statistics.stabilityProfiles << ","
-            << (a.countersAgree ? 1 : 0) << "," << a.gain << "," << a.digest << "," << (a.resultsAgree ? 1 : 0) << "\n";
+            << (a.countersAgree ? 1 : 0) << "," << a.gain << "," << a.digest << "," << (a.resultsAgree ? 1 : 0) << ","
+            << a.processor << "," << a.templatesMilliseconds.median << "," << a.templatesMilliseconds.coefficientOfVariation << ","
+            << a.boundariesMilliseconds.median << "," << a.boundariesMilliseconds.coefficientOfVariation << "\n";
     }
 }
 
 std::string markdownTable(const std::vector<Aggregate> & aggregates)
 {
+    const bool phases = std::any_of(aggregates.begin(), aggregates.end(),
+                                    [](const Aggregate & a) { return !a.processor.empty(); });
     std::ostringstream out;
+    if (phases) {
+        out << "| Processor | Templates median (s) | Boundaries median (s) ";
+    }
     out << "| Structure | Algorithm | Epsilon | Runs | Wall median (s) | Wall CV | CPU median (s) | Peak memory (MB) | Peak live nodes | k | Agree |\n";
+    if (phases) {
+        out << "|---|---|---";
+    }
     out << "|---|---|---|---|---|---|---|---|---|---|---|\n";
     for (const Aggregate & a : aggregates) {
+        if (phases) {
+            out << "| " << a.processor << " | " << number(a.templatesMilliseconds.median / 1000.0) << " | "
+                << number(a.boundariesMilliseconds.median / 1000.0) << " ";
+        }
         out << "| " << a.structure << " | " << a.algorithm << " | " << a.epsilon << " | "
             << a.solved << "/" << a.runs;
         if (a.infeasible > 0) {

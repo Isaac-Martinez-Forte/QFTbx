@@ -18,7 +18,10 @@
  * and the standard deviation say how steady the measurement was, and the
  * coefficient of variation is that steadiness as a fraction. The counters
  * of the algorithm are deterministic and reported once, with a flag when
- * the repetitions did not agree on them or on the result.
+ * the repetitions did not agree on them or on the result. A plan with
+ * phases gives one row per processor too, with the times of the templates
+ * and the boundaries; a run of the phases without a search counts with the
+ * solved ones, and a comparison is no measurement and stays out.
  */
 namespace qftbx::bench {
 
@@ -38,6 +41,7 @@ Spread spreadOf(std::vector<double> values);
 
 struct Aggregate
 {
+    std::string processor;
     std::size_t stepsApplied = 0;
     std::string structure;
     std::string algorithm;
@@ -54,6 +58,8 @@ struct Aggregate
     Spread peakMemoryMegabytes;
     /// Peak minus the resident size before the algorithm started.
     Spread algorithmMemoryMegabytes;
+    Spread templatesMilliseconds;
+    Spread boundariesMilliseconds;
 
     LoopShapingStatistics statistics;
     bool countersAgree = true;

@@ -9,7 +9,10 @@
  * asked for, is repetition zero. A structure is built from the project's
  * zero-pole-gain controller by appending the steps' zeros and poles under
  * fresh names that collide with nothing already there. Case identifiers
- * replace the characters of an epsilon that a file name cannot carry.
+ * replace the characters of an epsilon that a file name cannot carry, and
+ * those of a plan with phases start with the processor, or with "compare".
+ * A plan that computes the phases without the search needs no algorithm and
+ * no epsilon, and expands into its repetitions per processor.
  */
 
 #include "src/bench/plan.h"
@@ -66,6 +69,111 @@ std::string text(double value)
     return out.str();
 }
 
+int countAttribute(pugi::xml_node node, const char * name)
+{
+    const double value = realAttribute(node, name, 0.0);
+    if (value < 0.0 || value != std::floor(value)) {
+        throw InvalidInput(std::string("benchmark plan: the attribute '") + name + "' of <" + node.name()
+                           + "> must be a whole number, zero or more");
+    }
+    return static_cast<int>(value);
+}
+
+Phases readPhases(pugi::xml_node node, const std::string & path)
+{
+    Phases phases;
+    phases.templates = flagAttribute(node, "templates", false);
+    phases.boundaries = flagAttribute(node, "boundaries", false);
+    phases.loopShaping = flagAttribute(node, "loop-shaping", true);
+    phases.compare = flagAttribute(node, "compare", false);
+    if (!phases.templates && !phases.boundaries) {
+        throw InvalidInput(path + ": <phases> computes neither the templates nor the boundaries");
+    }
+
+    phases.processors.clear();
+    std::istringstream processors(node.attribute("processors").as_string("cpu"));
+    for (std::string name; processors >> name;) {
+        if (name == "cpu") {
+            phases.processors.push_back(Processor::Cpu);
+        } else if (name == "gpu") {
+            phases.processors.push_back(Processor::Gpu);
+        } else {
+            throw InvalidInput(path + ": unknown processor '" + name + "' (cpu, gpu)");
+        }
+    }
+    if (phases.processors.empty() && !phases.compare) {
+        throw InvalidInput(path + ": <phases> names no processor and compares nothing");
+    }
+
+    const pugi::xml_node templates = node.child("templates");
+    if (templates) {
+        phases.sweepPoints = countAttribute(templates, "sweep-points");
+        phases.frequencyCount = countAttribute(templates, "frequencies");
+        const std::string metric = templates.attribute("metric").as_string("project");
+        if (metric == "complex") {
+            phases.metric = EpsilonMetric{HullMetric::ComplexPlane, 1.0};
+        } else if (metric == "nichols") {
+            const double dbPerDegree = realAttribute(templates, "db-per-degree", 1.0);
+            if (!(dbPerDegree > 0.0)) {
+                throw InvalidInput(path + ": the decibels per degree must be positive");
+            }
+            phases.metric = EpsilonMetric{HullMetric::Nichols, dbPerDegree};
+        } else if (metric != "project") {
+            throw InvalidInput(path + ": unknown metric '" + metric + "' (project, complex, nichols)");
+        }
+        const std::string epsilon = templates.attribute("epsilon").as_string("project");
+        if (epsilon != "project" && epsilon != "propose") {
+            throw InvalidInput(path + ": the epsilon of <templates> is 'project' or 'propose', not '" + epsilon + "'");
+        }
+        phases.proposeEpsilon = epsilon == "propose";
+    }
+
+    const pugi::xml_node boundaries = node.child("boundaries");
+    if (boundaries) {
+        const std::string source = boundaries.attribute("source").as_string("contour");
+        if (source != "contour" && source != "cloud") {
+            throw InvalidInput(path + ": the source of <boundaries> is 'contour' or 'cloud', not '" + source + "'");
+        }
+        phases.fromContour = source == "contour";
+        phases.phasePoints = countAttribute(boundaries, "phase-points");
+        phases.magnitudePoints = countAttribute(boundaries, "magnitude-points");
+    }
+
+    return phases;
+}
+
+void writePhases(const Phases & phases, pugi::xml_node root)
+{
+    pugi::xml_node node = root.append_child("phases");
+    node.append_attribute("templates") = phases.templates ? 1 : 0;
+    node.append_attribute("boundaries") = phases.boundaries ? 1 : 0;
+    node.append_attribute("loop-shaping") = phases.loopShaping ? 1 : 0;
+    std::string processors;
+    for (const Processor processor : phases.processors) {
+        processors += (processors.empty() ? "" : " ") + std::string(processorName(processor));
+    }
+    node.append_attribute("processors") = processors.c_str();
+    node.append_attribute("compare") = phases.compare ? 1 : 0;
+
+    pugi::xml_node templates = node.append_child("templates");
+    templates.append_attribute("sweep-points") = phases.sweepPoints;
+    templates.append_attribute("frequencies") = phases.frequencyCount;
+    if (!phases.metric) {
+        templates.append_attribute("metric") = "project";
+    } else if (phases.metric->metric == HullMetric::ComplexPlane) {
+        templates.append_attribute("metric") = "complex";
+    } else {
+        templates.append_attribute("metric") = "nichols";
+        templates.append_attribute("db-per-degree") = text(phases.metric->dbPerDegree).c_str();
+    }
+    templates.append_attribute("epsilon") = phases.proposeEpsilon ? "propose" : "project";
+
+    pugi::xml_node boundaries = node.append_child("boundaries");
+    boundaries.append_attribute("source") = phases.fromContour ? "contour" : "cloud";
+    boundaries.append_attribute("phase-points") = phases.phasePoints;
+    boundaries.append_attribute("magnitude-points") = phases.magnitudePoints;
+}
+
 }
 
 Plan readPlan(const std::string & path)
@@ -99,6 +207,10 @@ Plan readPlan(const std::string & path)
     const pugi::xml_node execution = root.child("execution");
     if (execution) {
         plan.jobs = static_cast<int>(realAttribute(execution, "jobs", 0.0));
+        plan.threads = countAttribute(execution, "threads");
+        if (!execution.attribute("threads")) {
+            plan.threads = 1;
+        }
         plan.timeoutSeconds = realAttribute(execution, "timeout-seconds", 0.0);
         plan.memoryLimitMegabytes = static_cast<int>(realAttribute(execution, "memory-limit-megabytes", 0.0));
     }
@@ -121,6 +233,11 @@ Plan readPlan(const std::string & path)
         throw InvalidInput(path + ": the repetitions count must be at least 1");
     }
 
+    if (const pugi::xml_node phases = root.child("phases")) {
+        plan.phases = readPhases(phases, path);
+    }
+    const bool searches = !plan.phases || plan.phases->loopShaping;
+
     for (pugi::xml_node node : root.child("algorithms").children("algorithm")) {
         const std::string name = node.attribute("name").as_string("");
         const std::optional<LoopShapingAlgorithm> algorithm = algorithmFromName(name);
@@ -129,7 +246,7 @@ Plan readPlan(const std::string & path)
         }
         plan.algorithms.push_back(*algorithm);
     }
-    if (plan.algorithms.empty()) {
+    if (plan.algorithms.empty() && searches) {
         throw InvalidInput(path + ": the plan names no algorithm");
     }
 
@@ -140,7 +257,7 @@ Plan readPlan(const std::string & path)
         }
         plan.epsilons.push_back(epsilon);
     }
-    if (plan.epsilons.empty()) {
+    if (plan.epsilons.empty() && searches) {
         throw InvalidInput(path + ": the plan names no epsilon");
     }
 
@@ -170,7 +287,7 @@ Plan readPlan(const std::string & path)
             plan.steps.push_back(step);
         }
     }
-    if (measuredStructures(plan).empty()) {
+    if (measuredStructures(plan).empty() && searches) {
         throw InvalidInput(path + ": the plan runs no structure (run-base is 0 and no step runs)");
     }
 
@@ -202,6 +319,7 @@ void writePlan(const Plan & plan, const std::string & path)
 
     pugi::xml_node execution = root.append_child("execution");
     execution.append_attribute("jobs") = plan.jobs;
+    execution.append_attribute("threads") = plan.threads;
     execution.append_attribute("timeout-seconds") = text(plan.timeoutSeconds).c_str();
     execution.append_attribute("memory-limit-megabytes") = plan.memoryLimitMegabytes;
 
@@ -239,6 +357,10 @@ void writePlan(const Plan & plan, const std::string & path)
         node.append_attribute("min") = text(step.min).c_str();
         node.append_attribute("max") = text(step.max).c_str();
         node.append_attribute("run") = step.run ? 1 : 0;
+    }
+
+    if (plan.phases) {
+        writePhases(*plan.phases, root);
     }
 
     pugi::xml_node settings = root.append_child("settings");
@@ -291,31 +413,93 @@ std::vector<std::size_t> measuredStructures(const Plan & plan)
 std::vector<Case> expandCases(const Plan & plan)
 {
     std::vector<Case> cases;
-    for (const std::size_t stepsApplied : measuredStructures(plan)) {
-        for (const LoopShapingAlgorithm algorithm : plan.algorithms) {
-            for (const double epsilon : plan.epsilons) {
-                const int first = plan.warmUp ? 0 : 1;
-                for (int repetition = first; repetition <= plan.repetitions; ++repetition) {
-                    Case c;
-                    c.index = cases.size();
-                    c.stepsApplied = stepsApplied;
-                    c.algorithm = algorithm;
-                    c.epsilon = epsilon;
-                    c.repetition = repetition;
-                    c.warmUp = repetition == 0;
-                    cases.push_back(c);
+    const auto add = [&](Case c) {
+        c.index = cases.size();
+        cases.push_back(c);
+    };
+    const auto searches = [&](Case base, bool repeated) {
+        for (const std::size_t stepsApplied : measuredStructures(plan)) {
+            for (const LoopShapingAlgorithm algorithm : plan.algorithms) {
+                for (const double epsilon : plan.epsilons) {
+                    const int first = repeated && plan.warmUp ? 0 : 1;
+                    const int last = repeated ? plan.repetitions : 1;
+                    for (int repetition = first; repetition <= last; ++repetition) {
+                        Case c = base;
+                        c.stepsApplied = stepsApplied;
+                        c.algorithm = algorithm;
+                        c.epsilon = epsilon;
+                        c.repetition = repetition;
+                        c.warmUp = repetition == 0;
+                        add(c);
+                    }
                 }
             }
+        }
+    };
+    const auto phasesOnly = [&](Case base, bool repeated) {
+        const int first = repeated && plan.warmUp ? 0 : 1;
+        const int last = repeated ? plan.repetitions : 1;
+        for (int repetition = first; repetition <= last; ++repetition) {
+            Case c = base;
+            c.repetition = repetition;
+            c.warmUp = repetition == 0;
+            add(c);
+        }
+    };
+
+    if (!plan.phases) {
+        searches(Case{}, true);
+        return cases;
+    }
+
+    Case base;
+    base.withPhases = true;
+    base.loopShaping = plan.phases->loopShaping;
+    for (const Processor processor : plan.phases->processors) {
+        base.processor = processor;
+        if (base.loopShaping) {
+            searches(base, true);
+        } else {
+            phasesOnly(base, true);
+        }
+    }
+    if (plan.phases->compare) {
+        base.processor = Processor::Gpu;
+        base.comparison = true;
+        if (base.loopShaping) {
+            searches(base, false);
+        } else {
+            phasesOnly(base, false);
         }
     }
     return cases;
 }
 
+const char * processorName(Processor processor)
+{
+    return processor == Processor::Gpu ? "gpu" : "cpu";
+}
+
+std::string caseKind(const Case & c)
+{
+    if (!c.withPhases) {
+        return std::string();
+    }
+    return c.comparison ? "compare" : processorName(c.processor);
+}
+
 std::string caseId(const Case & c)
 {
     std::ostringstream out;
-    out << "s" << c.stepsApplied << "-" << algorithmName(c.algorithm) << "-e" << c.epsilon
-        << "-r" << c.repetition;
+    if (c.withPhases) {
+        out << caseKind(c) << "-";
+    }
+    if (c.loopShaping) {
+        out << "s" << c.stepsApplied << "-" << algorithmName(c.algorithm) << "-e" << c.epsilon << "-";
+    } else {
+        out << "phases-";
+    }
+    out << "r" << c.repetition;
     std::string id = out.str();
     std::replace(id.begin(), id.end(), '.', '_');
     std::replace(id.begin(), id.end(), '+', 'p');

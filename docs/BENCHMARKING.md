@@ -4,15 +4,18 @@ QFTbx ships a benchmark tool, `qftbx-bench`, and a planner in the interface
 for measuring the loop-shaping algorithms on one problem: the same
 project, its templates and boundaries already computed, a sequence of
 controller structures of growing order, every algorithm and epsilon you
-choose, repeated as many times as the statistics need. Neither is part of
-an ordinary build: configure with `-DQFTBX_BUILD_BENCHMARK=ON` to get them
+choose, repeated as many times as the statistics need. A plan can also
+compute the templates and the boundaries again, on the processor or on the
+GPU, and compare the two ([below](#computing-the-phases-again)). Neither is
+part of an ordinary build: configure with `-DQFTBX_BUILD_BENCHMARK=ON` to get them
 (see [BUILDING.md](BUILDING.md)).
 
 ## How a measurement is made
 
 **Every case is a process.** A case is one run of one algorithm on one
 controller structure with one epsilon. The tool launches it as a process of
-its own, with OpenMP held to one thread, so that its peak memory is its own,
+its own, with OpenMP held to the plan's `threads` (one unless the plan says
+otherwise, and the whole machine with 0), so that its peak memory is its own,
 a crash or a hang costs one case and not the queue, a time limit can be
 enforced by killing it, and several cases can run at once, one per core.
 The number of processes at once is the plan's `jobs` (0 means one less than
@@ -30,8 +33,8 @@ another:
 | `counters` | The algorithm's own counts: peak of live nodes, nodes processed, boxes classified, stability verdicts and profiles | none: the algorithms keep them anyway |
 
 Every record also carries the result (gain, zeros, poles and a hash of them),
-the status (`solved`, `infeasible`, `error`, `timeout`, `crashed`,
-`cancelled`), and the environment: host, operating system, compiler, git
+the status (`solved`, `infeasible`, `computed` for phases without a search,
+`error`, `timeout`, `crashed`, `cancelled`), and the environment: host, operating system, compiler, git
 commit, interval backend, whether the build is tuned for the machine, the
 number of cores, the load average when the case started, and the time.
 
@@ -93,6 +96,44 @@ A plan is an XML file. `qftbx-bench example` prints one to start from:
   ranges.
 - `memory-limit-megabytes` caps the address space of each case; a case that
   exceeds it fails instead of taking the machine down.
+- `threads` in `execution` is OpenMP's thread count in each case: 1 when it
+  is absent, as the search is measured, and 0 for the whole machine, as the
+  program computes the templates and the boundaries. A plan that times them
+  wants `threads="0"` and `jobs="1"`, so that one case at a time has the
+  machine.
+
+### Computing the phases again
+
+A plan may compute the templates, the boundaries or both before the search,
+on the processor, on the GPU, or on both to compare them:
+
+```xml
+<phases templates="1" boundaries="1" loop-shaping="0" processors="cpu gpu" compare="1">
+    <templates sweep-points="0" frequencies="0" metric="project" epsilon="project"/>
+    <boundaries source="contour" phase-points="0" magnitude-points="0"/>
+</phases>
+```
+
+- `processors` lists where to compute them, `cpu`, `gpu` or both; the cases
+  of each are their own, with their ids starting `cpu-` or `gpu-`.
+- `compare="1"` adds one case, `compare-...`, that computes the phases on the
+  processor and then on the GPU, with the search after each when the plan
+  searches, and records how far apart they came out (below).
+- `loop-shaping="0"` stops after the phases: the plan then needs no
+  algorithm and no epsilon, and its cases end `computed`.
+- `templates`: `sweep-points` regrids every uncertain parameter with that
+  many points over its span, `frequencies` resamples the design frequencies
+  log-spaced over theirs (and then the epsilon is proposed), `metric` is
+  `project`, `complex` or `nichols` (with `db-per-degree`), and `epsilon` is
+  the project's or `propose`. Zero keeps the project's.
+- `boundaries`: `source` is the `contour` or the whole `cloud`, and
+  `phase-points` and `magnitude-points` change the project's Nichols grid
+  (or the settings' default for a project without boundaries).
+- The contour method, the border sweep, the whole cloud for a contour that
+  does not close and the closed-form columns are settings
+  (`algorithms.alpha-shape-contour`, `algorithms.border-sweep`,
+  `algorithms.whole-template-if-no-contour`,
+  `algorithms.closed-form-columns`), set in `settings` as any other.
 
 ## Running
 
@@ -157,3 +198,27 @@ file; `algorithm_memory_mb` is the growth during the run, which for a
 branch and bound is its live list, so the peak of live nodes and the memory
 should move together. A wall time well above the CPU time means the machine
 was shared.
+
+A case with phases also keeps, under `phases` in its record:
+- its processor;
+- the time of the templates and of the boundaries;
+- the time of every step the engines write to the program's record, under
+  its stage and detail (`templates/sweep`, `contours/walk`,
+  `boundaries/sheets (OpenMP)`, `boundaries/union`…);
+- what the card's first use cost, apart;
+- the size of what it computed: frequencies, plants, contour points and
+  cells of the Nichols grid.
+
+The environment of a case on the GPU describes the card. The summary gives
+one row per processor, with the median and the variation of the two
+phases, and leaves the comparisons out. A comparison keeps, frequency by
+frequency, what differs:
+
+| Field | What it counts |
+|---|---|
+| `cloud_sizes_differ`, `cloud_largest_relative` | templates whose size differs, and the largest distance between plants of the same index, relative to the plant |
+| `contour_points_differ`, `contour_largest_hausdorff` | points in one contour and not the other, and the largest Hausdorff distance between them over the frequency's epsilon |
+| `reports_differ`, `epsilons_differ` | contour reports and epsilons that differ |
+| `columns_differ`, `column_largest_db` | columns whose allowed intervals differ in number or in an infinite end, and the largest gap between finite ends, in dB |
+| `trace_sets_differ`, `unions_differ` | specifications whose traces differ, and frequencies whose union differs |
+| `cpu_status`, `gpu_status`, `gain_relative`, `same_design` | when it searches: how each search ended, the relative gap between the gains and whether the designs agree to the bit |

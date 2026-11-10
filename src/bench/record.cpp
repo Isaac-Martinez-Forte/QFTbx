@@ -12,7 +12,9 @@
  * counts of the certificate are written and read from one table, in the
  * order of the certification funnel. The digest of a design is an FNV-1a
  * hash over the exact bits of the gain, the zeros and the poles, so two runs
- * agree only when their results are identical to the last bit.
+ * agree only when their results are identical to the last bit. The phases,
+ * the card and the comparison are written only when the case has them, and
+ * read back as not run when absent.
  */
 
 #include "src/bench/record.h"
@@ -36,6 +38,7 @@
 #endif
 
 #include "src/core/common/exception.h"
+#include "src/core/pipeline/gpu_provider.h"
 
 #ifndef QFTBX_GIT_COMMIT
 #define QFTBX_GIT_COMMIT "unknown"
@@ -73,6 +76,24 @@ Environment describeEnvironment()
 #endif
     environment.timestamp = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
     return environment;
+}
+
+void describeGpu(Environment & environment)
+{
+    const GpuProvider * provider = gpuProvider();
+    if (provider == nullptr) {
+        environment.gpuState = "no GPU support";
+        return;
+    }
+    const GpuStatus & status = provider->status();
+    environment.gpuState = status.usable() ? "usable" : status.reason().rendered();
+    environment.gpuName = status.name;
+    environment.gpuCompute = std::to_string(status.computeMajor) + "." + std::to_string(status.computeMinor);
+    environment.gpuMemoryBytes = status.memory;
+    environment.gpuMultiprocessors = status.multiprocessors;
+    environment.gpuDoublePrecisionRatio = status.doublePrecisionRatio;
+    environment.gpuDriverVersion = status.driverVersion;
+    environment.gpuRuntimeVersion = status.runtimeVersion;
 }
 
 namespace {
@@ -135,6 +156,63 @@ const CertificateCount kCertificateCounts[] = {
     {"feasibility_proofs", &LoopShapingStatistics::Certificate::feasibilityProofs},
     {"proven_skips", &LoopShapingStatistics::Certificate::provenSkips},
 };
+
+double numberOr(const QJsonObject & object, const char * key)
+{
+    return object.contains(key) ? object[key].toDouble() : std::numeric_limits<double>::quiet_NaN();
+}
+
+void putNumber(QJsonObject & object, const char * key, double value)
+{
+    if (std::isfinite(value)) {
+        object[key] = value;
+    }
+}
+
+QJsonObject comparisonToJson(const Comparison & c)
+{
+    QJsonObject o;
+    o["frequencies"] = static_cast<qint64>(c.frequencies);
+    o["cloud_sizes_differ"] = static_cast<qint64>(c.cloudSizesDiffer);
+    putNumber(o, "cloud_largest_relative", c.cloudLargestRelative);
+    o["contour_points_differ"] = static_cast<qint64>(c.contourPointsDiffer);
+    putNumber(o, "contour_largest_hausdorff", c.contourLargestHausdorff);
+    o["reports_differ"] = static_cast<qint64>(c.reportsDiffer);
+    o["epsilons_differ"] = static_cast<qint64>(c.epsilonsDiffer);
+    o["columns_differ"] = static_cast<qint64>(c.columnsDiffer);
+    putNumber(o, "column_largest_db", c.columnLargestDb);
+    o["trace_sets_differ"] = static_cast<qint64>(c.traceSetsDiffer);
+    o["unions_differ"] = static_cast<qint64>(c.unionsDiffer);
+    if (!c.cpuStatus.empty() || !c.gpuStatus.empty()) {
+        o["cpu_status"] = QString::fromStdString(c.cpuStatus);
+        o["gpu_status"] = QString::fromStdString(c.gpuStatus);
+        putNumber(o, "gain_relative", c.gainRelative);
+        o["same_design"] = c.sameDesign;
+    }
+    return o;
+}
+
+Comparison comparisonFromJson(const QJsonObject & o)
+{
+    Comparison c;
+    c.made = true;
+    c.frequencies = static_cast<std::size_t>(o["frequencies"].toInteger());
+    c.cloudSizesDiffer = static_cast<std::size_t>(o["cloud_sizes_differ"].toInteger());
+    c.cloudLargestRelative = numberOr(o, "cloud_largest_relative");
+    c.contourPointsDiffer = static_cast<std::size_t>(o["contour_points_differ"].toInteger());
+    c.contourLargestHausdorff = numberOr(o, "contour_largest_hausdorff");
+    c.reportsDiffer = static_cast<std::size_t>(o["reports_differ"].toInteger());
+    c.epsilonsDiffer = static_cast<std::size_t>(o["epsilons_differ"].toInteger());
+    c.columnsDiffer = static_cast<std::size_t>(o["columns_differ"].toInteger());
+    c.columnLargestDb = numberOr(o, "column_largest_db");
+    c.traceSetsDiffer = static_cast<std::size_t>(o["trace_sets_differ"].toInteger());
+    c.unionsDiffer = static_cast<std::size_t>(o["unions_differ"].toInteger());
+    c.cpuStatus = o["cpu_status"].toString().toStdString();
+    c.gpuStatus = o["gpu_status"].toString().toStdString();
+    c.gainRelative = numberOr(o, "gain_relative");
+    c.sameDesign = o["same_design"].toBool();
+    return c;
+}
 
 }
 
@@ -244,7 +322,40 @@ QJsonObject toJson(const Record & r)
     e["cores"] = r.environment.cores;
     e["load_average"] = r.environment.loadAverage;
     e["timestamp"] = QString::fromStdString(r.environment.timestamp);
+    if (!r.environment.gpuState.empty()) {
+        QJsonObject g;
+        g["state"] = QString::fromStdString(r.environment.gpuState);
+        g["name"] = QString::fromStdString(r.environment.gpuName);
+        g["compute_capability"] = QString::fromStdString(r.environment.gpuCompute);
+        g["memory_bytes"] = static_cast<qint64>(r.environment.gpuMemoryBytes);
+        g["multiprocessors"] = r.environment.gpuMultiprocessors;
+        g["double_precision_ratio"] = r.environment.gpuDoublePrecisionRatio;
+        g["driver_version"] = r.environment.gpuDriverVersion;
+        g["runtime_version"] = r.environment.gpuRuntimeVersion;
+        e["gpu"] = g;
+    }
     o["environment"] = e;
+
+    if (!r.processor.empty()) {
+        QJsonObject phases;
+        phases["processor"] = QString::fromStdString(r.processor);
+        putNumber(phases, "templates_ms", r.templatesMilliseconds);
+        putNumber(phases, "boundaries_ms", r.boundariesMilliseconds);
+        putNumber(phases, "gpu_start_ms", r.gpuStartMilliseconds);
+        phases["frequencies"] = static_cast<qint64>(r.frequencies);
+        phases["cloud_points"] = static_cast<qint64>(r.cloudPoints);
+        phases["contour_points"] = static_cast<qint64>(r.contourPoints);
+        phases["grid_cells"] = static_cast<qint64>(r.gridCells);
+        QJsonObject steps;
+        for (const auto & [step, ms] : r.stepMilliseconds) {
+            steps[QString::fromStdString(step)] = ms;
+        }
+        phases["steps_ms"] = steps;
+        if (r.comparison.made) {
+            phases["comparison"] = comparisonToJson(r.comparison);
+        }
+        o["phases"] = phases;
+    }
     return o;
 }
 
@@ -332,6 +443,35 @@ Record recordFromJson(const QJsonObject & o)
     r.environment.cores = e["cores"].toInt();
     r.environment.loadAverage = e["load_average"].toDouble(-1.0);
     r.environment.timestamp = e["timestamp"].toString().toStdString();
+    if (e.contains("gpu")) {
+        const QJsonObject g = e["gpu"].toObject();
+        r.environment.gpuState = g["state"].toString().toStdString();
+        r.environment.gpuName = g["name"].toString().toStdString();
+        r.environment.gpuCompute = g["compute_capability"].toString().toStdString();
+        r.environment.gpuMemoryBytes = static_cast<std::uint64_t>(g["memory_bytes"].toInteger());
+        r.environment.gpuMultiprocessors = g["multiprocessors"].toInt();
+        r.environment.gpuDoublePrecisionRatio = g["double_precision_ratio"].toInt();
+        r.environment.gpuDriverVersion = g["driver_version"].toInt();
+        r.environment.gpuRuntimeVersion = g["runtime_version"].toInt();
+    }
+    if (o.contains("phases")) {
+        const QJsonObject phases = o["phases"].toObject();
+        r.processor = phases["processor"].toString().toStdString();
+        r.templatesMilliseconds = numberOr(phases, "templates_ms");
+        r.boundariesMilliseconds = numberOr(phases, "boundaries_ms");
+        r.gpuStartMilliseconds = numberOr(phases, "gpu_start_ms");
+        r.frequencies = static_cast<std::size_t>(phases["frequencies"].toInteger());
+        r.cloudPoints = static_cast<std::size_t>(phases["cloud_points"].toInteger());
+        r.contourPoints = static_cast<std::size_t>(phases["contour_points"].toInteger());
+        r.gridCells = static_cast<std::size_t>(phases["grid_cells"].toInteger());
+        const QJsonObject steps = phases["steps_ms"].toObject();
+        for (auto it = steps.begin(); it != steps.end(); ++it) {
+            r.stepMilliseconds.emplace_back(it.key().toStdString(), it.value().toDouble());
+        }
+        if (phases.contains("comparison")) {
+            r.comparison = comparisonFromJson(phases["comparison"].toObject());
+        }
+    }
     return r;
 }
 

@@ -69,7 +69,11 @@ std::size_t Runner::run(const Plan & plan, const std::string & planPath, const s
     std::size_t failures = 0;
 
     QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
-    environment.insert("OMP_NUM_THREADS", "1");
+    if (plan.threads > 0) {
+        environment.insert("OMP_NUM_THREADS", QString::number(plan.threads));
+    } else {
+        environment.remove("OMP_NUM_THREADS");
+    }
 
     const auto notify = [&](Event::Kind kind, const Case * c, const Record * record, const std::string & text) {
         if (listener) {
@@ -95,7 +99,7 @@ std::size_t Runner::run(const Plan & plan, const std::string & planPath, const s
                                    failureMessage.empty() ? "the case left no record" : failureMessage);
             writeRecord(record, path);
         }
-        if (record.status != "solved" && record.status != "infeasible") {
+        if (record.status != "solved" && record.status != "infeasible" && record.status != "computed") {
             ++failures;
         }
         ++done;

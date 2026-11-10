@@ -13,6 +13,20 @@
  * recorded as such rather than as an error, and a run that ends without a
  * design, refused or in an error of the computation, keeps its counters and
  * its certificate.
+ *
+ * A case with phases first computes them on its processor, timing each
+ * phase, with the record of the program open to a temporary file so that
+ * the steps the engines write are kept too; the search, if any, follows,
+ * timed as ever. The grid of the boundaries is the project's, or the
+ * default one of the settings for a project without boundaries, read before
+ * the templates are computed again, since that drops them. Resampled
+ * frequencies are log-spaced over the project's span and take the proposed
+ * epsilon, since the project's has one value per old frequency. A
+ * comparison case computes the phases on the processor and then on the GPU,
+ * with the search after each, and compares what they leave. Asking the
+ * provider about the card is what initialises CUDA, so its cost is timed
+ * apart, before the phases. A case that computes the phases and no search
+ * ends "computed".
  */
 
 #include "src/bench/measurement.h"
@@ -26,6 +40,7 @@
 #include <thread>
 
 #include <QDir>
+#include <QFile>
 #include <QTemporaryFile>
 
 #ifdef _WIN32
@@ -38,7 +53,11 @@
 #endif
 
 #include "src/app/project_controller.h"
+#include "src/bench/comparison.h"
 #include "src/core/common/exception.h"
+#include "src/core/common/record.h"
+#include "src/core/frequencies/omega.h"
+#include "src/core/math/sequences.h"
 #include "src/core/loopshaping/loop_shaping_result.h"
 #include "src/core/project/settings.h"
 
@@ -148,6 +167,167 @@ Settings settingsOf(const Plan & plan)
     return readSettings(file.fileName().toStdString());
 }
 
+struct BoundaryGrid
+{
+    Range phaseRange;
+    std::int32_t phaseCount = 0;
+    Range magnitudeRange;
+    std::int32_t magnitudeCount = 0;
+};
+
+struct PhaseInputs
+{
+    std::vector<double> epsilon;
+    ParameterGrids grids;
+    BoundaryGrid grid;
+};
+
+PhaseInputs prepareInputs(const Phases & phases, ProjectController & controller)
+{
+    PhaseInputs inputs;
+
+    const Settings defaults;
+    if (const BoundaryData * stored = controller.boundaries()) {
+        inputs.grid = {stored->phaseRange(), stored->phaseCount(), stored->magnitudeRange(), stored->magnitudeCount()};
+    } else {
+        inputs.grid = {Range(defaults.defaults.phaseStart, defaults.defaults.phaseEnd), defaults.defaults.phasePoints,
+                       Range(defaults.defaults.magnitudeStart, defaults.defaults.magnitudeEnd),
+                       defaults.defaults.magnitudePoints};
+    }
+    if (phases.phasePoints > 0) {
+        inputs.grid.phaseCount = phases.phasePoints;
+    }
+    if (phases.magnitudePoints > 0) {
+        inputs.grid.magnitudeCount = phases.magnitudePoints;
+    }
+
+    inputs.grids = controller.sweepGrids();
+    if (phases.sweepPoints > 0) {
+        for (auto & [name, values] : inputs.grids) {
+            if (values.size() > 1) {
+                const auto [low, high] = std::minmax_element(values.begin(), values.end());
+                values = math::linspace(*low, *high, static_cast<std::size_t>(phases.sweepPoints));
+            }
+        }
+    }
+
+    if (phases.metric) {
+        controller.setEpsilonMetric(*phases.metric);
+    }
+
+    bool propose = phases.proposeEpsilon;
+    if (phases.frequencyCount > 0 && controller.omega() != nullptr) {
+        const std::vector<double> & old = *controller.omega()->values();
+        const auto [low, high] = std::minmax_element(old.begin(), old.end());
+        const double from = *low;
+        const double to = *high;
+        controller.setOmega(std::make_unique<Omega>(from, to, phases.frequencyCount,
+                                                    math::logspace(std::log10(from), std::log10(to),
+                                                                   static_cast<std::size_t>(phases.frequencyCount)),
+                                                    Omega::LogSpace));
+        propose = true;
+    }
+    if (!propose && controller.epsilon() != nullptr) {
+        inputs.epsilon = *controller.epsilon();
+    }
+
+    return inputs;
+}
+
+std::vector<std::pair<std::string, double>> stepsOf(const QString & path)
+{
+    std::vector<std::pair<std::string, double>> steps;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return steps;
+    }
+    while (!file.atEnd()) {
+        const std::string line = file.readLine().trimmed().toStdString();
+        const std::size_t fields = line.find("  ");
+        const std::size_t numbers = line.find(" ms=");
+        if (fields == std::string::npos || numbers == std::string::npos || numbers < fields + 2) {
+            continue;
+        }
+        std::istringstream head(line.substr(fields + 2, numbers - fields - 2));
+        std::string stage;
+        head >> stage;
+        std::string detail;
+        std::getline(head, detail);
+        const std::size_t first = detail.find_first_not_of(' ');
+        const std::size_t last = detail.find_last_not_of(' ');
+        detail = first == std::string::npos ? std::string() : detail.substr(first, last - first + 1);
+        steps.emplace_back(stage + "/" + detail, std::strtod(line.c_str() + numbers + 4, nullptr));
+    }
+    return steps;
+}
+
+double millisecondsSince(std::chrono::steady_clock::time_point start)
+{
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+}
+
+void computePhases(const Phases & phases, const PhaseInputs & inputs, ProjectController & controller,
+                   Processor processor, Record & record)
+{
+    QTemporaryFile log;
+    log.setAutoRemove(true);
+    if (log.open()) {
+        log.close();
+        record::open(log.fileName().toStdString(), 64u * 1024u * 1024u);
+    }
+
+    try {
+        if (phases.templates) {
+            const auto start = std::chrono::steady_clock::now();
+            controller.computeTemplates(inputs.epsilon, inputs.grids, processor);
+            record.templatesMilliseconds = millisecondsSince(start);
+        }
+        if (phases.boundaries) {
+            const auto start = std::chrono::steady_clock::now();
+            controller.computeBoundaries(inputs.grid.phaseRange, inputs.grid.phaseCount,
+                                         inputs.grid.magnitudeRange, inputs.grid.magnitudeCount,
+                                         -1.0, phases.fromContour, processor);
+            record.boundariesMilliseconds = millisecondsSince(start);
+        }
+    } catch (...) {
+        record::close();
+        record.stepMilliseconds = stepsOf(log.fileName());
+        throw;
+    }
+
+    record::close();
+    record.stepMilliseconds = stepsOf(log.fileName());
+
+    record.frequencies = controller.templates().size();
+    record.cloudPoints = 0;
+    for (const ComplexCloud & cloud : controller.templates()) {
+        record.cloudPoints += cloud.size();
+    }
+    record.contourPoints = 0;
+    for (const ComplexCloud & contour : controller.contour()) {
+        record.contourPoints += contour.size();
+    }
+    if (const BoundaryData * boundaries = controller.boundaries()) {
+        record.gridCells = static_cast<std::size_t>(boundaries->phaseCount())
+                * static_cast<std::size_t>(boundaries->magnitudeCount());
+    }
+}
+
+PhaseOutputs outputsOf(ProjectController & controller)
+{
+    PhaseOutputs outputs;
+    outputs.clouds = controller.templates();
+    outputs.contours = controller.contour();
+    if (controller.epsilon() != nullptr) {
+        outputs.epsilon = *controller.epsilon();
+    }
+    outputs.reports = controller.contourReports();
+    if (const BoundaryData * boundaries = controller.boundaries()) {
+        outputs.boundaries = *boundaries;
+    }
+    return outputs;
+}
+
 class MemoryTracer
 {
 public:
@@ -198,15 +378,130 @@ Record failureRecord(const Plan & plan, const Case & c, const std::string & stat
     record.caseId = caseId(c);
     record.caseIndex = c.index;
     record.stepsApplied = c.stepsApplied;
-    record.structure = structureLabel(plan, c.stepsApplied);
-    record.algorithm = algorithmName(c.algorithm);
-    record.epsilon = c.epsilon;
+    if (c.loopShaping) {
+        record.structure = structureLabel(plan, c.stepsApplied);
+        record.algorithm = algorithmName(c.algorithm);
+        record.epsilon = c.epsilon;
+    }
     record.repetition = c.repetition;
     record.warmUp = c.warmUp;
     record.status = status;
     record.message = message;
     record.environment = describeEnvironment();
+    record.processor = caseKind(c);
     return record;
+}
+
+namespace {
+
+void measureSearch(const Plan & plan, const Case & c, ProjectController & controller, Record & record)
+{
+    MemoryTracer tracer(record.memoryTrace);
+    if (plan.measures.memory) {
+        record.baselineMemoryBytes = currentResidentBytes();
+    }
+    if (plan.measures.memoryTrace) {
+        tracer.start();
+    }
+    const double cpuBefore = plan.measures.cpu ? cpuMilliseconds() : 0.0;
+    const auto wallBefore = std::chrono::steady_clock::now();
+
+    bool solved = false;
+    std::string failure;
+    try {
+        solved = controller.computeLoopShaping(c.epsilon, c.algorithm, Range(1e-9, 10.0), 100);
+    } catch (const Exception & refused) {
+        failure = refused.what();
+    }
+
+    if (plan.measures.time) {
+        record.wallMilliseconds = millisecondsSince(wallBefore);
+    }
+    if (plan.measures.cpu) {
+        record.cpuMilliseconds = cpuMilliseconds() - cpuBefore;
+    }
+    if (plan.measures.memoryTrace) {
+        tracer.stop();
+    }
+    if (plan.measures.memory) {
+        record.peakMemoryBytes = peakResidentBytes();
+    }
+
+    if (plan.measures.counters) {
+        record.statistics = controller.lastLoopShapingStatistics();
+    }
+
+    if (!failure.empty()) {
+        record.status = failure.find("No feasible solution") != std::string::npos ? "infeasible" : "error";
+        record.message = failure;
+        return;
+    }
+    if (!solved) {
+        record.status = "error";
+        record.message = "the loop shaping produced no result";
+        return;
+    }
+
+    LoopShapingResult * result = controller.loopShapingResult();
+    LtiSystem * designed = result->controller();
+    record.gain = designed->gain().range().min;
+    for (Parameter & zero : designed->numerator()) {
+        record.zeros.push_back(zero.range().min);
+    }
+    for (Parameter & pole : designed->denominator()) {
+        record.poles.push_back(pole.range().min);
+    }
+    record.digest = digestOf(record.gain, record.zeros, record.poles);
+    if (result->check().has_value()) {
+        record.worstExcessDb = result->check()->worstExcessDb;
+        if (result->check()->family.checked) {
+            record.familyMembers = result->check()->family.members;
+            record.familyUnstable = result->check()->family.unstableMembers;
+            record.familyWorstRealPart = result->check()->family.worstRealPart;
+        }
+        if (result->check()->nominal.checked) {
+            record.nominalChecked = true;
+            record.nominalStable = result->check()->nominal.stable;
+            record.nominalWorstRealPart = result->check()->nominal.worstRealPart;
+        }
+    }
+    record.status = "solved";
+}
+
+void compareProcessors(const Plan & plan, const Case & c, const PhaseInputs & inputs,
+                       ProjectController & controller, Record & record)
+{
+    const Phases & phases = *plan.phases;
+
+    Record cpu = record;
+    computePhases(phases, inputs, controller, Processor::Cpu, cpu);
+    const PhaseOutputs cpuOutputs = outputsOf(controller);
+    if (c.loopShaping) {
+        measureSearch(plan, c, controller, cpu);
+    }
+
+    try {
+        computePhases(phases, inputs, controller, Processor::Gpu, record);
+    } catch (const std::exception & failure) {
+        record.status = "error";
+        record.message = failure.what();
+        return;
+    }
+    comparePhases(cpuOutputs, outputsOf(controller), record.comparison);
+
+    if (!c.loopShaping) {
+        record.status = "computed";
+        return;
+    }
+    measureSearch(plan, c, controller, record);
+    record.comparison.cpuStatus = cpu.status;
+    record.comparison.gpuStatus = record.status;
+    if (cpu.status == "solved" && record.status == "solved") {
+        record.comparison.gainRelative = std::abs(record.gain - cpu.gain) / std::abs(cpu.gain);
+        record.comparison.sameDesign = record.digest == cpu.digest;
+    }
+}
+
 }
 
 Record runCase(const Plan & plan, const Case & c)
@@ -217,82 +512,33 @@ Record runCase(const Plan & plan, const Case & c)
     try {
         ProjectController controller;
         controller.load(plan.projectFile);
-        if (controller.controllerStructure() == nullptr) {
-            throw InvalidInput(plan.projectFile + ": the project has no controller structure to start from");
+        if (c.loopShaping) {
+            if (controller.controllerStructure() == nullptr) {
+                throw InvalidInput(plan.projectFile + ": the project has no controller structure to start from");
+            }
+            controller.setControllerStructure(structureAfter(plan, *controller.controllerStructure(), c.stepsApplied));
         }
-        controller.setControllerStructure(structureAfter(plan, *controller.controllerStructure(), c.stepsApplied));
         controller.applySettings(settingsOf(plan));
 
-        MemoryTracer tracer(record.memoryTrace);
-        if (plan.measures.memory) {
-            record.baselineMemoryBytes = currentResidentBytes();
-        }
-        if (plan.measures.memoryTrace) {
-            tracer.start();
-        }
-        const double cpuBefore = plan.measures.cpu ? cpuMilliseconds() : 0.0;
-        const auto wallBefore = std::chrono::steady_clock::now();
-
-        bool solved = false;
-        std::string failure;
-        try {
-            solved = controller.computeLoopShaping(c.epsilon, c.algorithm, Range(1e-9, 10.0), 100);
-        } catch (const Exception & refused) {
-            failure = refused.what();
-        }
-
-        if (plan.measures.time) {
-            record.wallMilliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - wallBefore).count();
-        }
-        if (plan.measures.cpu) {
-            record.cpuMilliseconds = cpuMilliseconds() - cpuBefore;
-        }
-        if (plan.measures.memoryTrace) {
-            tracer.stop();
-        }
-        if (plan.measures.memory) {
-            record.peakMemoryBytes = peakResidentBytes();
-        }
-
-        if (plan.measures.counters) {
-            record.statistics = controller.lastLoopShapingStatistics();
-        }
-
-        if (!failure.empty()) {
-            record.status = failure.find("No feasible solution") != std::string::npos ? "infeasible" : "error";
-            record.message = failure;
-            return record;
-        }
-        if (!solved) {
-            record.status = "error";
-            record.message = "the loop shaping produced no result";
-            return record;
-        }
-
-        LoopShapingResult * result = controller.loopShapingResult();
-        LtiSystem * designed = result->controller();
-        record.gain = designed->gain().range().min;
-        for (Parameter & zero : designed->numerator()) {
-            record.zeros.push_back(zero.range().min);
-        }
-        for (Parameter & pole : designed->denominator()) {
-            record.poles.push_back(pole.range().min);
-        }
-        record.digest = digestOf(record.gain, record.zeros, record.poles);
-        if (result->check().has_value()) {
-            record.worstExcessDb = result->check()->worstExcessDb;
-            if (result->check()->family.checked) {
-                record.familyMembers = result->check()->family.members;
-                record.familyUnstable = result->check()->family.unstableMembers;
-                record.familyWorstRealPart = result->check()->family.worstRealPart;
+        if (c.withPhases) {
+            if (c.processor == Processor::Gpu) {
+                const auto start = std::chrono::steady_clock::now();
+                describeGpu(record.environment);
+                record.gpuStartMilliseconds = millisecondsSince(start);
             }
-            if (result->check()->nominal.checked) {
-                record.nominalChecked = true;
-                record.nominalStable = result->check()->nominal.stable;
-                record.nominalWorstRealPart = result->check()->nominal.worstRealPart;
+            const PhaseInputs inputs = prepareInputs(*plan.phases, controller);
+            if (c.comparison) {
+                compareProcessors(plan, c, inputs, controller, record);
+                return record;
+            }
+            computePhases(*plan.phases, inputs, controller, c.processor, record);
+            if (!c.loopShaping) {
+                record.status = "computed";
+                return record;
             }
         }
-        record.status = "solved";
+
+        measureSearch(plan, c, controller, record);
     } catch (const std::exception & failure) {
         record.status = "error";
         record.message = failure.what();

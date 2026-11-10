@@ -15,12 +15,12 @@
  * at a time.
  *
  * The runner launches the worker program (the benchmark tool itself, with
- * the "case" command) once per case with OMP_NUM_THREADS=1, keeps as many
- * running as the plan's jobs say, kills the ones that exceed the timeout
- * and writes a record for every case that left none behind. When every
- * case is done it gathers the records into one JSON Lines file and the
- * summary tables next to it: `output/name.jsonl`, `name-summary.csv` and
- * `.md`.
+ * the "case" command) once per case with OMP_NUM_THREADS set to the plan's
+ * threads, or unset when they are zero, keeps as many running as the plan's
+ * jobs say, kills the ones that exceed the timeout and writes a record for
+ * every case that left none behind. When every case is done it gathers the
+ * records into one JSON Lines file and the summary tables next to it:
+ * `output/name.jsonl`, `name-summary.csv` and `.md`.
  *
  * run() calls the worker as PROGRAM case PLAN-FILE CASE-INDEX, takes the
  * plan's jobs when given 0, and returns how many cases did not end solved

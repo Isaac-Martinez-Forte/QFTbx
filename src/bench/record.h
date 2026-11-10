@@ -23,6 +23,15 @@
  * then zeros then poles, the same the benchmark driver has always printed.
  * readRecords reads every *.json record of a directory in file-name order,
  * and writeJsonLines writes one record per line.
+ *
+ * A case of a plan with phases also names its processor (cpu, gpu or
+ * compare), the time of each phase and of each step the engines record,
+ * keyed "stage/detail" as the record of the program writes them, and the
+ * size of what it computed: frequencies, plants and contour points over
+ * every frequency, and cells of the Nichols grid. On the GPU it keeps
+ * apart what the card's first use cost, and its environment describes the
+ * card as the provider found it. A comparison case keeps its Comparison. A
+ * phase that did not run keeps a time of not-a-number.
  */
 
 #ifndef QFTBX_BENCH_RECORD_H
@@ -37,6 +46,7 @@
 
 #include <QJsonObject>
 
+#include "src/bench/comparison.h"
 #include "src/bench/plan.h"
 #include "src/core/loopshaping/loop_shaping_statistics.h"
 
@@ -53,9 +63,20 @@ struct Environment
     int cores = 0;
     double loadAverage = -1.0;
     std::string timestamp;
+
+    std::string gpuState;
+    std::string gpuName;
+    std::string gpuCompute;
+    std::uint64_t gpuMemoryBytes = 0;
+    int gpuMultiprocessors = 0;
+    int gpuDoublePrecisionRatio = 0;
+    int gpuDriverVersion = 0;
+    int gpuRuntimeVersion = 0;
 };
 
 Environment describeEnvironment();
+
+void describeGpu(Environment & environment);
 
 struct Record
 {
@@ -90,6 +111,17 @@ struct Record
     bool nominalStable = false;
     double nominalWorstRealPart = std::numeric_limits<double>::quiet_NaN();
     std::string digest;
+
+    std::string processor;
+    double templatesMilliseconds = std::numeric_limits<double>::quiet_NaN();
+    double boundariesMilliseconds = std::numeric_limits<double>::quiet_NaN();
+    std::vector<std::pair<std::string, double>> stepMilliseconds;
+    double gpuStartMilliseconds = std::numeric_limits<double>::quiet_NaN();
+    std::size_t frequencies = 0;
+    std::size_t cloudPoints = 0;
+    std::size_t contourPoints = 0;
+    std::size_t gridCells = 0;
+    Comparison comparison;
 
     Environment environment;
 };
