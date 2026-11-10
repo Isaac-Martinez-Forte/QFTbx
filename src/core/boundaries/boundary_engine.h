@@ -34,7 +34,9 @@
  * given, is a finite stand-in for formats that cannot carry one and never
  * enters the sweep, which is IEEE throughout. A cancellation flag is read
  * once per frequency; a cancelled computation throws Cancelled and keeps
- * nothing. boundaryData() is a snapshot by value.
+ * nothing. boundaryData() is a snapshot by value. adoptSheets() takes the
+ * sheets of every frequency computed elsewhere, on the GPU, and does the
+ * rest: the traces, the columns and the union.
  */
 
 #ifndef QFTBX_BOUNDARY_ENGINE_H
@@ -59,8 +61,11 @@
 #include "src/core/boundaries/boundary_data.h"
 #include "src/core/boundaries/boundary_union_1d.h"
 #include "src/core/boundaries/boundary_computation.h"
+#include "src/core/boundaries/boundary_plan.h"
 
 namespace qftbx {
+
+class SingularLocus;
 
 class BoundaryEngine : public BoundaryComputation
 {
@@ -84,6 +89,12 @@ public:
 
     BoundaryData boundaryData() override;
 
+    void adoptSheets(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
+                     bool templatesAreContours, BoundaryPlan plan,
+                     qftbx::Range phaseRange, std::int32_t phaseCount,
+                     qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                     std::vector<BoundarySheets> sheets);
+
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
@@ -94,12 +105,26 @@ private:
 
     void releaseResults();
 
+    void adoptPlan(BoundaryPlan plan, bool templatesAreContours, qftbx::Range phaseRange, std::int32_t phaseCount,
+                   qftbx::Range magnitudeRange, std::int32_t magnitudeCount);
+
+    void uniteFrequencies();
+
     void computeFrequencies(std::vector <double> * omega, LtiSystem * plant, const CloudSet & templates,
                             qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount);
 
     void computeFrequency(double omega, LtiSystem * plant,
                           const ComplexCloud & valueSet, const std::vector <double> & phases,
                           const std::vector <double> & magnitudes, std::size_t index);
+
+    BoundarySheets sheetsAt(std::complex<double> p0, const ComplexCloud & valueSet,
+                            const std::vector<std::complex<double>> & nominalOverP, const SingularLocus & locus,
+                            const std::vector <double> & phases, const std::vector <double> & magnitudes,
+                            std::size_t index) const;
+
+    void readSheets(double omega, std::complex<double> p0, const ComplexCloud & valueSet,
+                    const std::vector<std::complex<double>> & nominalOverP, const SingularLocus * locus,
+                    const BoundarySheets & sheets, const std::vector <double> & phases, std::size_t index);
 
     void traceFrequency(double omega, std::map<std::string, TraceSet> & bound,
                         const BoundarySheets & sheets,

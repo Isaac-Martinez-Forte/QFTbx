@@ -10,7 +10,9 @@
  * index, and the allowed side of each trace is probed one decibel below its
  * maximum against the same cut. Frequencies run in parallel and each writes
  * at its own index. The keys of the sheets are the ones the project file
- * stores.
+ * stores. A frequency's sheets are computed (sheetsAt) and then read
+ * (readSheets) into traces and columns; sheets that come from elsewhere are
+ * only read.
  */
 
 #include <chrono>
@@ -25,7 +27,7 @@
 #include "src/core/boundaries/closed_loop_worst_case.h"
 #include "src/core/boundaries/singular_locus.h"
 
-#include <iostream>
+#include <optional>
 
 #include "src/core/math/sequence_vectors.h"
 
@@ -45,23 +47,11 @@ void BoundaryEngine::releaseResults()
     m_upperFlags.clear();
 }
 
-void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const CloudSet & templates,
-                             bool templatesAreContours,
-                             const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
-                             std::int32_t magnitudeCount, double exportInfinity){
-
+void BoundaryEngine::adoptPlan(BoundaryPlan plan, bool templatesAreContours, qftbx::Range phaseRange,
+                               std::int32_t phaseCount, qftbx::Range magnitudeRange, std::int32_t magnitudeCount)
+{
     m_templatesAreContours = templatesAreContours;
-
-    (void) exportInfinity;
-
-    m_specifications = qftbx::toSpecificationSet(*specifications);
-
-    if (phaseCount < 2 || magnitudeCount < 2) {
-        throw InvalidInput(QFTBX_TR("Core", "The Nichols grid needs at least two points on each axis."));
-    }
-    if (!(phaseRange.width() > 0.0) || !(magnitudeRange.width() > 0.0)) {
-        throw InvalidInput(QFTBX_TR("Core", "The Nichols grid needs a non-empty phase range and magnitude range."));
-    }
+    m_specifications = std::move(plan.specifications);
 
     m_phaseCount = phaseCount;
     m_magnitudeCount = magnitudeCount;
@@ -70,27 +60,23 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
 
     releaseResults();
 
-    m_trackingMask.clear();
-    m_stabilityMask.clear();
-    m_noiseMask.clear();
-    m_outputDisturbanceMask.clear();
-    m_inputDisturbanceMask.clear();
-    m_controlEffortMask.clear();
+    m_trackingMask = std::move(plan.tracking);
+    m_stabilityMask = std::move(plan.stability);
+    m_noiseMask = std::move(plan.noise);
+    m_outputDisturbanceMask = std::move(plan.outputDisturbance);
+    m_inputDisturbanceMask = std::move(plan.inputDisturbance);
+    m_controlEffortMask = std::move(plan.controlEffort);
+}
 
-    for (double o : *omega){
-        m_trackingMask.push_back(m_specifications.at(SpecificationType::TrackingLower).appliesAt(o));
-        m_stabilityMask.push_back(m_specifications.at(SpecificationType::Stability).appliesAt(o));
-        m_noiseMask.push_back(m_specifications.at(SpecificationType::SensorNoise).appliesAt(o));
-        m_outputDisturbanceMask.push_back(m_specifications.at(SpecificationType::OutputDisturbance).appliesAt(o));
-        m_inputDisturbanceMask.push_back(m_specifications.at(SpecificationType::InputDisturbance).appliesAt(o));
-        m_controlEffortMask.push_back(m_specifications.at(SpecificationType::ControlEffort).appliesAt(o));
-    }
+void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const CloudSet & templates,
+                             bool templatesAreContours,
+                             const qftbx::SpecificationRecords * specifications, qftbx::Range phaseRange, std::int32_t phaseCount, qftbx::Range magnitudeRange,
+                             std::int32_t magnitudeCount, double exportInfinity){
 
-    if (std::find(m_trackingMask.begin(), m_trackingMask.end(), true) != m_trackingMask.end() &&
-            !m_specifications.at(SpecificationType::TrackingUpper).used()){
-        throw InvalidInput(QFTBX_TR("Core", "The tracking boundary needs both tracking "
-                           "specifications (T_L and T_U)."));
-    }
+    (void) exportInfinity;
+
+    adoptPlan(planBoundaries(*omega, *specifications, phaseRange, phaseCount, magnitudeRange, magnitudeCount),
+              templatesAreContours, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
 
     auto timer = std::chrono::steady_clock::now();
 
@@ -101,9 +87,68 @@ void BoundaryEngine::compute(std::vector<double> *omega, LtiSystem *plant, const
                                                    std::chrono::steady_clock::now() - timer).count())
                           + " " + qftbx::record::number("frequencies", m_boundaries.size()));
 
+    uniteFrequencies();
+}
+
+void BoundaryEngine::adoptSheets(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
+                                 bool templatesAreContours, BoundaryPlan plan,
+                                 qftbx::Range phaseRange, std::int32_t phaseCount,
+                                 qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                                 std::vector<BoundarySheets> sheets)
+{
+    adoptPlan(std::move(plan), templatesAreContours, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
+
+    auto timer = std::chrono::steady_clock::now();
+
+    const std::vector <double> phases = qftbx::linspace(phaseRange.min, phaseRange.max, phaseCount);
+    const bool closedForm = m_closedFormColumns && m_templatesAreContours;
+
+    m_boundaries.assign(static_cast<std::size_t>(omega->size()), {});
+    m_traceMetadata.assign(static_cast<std::size_t>(omega->size()), {});
+    m_columns.assign(static_cast<std::size_t>(omega->size()), {});
+
+#ifdef OpenMP_AVAILABLE
+#pragma omp parallel for
+#endif
+    for (std::size_t i = 0; i < omega->size(); ++i){
+
+        if (cancellationAsked(m_cancellation)) {
+            continue;
+        }
+
+        const ComplexCloud & p = templates.at(i);
+        const complex<double> p0 = plant->evaluate(omega->at(i));
+        std::vector<complex<double>> nominalOverP;
+        std::optional<SingularLocus> locus;
+        if (closedForm) {
+            nominalOverP = nominalOverValueSet(p0, p);
+            if (m_guardSingularLocus) {
+                locus.emplace(nominalOverP, true);
+            }
+        }
+        readSheets(omega->at(i), p0, p, nominalOverP, locus ? &*locus : nullptr, sheets.at(i), phases, i);
+    }
+
+    if (cancellationAsked(m_cancellation)) {
+        m_boundaries.clear();
+        m_traceMetadata.clear();
+        m_columns.clear();
+        throw qftbx::Cancelled();
+    }
+
+    qftbx::record::write("boundaries", "traces (OpenMP)",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - timer).count())
+                          + " " + qftbx::record::number("frequencies", m_boundaries.size()));
+
+    uniteFrequencies();
+}
+
+void BoundaryEngine::uniteFrequencies()
+{
     BoundaryUnion1D boundaryUnion;
 
-    timer = std::chrono::steady_clock::now();
+    auto timer = std::chrono::steady_clock::now();
 
     {
         const BoundaryData view = boundaryData();
@@ -349,6 +394,23 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     const ComplexCloud & p = valueSet;
 
+    const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
+
+    const SingularLocus locus(nominalOverP, m_templatesAreContours);
+
+    const BoundarySheets sheets = sheetsAt(p0, p, nominalOverP, locus, phases, magnitudes, index);
+
+    readSheets(omega, p0, p, nominalOverP, &locus, sheets, phases, index);
+}
+
+BoundarySheets BoundaryEngine::sheetsAt(std::complex<double> p0, const ComplexCloud & valueSet,
+                                        const std::vector<std::complex<double>> & nominalOverP,
+                                        const SingularLocus & locus,
+                                        const std::vector <double> & phases,
+                                        const std::vector <double> & magnitudes, std::size_t index) const
+{
+    const ComplexCloud & p = valueSet;
+
     BoundarySheets sheets;
 
     BoundarySheet & stabilityNoiseSheet = sheets.at(0);
@@ -363,8 +425,6 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         sheet->reserve(rowCount);
     }
 
-    const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
-
     WorstCaseMask mask;
     mask.stabilityNoiseTracking = m_stabilityMask.at(index) || m_noiseMask.at(index) || m_trackingMask.at(index);
     mask.outputDisturbance = m_outputDisturbanceMask.at(index);
@@ -373,8 +433,6 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
 
     const bool needStabilityNoise = m_stabilityMask.at(index) || m_noiseMask.at(index);
     const bool needTracking = m_trackingMask.at(index);
-
-    const SingularLocus locus(nominalOverP, m_templatesAreContours);
 
     for (std::size_t k = 0; k < magnitudes.size(); ++k){
 
@@ -420,6 +478,16 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
         if (mask.controlEffort) controlEffortSheet.push_back(std::move(controlEffortRow));
     }
 
+    return sheets;
+}
+
+void BoundaryEngine::readSheets(double omega, std::complex<double> p0, const ComplexCloud & valueSet,
+                                const std::vector<std::complex<double>> & nominalOverP,
+                                const SingularLocus * locus, const BoundarySheets & sheets,
+                                const std::vector <double> & phases, std::size_t index)
+{
+    const ComplexCloud & p = valueSet;
+
     std::map<std::string, TraceSet> bound;
 
     std::map<std::string, TraceLabels> traceMetadata;
@@ -430,7 +498,7 @@ void BoundaryEngine::computeFrequency (double omega, LtiSystem * plant,
                    m_phaseRange.min, m_magnitudeRange.min);
 
     if (m_closedFormColumns && m_templatesAreContours) {
-        const SingularLocus * guard = m_guardSingularLocus ? &locus : nullptr;
+        const SingularLocus * guard = m_guardSingularLocus ? locus : nullptr;
         const auto replace = [&](const char * name, SpecificationType type, bool used) {
             if (used) {
                 columns[name] = ClosedFormColumns::columns(type, m_specifications.at(type).boundDb(omega),
