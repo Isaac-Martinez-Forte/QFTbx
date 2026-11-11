@@ -9,7 +9,9 @@
  * open it stays open for the specifications that follow. The two layers of
  * the merge are mirrors of each other with one deliberate difference: the
  * inner test of the second is strict where the first is inclusive. Synthetic
- * border points close the union against the window frame.
+ * border points close the union against the window frame. The labels are
+ * counted before the frequencies run in parallel, since nothing may throw
+ * inside the loop.
  */
 
 #include <string>
@@ -19,19 +21,20 @@
 #include <limits>
 
 #include "src/core/boundaries/boundary_union_1d.h"
+#include "src/core/common/exception.h"
 
 namespace qftbx {
 
 using std::abs;
 
-std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase)
+std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase) const
 {
     double res = totalPhase-(abs(x)*(totalPhase/kPhaseDegrees));
     if(res<0) res=0;
     return static_cast<std::int32_t>(res);
 }
 
-void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index, qftbx::NicholsPoint point, double totalPhase)
+void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index, qftbx::NicholsPoint point, double totalPhase) const
 {
     Trace & bucket = layerBucketsRow.at(static_cast<std::size_t>(bucketIndex(point.phase, totalPhase)));
 
@@ -44,7 +47,7 @@ void BoundaryUnion1D::insertSorted(TraceSet & layerBucketsRow, std::size_t index
     bucket.insert(bucket.begin() + static_cast<std::ptrdiff_t>(index), point);
 }
 
-std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper)
+std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosenCurves, double totalPhase, bool open, bool upper) const
 {
     std::vector<TraceSet> layerBuckets (kLayerCount);
 
@@ -76,7 +79,7 @@ std::vector<TraceSet> BoundaryUnion1D::buildLayerBuckets(const TraceSet & chosen
 
 Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
                                       const std::vector<TraceSet> & layerBuckets,
-                                      double totalPhase, bool open1, bool open2)
+                                      double totalPhase, bool open1, bool open2) const
 {
     Trace layer1;
 
@@ -162,7 +165,7 @@ Trace BoundaryUnion1D::drawFirstLayer(const TraceSet & chosenCurves,
 
 Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
                                        const std::vector<TraceSet> & layerBuckets,
-                                       double totalPhase, bool open1, bool open2)
+                                       double totalPhase, bool open1, bool open2) const
 {
     Trace layer2;
 
@@ -246,7 +249,7 @@ Trace BoundaryUnion1D::drawSecondLayer(const TraceSet & chosenCurves,
     return layer2;
 }
 
-inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, std::int32_t phaseCount)
+inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, std::int32_t phaseCount) const
 {
     double res = (abs(x)*(static_cast<double>(phaseCount)/totalPhase));
     if(res<0) res=0;
@@ -254,7 +257,7 @@ inline std::int32_t BoundaryUnion1D::bucketIndex(double x, double totalPhase, st
     return static_cast<std::int32_t>(res);
 }
 
-TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::size_t pointCount)
+TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double totalPhase, std::size_t pointCount) const
 {
     TraceSet unionBucketsRow (pointCount);
 
@@ -281,12 +284,74 @@ TraceSet BoundaryUnion1D::buildUnionBuckets(const Trace & unionPoints, double to
     return unionBucketsRow;
 }
 
-Trace BoundaryUnion1D::mergeLayers(const Trace & layer1, const Trace & layer2)
+Trace BoundaryUnion1D::mergeLayers(const Trace & layer1, const Trace & layer2) const
 {
     Trace merged = layer1;
     merged.insert(merged.end(), layer2.begin(), layer2.end());
 
     return merged;
+}
+
+BoundaryUnion1D::FrequencyUnion BoundaryUnion1D::uniteFrequency(const std::map<std::string, TraceSet> & specifications,
+                                                                const std::map<std::string, TraceLabels> & labels,
+                                                                double totalPhase, std::int32_t phasePointCount) const
+{
+    FrequencyUnion result;
+    Trace unionPoints;
+
+    bool open1 = false, upper = false, open2 = false;
+
+    bool firstSpecification = true;
+
+    for (const auto & entry : specifications)
+    {
+        const TraceSet & specificationTraces = entry.second;
+
+        const auto foundMetadata = labels.find(entry.first);
+        if (foundMetadata != labels.end() && !foundMetadata->second.empty())
+        {
+            upper = !foundMetadata->second.front();
+        }
+
+        if (firstSpecification)
+        {
+            for (const Trace & trace : specificationTraces)
+            {
+                unionPoints.insert(unionPoints.end(), trace.begin(), trace.end());
+            }
+            firstSpecification = false;
+            continue;
+        }
+
+        Trace currentCurve;
+        for (const Trace & trace : specificationTraces)
+        {
+            currentCurve.insert(currentCurve.end(), trace.begin(), trace.end());
+        }
+
+        if (static_cast<double>(unionPoints.size()) >= totalPhase) open1 = true;
+        if (static_cast<double>(currentCurve.size()) >= totalPhase) open2 = true;
+
+        const TraceSet chosenCurves{unionPoints, currentCurve};
+        const std::vector<TraceSet> layerBuckets =
+                buildLayerBuckets(chosenCurves, totalPhase, open1 || open2, upper);
+
+        const Trace layer1 = drawFirstLayer(chosenCurves, layerBuckets, totalPhase, open1, open2);
+        const Trace layer2 = drawSecondLayer(chosenCurves, layerBuckets, totalPhase, open1, open2);
+
+        unionPoints = mergeLayers(layer1, layer2);
+
+        if ((open1 || open2) && !result.open)
+        {
+            result.open = true;
+            result.upper = upper;
+        }
+    }
+
+    result.buckets = buildUnionBuckets(unionPoints, totalPhase, static_cast<std::size_t>(phasePointCount));
+    result.points = result.open ? sortByProximity(unionPoints) : std::move(unionPoints);
+
+    return result;
 }
 
 void BoundaryUnion1D::run(const BoundaryData & boundaries, const TraceMetadata & traceMetadata)
@@ -297,76 +362,32 @@ void BoundaryUnion1D::run(const BoundaryData & boundaries, const TraceMetadata &
     m_upperFlags.clear();
 
     const BoundarySet & boundariesPerFrequency = boundaries.boundaries();
+    const std::size_t frequencyCount = boundariesPerFrequency.size();
+
+    if (traceMetadata.size() < frequencyCount) {
+        throw ComputationError("The union was given the labels of " + std::to_string(traceMetadata.size())
+                               + " frequencies for " + std::to_string(frequencyCount) + ".");
+    }
 
     const double totalPhase = -boundaries.phaseRange().min;
     const std::int32_t phasePointCount = boundaries.phaseCount();
 
-    for (std::size_t i = 0; i < boundariesPerFrequency.size(); i++)
+    std::vector<FrequencyUnion> unions (frequencyCount);
+
+#ifdef OpenMP_AVAILABLE
+#pragma omp parallel for schedule(dynamic)
+#endif
+    for (std::size_t i = 0; i < frequencyCount; i++)
     {
-        const std::map<std::string, TraceSet> & map = boundariesPerFrequency[i];
-        const std::map<std::string, TraceLabels> & metadataMap = traceMetadata.at(i);
+        unions[i] = uniteFrequency(boundariesPerFrequency[i], traceMetadata[i], totalPhase, phasePointCount);
+    }
 
-        Trace unionPoints;
-
-        bool open1 = false, upper = false, open2 = false;
-
-        m_openFlags.push_back(false);
-        m_upperFlags.push_back(false);
-
-        bool firstSpecification = true;
-
-        for (const auto & entry : map)
-        {
-            const TraceSet & specificationTraces = entry.second;
-
-            const auto foundMetadata = metadataMap.find(entry.first);
-            if (foundMetadata != metadataMap.end() && !foundMetadata->second.empty())
-            {
-                upper = !foundMetadata->second.front();
-            }
-
-            if (firstSpecification)
-            {
-                for (const Trace & trace : specificationTraces)
-                {
-                    unionPoints.insert(unionPoints.end(), trace.begin(), trace.end());
-                }
-                firstSpecification = false;
-                continue;
-            }
-
-            Trace currentCurve;
-            for (const Trace & trace : specificationTraces)
-            {
-                currentCurve.insert(currentCurve.end(), trace.begin(), trace.end());
-            }
-
-            if (static_cast<double>(unionPoints.size()) >= totalPhase) open1 = true;
-            if (static_cast<double>(currentCurve.size()) >= totalPhase) open2 = true;
-
-            const TraceSet chosenCurves{unionPoints, currentCurve};
-            const std::vector<TraceSet> layerBuckets =
-                    buildLayerBuckets(chosenCurves, totalPhase, open1 || open2, upper);
-
-            const Trace layer1 = drawFirstLayer(chosenCurves, layerBuckets, totalPhase, open1, open2);
-            const Trace layer2 = drawSecondLayer(chosenCurves, layerBuckets, totalPhase, open1, open2);
-
-            unionPoints = mergeLayers(layer1, layer2);
-
-            if ((open1 || open2) && !m_openFlags.at(i))
-            {
-                m_openFlags[i] = open1 || open2;
-                m_upperFlags[i] = upper;
-            }
-        }
-
-        m_unionBuckets.push_back(buildUnionBuckets(unionPoints, totalPhase, static_cast<std::size_t>(phasePointCount)));
-
-        if (m_openFlags.at(i)) {
-            m_unionVectors.push_back(sortByProximity(unionPoints));
-        } else {
-            m_unionVectors.push_back(std::move(unionPoints));
-        }
+    for (FrequencyUnion & frequency : unions)
+    {
+        m_unionBuckets.push_back(std::move(frequency.buckets));
+        m_unionVectors.push_back(std::move(frequency.points));
+        m_openFlags.push_back(frequency.open);
+        m_upperFlags.push_back(frequency.upper);
     }
 }
 
@@ -390,7 +411,7 @@ std::vector<bool> BoundaryUnion1D::takeUpperFlags()
     return std::move(m_upperFlags);
 }
 
-Trace BoundaryUnion1D::sortByProximity(const Trace & points) {
+Trace BoundaryUnion1D::sortByProximity(const Trace & points) const {
 
     if (points.empty()) {
         return {};
