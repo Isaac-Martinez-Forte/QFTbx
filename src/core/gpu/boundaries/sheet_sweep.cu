@@ -1,8 +1,10 @@
 /**
  * @file
- * @brief The kernels of the sheets and their run.
+ * @brief The kernels of the sheets, the batches that launch them, and the
+ * run that brings the sheets back.
  *
- * A batch of frequencies goes up with its templates, and on the card:
+ * A batch of frequencies (SheetBatch) goes up with its templates, and on
+ * the card:
  * - prepareSamples() takes P0/P, its radius and its single precision copy,
  *   one thread per sample, and measureScale() the largest radius of each
  *   frequency, which says whether single precision holds;
@@ -20,8 +22,9 @@
  * What a frequency needs is decided when launching: one kernel per set of
  * extremes and per guard, and the frequencies that need the same share a
  * launch, their indices in the third dimension of the grid. Inside, every
- * branch goes the same way for a whole block or a whole warp. The sheets
- * come back through pinned memory into the processor's layout.
+ * branch goes the same way for a whole block or a whole warp.
+ * sheetsOnCard() brings the sheets back through pinned memory into the
+ * processor's layout; boundariesOnCard() reads them where they are.
  */
 
 #include "src/core/gpu/boundaries/sheet_sweep.h"
@@ -38,6 +41,7 @@
 #include <cub/block/block_reduce.cuh>
 #include <cuda_runtime.h>
 
+#include "src/core/gpu/boundaries/sheet_batch.cuh"
 #include "src/core/gpu/boundaries/sheet_bounds.cuh"
 #include "src/core/gpu/common/cancel_flag.cuh"
 #include "src/core/gpu/common/check.cuh"
@@ -54,30 +58,6 @@ namespace {
 constexpr std::int32_t kCellBlock = 128;
 constexpr std::int32_t kScaleBlock = 256;
 constexpr unsigned int kFullWarp = 0xffffffffu;
-
-struct BatchView
-{
-    std::int32_t phaseCount;
-    const double * rowMagnitude;
-    const double * cosine;
-    const double * sine;
-    const std::size_t * offset;
-    const std::int32_t * count;
-    const DeviceComplex * nominal;
-    const double * nominalMagnitude;
-    const std::int64_t * sheetOffset;
-    const DeviceComplex * plants;
-    DeviceComplex * q;
-    double * radius;
-    SampleFloats * single;
-    float * scale;
-    double * largest;
-    SegmentFloats * segment;
-    SegmentDoubles * segmentExact;
-    double * spacing;
-    double * sheets;
-    int * cancel;
-};
 
 struct Larger
 {
@@ -496,16 +476,6 @@ std::size_t bytesPerSample(Guard guard)
     return bytes;
 }
 
-template <typename T>
-DeviceBuffer<T> uploaded(const std::vector<T> & host, const Stream & stream)
-{
-    DeviceBuffer<T> buffer(host.size(), stream);
-    if (!host.empty()) {
-        buffer.upload(host.data());
-    }
-    return buffer;
-}
-
 double millisecondsSince(std::chrono::steady_clock::time_point start)
 {
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
@@ -712,43 +682,34 @@ const std::vector<double> & SheetsOnProcessor::spacings() const
     return m_state->prepared.spacing;
 }
 
-SheetsOnCard sheetsOnCard(const SheetProblem & problem, const CancellationToken * cancellation)
+SheetRun::SheetRun(const SheetProblem & problem)
+    : problem(problem), rows(problem.rowMagnitudes.size()), columns(problem.cosines.size()), guard(guardOf(problem))
 {
-    SheetsOnCard result;
-    const std::vector<std::vector<std::complex<double>>> & templates = *problem.templates;
-    const std::size_t frequencyCount = templates.size();
-    const std::size_t rows = problem.rowMagnitudes.size();
-    const std::size_t columns = problem.cosines.size();
-    const std::size_t cells = rows * columns;
-    result.sheets.assign(frequencyCount, {});
-    if (frequencyCount == 0 || cells == 0) {
-        return result;
-    }
     if (rows > 65535) {
         throw CudaError("the Nichols grid has more magnitudes than a launch holds", 0);
     }
+    rowMagnitude = uploaded(problem.rowMagnitudes, stream);
+    cosine = uploaded(problem.cosines, stream);
+    sine = uploaded(problem.sines, stream);
+}
 
-    useProbedDevice();
-    Stream stream;
-    CancelFlag flag;
-    const Guard guard = guardOf(problem);
-
-    const DeviceBuffer<double> rowMagnitude = uploaded(problem.rowMagnitudes, stream);
-    const DeviceBuffer<double> cosine = uploaded(problem.cosines, stream);
-    const DeviceBuffer<double> sine = uploaded(problem.sines, stream);
-
+std::vector<BatchRange> batchesOf(const SheetRun & run, const std::function<std::size_t(std::size_t)> & extraBytes)
+{
+    const std::vector<std::vector<std::complex<double>>> & templates = *run.problem.templates;
+    const std::size_t cells = run.rows * run.columns;
     std::size_t freeBytes = 0;
     std::size_t totalBytes = 0;
     check(cudaMemGetInfo(&freeBytes, &totalBytes), "cudaMemGetInfo");
     const std::size_t budget = freeBytes / 2;
 
+    std::vector<BatchRange> batches;
     std::size_t first = 0;
-    while (first < frequencyCount) {
+    while (first < templates.size()) {
         std::size_t end = first;
         std::size_t bytes = 0;
-        while (end < frequencyCount && end - first < 65535) {
-            const std::size_t more = templates[end].size() * bytesPerSample(guard)
-                    + usedSheets(problem.sheets.at(end)) * cells * sizeof(double);
+        while (end < templates.size() && end - first < 65535) {
+            const std::size_t more = templates[end].size() * bytesPerSample(run.guard)
+                    + usedSheets(run.problem.sheets.at(end)) * cells * sizeof(double) + extraBytes(end);
             if (end > first && bytes + more > budget) {
                 break;
             }
@@ -758,122 +719,150 @@ SheetsOnCard sheetsOnCard(const SheetProblem & problem, const CancellationToken 
             bytes += more;
             ++end;
         }
-        const std::size_t count = end - first;
+        batches.push_back({first, end - first});
+        first = end;
+    }
+    return batches;
+}
 
-        std::vector<std::size_t> offset(count);
-        std::vector<std::int32_t> sampleCount(count);
-        std::vector<DeviceComplex> nominal(count);
-        std::vector<double> nominalMagnitude(count);
-        std::vector<std::int64_t> sheetOffset(5 * count, -1);
-        std::size_t samples = 0;
-        std::size_t largestTemplate = 0;
-        std::int64_t sheetValues = 0;
-        std::map<Need, std::vector<std::int32_t>> groups;
-        for (std::size_t u = 0; u < count; ++u) {
-            const std::vector<std::complex<double>> & cloud = templates[first + u];
-            offset[u] = samples;
-            sampleCount[u] = static_cast<std::int32_t>(cloud.size());
-            samples += cloud.size();
-            largestTemplate = std::max(largestTemplate, cloud.size());
-            const std::complex<double> p0 = problem.nominal.at(first + u);
-            nominal[u] = DeviceComplex(p0.real(), p0.imag());
-            nominalMagnitude[u] = std::abs(p0);
-            const std::array<bool, 5> & used = problem.sheets.at(first + u);
-            for (int k = 0; k < 5; ++k) {
-                if (used[static_cast<std::size_t>(k)]) {
-                    sheetOffset[5 * u + static_cast<std::size_t>(k)] = sheetValues;
-                    sheetValues += static_cast<std::int64_t>(cells);
-                }
-            }
-            if (usedSheets(used) > 0) {
-                groups[needOf(used, guard)].push_back(static_cast<std::int32_t>(u));
+SheetBatch::SheetBatch(SheetRun & run, BatchRange batch) : range(batch)
+{
+    const SheetProblem & problem = run.problem;
+    const std::vector<std::vector<std::complex<double>>> & templates = *problem.templates;
+    const std::size_t count = range.count;
+    const std::size_t cells = run.rows * run.columns;
+    const Stream & stream = run.stream;
+
+    offset.assign(count, 0);
+    sampleCount.assign(count, 0);
+    sheetOffset.assign(5 * count, -1);
+    std::vector<DeviceComplex> nominal(count);
+    std::vector<double> nominalMagnitude(count);
+    std::size_t samples = 0;
+    std::size_t largestTemplate = 0;
+    std::map<Need, std::vector<std::int32_t>> groups;
+    for (std::size_t u = 0; u < count; ++u) {
+        const std::vector<std::complex<double>> & cloud = templates[range.first + u];
+        offset[u] = samples;
+        sampleCount[u] = static_cast<std::int32_t>(cloud.size());
+        samples += cloud.size();
+        largestTemplate = std::max(largestTemplate, cloud.size());
+        const std::complex<double> p0 = problem.nominal.at(range.first + u);
+        nominal[u] = DeviceComplex(p0.real(), p0.imag());
+        nominalMagnitude[u] = std::abs(p0);
+        const std::array<bool, 5> & used = problem.sheets.at(range.first + u);
+        for (int k = 0; k < 5; ++k) {
+            if (used[static_cast<std::size_t>(k)]) {
+                sheetOffset[5 * u + static_cast<std::size_t>(k)] = sheetValues;
+                sheetValues += static_cast<std::int64_t>(cells);
             }
         }
-        std::vector<DeviceComplex> plants;
-        plants.reserve(samples);
-        for (std::size_t u = 0; u < count; ++u) {
-            for (const std::complex<double> & p : templates[first + u]) {
-                plants.emplace_back(p.real(), p.imag());
-            }
+        if (usedSheets(used) > 0) {
+            groups[needOf(used, run.guard)].push_back(static_cast<std::int32_t>(u));
         }
+    }
+    std::vector<DeviceComplex> plants;
+    plants.reserve(samples);
+    for (std::size_t u = 0; u < count; ++u) {
+        for (const std::complex<double> & p : templates[range.first + u]) {
+            plants.emplace_back(p.real(), p.imag());
+        }
+    }
 
+    m_offset = uploaded(offset, stream);
+    m_count = uploaded(sampleCount, stream);
+    m_nominal = uploaded(nominal, stream);
+    m_nominalMagnitude = uploaded(nominalMagnitude, stream);
+    m_sheetOffset = uploaded(sheetOffset, stream);
+    m_plants = uploaded(plants, stream);
+    m_q = DeviceBuffer<DeviceComplex>(samples, stream);
+    m_radius = DeviceBuffer<double>(samples, stream);
+    m_single = DeviceBuffer<SampleFloats>(samples, stream);
+    m_scale = DeviceBuffer<float>(count, stream);
+    m_largest = DeviceBuffer<double>(count, stream);
+    m_segment = DeviceBuffer<SegmentFloats>(run.guard == Guard::Contour ? samples : 0, stream);
+    m_segmentExact = DeviceBuffer<SegmentDoubles>(run.guard == Guard::Contour ? samples : 0, stream);
+    m_spacing = DeviceBuffer<double>(run.guard == Guard::Cloud ? samples : 0, stream);
+    m_sheets = DeviceBuffer<double>(static_cast<std::size_t>(sheetValues), stream);
+
+    view.phaseCount = static_cast<std::int32_t>(run.columns);
+    view.rowMagnitude = run.rowMagnitude.data();
+    view.cosine = run.cosine.data();
+    view.sine = run.sine.data();
+    view.offset = m_offset.data();
+    view.count = m_count.data();
+    view.nominal = m_nominal.data();
+    view.nominalMagnitude = m_nominalMagnitude.data();
+    view.sheetOffset = m_sheetOffset.data();
+    view.plants = m_plants.data();
+    view.q = m_q.data();
+    view.radius = m_radius.data();
+    view.single = m_single.data();
+    view.scale = m_scale.data();
+    view.largest = m_largest.data();
+    view.segment = m_segment.data();
+    view.segmentExact = m_segmentExact.data();
+    view.spacing = m_spacing.data();
+    view.sheets = m_sheets.data();
+    view.cancel = run.flag.device();
+
+    if (largestTemplate > 0) {
+        const dim3 sampleBlocks(blocksFor(largestTemplate, kCellBlock), static_cast<unsigned int>(count));
+        prepareSamples<<<sampleBlocks, kCellBlock, 0, stream.get()>>>(view);
+        checkLaunch("the preparation of the templates");
+        measureScale<<<static_cast<unsigned int>(count), kScaleBlock, 0, stream.get()>>>(view);
+        checkLaunch("the scale of the templates");
+        if (run.guard == Guard::Contour) {
+            buildSegments<<<static_cast<unsigned int>(count), 32, 0, stream.get()>>>(view);
+            checkLaunch("the loops of the contours");
+        }
+        if (run.guard == Guard::Cloud) {
+            spacings<<<sampleBlocks, kCellBlock, 0, stream.get()>>>(view);
+            checkLaunch("the spacings of the clouds");
+        }
+    }
+
+    for (const auto & [need, members] : groups) {
+        m_groups.push_back(uploaded(members, stream));
+        launchCells(run.guard, need, view, m_groups.back().data(), members.size(), run.rows, run.columns, stream);
+    }
+}
+
+SheetsOnCard sheetsOnCard(const SheetProblem & problem, const CancellationToken * cancellation)
+{
+    SheetsOnCard result;
+    const std::size_t frequencyCount = problem.templates->size();
+    result.sheets.assign(frequencyCount, {});
+    if (frequencyCount == 0 || problem.rowMagnitudes.empty() || problem.cosines.empty()) {
+        return result;
+    }
+
+    useProbedDevice();
+    SheetRun run(problem);
+    const std::size_t rows = run.rows;
+    const std::size_t columns = run.columns;
+
+    for (const BatchRange & range : batchesOf(run, [](std::size_t) { return std::size_t{0}; })) {
         const auto computing = std::chrono::steady_clock::now();
-        const DeviceBuffer<std::size_t> offsetOnCard = uploaded(offset, stream);
-        const DeviceBuffer<std::int32_t> countOnCard = uploaded(sampleCount, stream);
-        const DeviceBuffer<DeviceComplex> nominalOnCard = uploaded(nominal, stream);
-        const DeviceBuffer<double> nominalMagnitudeOnCard = uploaded(nominalMagnitude, stream);
-        const DeviceBuffer<std::int64_t> sheetOffsetOnCard = uploaded(sheetOffset, stream);
-        const DeviceBuffer<DeviceComplex> plantsOnCard = uploaded(plants, stream);
-        DeviceBuffer<DeviceComplex> q(samples, stream);
-        DeviceBuffer<double> radius(samples, stream);
-        DeviceBuffer<SampleFloats> single(samples, stream);
-        DeviceBuffer<float> scale(count, stream);
-        DeviceBuffer<double> largest(count, stream);
-        DeviceBuffer<SegmentFloats> segment(guard == Guard::Contour ? samples : 0, stream);
-        DeviceBuffer<SegmentDoubles> segmentExact(guard == Guard::Contour ? samples : 0, stream);
-        DeviceBuffer<double> spacing(guard == Guard::Cloud ? samples : 0, stream);
-        DeviceBuffer<double> sheets(static_cast<std::size_t>(sheetValues), stream);
-
-        BatchView view{};
-        view.phaseCount = static_cast<std::int32_t>(columns);
-        view.rowMagnitude = rowMagnitude.data();
-        view.cosine = cosine.data();
-        view.sine = sine.data();
-        view.offset = offsetOnCard.data();
-        view.count = countOnCard.data();
-        view.nominal = nominalOnCard.data();
-        view.nominalMagnitude = nominalMagnitudeOnCard.data();
-        view.sheetOffset = sheetOffsetOnCard.data();
-        view.plants = plantsOnCard.data();
-        view.q = q.data();
-        view.radius = radius.data();
-        view.single = single.data();
-        view.scale = scale.data();
-        view.largest = largest.data();
-        view.segment = segment.data();
-        view.segmentExact = segmentExact.data();
-        view.spacing = spacing.data();
-        view.sheets = sheets.data();
-        view.cancel = flag.device();
-
-        if (largestTemplate > 0) {
-            const dim3 sampleBlocks(blocksFor(largestTemplate, kCellBlock), static_cast<unsigned int>(count));
-            prepareSamples<<<sampleBlocks, kCellBlock, 0, stream.get()>>>(view);
-            checkLaunch("the preparation of the templates");
-            measureScale<<<static_cast<unsigned int>(count), kScaleBlock, 0, stream.get()>>>(view);
-            checkLaunch("the scale of the templates");
-            if (guard == Guard::Contour) {
-                buildSegments<<<static_cast<unsigned int>(count), 32, 0, stream.get()>>>(view);
-                checkLaunch("the loops of the contours");
-            }
-            if (guard == Guard::Cloud) {
-                spacings<<<sampleBlocks, kCellBlock, 0, stream.get()>>>(view);
-                checkLaunch("the spacings of the clouds");
-            }
-        }
-
-        std::vector<DeviceBuffer<std::int32_t>> groupLists;
-        for (const auto & [need, members] : groups) {
-            groupLists.push_back(uploaded(members, stream));
-            launchCells(guard, need, view, groupLists.back().data(), members.size(), rows, columns, stream);
-        }
-        if (!stream.finish(cancellation, &flag)) {
+        const SheetBatch batch(run, range);
+        if (!run.stream.finish(cancellation, &run.flag)) {
             result.cancelled = true;
             return result;
         }
         result.kernelMilliseconds += millisecondsSince(computing);
 
         const auto copying = std::chrono::steady_clock::now();
-        PinnedBuffer<double> staging(static_cast<std::size_t>(sheetValues));
-        if (sheetValues > 0) {
-            check(cudaMemcpyAsync(staging.data(), sheets.data(), static_cast<std::size_t>(sheetValues) * sizeof(double),
-                                  cudaMemcpyDeviceToHost, stream.get()), "cudaMemcpyAsync of the sheets");
-            stream.synchronize();
+        PinnedBuffer<double> staging(static_cast<std::size_t>(batch.sheetValues));
+        if (batch.sheetValues > 0) {
+            check(cudaMemcpyAsync(staging.data(), batch.view.sheets,
+                                  static_cast<std::size_t>(batch.sheetValues) * sizeof(double), cudaMemcpyDeviceToHost,
+                                  run.stream.get()), "cudaMemcpyAsync of the sheets");
+            run.stream.synchronize();
         }
-        for (std::size_t u = 0; u < count; ++u) {
-            BoundarySheets & frequencySheets = result.sheets[first + u];
+        for (std::size_t u = 0; u < range.count; ++u) {
+            BoundarySheets & frequencySheets = result.sheets[range.first + u];
             for (std::size_t k = 0; k < 5; ++k) {
-                const std::int64_t at = sheetOffset[5 * u + k];
+                const std::int64_t at = batch.sheetOffset[5 * u + k];
                 if (at < 0) {
                     continue;
                 }
@@ -887,7 +876,6 @@ SheetsOnCard sheetsOnCard(const SheetProblem & problem, const CancellationToken 
         }
         result.copyMilliseconds += millisecondsSince(copying);
         ++result.batches;
-        first = end;
     }
     return result;
 }

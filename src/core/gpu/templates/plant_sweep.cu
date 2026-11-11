@@ -142,14 +142,6 @@ GridView viewOf(const SweepGrid & grid, const FlatGrid & flat)
     return view;
 }
 
-template <typename T>
-DeviceBuffer<T> uploaded(const std::vector<T> & host, const Stream & stream)
-{
-    DeviceBuffer<T> buffer(host.size(), stream);
-    buffer.upload(host.data());
-    return buffer;
-}
-
 struct ModelOnCard
 {
     DeviceBuffer<std::int32_t> numeratorSlot;

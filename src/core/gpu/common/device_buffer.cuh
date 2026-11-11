@@ -7,6 +7,7 @@
  * where it does not, so the stream must outlive its buffers. Copies are
  * asynchronous in the same stream; from and to a PinnedBuffer they overlap
  * with the work of other streams. A buffer of no elements reserves nothing.
+ * uploaded() is a buffer with a copy of a vector.
  */
 
 #ifndef QFTBX_GPU_DEVICE_BUFFER_CUH
@@ -14,6 +15,7 @@
 
 #include <cstddef>
 #include <utility>
+#include <vector>
 
 #include <cuda_runtime.h>
 
@@ -167,6 +169,16 @@ private:
     T * m_data = nullptr;
     std::size_t m_count = 0;
 };
+
+template <typename T>
+DeviceBuffer<T> uploaded(const std::vector<T> & host, const Stream & stream)
+{
+    DeviceBuffer<T> buffer(host.size(), stream);
+    if (!host.empty()) {
+        buffer.upload(host.data());
+    }
+    return buffer;
+}
 
 }
 
