@@ -144,6 +144,65 @@ void BoundaryEngine::adoptSheets(std::vector<double> * omega, LtiSystem * plant,
     uniteFrequencies();
 }
 
+void BoundaryEngine::adoptBoundaries(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
+                                     bool templatesAreContours, BoundaryPlan plan,
+                                     qftbx::Range phaseRange, std::int32_t phaseCount,
+                                     qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                                     std::vector<FrequencyBoundaries> boundaries)
+{
+    adoptPlan(std::move(plan), templatesAreContours, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
+
+    auto timer = std::chrono::steady_clock::now();
+
+    const std::vector <double> phases = qftbx::linspace(phaseRange.min, phaseRange.max, phaseCount);
+    const bool closedForm = m_closedFormColumns && m_templatesAreContours;
+
+    m_boundaries.assign(static_cast<std::size_t>(omega->size()), {});
+    m_traceMetadata.assign(static_cast<std::size_t>(omega->size()), {});
+    m_columns.assign(static_cast<std::size_t>(omega->size()), {});
+
+#ifdef OpenMP_AVAILABLE
+#pragma omp parallel for
+#endif
+    for (std::size_t i = 0; i < omega->size(); ++i){
+
+        if (cancellationAsked(m_cancellation)) {
+            continue;
+        }
+
+        FrequencyBoundaries & read = boundaries.at(i);
+        if (closedForm) {
+            const ComplexCloud & p = templates.at(i);
+            const complex<double> p0 = plant->evaluate(omega->at(i));
+            const std::vector<complex<double>> nominalOverP = nominalOverValueSet(p0, p);
+            std::optional<SingularLocus> locus;
+            if (m_guardSingularLocus) {
+                locus.emplace(nominalOverP, true);
+            }
+            closedFormColumns(omega->at(i), p0, p, nominalOverP, locus ? &*locus : nullptr, phases, i, read.columns);
+        }
+        m_traceMetadata[i] = std::move(read.labels);
+        m_columns[i] = std::move(read.columns);
+        m_boundaries[i] = std::move(read.traces);
+    }
+
+    if (cancellationAsked(m_cancellation)) {
+        m_boundaries.clear();
+        m_traceMetadata.clear();
+        m_columns.clear();
+        throw qftbx::Cancelled();
+    }
+
+    if (closedForm) {
+        qftbx::record::write("boundaries", "closed form (OpenMP)",
+                          qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                       std::chrono::steady_clock::now() - timer).count())
+                              + " " + qftbx::record::number("frequencies", m_boundaries.size()));
+    }
+
+    uniteFrequencies();
+}
+
 void BoundaryEngine::uniteFrequencies()
 {
     BoundaryUnion1D boundaryUnion;
@@ -481,6 +540,25 @@ BoundarySheets BoundaryEngine::sheetsAt(std::complex<double> p0, const ComplexCl
     return sheets;
 }
 
+void BoundaryEngine::closedFormColumns(double omega, std::complex<double> p0, const ComplexCloud & valueSet,
+                                       const std::vector<std::complex<double>> & nominalOverP,
+                                       const SingularLocus * locus, const std::vector <double> & phases,
+                                       std::size_t index, std::map<std::string, BoundaryColumns> & columns) const
+{
+    const SingularLocus * guard = m_guardSingularLocus ? locus : nullptr;
+    const auto replace = [&](const char * name, SpecificationType type, bool used) {
+        if (used) {
+            columns[name] = ClosedFormColumns::columns(type, m_specifications.at(type).boundDb(omega),
+                                                      p0, valueSet, nominalOverP, phases, m_phaseRange, guard);
+        }
+    };
+    replace("Stability", SpecificationType::Stability, m_stabilityMask.at(index));
+    replace("SensorNoise", SpecificationType::SensorNoise, m_noiseMask.at(index));
+    replace("OutputDisturbance", SpecificationType::OutputDisturbance, m_outputDisturbanceMask.at(index));
+    replace("InputDisturbance", SpecificationType::InputDisturbance, m_inputDisturbanceMask.at(index));
+    replace("ControlEffort", SpecificationType::ControlEffort, m_controlEffortMask.at(index));
+}
+
 void BoundaryEngine::readSheets(double omega, std::complex<double> p0, const ComplexCloud & valueSet,
                                 const std::vector<std::complex<double>> & nominalOverP,
                                 const SingularLocus * locus, const BoundarySheets & sheets,
@@ -498,18 +576,7 @@ void BoundaryEngine::readSheets(double omega, std::complex<double> p0, const Com
                    m_phaseRange.min, m_magnitudeRange.min);
 
     if (m_closedFormColumns && m_templatesAreContours) {
-        const SingularLocus * guard = m_guardSingularLocus ? locus : nullptr;
-        const auto replace = [&](const char * name, SpecificationType type, bool used) {
-            if (used) {
-                columns[name] = ClosedFormColumns::columns(type, m_specifications.at(type).boundDb(omega),
-                                                          p0, p, nominalOverP, phases, m_phaseRange, guard);
-            }
-        };
-        replace("Stability", SpecificationType::Stability, m_stabilityMask.at(index));
-        replace("SensorNoise", SpecificationType::SensorNoise, m_noiseMask.at(index));
-        replace("OutputDisturbance", SpecificationType::OutputDisturbance, m_outputDisturbanceMask.at(index));
-        replace("InputDisturbance", SpecificationType::InputDisturbance, m_inputDisturbanceMask.at(index));
-        replace("ControlEffort", SpecificationType::ControlEffort, m_controlEffortMask.at(index));
+        closedFormColumns(omega, p0, p, nominalOverP, locus, phases, index, columns);
     }
 
     m_traceMetadata[index] = std::move(traceMetadata);

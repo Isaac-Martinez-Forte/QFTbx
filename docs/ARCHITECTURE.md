@@ -44,7 +44,7 @@ in [docs/algorithms](algorithms/README.md).
 | `src/core/frequencies/` | The design frequency set (`Omega`) |
 | `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
 | `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`); the plan of the sweep and its run on the processor (`sweep_plan.h`), shared with the GPU |
-| `src/core/boundaries/` | Boundary computation: the checks and the specifications of each frequency (`boundary_plan.h`), sheets (`BoundaryEngine`, which also reads sheets computed on the GPU), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
+| `src/core/boundaries/` | Boundary computation: the checks and the specifications of each frequency (`boundary_plan.h`), sheets (`BoundaryEngine`, which also takes the sheets, or the traces and columns read off them, computed on the GPU), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
 | `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/`, `mc2/`, `mc3/` one algorithm each |
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
 | `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |

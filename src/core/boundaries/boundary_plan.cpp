@@ -17,6 +17,25 @@ std::array<bool, 5> BoundaryPlan::sheetsUsed(std::size_t frequency) const
             outputDisturbance.at(frequency), inputDisturbance.at(frequency), controlEffort.at(frequency)};
 }
 
+std::vector<SheetReading> BoundaryPlan::readings(std::size_t frequency, double omega) const
+{
+    std::vector<SheetReading> out;
+    if (tracking.at(frequency)) {
+        out.push_back({"Tracking", 1, specifications.trackingSpreadDb(omega)});
+    }
+    const auto bound = [&](bool used, const char * name, std::size_t sheet, SpecificationType type) {
+        if (used) {
+            out.push_back({name, sheet, specifications.at(type).boundDb(omega)});
+        }
+    };
+    bound(stability.at(frequency), "Stability", 0, SpecificationType::Stability);
+    bound(noise.at(frequency), "SensorNoise", 0, SpecificationType::SensorNoise);
+    bound(outputDisturbance.at(frequency), "OutputDisturbance", 2, SpecificationType::OutputDisturbance);
+    bound(inputDisturbance.at(frequency), "InputDisturbance", 3, SpecificationType::InputDisturbance);
+    bound(controlEffort.at(frequency), "ControlEffort", 4, SpecificationType::ControlEffort);
+    return out;
+}
+
 BoundaryPlan planBoundaries(const std::vector<double> & omega, const SpecificationRecords & specifications,
                             Range phaseRange, std::int32_t phaseCount,
                             Range magnitudeRange, std::int32_t magnitudeCount)

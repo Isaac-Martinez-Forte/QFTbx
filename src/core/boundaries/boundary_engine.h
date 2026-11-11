@@ -36,7 +36,9 @@
  * once per frequency; a cancelled computation throws Cancelled and keeps
  * nothing. boundaryData() is a snapshot by value. adoptSheets() takes the
  * sheets of every frequency computed elsewhere, on the GPU, and does the
- * rest: the traces, the columns and the union.
+ * rest: the traces, the columns and the union. adoptBoundaries() takes the
+ * traces, their labels and the columns read elsewhere, and does the
+ * closed-form columns, when they are on, and the union.
  */
 
 #ifndef QFTBX_BOUNDARY_ENGINE_H
@@ -67,6 +69,13 @@ namespace qftbx {
 
 class SingularLocus;
 
+struct FrequencyBoundaries
+{
+    std::map<std::string, TraceSet> traces;
+    std::map<std::string, TraceLabels> labels;
+    std::map<std::string, BoundaryColumns> columns;
+};
+
 class BoundaryEngine : public BoundaryComputation
 {
 public:
@@ -95,6 +104,12 @@ public:
                      qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
                      std::vector<BoundarySheets> sheets);
 
+    void adoptBoundaries(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
+                         bool templatesAreContours, BoundaryPlan plan,
+                         qftbx::Range phaseRange, std::int32_t phaseCount,
+                         qftbx::Range magnitudeRange, std::int32_t magnitudeCount,
+                         std::vector<FrequencyBoundaries> boundaries);
+
 private:
     const qftbx::CancellationToken * m_cancellation = nullptr;
 
@@ -121,6 +136,11 @@ private:
                             const std::vector<std::complex<double>> & nominalOverP, const SingularLocus & locus,
                             const std::vector <double> & phases, const std::vector <double> & magnitudes,
                             std::size_t index) const;
+
+    void closedFormColumns(double omega, std::complex<double> p0, const ComplexCloud & valueSet,
+                           const std::vector<std::complex<double>> & nominalOverP, const SingularLocus * locus,
+                           const std::vector <double> & phases, std::size_t index,
+                           std::map<std::string, BoundaryColumns> & columns) const;
 
     void readSheets(double omega, std::complex<double> p0, const ComplexCloud & valueSet,
                     const std::vector<std::complex<double>> & nominalOverP, const SingularLocus * locus,
