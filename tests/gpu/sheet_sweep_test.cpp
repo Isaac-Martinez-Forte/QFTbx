@@ -26,9 +26,14 @@
  * on the last bit on either side: the tolerance adds what the widening
  * spans over the samples within 1e-14 of the nearest distance, and the
  * widening d / (d - h/2) magnifies the last bits of d and h as d nears
- * h/2, which it adds in the same way as the distance. The traces
- * are read off the sheets by interpolation, which divides by the step
- * between neighbouring cells; they are compared within 1e-6.
+ * h/2, which it adds in the same way as the distance.
+ *
+ * The traces run through the nodes of the grid, on whichever side of its
+ * bound each cell lies, so they and the unions must come out the same. The
+ * ends of the columns are interpolated where a sheet crosses its bound,
+ * dividing by the difference between neighbouring cells, which magnifies
+ * the last bits of a sheet that is nearly flat there; they are compared
+ * within 1e-6 dB.
  */
 
 #include <gtest/gtest.h>
@@ -62,7 +67,7 @@ constexpr double kToleranceDb = 1e-9;
 constexpr double kConditionDb = 1e-14;
 constexpr double kOnTheTemplate = 1e-12;
 constexpr double kViolatingDb = 150.0;
-constexpr double kTraceTolerance = 1e-6;
+constexpr double kColumnToleranceDb = 1e-6;
 constexpr double kInfinity = std::numeric_limits<double>::infinity();
 
 struct Grid
@@ -290,16 +295,17 @@ Tally diagonal(const gpu::SheetProblem & problem, const std::string & name)
 struct Gap
 {
     std::size_t differ = 0;
-    double largest = 0.0;
+    double traces = 0.0;
+    double columns = 0.0;
 };
 
-void compareValue(double a, double b, Gap & gap)
+void compareValue(double a, double b, Gap & gap, double & largest)
 {
     if (std::isinf(a) || std::isinf(b)) {
         gap.differ += a == b ? 0 : 1;
         return;
     }
-    gap.largest = std::max(gap.largest, std::abs(a - b));
+    largest = std::max(largest, std::abs(a - b));
 }
 
 void compareTraces(const TraceSet & a, const TraceSet & b, Gap & gap)
@@ -314,8 +320,8 @@ void compareTraces(const TraceSet & a, const TraceSet & b, Gap & gap)
             continue;
         }
         for (std::size_t i = 0; i < a[t].size(); ++i) {
-            compareValue(a[t][i].phase, b[t][i].phase, gap);
-            compareValue(a[t][i].magnitude, b[t][i].magnitude, gap);
+            compareValue(a[t][i].phase, b[t][i].phase, gap, gap.traces);
+            compareValue(a[t][i].magnitude, b[t][i].magnitude, gap, gap.traces);
         }
     }
 }
@@ -368,8 +374,8 @@ Gap compareBoundaries(const BoundaryData & a, const BoundaryData & b)
                     continue;
                 }
                 for (std::size_t s = 0; s < spansA.size(); ++s) {
-                    compareValue(spansA[s].lo, spansB[s].lo, gap);
-                    compareValue(spansA[s].hi, spansB[s].hi, gap);
+                    compareValue(spansA[s].lo, spansB[s].lo, gap, gap.columns);
+                    compareValue(spansA[s].hi, spansB[s].hi, gap, gap.columns);
                 }
             }
         }
@@ -545,7 +551,8 @@ TEST(SheetsOnTheCard, TheSheetsOfTheWholeGridReadByTheEngineGiveItsBoundaries)
                             g.phaseCount, g.magnitudeRange, g.magnitudeCount, std::move(sheets));
         const Gap gap = compareBoundaries(reference.boundaryData(), adopted.boundaryData());
         EXPECT_EQ(gap.differ, 0u) << name;
-        EXPECT_LE(gap.largest, kTraceTolerance) << name;
+        EXPECT_EQ(gap.traces, 0.0) << name;
+        EXPECT_LE(gap.columns, kColumnToleranceDb) << name;
     }
 }
 
@@ -627,8 +634,10 @@ TEST(GpuBoundaries, TheEngineOfTheCardGivesTheProcessorsBoundaries)
                     << file;
 
             const Gap gap = compareBoundaries(*processor.project.boundaries(), *card.project.boundaries());
-            EXPECT_EQ(gap.differ, 0u) << file.filename() << (fromContour ? " contour" : " cloud");
-            EXPECT_LE(gap.largest, kTraceTolerance) << file.filename() << (fromContour ? " contour" : " cloud");
+            const std::string where = file.filename().string() + (fromContour ? " contour" : " cloud");
+            EXPECT_EQ(gap.differ, 0u) << where;
+            EXPECT_EQ(gap.traces, 0.0) << where;
+            EXPECT_LE(gap.columns, kColumnToleranceDb) << where;
         }
     }
 }
