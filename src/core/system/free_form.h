@@ -18,10 +18,10 @@
  * parameters named in them; the expression (numerator)/(denominator) is
  * parsed once, when the system is built, and evaluated at s = j omega with
  * the parameter values bound by position. A parameter cannot be called s.
- * evaluation() gives what valueAt() evaluates, for an engine that evaluates
- * it elsewhere: the ratio as a postfix program, the slot of every
- * numerator and denominator parameter in the value vector, slot 0 being s,
- * and the vector's size.
+ * evaluation() gives what valueAt() and polesAt() evaluate, for an engine
+ * that evaluates them elsewhere: the ratio and the denominator as postfix
+ * programs, the slot of every numerator and denominator parameter in the
+ * value vector, slot 0 being s, and the vector's size.
  */
 namespace qftbx {
 
@@ -59,6 +59,7 @@ public:
     struct Evaluation
     {
         ExpressionProgram ratio;
+        ExpressionProgram denominator;
         std::vector<std::size_t> numeratorSlots;
         std::vector<std::size_t> denominatorSlots;
         std::size_t valueCount = 0;

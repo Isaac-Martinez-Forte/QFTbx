@@ -203,6 +203,7 @@ FreeForm::Evaluation FreeForm::evaluation() const
 {
     Evaluation evaluation;
     evaluation.ratio = ExpressionProgram::compile(*m_ratio);
+    evaluation.denominator = ExpressionProgram::compile(*m_denominatorTree);
     evaluation.numeratorSlots = m_numeratorSlots;
     evaluation.denominatorSlots = m_denominatorSlots;
     evaluation.valueCount = m_valueCount;

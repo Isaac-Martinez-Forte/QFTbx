@@ -4,12 +4,13 @@
  *
  * PlantModel says how to evaluate one plant from the digits of a
  * combination: its form, where each coefficient comes from (a digit, or -1
- * for its nominal value), and for a free-form plant the program of its
- * ratio and the slot of each parameter in the program's values, slot 0
- * being s. SweepGrid is the combinations: the grids, the first changing
- * fastest, or the points of the border. Plain C++, built by the glue from
- * the plant and the sweep plan, and read by the kernels. The limits are
- * what a thread keeps in its registers.
+ * for its nominal value), and for a free-form plant the programs of its
+ * ratio and of its denominator and the slot of each parameter in the
+ * programs' values, slot 0 being s. SweepGrid is the combinations: the
+ * grids, the first changing fastest, or the points of the border. Plain
+ * C++, built by the glue from the plant and the sweep plan, and read by the
+ * kernels. The limits are what a thread keeps in its registers, and the
+ * coefficients or factors of a denominator, one per thread of a warp.
  */
 
 #ifndef QFTBX_GPU_PLANT_MODEL_H
@@ -29,6 +30,8 @@ enum class PlantForm : std::int32_t { Polynomial, ZeroPoleGain, TimeConstantGain
 inline constexpr int kMaxDigits = 16;
 inline constexpr int kMaxValues = 32;
 inline constexpr int kMaxDepth = 32;
+inline constexpr int kMaxDenominator = 32;
+inline constexpr int kCombinationBits = 56;
 
 struct PlantModel
 {
@@ -44,6 +47,8 @@ struct PlantModel
 
     std::vector<ProgramStep> program;
     std::int32_t programDepth = 0;
+    std::vector<ProgramStep> denominatorProgram;
+    std::int32_t denominatorProgramDepth = 0;
     std::vector<std::int32_t> numeratorValueSlot;
     std::vector<std::int32_t> denominatorValueSlot;
     std::int32_t valueCount = 0;

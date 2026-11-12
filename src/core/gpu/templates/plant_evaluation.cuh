@@ -8,8 +8,8 @@
  * changing fastest, or a point of the border. plantAt() performs the
  * operations of the plant's valueAt() in the same order: Horner for the
  * polynomial form, the products of (s + root) and (s/c + 1) for the other
- * two closed forms, and the postfix program for the free form, then the
- * gain and the delay. The arithmetic is libcu++'s, so the values agree
+ * two closed forms, and the postfix program for the free form, with the
+ * parameters in their slots (bindValues), then the gain and the delay. The arithmetic is libcu++'s, so the values agree
  * with the processor's to rounding, not to the bit.
  *
  * The form of the plant, whether the sweep walks the border and the width
@@ -134,6 +134,18 @@ QFTBX_HD inline DeviceComplex runProgram(const ProgramStep * steps, std::int32_t
     return stack[0];
 }
 
+QFTBX_HD inline void bindValues(const PlantView & plant, const double * digit, DeviceComplex * values)
+{
+    for (std::int32_t c = 0; c < plant.numeratorCount; ++c) {
+        values[plant.numeratorValueSlot[c]] =
+                DeviceComplex(coefficient(plant.numeratorSlot[c], plant.numeratorNominal[c], digit), 0.0);
+    }
+    for (std::int32_t c = 0; c < plant.denominatorCount; ++c) {
+        values[plant.denominatorValueSlot[c]] =
+                DeviceComplex(coefficient(plant.denominatorSlot[c], plant.denominatorNominal[c], digit), 0.0);
+    }
+}
+
 template <PlantForm Form>
 QFTBX_HD inline void closedFormParts(const PlantView & plant, const double * digit, DeviceComplex s,
                                      DeviceComplex & numerator, DeviceComplex & denominator)
@@ -179,15 +191,8 @@ QFTBX_HD inline DeviceComplex plantAt(const PlantView & plant, const double * di
 
     if constexpr (Form == PlantForm::FreeForm) {
         DeviceComplex values[kMaxValues];
+        bindValues(plant, digit, values);
         values[0] = s;
-        for (std::int32_t c = 0; c < plant.numeratorCount; ++c) {
-            values[plant.numeratorValueSlot[c]] =
-                    DeviceComplex(coefficient(plant.numeratorSlot[c], plant.numeratorNominal[c], digit), 0.0);
-        }
-        for (std::int32_t c = 0; c < plant.denominatorCount; ++c) {
-            values[plant.denominatorValueSlot[c]] =
-                    DeviceComplex(coefficient(plant.denominatorSlot[c], plant.denominatorNominal[c], digit), 0.0);
-        }
         const DeviceComplex ratio = runProgram(plant.program, plant.programLength, values);
         return gain * ratio * cuda::std::exp(-s * delay);
     } else {

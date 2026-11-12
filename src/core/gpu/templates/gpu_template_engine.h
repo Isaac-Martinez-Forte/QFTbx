@@ -2,14 +2,15 @@
  * @file
  * @brief The template engine on the GPU.
  *
- * It plans the sweep as the processor does (planSweep), refusing the same
- * families, sweeps the family on the card and hands the clouds over to an
- * engine of the processor for what has no GPU code yet, the proposal of
+ * It plans the combinations as the processor does (planCombinations),
+ * checks the poles of the family on the card and refuses the same families
+ * (adoptFamily), sweeps the family on the card and hands the clouds over to
+ * an engine of the processor for what has no GPU code yet, the proposal of
  * epsilon and the contours. The clouds stay on the card when they fit, for
  * the phases after. A failure on the card is a ComputationError with
  * CUDA's text. modelOf() describes the plant for the card and refuses one
- * whose expression or parameters do not fit a thread; gridOf() is the
- * plan's combinations.
+ * whose expression or parameters do not fit a thread, or whose denominator
+ * does not fit a warp; gridOf() is the plan's combinations.
  */
 
 #ifndef QFTBX_GPU_TEMPLATE_ENGINE_H
