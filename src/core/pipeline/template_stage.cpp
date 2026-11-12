@@ -144,6 +144,12 @@ const std::vector<ContourReport> & TemplateStage::contourReports() const
     return m_engine != nullptr ? m_engine->contourReports() : none;
 }
 
+const std::optional<PoleCountChange> & TemplateStage::poleCountChange() const
+{
+    static const std::optional<PoleCountChange> none;
+    return m_engine != nullptr ? m_engine->poleCountChange() : none;
+}
+
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,
                           CloudSet contour, bool hasContour, ParameterGrids grids)
 {

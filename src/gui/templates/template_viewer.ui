@@ -58,6 +58,11 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="familyNotice">
+       <property name="wordWrap"><bool>true</bool></property>
+      </widget>
+     </item>
+     <item>
       <widget class="QWidget" name="legendHolder" native="true">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">

@@ -10,15 +10,16 @@
  * - it applies the border sweep;
  * - it says where each coefficient comes from, a digit of the combination
  *   or its nominal value;
- * - it refuses a design frequency on a pole of the nominal plant and a
- *   family that changes its number of right half-plane poles;
+ * - it refuses a design frequency on a pole of the nominal plant;
+ * - it notes a family that changes its number of right half-plane poles,
+ *   which it sweeps all the same;
  * - it marks the bands that poles on the imaginary axis sweep.
  *
  * It is planCombinations(), all of it but the poles of the family, and
  * checkFamily(), which finds them on the processor. FamilyPoles is what the
- * poles say, counted over the combinations in order, wherever they were
- * found; adoptFamily() refuses the family from it, or keeps its count and
- * its bands in the plan.
+ * poles say, counted over the combinations in order up to the first whose
+ * poles cannot be placed, wherever they were found; adoptFamily() keeps in
+ * the plan the count, or the first change of it, and the bands.
  *
  * A combination's digits are its grids' values, the first parameter
  * changing fastest, or a point of the border. sweepOnProcessor() evaluates
@@ -40,6 +41,7 @@
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/templates/parameter_grids.h"
+#include "src/core/templates/template_computation.h"
 
 namespace qftbx {
 
@@ -59,6 +61,7 @@ struct SweepPlan
     double delayNominal = 0.0;
 
     std::optional<int> familyRhpPoles;
+    std::optional<PoleCountChange> poleCountChange;
     std::vector<std::optional<std::array<double, 2>>> resonanceBands;
 
     bool borderSweepApplied() const { return !border.empty(); }

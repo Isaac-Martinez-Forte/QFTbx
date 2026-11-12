@@ -131,8 +131,11 @@ principle (Tharewal 2005, section 3.3.5), satisfied stability bounds plus one
 nominally stable controller of a bounds-feasible box make the whole box, and the
 whole plant family, robustly stable; an unstable controller discards the box.
 That argument reaches the family only while every member has the same P, so the
-template sweep counts it over the plants it evaluates and refuses a family whose
-uncertainty crosses the imaginary axis.
+template sweep counts it over the plants it evaluates. A family whose uncertainty
+crosses the imaginary axis is swept all the same, and the templates window and
+`qftbx-solve` name its first two plants that differ: the boundaries do not
+guarantee its stability, which the verdict then checks with the plants of the
+sweep only.
 
 The same principle is applied to ambiguous boxes over the whole frequency range,
 not only at the design frequencies. A loop that crosses -180° above 0 dB between

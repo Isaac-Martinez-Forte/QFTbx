@@ -248,4 +248,9 @@ const std::vector<ContourReport> & GpuTemplateEngine::contourReports() const
     return m_processor.contourReports();
 }
 
+const std::optional<PoleCountChange> & GpuTemplateEngine::poleCountChange() const
+{
+    return m_processor.poleCountChange();
+}
+
 }

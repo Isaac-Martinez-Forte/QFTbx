@@ -41,9 +41,10 @@
  * critical values, and every bounded closed-loop magnitude, a Mobius
  * function of the plant, peaks there while its pole is outside. Its contour
  * is the alpha-shape at the connecting epsilon, never the walk. The sweep
- * refuses a family whose plants differ in right half-plane poles, and marks
- * in the report the design frequencies inside a band swept by poles of its
- * plants on the imaginary axis, where the true template is unbounded and the
+ * notes a family whose plants differ in right half-plane poles
+ * (poleCountChange), and marks in the report the design frequencies inside
+ * a band swept by poles of its plants on the imaginary axis, where the
+ * true template is unbounded and the
  * sweep only reaches as high as its plants go; the plan and the run of the
  * sweep are in sweep_plan.h. An engine that sweeps elsewhere hands its
  * clouds over with the plan (adoptSweep) and has them contoured here
@@ -127,6 +128,7 @@ public:
     std::vector<EpsilonProposal> proposeEpsilon() override;
 
     const std::vector<ContourReport> & contourReports() const override { return m_reports; }
+    const std::optional<PoleCountChange> & poleCountChange() const override { return m_poleCountChange; }
 
     void setWholeCloudStandsIn(bool standsIn) override { m_wholeCloudStandsIn = standsIn; }
     bool wholeCloudStandsIn() const { return m_wholeCloudStandsIn; }
@@ -159,6 +161,7 @@ private:
     bool m_borderSweep = false;
     bool m_borderSweepApplied = false;
     std::optional<int> m_familyRhpPoles;
+    std::optional<PoleCountChange> m_poleCountChange;
     std::vector<std::optional<std::array<double, 2>>> m_resonanceBands;
     std::optional<std::vector<EpsilonProposal>> m_proposals;
 

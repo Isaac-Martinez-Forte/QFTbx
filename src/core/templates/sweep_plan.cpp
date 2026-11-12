@@ -6,7 +6,7 @@
  * plant, moved here unchanged so that the processor and the GPU sweep the
  * same family: on the processor the plants come out as they always have,
  * to the bit. The family's poles are found once per distinct denominator,
- * going through the combinations in order up to the first whose count
+ * going through the combinations in order and keeping the first whose count
  * differs, and a plant whose poles cannot be placed stops the search and
  * leaves the family's count unknown rather than refusing it.
  */
@@ -222,10 +222,9 @@ FamilyPoles checkFamily(LtiSystem & plant, const SweepPlan & plan)
 
         if (!family.firstCount.has_value()){
             family.firstCount = count;
-        } else if (count != *family.firstCount){
+        } else if (count != *family.firstCount && !family.otherCountAt.has_value()){
             family.otherCountAt = i;
             family.otherCount = count;
-            break;
         }
     }
 
@@ -244,22 +243,15 @@ FamilyPoles checkFamily(LtiSystem & plant, const SweepPlan & plan)
 
 void adoptFamily(SweepPlan & plan, const FamilyPoles & family, const std::vector<double> & frequencies)
 {
-    const bool changes = family.otherCountAt.has_value()
-            && (!family.unplaceableAt.has_value() || *family.otherCountAt < *family.unplaceableAt);
-    if (changes){
-        const auto listed = [](const std::vector<double> & values) {
-            std::string text;
-            for (std::size_t k = 0; k < values.size(); k++){
-                text += (k ? ", " : "") + qftbx::text::number(values[k]);
-            }
-            return text;
-        };
-        throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.")
-                                  .arg(family.firstCount.value_or(0)).arg(listed(denominatorAt(plan, 0)))
-                                  .arg(family.otherCount).arg(listed(denominatorAt(plan, *family.otherCountAt))));
+    plan.poleCountChange.reset();
+    if (family.otherCountAt.has_value()
+            && (!family.unplaceableAt.has_value() || *family.otherCountAt < *family.unplaceableAt)){
+        plan.poleCountChange = PoleCountChange{family.firstCount.value_or(0), denominatorAt(plan, 0),
+                                               family.otherCount, denominatorAt(plan, *family.otherCountAt)};
     }
 
-    plan.familyRhpPoles = family.unplaceableAt.has_value() ? std::nullopt : family.firstCount;
+    plan.familyRhpPoles = family.unplaceableAt.has_value() || plan.poleCountChange.has_value()
+            ? std::nullopt : family.firstCount;
 
     plan.resonanceBands.assign(frequencies.size(), std::nullopt);
     for (std::size_t u = 0; u < frequencies.size(); u++){

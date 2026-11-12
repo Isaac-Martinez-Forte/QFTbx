@@ -15,12 +15,12 @@
  * the count of the first combination, the first combination whose poles
  * cannot be placed, the first whose count differs and the band each
  * frequency on the axis sweeps. It stops where the processor's check would,
- * at the first of the two, and when that is a denominator it cannot place
- * it takes the bands again over the combinations before it. Plain C++, so
- * the glue includes it without the toolkit; a failure on the card throws
- * CudaError. familyOnProcessor() runs the same arithmetic one denominator
- * after another on the processor, which is how the tests check the card's
- * work without one.
+ * at the first denominator it cannot place: a count that differs is kept
+ * only before it, and the bands are taken again over the combinations
+ * before it. Plain C++, so the glue includes it without the toolkit; a
+ * failure on the card throws CudaError. familyOnProcessor() runs the same
+ * arithmetic one denominator after another on the processor, which is how
+ * the tests check the card's work without one.
  */
 
 #ifndef QFTBX_GPU_FAMILY_POLES_H

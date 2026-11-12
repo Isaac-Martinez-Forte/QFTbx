@@ -102,6 +102,7 @@ public:
     bool closedFormColumns() const;
 
     const std::vector<ContourReport> & contourReports() const;
+    const std::optional<PoleCountChange> & poleCountChange() const;
 
     std::vector<EpsilonProposal> proposeEpsilon(qftbx::ParameterGrids grids,
                                                 qftbx::EpsilonMetric metric);

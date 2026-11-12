@@ -666,10 +666,6 @@
         <translation>El rango de búsqueda de la ganancia debe ser positivo.</translation>
     </message>
     <message>
-        <source>The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.</source>
-        <translation>La familia de plantas cambia su número de polos en el semiplano derecho: %1 con los valores del denominador (%2) y %3 con (%4). La estabilidad del lazo nominal sólo se traslada a una familia cuyos miembros tengan todos el mismo número; divida la incertidumbre por el cruce.</translation>
-    </message>
-    <message>
         <source>unsupported .qft version (no version attribute; this build reads version %1)</source>
         <translation>versión de .qft no admitida (no tiene atributo de versión; esta compilación lee la versión %1)</translation>
     </message>
@@ -2800,6 +2796,14 @@ contorno</translation>
     <message>
         <source>Some plants of the family have a pole on the imaginary axis between %1 and %2 rad/s, so the true template at this frequency reaches an infinite magnitude and what is drawn ends at the highest plant of the sweep. A stability boundary computed from it is closed underneath where the true one is not: a loop that passes under it may be unstable with plants the sweep does not hold, and the stability of the design is checked only with the plants of the sweep.</source>
         <translation>Algunas plantas de la familia tienen un polo sobre el eje imaginario entre %1 y %2 rad/s, así que el template real en esta frecuencia llega a magnitud infinita y lo que se dibuja termina en la planta más alta del barrido. Un boundary de estabilidad calculado a partir de él está cerrado por debajo donde el real no lo está: un lazo que pase por debajo puede ser inestable con plantas que el barrido no contiene, y la estabilidad del diseño sólo se comprueba con las plantas del barrido.</translation>
+    </message>
+    <message>
+        <source>family with %1 and %2 unstable poles</source>
+        <translation>familia con %1 y %2 polos inestables</translation>
+    </message>
+    <message>
+        <source>The plant with the denominator values (%1) has %2 poles in the right half-plane and the one with (%3) has %4. The stability of the nominal loop carries to the family only when all its plants have the same number, so the stability boundary does not guarantee it here: a loop that meets it may be unstable with some of the plants. The stability of a design is then checked plant by plant, with the plants of the sweep, in the verdict beside the loop. Splitting the uncertainty where the poles cross gives families the boundary does cover.</source>
+        <translation>La planta con los valores del denominador (%1) tiene %2 polos en el semiplano derecho y la de (%3) tiene %4. La estabilidad del lazo nominal sólo se traslada a la familia cuando todas sus plantas tienen el mismo número, así que aquí el boundary de estabilidad no la garantiza: un lazo que lo cumpla puede ser inestable con algunas de las plantas. La estabilidad de un diseño se comprueba entonces planta a planta, con las plantas del barrido, en el veredicto junto al lazo. Dividir la incertidumbre por donde cruzan los polos da familias que el boundary sí cubre.</translation>
     </message>
 </context>
 <context>

@@ -221,6 +221,10 @@ const std::vector<ContourReport> & ProjectController::contourReports() const{
     return m_templates.contourReports();
 }
 
+const std::optional<PoleCountChange> & ProjectController::poleCountChange() const{
+    return m_templates.poleCountChange();
+}
+
 std::vector<EpsilonProposal> ProjectController::proposeEpsilon(qftbx::ParameterGrids grids,
                                                                qftbx::EpsilonMetric metric){
     requireNotComputing();

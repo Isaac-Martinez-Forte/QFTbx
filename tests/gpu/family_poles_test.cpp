@@ -7,8 +7,9 @@
  * border sweep, and on families in each of the four forms that are stable,
  * that have poles on the imaginary axis, that change their number of right
  * half-plane poles, and that have a member whose poles cannot be placed, it
- * must find the processor's first count, the same first member that stops
- * the check, and the same bands within 1e-8, relatively: recovering a free
+ * must find the processor's first count, the same first member whose count
+ * differs, the same first member that stops the check, and the same bands,
+ * those past a change of the count too, within 1e-8, relatively: recovering a free
  * form of degree nine with a triple root, the processor's transform is
  * already 2e-9 off the exact frequency, and the warps' 3e-10. A family
  * whose denominator does not fit a warp is refused. With a card, the card's
@@ -122,6 +123,10 @@ std::vector<Family> families()
         {{"c", {1.0, -1.0, 0.0}}});
     add("free form, crossing", freeForm("s^2-a", {uncertain("a")}), {{"a", {-1.0, -4.0, 0.5, 2.0}}});
     add("free form, unplaceable", freeForm("s+a+(1-a^2)*sqrt(s)", {uncertain("a")}), {{"a", {1.0, 0.0, -1.0}}});
+    add("free form, unplaceable after the crossing", freeForm("s+a+(1-a^2)*sqrt(s)", {uncertain("a")}),
+        {{"a", {1.0, -1.0, 0.0}}});
+    add("free form, bands after the crossing", freeForm("(s^2+b)*(s-a)", {uncertain("a"), uncertain("b")}),
+        {{"a", {-1.0, 1.0}}, {"b", {1.0, 4.0}}});
     add("free form, on the axis", freeForm("s^2+a", {uncertain("a")}), {{"a", {1.0, 2.25, 4.0}}});
     add("free form, two bands", freeForm("(s^2+a)*(s^2+0.1*s+4*a)*(s+3-a)", {uncertain("a")}),
         {{"a", {1.0, 1.5, 2.0, 2.5}}});
@@ -144,7 +149,6 @@ void expectSame(const FamilyPoles & expected, const gpu::FamilyOnCard & found, d
     if (expected.otherCountAt.has_value()) {
         EXPECT_EQ(*found.otherCountAt, *expected.otherCountAt) << where;
         EXPECT_EQ(found.otherCount, expected.otherCount) << where;
-        return;
     }
     ASSERT_EQ(found.bands.size(), expected.bands.size()) << where;
     for (std::size_t p = 0; p < expected.bands.size(); ++p) {
@@ -238,6 +242,17 @@ TEST(FamilyOnTheCard, TheFamiliesStopWhereTheProcessorStops)
     ASSERT_EQ(band.bands.size(), 1u);
     EXPECT_NEAR(band.bands[0][0], 1.0, 1e-12);
     EXPECT_NEAR(band.bands[0][1], 2.0, 1e-12);
+
+    const gpu::FamilyOnCard crossingFirst = check("free form, unplaceable after the crossing");
+    EXPECT_EQ(crossingFirst.otherCountAt, std::uint64_t{1});
+    EXPECT_EQ(crossingFirst.otherCount, 1);
+    EXPECT_EQ(crossingFirst.unplaceableAt, std::uint64_t{2});
+
+    const gpu::FamilyOnCard bandsAfter = check("free form, bands after the crossing");
+    EXPECT_EQ(bandsAfter.otherCountAt, std::uint64_t{1});
+    ASSERT_EQ(bandsAfter.bands.size(), 1u);
+    EXPECT_NEAR(bandsAfter.bands[0][0], 1.0, 1e-12);
+    EXPECT_NEAR(bandsAfter.bands[0][1], 2.0, 1e-12);
 }
 
 TEST(FamilyOnTheCard, ADenominatorThatDoesNotFitAWarpIsRefused)

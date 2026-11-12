@@ -1,22 +1,23 @@
 /**
  * @file
- * @brief A plant family that crosses the imaginary axis is refused at the sweep.
+ * @brief A plant family that crosses the imaginary axis is swept and noted.
  *
  * QFT carries the stability of the nominal loop to the family only when every
  * member has the same number of right half-plane poles. On P(s) = 1/(s^2 - a),
  * unstable for a > 0 and with poles on the axis for a < 0, a range of a that
- * straddles zero is refused as invalid input at the sweep, where every member
- * is in hand, and a range on either side sweeps.
+ * straddles zero is swept all the same, and the project names its first
+ * plant and the first whose number differs; a range on either side sweeps
+ * with nothing to note.
  */
 
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "src/app/project_controller.h"
-#include "src/core/common/exception.h"
 #include "src/core/frequencies/omega.h"
 #include "src/core/math/range.h"
 #include "src/core/math/sequences.h"
@@ -44,14 +45,20 @@ void setUp(ProjectController & controller, qftbx::Range a, double nominal)
 
 }
 
-TEST(UnstableFamily, AFamilyThatCrossesTheAxisIsRefusedAtTheSweep)
+TEST(UnstableFamily, AFamilyThatCrossesTheAxisIsSweptAndNoted)
 {
     ProjectController controller;
-    setUp(controller, qftbx::Range(-1.0, 1.0), 0.5);
+    setUp(controller, qftbx::Range(-2.0, 2.0), 0.5);
     qftbx::ParameterGrids grids;
-    grids[std::string("a")] = qftbx::math::linspace(-1.0, 1.0, 3);
+    grids[std::string("a")] = qftbx::math::linspace(-2.0, 2.0, 3);
 
-    EXPECT_THROW(controller.computeTemplates(std::vector<double>(3, 10.0), grids), qftbx::InvalidInput);
+    EXPECT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids));
+    const std::optional<PoleCountChange> & change = controller.poleCountChange();
+    ASSERT_TRUE(change.has_value());
+    EXPECT_EQ(change->firstCount, 0);
+    EXPECT_EQ(change->firstDenominator, std::vector<double>{-2.0});
+    EXPECT_EQ(change->otherCount, 1);
+    EXPECT_EQ(change->otherDenominator, std::vector<double>{2.0});
 }
 
 TEST(UnstableFamily, AFamilyOnOneSideSweeps)
@@ -61,9 +68,11 @@ TEST(UnstableFamily, AFamilyOnOneSideSweeps)
     qftbx::ParameterGrids grids;
     grids[std::string("a")] = qftbx::math::linspace(1.0, 2.0, 3);
     EXPECT_TRUE(unstable.computeTemplates(std::vector<double>(3, 10.0), grids));
+    EXPECT_FALSE(unstable.poleCountChange().has_value());
 
     ProjectController stable;
     setUp(stable, qftbx::Range(-3.0, -2.0), -2.5);
     grids[std::string("a")] = qftbx::math::linspace(-3.0, -2.0, 3);
     EXPECT_TRUE(stable.computeTemplates(std::vector<double>(3, 10.0), grids));
+    EXPECT_FALSE(stable.poleCountChange().has_value());
 }

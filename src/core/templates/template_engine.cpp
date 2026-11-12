@@ -8,7 +8,8 @@
  * an exception leaving an OpenMP region terminates the process. Before the
  * sweep the number of right half-plane poles is checked over every distinct
  * denominator of the family, and a family whose count is not one number is
- * refused. A design frequency on a pole of the nominal plant is refused,
+ * noted with its first two plants that differ. A design frequency on a pole
+ * of the nominal plant is refused,
  * since the nominal loop is infinite there, and a frequency where some other
  * plant has an infinite value is reported rather than turned into a contour
  * of noise. The poles each distinct denominator is asked for give the bands
@@ -59,6 +60,7 @@ void TemplateEngine::setEpsilon(std::vector<double> epsilon){
 void TemplateEngine::setClouds(CloudSet templates){
     m_clouds = std::move(templates);
     m_resonanceBands.clear();
+    m_poleCountChange.reset();
     m_proposals.reset();
 }
 
@@ -185,6 +187,7 @@ void TemplateEngine::adoptPlan(const SweepPlan & plan){
     m_combinationCount = plan.combinationCount;
     m_borderSweepApplied = plan.borderSweepApplied();
     m_familyRhpPoles = plan.familyRhpPoles;
+    m_poleCountChange = plan.poleCountChange;
     m_resonanceBands = plan.resonanceBands;
 }
 

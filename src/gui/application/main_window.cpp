@@ -751,6 +751,9 @@ void MainWindow::installContourRecomputer(){
     templateViewer->setContourReporter([this]() {
         return controller->contourReports();
     });
+    templateViewer->setFamilyReporter([this]() {
+        return controller->poleCountChange();
+    });
 }
 
 void MainWindow::recomputeContour(std::vector<double> epsilon){

@@ -3,8 +3,8 @@
  * @brief The template engine on the GPU.
  *
  * It plans the combinations as the processor does (planCombinations),
- * checks the poles of the family on the card and refuses the same families
- * (adoptFamily), sweeps the family on the card and hands the clouds over to
+ * checks the poles of the family on the card and notes what the processor
+ * notes (adoptFamily), sweeps the family on the card and hands the clouds over to
  * an engine of the processor for what has no GPU code yet, the proposal of
  * epsilon and the contours. The clouds stay on the card when they fit, for
  * the phases after. A failure on the card is a ComputationError with
@@ -17,6 +17,7 @@
 #define QFTBX_GPU_TEMPLATE_ENGINE_H
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "src/core/gpu/templates/plant_model.h"
@@ -48,6 +49,7 @@ public:
     const CloudSet & contours() const override;
     const std::vector<double> & epsilon() const override;
     const std::vector<ContourReport> & contourReports() const override;
+    const std::optional<PoleCountChange> & poleCountChange() const override;
 
     const std::shared_ptr<const DeviceClouds> & resident() const { return m_resident; }
 

@@ -82,6 +82,14 @@ plants of the sweep only. A design frequency on which a swept plant has its pole
 exactly is refused, and so is one on a pole of the nominal plant, where the
 nominal loop is infinite; a frequency a little to either side serves.
 
+When the uncertainty moves a pole across the axis, the plants of the family
+differ in their number of right half-plane poles, and the stability of the
+nominal loop no longer carries to all of them. The family is swept like any
+other, and the templates window and `qftbx-solve` name the first plant of the
+sweep and the first whose number differs, with the values of their
+denominators; splitting the uncertainty where the poles cross gives families
+the boundaries do cover.
+
 ## Parallelism
 
 The brute-force sweep is embarrassingly parallel. The CPU engine parallelises

@@ -6,7 +6,9 @@
  * contour, on the Nichols plane or, when plotDiagram is given true, on the
  * Nyquist one, with a legend row per frequency that carries the epsilon it
  * was walked with, the epsilon it asks for and whether the whole template
- * stands in for a contour that did not close. The viewer does not reach
+ * stands in for a contour that did not close, and above it a notice when
+ * the plants of the family differ in their number of unstable poles. The
+ * viewer does not reach
  * into the project: it is handed what it draws, one epsilon per design
  * frequency, and holds its own copies, since a project may carry templates
  * and no epsilon. It lives as long as the window, so when the project
@@ -29,6 +31,7 @@
 
 #include <vector>
 #include <memory>
+#include <optional>
 
 #include <QWidget>
 #include <QLabel>
@@ -80,6 +83,9 @@ public:
     using ContourReporter = std::function<std::vector<qftbx::ContourReport> ()>;
     void setContourReporter(ContourReporter report);
 
+    using FamilyReporter = std::function<std::optional<qftbx::PoleCountChange> ()>;
+    void setFamilyReporter(FamilyReporter report);
+
     void refreshContour(const qftbx::CloudSet & contour,
                         std::vector<double> * omega,
                         std::vector<double> * epsilon);
@@ -107,6 +113,8 @@ private:
     std::vector<QLabel *> gapLabels;
     std::vector<QLabel *> stateLabels;
     void showContourState();
+    FamilyReporter reportFamily;
+    void showFamilyState();
     std::vector<qftbx::EpsilonProposal> m_proposals;
     void showProposals();
     bool plotted = false;

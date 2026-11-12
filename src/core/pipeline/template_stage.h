@@ -21,13 +21,16 @@
  * returns true when it produced both clouds and contours. recomputeContour and the
  * proposal from the published templates throw InvalidInput when there are
  * no templates. The contour options apply to every computation from then
- * on, and contourReports is empty until a contour has been computed.
+ * on, and contourReports is empty until a contour has been computed;
+ * poleCountChange is the last sweep's, empty for templates loaded from a
+ * file.
  */
 
 #ifndef QFTBX_TEMPLATE_STAGE_H
 #define QFTBX_TEMPLATE_STAGE_H
 
 #include <memory>
+#include <optional>
 #include "src/core/pipeline/cancellation.h"
 #include "src/core/pipeline/processor.h"
 #include <vector>
@@ -65,6 +68,7 @@ public:
     bool borderSweep() const { return m_borderSweep; }
 
     const std::vector<ContourReport> & contourReports() const;
+    const std::optional<PoleCountChange> & poleCountChange() const;
 
     void adopt(ProjectData & data, CloudSet clouds, CloudSet contour,
                bool hasContour, ParameterGrids grids = ParameterGrids());

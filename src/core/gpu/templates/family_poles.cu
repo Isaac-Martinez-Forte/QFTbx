@@ -15,8 +15,8 @@
  *
  * The run launches three times on one stream: the first denominator alone,
  * whose count the others are compared with, then all of them, and, only
- * when the first that stops the check is one whose poles cannot be placed,
- * the bands again over the combinations before it.
+ * when there is one whose poles cannot be placed, the bands again over the
+ * combinations before the first of them, where the check stops.
  */
 
 #include "src/core/gpu/templates/family_poles.h"
@@ -454,11 +454,6 @@ FamilyTotals emptyTotals()
     return totals;
 }
 
-bool stopsAtUnplaceable(const FamilyTotals & totals)
-{
-    return totals.unplaceableAt != kNone && (totals.otherKey == kNone || (totals.otherKey >> kCountBits) > totals.unplaceableAt);
-}
-
 double asDouble(unsigned long long bits)
 {
     double value = 0.0;
@@ -473,12 +468,12 @@ FamilyOnCard summarized(const FamilyTotals & totals, std::size_t denominators)
     if (totals.firstCount >= 0) {
         family.firstCount = totals.firstCount;
     }
-    if (stopsAtUnplaceable(totals)) {
+    if (totals.unplaceableAt != kNone) {
         family.unplaceableAt = totals.unplaceableAt;
-    } else if (totals.otherKey != kNone) {
+    }
+    if (totals.otherKey != kNone && (totals.otherKey >> kCountBits) < totals.unplaceableAt) {
         family.otherCountAt = totals.otherKey >> kCountBits;
         family.otherCount = static_cast<int>(totals.otherKey & ((1ull << kCountBits) - 1));
-        return family;
     }
     if (family.unplaceableAt == std::uint64_t{0}) {
         return family;
@@ -746,7 +741,7 @@ FamilyOnCard familyOnCard(const PlantModel & plant, const SweepGrid & grid)
         totals.download(&reduced);
         stream.synchronize();
 
-        if (stopsAtUnplaceable(reduced) && reduced.unplaceableAt > 0) {
+        if (reduced.unplaceableAt != kNone && reduced.unplaceableAt > 0) {
             totals.upload(&empty);
             kernel<<<blocks, kFamilyBlock, sharedBytes, stream.get()>>>(card.denominator, view,
                                                                        static_cast<Index>(cases.count), tableValues,
@@ -801,7 +796,7 @@ FamilyOnCard familyOnProcessor(const PlantModel & plant, const SweepGrid & grid)
                     totals.otherKey, (at[c] << kCountBits) | static_cast<unsigned long long>(outcomes[c].count));
         }
     }
-    const unsigned long long limit = stopsAtUnplaceable(totals) ? totals.unplaceableAt : kNone;
+    const unsigned long long limit = totals.unplaceableAt;
     for (std::size_t c = 0; c < cases.count; ++c) {
         if (!outcomes[c].placeable || at[c] >= limit) {
             continue;

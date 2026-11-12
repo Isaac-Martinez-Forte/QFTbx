@@ -12,7 +12,8 @@
  * row can be read by dragging. Contour state and proposals are marked
  * beside each epsilon field, never as a dialog, since trying an epsilon
  * and looking is how a contour is tuned; so is a template the poles of the
- * family on the imaginary axis leave unbounded.
+ * family on the imaginary axis leave unbounded, and, above the legend, a
+ * family whose plants differ in their number of unstable poles.
  */
 
 #include "src/core/common/exception.h"
@@ -21,6 +22,7 @@
 #include "src/gui/common/field_mark.h"
 #include "src/gui/common/number_text.h"
 #include <QMessageBox>
+#include <QStringList>
 #include <QSplitter>
 
 #include <algorithm>
@@ -55,6 +57,8 @@ TemplateViewer::TemplateViewer(QWidget *parent) :
 
     legend = new FrequencyLegend(ui->legendHolder);
     ui->legendHolder->layout()->addWidget(legend);
+    ui->familyNotice->setVisible(false);
+    markAs(ui->familyNotice, "notice", QStringLiteral("coarse"));
 
     narrowSideColumn(ui->sideLayout);
 
@@ -108,6 +112,7 @@ void TemplateViewer::clearDiagram(){
 void TemplateViewer::clear(){
 
     clearDiagram();
+    ui->familyNotice->setVisible(false);
     m_templates.clear();
     m_contour.clear();
     m_omega.clear();
@@ -143,6 +148,37 @@ void TemplateViewer::setEpsilonProposer(EpsilonProposer propose){
 
 void TemplateViewer::setContourReporter(ContourReporter report){
     this->report = std::move(report);
+}
+
+void TemplateViewer::setFamilyReporter(FamilyReporter report){
+    reportFamily = std::move(report);
+}
+
+void TemplateViewer::showFamilyState(){
+    const std::optional<qftbx::PoleCountChange> change = reportFamily ? reportFamily() : std::nullopt;
+    ui->familyNotice->setVisible(change.has_value());
+    if (!change.has_value()){
+        return;
+    }
+    const auto listed = [](const std::vector<double> & values) {
+        QStringList texts;
+        for (const double value : values){
+            texts << numberText(value);
+        }
+        return texts.join(QStringLiteral(", "));
+    };
+    ui->familyNotice->setText(tr("family with %1 and %2 unstable poles")
+                              .arg(change->firstCount).arg(change->otherCount));
+    ui->familyNotice->setToolTip(tr("The plant with the denominator values (%1) has %2 poles in the right "
+                                    "half-plane and the one with (%3) has %4. The stability of the nominal "
+                                    "loop carries to the family only when all its plants have the same "
+                                    "number, so the stability boundary does not guarantee it here: a loop "
+                                    "that meets it may be unstable with some of the plants. The stability "
+                                    "of a design is then checked plant by plant, with the plants of the "
+                                    "sweep, in the verdict beside the loop. Splitting the uncertainty where "
+                                    "the poles cross gives families the boundary does cover.")
+                                 .arg(listed(change->firstDenominator)).arg(change->firstCount)
+                                 .arg(listed(change->otherDenominator)).arg(change->otherCount));
 }
 
 void TemplateViewer::showContourState(){
@@ -237,6 +273,7 @@ void TemplateViewer::plotDiagram(bool plot){
     plotted = true;
     showProposals();
     showContourState();
+    showFamilyState();
     qint32 i = 0;
     qint32 counter = 0;
 

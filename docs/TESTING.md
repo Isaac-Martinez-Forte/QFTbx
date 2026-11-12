@@ -48,8 +48,8 @@ bucket bounds of the union, the golden boundaries (`BoundariesGolden`).
 `NaturalIntervalExtension`), the nominal stability check (`NominalStability`,
 including plants with unstable poles and with poles on the imaginary axis,
 whose verdicts are fixed by the roots of the closed-loop polynomial and not
-by the criterion itself), the plant family that must not change its number
-of unstable poles (`UnstableFamily`), the ordered list and the pipeline
+by the criterion itself), the plant family that changes its number of
+unstable poles, swept and noted (`UnstableFamily`), the ordered list and the pipeline
 stages, and every algorithm: against the published results where they exist
 (`LiteratureValidation`, `MrArticleValidation`, `QuickSolutionPaperExample`),
 against the thesis benchmarks (`ThesisBenchmarkGolden`), against pinned

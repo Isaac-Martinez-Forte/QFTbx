@@ -8,15 +8,19 @@
  * and contours every cloud, at the epsilon given or, given none, at the one
  * proposeEpsilon() finds; computeContours() contours the clouds again at a
  * new epsilon, and setClouds() hands over clouds swept elsewhere.
- * EpsilonProposal and ContourReport are the same for every engine: the
- * proposal for one cloud, and what the contour of one design frequency went
- * through.
+ * EpsilonProposal, ContourReport and PoleCountChange are the same for
+ * every engine: the proposal for one cloud, what the contour of one design
+ * frequency went through, and the first two plants of the sweep, in its
+ * order, whose numbers of right half-plane poles differ, with the values of
+ * their denominators. A family like that is swept like any other, but the
+ * stability of the nominal loop does not carry to it.
  */
 
 #ifndef QFTBX_TEMPLATE_COMPUTATION_H
 #define QFTBX_TEMPLATE_COMPUTATION_H
 
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include "src/core/pipeline/cancellation.h"
@@ -50,6 +54,14 @@ struct ContourReport
     double resonanceTo = 0.0;
 };
 
+struct PoleCountChange
+{
+    int firstCount = 0;
+    std::vector<double> firstDenominator;
+    int otherCount = 0;
+    std::vector<double> otherDenominator;
+};
+
 class TemplateComputation
 {
 public:
@@ -73,6 +85,7 @@ public:
     virtual const CloudSet & contours() const = 0;
     virtual const std::vector<double> & epsilon() const = 0;
     virtual const std::vector<ContourReport> & contourReports() const = 0;
+    virtual const std::optional<PoleCountChange> & poleCountChange() const = 0;
 };
 
 }

@@ -12,14 +12,16 @@
  * default to a count that brings the whole cloud near the size asked for,
  * since a sweep costs the product over the parameters. A design frequency
  * whose template the poles of the family on the imaginary axis leave
- * unbounded is named. The project is saved once the boundaries exist and
- * again after the search.
+ * unbounded is named, and so are two plants of a family that differ in
+ * their number of unstable poles. The project is saved once the boundaries
+ * exist and again after the search.
  */
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -315,6 +317,21 @@ int main(int argc, char ** argv)
                           << " the plants of the sweep reach, and the design's stability is checked with those"
                           << " plants only\n";
                 pending = std::move(rest);
+            }
+
+            if (const std::optional<qftbx::PoleCountChange> & change = project.poleCountChange()) {
+                const auto listed = [](const std::vector<double> & values) {
+                    std::ostringstream text;
+                    for (std::size_t k = 0; k < values.size(); ++k) {
+                        text << (k ? ", " : "") << values[k];
+                    }
+                    return text.str();
+                };
+                std::cout << "templates: the family changes its number of right half-plane poles, "
+                          << change->firstCount << " with the denominator values (" << listed(change->firstDenominator)
+                          << ") and " << change->otherCount << " with (" << listed(change->otherDenominator)
+                          << "): the stability boundary does not guarantee the family's stability, and the"
+                          << " verdict checks it with the plants of the sweep only\n";
             }
         }
 

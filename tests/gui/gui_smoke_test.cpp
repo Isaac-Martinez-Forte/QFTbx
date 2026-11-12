@@ -30,6 +30,7 @@
 
 #include <complex>
 #include <memory>
+#include <optional>
 
 #include <QAction>
 #include "src/core/pipeline/pipeline_step.h"
@@ -829,6 +830,32 @@ TEST_F(GuiSmoke, TemplateViewerAsksItsHandlerToRecomputeTheContour)
         << "the frequency row lost its colour: "
         << row->styleSheet().toStdString();
     EXPECT_FALSE(row->styleSheet().contains("colorsCreated"));
+}
+
+TEST_F(GuiSmoke, TemplateViewerNotesAFamilyThatChangesItsUnstablePoles)
+{
+    TemplateViewer viewer;
+
+    const qftbx::CloudSet contour{{{1.0, 0.0}, {0.0, 1.0}}};
+    const qftbx::CloudSet templates{{{2.0, 0.0}, {0.0, 2.0}}};
+    std::vector<double> omega{1.0};
+    std::vector<double> epsilon{0.05};
+    viewer.setData(templates, contour, &omega, &epsilon);
+
+    std::optional<qftbx::PoleCountChange> change = qftbx::PoleCountChange{0, {-1.0}, 1, {0.5}};
+    viewer.setFamilyReporter([&]() { return change; });
+    viewer.plotDiagram(true);
+
+    QLabel * notice = child<QLabel>(&viewer, "familyNotice");
+    ASSERT_NE(notice, nullptr);
+    EXPECT_FALSE(notice->isHidden());
+    EXPECT_TRUE(notice->text().contains("0") && notice->text().contains("1")) << notice->text().toStdString();
+    EXPECT_TRUE(notice->toolTip().contains("(-1)") && notice->toolTip().contains("(0.5)"))
+        << notice->toolTip().toStdString();
+
+    change.reset();
+    viewer.plotDiagram(true);
+    EXPECT_TRUE(notice->isHidden());
 }
 
 TEST_F(GuiSmoke, TemplateViewerWithNothingPlottedIgnoresTheRecomputeButton)
