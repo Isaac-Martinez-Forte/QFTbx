@@ -50,8 +50,9 @@
  * sweep only reaches as high as its plants go; the plan and the run of the
  * sweep are in sweep_plan.h. An engine that sweeps elsewhere hands its
  * clouds over with the plan (adoptSweep) and has them contoured here
- * (contourClouds), or, once proposeMissingEpsilon() has fixed the epsilon,
- * prepares them itself and has them walked here (contourPrepared). The token is read once per frequency and throws
+ * (contourClouds), or, once proposeMissingEpsilon() or takeEpsilon() has
+ * fixed the epsilon, prepares them itself and has them walked here
+ * (contourPrepared), which reads no token, as computeContours() does not. The token is read once per frequency and throws
  * qftbx::Cancelled; null cannot be cancelled. The engine keeps copies of all it is given, and the
  * combination count is a size_t: the product of grid sizes overflows 32
  * bits.
@@ -98,6 +99,8 @@ public:
     bool contourClouds();
 
     void proposeMissingEpsilon();
+
+    void takeEpsilon(std::vector<double> epsilon);
 
     bool contourPrepared(const std::vector<PreparedCloud> & prepared);
 
@@ -179,8 +182,6 @@ private:
     std::vector <double> m_frequencies;
 
     void adoptPlan(const SweepPlan & plan);
-
-    bool contourAt(const std::vector<PreparedCloud> * prepared);
 
     ComplexCloud projected(const ComplexCloud & points) const;
 

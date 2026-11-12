@@ -103,7 +103,19 @@ bool TemplateEngine::contourClouds(){
 
     proposeMissingEpsilon();
 
-    return contourAt(nullptr);
+    const auto timer2 = std::chrono::steady_clock::now();
+
+    const bool result = computeContourSet();
+
+    if (cancellationAsked(m_cancellation)) {
+        m_clouds.clear();
+        m_contours.clear();
+        throw qftbx::Cancelled();
+    }
+
+    logContours(timer2);
+
+    return result;
 }
 
 void TemplateEngine::proposeMissingEpsilon(){
@@ -120,30 +132,16 @@ void TemplateEngine::proposeMissingEpsilon(){
 
 bool TemplateEngine::contourPrepared(const std::vector<PreparedCloud> & prepared){
 
-    if (m_clouds.empty()){
-        throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
-    }
     if (prepared.size() != m_clouds.size()){
         throw qftbx::ComputationError("The contours were given the prepared clouds of " + std::to_string(prepared.size())
                                       + " frequencies for " + std::to_string(m_clouds.size()) + ".");
     }
 
-    return contourAt(&prepared);
-}
+    const auto timer = std::chrono::steady_clock::now();
 
-bool TemplateEngine::contourAt(const std::vector<PreparedCloud> * prepared){
+    const bool result = computeContourSet(&prepared);
 
-    const auto timer2 = std::chrono::steady_clock::now();
-
-    const bool result = computeContourSet(prepared);
-
-    if (cancellationAsked(m_cancellation)) {
-        m_clouds.clear();
-        m_contours.clear();
-        throw qftbx::Cancelled();
-    }
-
-    logContours(timer2);
+    logContours(timer);
 
     return result;
 }
@@ -164,7 +162,7 @@ void TemplateEngine::logContours(std::chrono::steady_clock::time_point since) co
                           + " " + qftbx::record::number("points", points));
 }
 
-bool TemplateEngine::computeContours(std::vector<double> epsilon){
+void TemplateEngine::takeEpsilon(std::vector<double> epsilon){
 
     if (m_clouds.empty()){
         throw qftbx::InvalidInput(QFTBX_TR("Core", "There are no templates to compute contours from."));
@@ -174,6 +172,11 @@ bool TemplateEngine::computeContours(std::vector<double> epsilon){
     }
 
     m_epsilon = std::move(epsilon);
+}
+
+bool TemplateEngine::computeContours(std::vector<double> epsilon){
+
+    takeEpsilon(std::move(epsilon));
     const auto timer = std::chrono::steady_clock::now();
 
     bool result = computeContourSet();

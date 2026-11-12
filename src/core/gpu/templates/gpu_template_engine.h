@@ -4,10 +4,13 @@
  *
  * It plans the combinations as the processor does (planCombinations),
  * checks the poles of the family on the card and notes what the processor
- * notes (adoptFamily), sweeps the family on the card and hands the clouds over to
- * an engine of the processor for what has no GPU code yet, the proposal of
- * epsilon and the contours. The clouds stay on the card when they fit, for
- * the phases after. A failure on the card is a ComputationError with
+ * notes (adoptFamily), sweeps the family on the card and hands the clouds
+ * over to an engine of the processor, which proposes epsilon. The clouds
+ * stay on the card when they fit, for the phases after, and clouds loaded
+ * from a file go up to it when they fit; there they are prepared for the
+ * walk, which the processor's engine then takes. The alpha-shape, the
+ * border sweep and clouds that do not fit are contoured on the processor.
+ * A failure on the card is a ComputationError with
  * CUDA's text. modelOf() describes the plant for the card and refuses one
  * whose expression or parameters do not fit a thread, or whose denominator
  * does not fit a warp; gridOf() is the plan's combinations.
@@ -55,6 +58,10 @@ public:
 
 private:
     void sweep(LtiSystem & plant, const std::vector<double> & frequencies);
+
+    bool walksOnCard() const;
+
+    bool contourOnCard(const CancellationToken * cancellation);
 
     TemplateEngine m_processor;
     const CancellationToken * m_cancellation = nullptr;

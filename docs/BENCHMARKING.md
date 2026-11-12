@@ -205,9 +205,11 @@ A case with phases also keeps, under `phases` in its record:
 - the time of every step the engines write to the program's record, under
   its stage and detail (`templates/sweep`, `templates/family`,
   `contours/walk`, `boundaries/sheets (OpenMP)`, `boundaries/union`…; on the
-  GPU `templates/sweep (GPU)`, `templates/family (GPU)` and
-  `boundaries/sheets and readings (GPU)`, with
-  `boundaries/closed form (OpenMP)` when the closed-form columns are on).
+  GPU `templates/sweep (GPU)`, `templates/family (GPU)`,
+  `contours/prepared (GPU)` (the order, the projection and the parts the
+  walk on the processor takes) and `boundaries/sheets and readings (GPU)`,
+  with `boundaries/closed form (OpenMP)` when the closed-form columns are
+  on).
   The check of the family's poles, `templates/family`, is part of the
   sweep's time on either processor;
 - what the card's first use cost, apart;

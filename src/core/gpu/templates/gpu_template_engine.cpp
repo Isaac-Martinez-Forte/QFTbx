@@ -3,11 +3,12 @@
  * @brief The template engine on the GPU, and the description of a plant
  * for the card.
  *
- * Everything but the check of the family's poles and the sweep goes to the
- * engine of the processor, which keeps the settings, the clouds and what it
- * computes from them. The record says what each cost on the card: for the
- * check, its denominators and its kernels; for the sweep, the kernels, the
- * copies back and in how many batches.
+ * Everything but the check of the family's poles, the sweep and the
+ * preparation of the clouds for the walk goes to the engine of the
+ * processor, which keeps the settings, the clouds and what it computes from
+ * them. The record says what each cost on the card: for the check, its
+ * denominators and its kernels; for the sweep and the preparation, the
+ * kernels, the copies back and in how many batches.
  */
 
 #include "src/core/gpu/templates/gpu_template_engine.h"
@@ -20,6 +21,7 @@
 #include "src/core/gpu/common/cuda_error.h"
 #include "src/core/gpu/templates/family_poles.h"
 #include "src/core/gpu/templates/plant_sweep.h"
+#include "src/core/gpu/templates/walk_preparation.h"
 #include "src/core/pipeline/gpu_provider.h"
 #include "src/core/system/free_form.h"
 
@@ -209,7 +211,15 @@ void GpuTemplateEngine::setClouds(CloudSet clouds)
 bool GpuTemplateEngine::compute(LtiSystem * plant, std::vector<double> * frequencies)
 {
     sweep(*plant, *frequencies);
-    return m_processor.contourClouds();
+    if (!walksOnCard()) {
+        return m_processor.contourClouds();
+    }
+    m_processor.proposeMissingEpsilon();
+    const bool contoured = contourOnCard(m_cancellation);
+    if (cancellationAsked(m_cancellation)) {
+        throw Cancelled();
+    }
+    return contoured;
 }
 
 CloudSet GpuTemplateEngine::computeClouds(LtiSystem * plant, std::vector<double> * frequencies)
@@ -220,7 +230,47 @@ CloudSet GpuTemplateEngine::computeClouds(LtiSystem * plant, std::vector<double>
 
 bool GpuTemplateEngine::computeContours(std::vector<double> epsilon)
 {
-    return m_processor.computeContours(std::move(epsilon));
+    if (!walksOnCard()) {
+        return m_processor.computeContours(std::move(epsilon));
+    }
+    m_processor.takeEpsilon(std::move(epsilon));
+    return contourOnCard(nullptr);
+}
+
+bool GpuTemplateEngine::walksOnCard() const
+{
+    return !m_processor.alphaShapeContour() && !m_processor.borderSweepApplied() && !m_processor.clouds().empty();
+}
+
+bool GpuTemplateEngine::contourOnCard(const CancellationToken * cancellation)
+{
+    if (m_processor.epsilon().size() != m_processor.clouds().size()) {
+        return m_processor.computeContourSet();
+    }
+    const auto started = std::chrono::steady_clock::now();
+    PreparedOnCard prepared;
+    try {
+        if (m_resident == nullptr) {
+            m_resident = cloudsOnCard(m_processor.clouds());
+        }
+        if (m_resident == nullptr) {
+            return m_processor.computeContours(m_processor.epsilon());
+        }
+        prepared = preparedOnCard(*m_resident, m_processor.epsilon(), m_processor.hullMetric(),
+                                  m_processor.dbPerDegree(), cancellation);
+    } catch (const CudaError & failure) {
+        throw ComputationError(gpuFailure(failure.what()));
+    }
+    if (prepared.cancelled) {
+        throw Cancelled();
+    }
+    record::write("contours", "prepared (GPU)",
+                  record::milliseconds(std::chrono::duration<double, std::milli>(
+                                           std::chrono::steady_clock::now() - started).count())
+                      + " " + record::number("kernel-ms", prepared.kernelMilliseconds)
+                      + " " + record::number("copy-ms", prepared.copyMilliseconds)
+                      + " " + record::number("batches", prepared.batches));
+    return m_processor.contourPrepared(prepared.clouds);
 }
 
 std::vector<EpsilonProposal> GpuTemplateEngine::proposeEpsilon()
