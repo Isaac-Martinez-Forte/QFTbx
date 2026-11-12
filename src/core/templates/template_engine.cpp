@@ -15,8 +15,8 @@
  * of noise. The poles each distinct denominator is asked for give the bands
  * that poles on the imaginary axis sweep, and a design frequency inside one
  * is marked in its report. The walk finds its candidates through a grid of
- * cells a quarter of epsilon wide; a walk that does not close is replaced by
- * the whole cloud or fails, never handed on partial.
+ * cells a quarter of epsilon wide (walk_cloud.h); a walk that does not close
+ * is replaced by the whole cloud or fails, never handed on partial.
  */
 
 #include <chrono>
@@ -101,6 +101,12 @@ bool TemplateEngine::contourClouds(){
         throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
     }
 
+    proposeMissingEpsilon();
+
+    return contourAt(nullptr);
+}
+
+void TemplateEngine::proposeMissingEpsilon(){
     if (m_epsilon.empty()){
         const auto proposing = std::chrono::steady_clock::now();
         for (const EpsilonProposal & proposal : proposeEpsilon()){
@@ -110,10 +116,26 @@ bool TemplateEngine::contourClouds(){
                           qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
                                                        std::chrono::steady_clock::now() - proposing).count()));
     }
+}
+
+bool TemplateEngine::contourPrepared(const std::vector<PreparedCloud> & prepared){
+
+    if (m_clouds.empty()){
+        throw qftbx::ComputationError(QFTBX_TR("Core", "Could not compute the templates."));
+    }
+    if (prepared.size() != m_clouds.size()){
+        throw qftbx::ComputationError("The contours were given the prepared clouds of " + std::to_string(prepared.size())
+                                      + " frequencies for " + std::to_string(m_clouds.size()) + ".");
+    }
+
+    return contourAt(&prepared);
+}
+
+bool TemplateEngine::contourAt(const std::vector<PreparedCloud> * prepared){
 
     const auto timer2 = std::chrono::steady_clock::now();
 
-    const bool result = computeContourSet();
+    const bool result = computeContourSet(prepared);
 
     if (cancellationAsked(m_cancellation)) {
         m_clouds.clear();
@@ -221,7 +243,7 @@ double roundedUpToThreeFigures(double value)
 
 }
 
-bool TemplateEngine::computeContourSet(){
+bool TemplateEngine::computeContourSet(const std::vector<PreparedCloud> * prepared){
 
     if (m_epsilon.size() != m_clouds.size()) {
         throw qftbx::InvalidInput(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(m_epsilon.size()).arg(m_clouds.size()));
@@ -254,11 +276,17 @@ bool TemplateEngine::computeContourSet(){
         bool fellBack = false;
         bool truncated = false;
         std::vector<std::size_t> starts;
+        SortedCloud own;
+        if (prepared == nullptr){
+            own = sortedCloud(m_clouds[i], m_metric, m_dbPerDegree);
+        }
+        const SortedCloud & sorted = prepared != nullptr ? (*prepared)[i].sorted : own;
         ComplexCloud cont = m_borderSweepApplied
-                ? alphaShapeContour(m_clouds[i], roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &starts)
+                ? alphaShapeOfSorted(sorted, roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &starts)
                 : m_alphaShape
-                ? alphaShapeContour(m_clouds[i], m_epsilon.at(i), &starts)
-                : epsilonHull(m_clouds[i], m_epsilon.at(i), &fellBack, &truncated, &starts);
+                ? alphaShapeOfSorted(sorted, m_epsilon.at(i), &starts)
+                : walkSorted(sorted, projected(m_clouds[i]), m_clouds[i], m_epsilon.at(i),
+                             prepared != nullptr ? &(*prepared)[i].parts : nullptr, &fellBack, &truncated, &starts);
 
         if (fellBack){
             relaxedFrequencies[i] = true;
@@ -371,123 +399,6 @@ bool TemplateEngine::computeContourSet(){
     return true;
 }
 
-class TemplateEngine::NeighbourGrid
-{
-public:
-    NeighbourGrid(const ComplexCloud & points, double epsilon)
-        : m_pointCount(points.size())
-    {
-        double minRe = numeric_limits<double>::infinity();
-        double minIm = numeric_limits<double>::infinity();
-        double maxRe = -numeric_limits<double>::infinity();
-        double maxIm = -numeric_limits<double>::infinity();
-
-        for (const complex<double> & point : points){
-            minRe = std::min(minRe, point.real());
-            maxRe = std::max(maxRe, point.real());
-            minIm = std::min(minIm, point.imag());
-            maxIm = std::max(maxIm, point.imag());
-        }
-
-        const double side = epsilon / kCellsPerEpsilon;
-        const bool finite = points.empty() ||
-                (std::isfinite(minRe) && std::isfinite(maxRe) && std::isfinite(minIm) && std::isfinite(maxIm));
-        const bool indexable = finite && side > 0 && std::isfinite(side) &&
-                (maxRe - minRe) / side < kMaxCells && (maxIm - minIm) / side < kMaxCells;
-
-        if (!indexable){
-            return;
-        }
-
-        m_indexed = true;
-        m_side = side;
-        m_minRe = minRe;
-        m_minIm = minIm;
-
-        m_cells.reserve(points.size());
-        for (std::size_t i = 0; i < points.size(); ++i){
-            m_cells.push_back({cellOf(points[i]), static_cast<std::int32_t>(i)});
-        }
-
-        std::sort(m_cells.begin(), m_cells.end());
-    }
-
-    void candidates(const complex<double> & centre, std::vector<std::int32_t> & out) const
-    {
-        out.clear();
-
-        if (!m_indexed){
-            for (std::size_t i = 0; i < m_pointCount; ++i){
-                out.push_back(static_cast<std::int32_t>(i));
-            }
-            return;
-        }
-
-        const Cell cell = cellOf(centre);
-
-        for (std::int64_t x = cell.x - kReach; x <= cell.x + kReach; ++x){
-            const Cell first{x, cell.y - kReach};
-            const Cell last{x, cell.y + kReach};
-
-            auto entry = std::lower_bound(m_cells.begin(), m_cells.end(), Entry{first, 0});
-
-            for (; entry != m_cells.end() && !(last < entry->cell); ++entry){
-                out.push_back(entry->index);
-            }
-        }
-    }
-
-private:
-    struct Cell {
-        std::int64_t x;
-        std::int64_t y;
-
-        bool operator<(const Cell & other) const { return x != other.x ? x < other.x : y < other.y; }
-    };
-
-    struct Entry {
-        Cell cell;
-        std::int32_t index;
-
-        bool operator<(const Entry & other) const
-        {
-            if (cell < other.cell) return true;
-            if (other.cell < cell) return false;
-            return index < other.index;
-        }
-    };
-
-    static constexpr double kCellsPerEpsilon = 4.0;
-    static constexpr std::int64_t kReach = 5;
-    static constexpr double kMaxCells = 1e9;
-
-    Cell cellOf(const complex<double> & point) const
-    {
-        return {static_cast<std::int64_t>(std::floor((point.real() - m_minRe) / m_side)),
-                static_cast<std::int64_t>(std::floor((point.imag() - m_minIm) / m_side))};
-    }
-
-    std::size_t m_pointCount = 0;
-    bool m_indexed = false;
-    double m_side = 0.0;
-    double m_minRe = 0.0;
-    double m_minIm = 0.0;
-    std::vector<Entry> m_cells;
-};
-
-namespace {
-
-inline bool withinReach(const complex<double> & candidate, const complex<double> & centre,
-                        double epsilon)
-{
-    const double dx = candidate.real() - centre.real();
-    const double dy = candidate.imag() - centre.imag();
-
-    return dx * dx + dy * dy <= epsilon * epsilon * (1.0 + 1e-9);
-}
-
-}
-
 void TemplateEngine::setHullMetric(HullMetric metric, double dbPerDegree){
     if (!(dbPerDegree > 0.0) || !std::isfinite(dbPerDegree)){
         throw qftbx::InvalidInput(QFTBX_TR("Core", "The decibels per degree of the Nichols metric must be a finite positive number."));
@@ -500,43 +411,7 @@ void TemplateEngine::setHullMetric(HullMetric metric, double dbPerDegree){
 }
 
 ComplexCloud TemplateEngine::projected(const ComplexCloud & points) const{
-
-    if (m_metric == HullMetric::ComplexPlane || points.empty()){
-        return points;
-    }
-
-    std::vector<double> phases;
-    phases.reserve(points.size());
-    for (const complex<double> & z : points){
-        phases.push_back(std::arg(z) * 180.0 / qftbx::math::kPi);
-    }
-
-    std::vector<double> sorted = phases;
-    std::sort(sorted.begin(), sorted.end());
-    double widest = sorted.front() + 360.0 - sorted.back();
-    bool shiftBelow = false;
-    double cut = 0.0;
-    for (std::size_t i = 1; i < sorted.size(); ++i){
-        const double gap = sorted[i] - sorted[i - 1];
-        if (gap > widest){
-            widest = gap;
-            cut = sorted[i - 1];
-            shiftBelow = true;
-        }
-    }
-
-    ComplexCloud out;
-    out.reserve(points.size());
-    for (std::size_t i = 0; i < points.size(); ++i){
-        double phase = phases[i];
-        if (shiftBelow && phase <= cut){
-            phase += 360.0;
-        }
-        const double magnitude = std::abs(points[i]);
-        const double db = magnitude > 0.0 ? 20.0 * std::log10(magnitude) : -400.0;
-        out.emplace_back(phase, db / m_dbPerDegree);
-    }
-    return out;
+    return projectedCloud(points, m_metric, m_dbPerDegree);
 }
 
 namespace {
@@ -605,6 +480,12 @@ bool TemplateEngine::retraces(const ComplexCloud & walked)
 double TemplateEngine::withoutRetracing(const ComplexCloud & cloud, double closing,
                                         double diameter)
 {
+    return withoutRetracing(sortedCloud(cloud, m_metric, m_dbPerDegree), projected(cloud), cloud, closing, diameter);
+}
+
+double TemplateEngine::withoutRetracing(const SortedCloud & sorted, const ComplexCloud & cloudWalk,
+                                        const ComplexCloud & cloud, double closing, double diameter)
+{
     constexpr int kRungs = 4;
     constexpr double kStep = 1.5;
 
@@ -619,7 +500,8 @@ double TemplateEngine::withoutRetracing(const ComplexCloud & cloud, double closi
 
         bool truncated = false;
         bool fellBack = false;
-        const ComplexCloud walked = epsilonHull(cloud, candidate, &fellBack, &truncated, nullptr);
+        const ComplexCloud walked = walkSorted(sorted, cloudWalk, cloud, candidate, nullptr, &fellBack, &truncated,
+                                               nullptr);
 
         if (!walked.empty() && !truncated && !fellBack && !retraces(walked)){
             return candidate;
@@ -663,6 +545,8 @@ std::vector<EpsilonProposal> TemplateEngine::proposeEpsilon(){
                 continue;
             }
 
+            const SortedCloud sorted = sortedCloud(cloud, m_metric, m_dbPerDegree);
+            const ComplexCloud cloudWalk = projected(cloud);
             double previous = 0.0;
             for (double raw = longest; ; raw *= 1.01){
                 const bool last = raw >= diameter;
@@ -671,10 +555,11 @@ std::vector<EpsilonProposal> TemplateEngine::proposeEpsilon(){
                     previous = candidate;
                     bool truncated = false;
                     bool fellBack = false;
-                    const ComplexCloud walked = epsilonHull(cloud, candidate, &fellBack, &truncated, nullptr);
+                    const ComplexCloud walked = walkSorted(sorted, cloudWalk, cloud, candidate, nullptr, &fellBack,
+                                                           &truncated, nullptr);
                     if (!walked.empty() && !truncated && !fellBack){
                         proposal.epsilon = retraces(walked)
-                                               ? withoutRetracing(cloud, candidate, diameter)
+                                               ? withoutRetracing(sorted, cloudWalk, cloud, candidate, diameter)
                                                : candidate;
                         proposal.closes = true;
                         break;
@@ -702,16 +587,20 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
         return {};
     }
 
-    ComplexCloud cv = cloud;
-    std::sort(cv.begin(), cv.end(),
-              [](const complex<double> & a, const complex<double> & b){
-                  const double absA = abs(a);
-                  const double absB = abs(b);
-                  return absA != absB ? absA < absB : arg(a) < arg(b);
-              });
-    cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
+    return alphaShapeOfSorted(sortedCloud(cloud, m_metric, m_dbPerDegree), epsilon, componentStarts);
+}
 
-    const AlphaShape shape = alphaShape(projected(cv), epsilon);
+ComplexCloud TemplateEngine::alphaShapeOfSorted(const SortedCloud & sorted, double epsilon,
+                                                std::vector<std::size_t> * componentStarts) const{
+    if (componentStarts != nullptr){
+        componentStarts->clear();
+    }
+    if (sorted.points.empty()){
+        return {};
+    }
+
+    const ComplexCloud & cv = sorted.points;
+    const AlphaShape shape = alphaShape(sorted.walk, epsilon);
 
     ComplexCloud result;
     std::vector<char> emitted(cv.size(), 0);
@@ -734,8 +623,8 @@ ComplexCloud TemplateEngine::alphaShapeContour(const ComplexCloud & cloud, doubl
 }
 
 ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,
-                                                         bool * fellBack, bool * truncated,
-                                                         std::vector<std::size_t> * componentStarts){
+                                         bool * fellBack, bool * truncated,
+                                         std::vector<std::size_t> * componentStarts){
 
     if (componentStarts != nullptr){
         componentStarts->clear();
@@ -745,25 +634,34 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
         return {};
     }
 
-    ComplexCloud cv = temp;
-    std::sort(cv.begin(), cv.end(),
-              [](const complex<double> & a, const complex<double> & b){
-                  const double absA = abs(a);
-                  const double absB = abs(b);
-                  if (absA != absB){
-                      return absA < absB;
-                  }
-                  return arg(a) < arg(b);
-              });
-    cv.erase(std::unique(cv.begin(), cv.end()), cv.end());
+    return walkSorted(sortedCloud(temp, m_metric, m_dbPerDegree), projected(temp), temp, epsilon, nullptr,
+                      fellBack, truncated, componentStarts);
+}
 
-    const ComplexCloud cvWalk = projected(cv);
-    const ComplexCloud tempWalk = projected(temp);
+ComplexCloud TemplateEngine::walkSorted(const SortedCloud & sorted, const ComplexCloud & tempWalk,
+                                        const ComplexCloud & temp, double epsilon, const CloudParts * given,
+                                        bool * fellBack, bool * truncated,
+                                        std::vector<std::size_t> * componentStarts){
+
+    if (componentStarts != nullptr){
+        componentStarts->clear();
+    }
+
+    if (sorted.points.empty()){
+        return {};
+    }
+
+    const ComplexCloud & cv = sorted.points;
+    const ComplexCloud & cvWalk = sorted.walk;
 
     const NeighbourGrid neighbours(cvWalk, epsilon);
-    const std::vector<std::vector<std::int32_t>> parts = components(cvWalk, epsilon, neighbours);
+    CloudParts found;
+    if (given == nullptr){
+        found = cloudParts(cvWalk, epsilon, neighbours);
+    }
+    const CloudParts & parts = given != nullptr ? *given : found;
 
-    if (parts.size() == 1){
+    if (parts.starts.size() == 1){
         if (componentStarts != nullptr){
             componentStarts->push_back(0);
         }
@@ -773,13 +671,15 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     ComplexCloud result;
     bool anyWalked = false;
 
-    for (const std::vector<std::int32_t> & part : parts){
+    for (std::size_t p = 0; p < parts.starts.size(); ++p){
+        const std::size_t end = p + 1 < parts.starts.size() ? parts.starts[p + 1] : parts.members.size();
         ComplexCloud points, walkPoints;
-        points.reserve(part.size());
-        walkPoints.reserve(part.size());
-        for (const std::int32_t index : part){
-            points.push_back(cv.at(static_cast<std::size_t>(index)));
-            walkPoints.push_back(cvWalk.at(static_cast<std::size_t>(index)));
+        points.reserve(end - parts.starts[p]);
+        walkPoints.reserve(end - parts.starts[p]);
+        for (std::size_t m = parts.starts[p]; m < end; ++m){
+            const std::size_t index = static_cast<std::size_t>(parts.members[m]);
+            points.push_back(cv.at(index));
+            walkPoints.push_back(cvWalk.at(index));
         }
 
         const NeighbourGrid own(walkPoints, epsilon);
@@ -822,65 +722,6 @@ ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsil
     }
 
     return result;
-}
-
-std::vector<std::vector<std::int32_t>> TemplateEngine::components(const ComplexCloud & cv, double epsilon,
-                                                                  const NeighbourGrid & neighbours){
-    const std::size_t n = cv.size();
-
-    std::vector<std::int32_t> parent(n);
-    for (std::size_t i = 0; i < n; ++i){
-        parent[i] = static_cast<std::int32_t>(i);
-    }
-
-    const auto find = [&parent](std::int32_t x){
-        while (parent[static_cast<std::size_t>(x)] != x){
-            parent[static_cast<std::size_t>(x)] = parent[static_cast<std::size_t>(parent[static_cast<std::size_t>(x)])];
-            x = parent[static_cast<std::size_t>(x)];
-        }
-        return x;
-    };
-
-    std::vector<std::int32_t> nearby;
-    for (std::size_t i = 0; i < n; ++i){
-        neighbours.candidates(cv[i], nearby);
-        const std::int32_t ri = find(static_cast<std::int32_t>(i));
-        for (const std::int32_t j : nearby){
-            if (static_cast<std::size_t>(j) <= i || !withinReach(cv[static_cast<std::size_t>(j)], cv[i], epsilon)){
-                continue;
-            }
-            const std::int32_t rj = find(j);
-            if (rj != ri){
-                parent[static_cast<std::size_t>(rj)] = ri;
-            }
-        }
-    }
-
-    std::vector<std::vector<std::int32_t>> byRoot(n);
-    for (std::size_t i = 0; i < n; ++i){
-        byRoot[static_cast<std::size_t>(find(static_cast<std::int32_t>(i)))].push_back(static_cast<std::int32_t>(i));
-    }
-
-    std::vector<std::vector<std::int32_t>> parts;
-    for (std::vector<std::int32_t> & members : byRoot){
-        if (!members.empty()){
-            parts.push_back(std::move(members));
-        }
-    }
-
-    const auto rightmost = [&cv](const std::vector<std::int32_t> & part){
-        double best = -numeric_limits<double>::infinity();
-        for (const std::int32_t index : part){
-            best = std::max(best, cv[static_cast<std::size_t>(index)].real());
-        }
-        return best;
-    };
-    std::stable_sort(parts.begin(), parts.end(),
-                     [&rightmost](const std::vector<std::int32_t> & a, const std::vector<std::int32_t> & b){
-                         return rightmost(a) > rightmost(b);
-                     });
-
-    return parts;
 }
 
 ComplexCloud TemplateEngine::walkComponent(const ComplexCloud & source, const ComplexCloud & walk,

@@ -43,7 +43,7 @@ in [docs/algorithms](algorithms/README.md).
 | `src/core/system/` | Plant/controller representation: `LtiSystem` hierarchy, transfer functions, parameters. A system also places its own poles (`polesAt`), which is what the stability criterion asks of a plant |
 | `src/core/frequencies/` | The design frequency set (`Omega`) |
 | `src/core/specifications/` | Validated specification set (`qftbx::Specification`) |
-| `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`); the plan of the sweep and its run on the processor (`sweep_plan.h`), shared with the GPU |
+| `src/core/templates/` | Brute-force template computation and ε-hull contour (`TemplateEngine`); the plan of the sweep and its run on the processor (`sweep_plan.h`), shared with the GPU; the cloud prepared for the walk, its order, projection and ε-connected parts (`walk_cloud.h`), which the GPU may hand over instead |
 | `src/core/boundaries/` | Boundary computation: the checks and the specifications of each frequency (`boundary_plan.h`), sheets (`BoundaryEngine`, which also takes the sheets, or the traces and columns read off them, computed on the GPU), contour tracing (`ContourTracer`), 1D union (`BoundaryUnion1D`), results view (`BoundaryData`) |
 | `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/`, `mc2/`, `mc3/` one algorithm each |
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |

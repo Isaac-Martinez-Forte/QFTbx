@@ -100,6 +100,9 @@ in the master's thesis.
 ## Where it lives
 
 - `src/core/templates/template_engine.h`, `.cpp`: the sweep and the ε-hull.
+- `src/core/templates/walk_cloud.h`, `.cpp`: the cloud prepared for the walk,
+  in MATLAB's order without repeats, projected, and split into its
+  ε-connected parts.
 - `src/core/templates/parameter_grids.h`: the parameter grids.
 - `src/core/templates/cloud_set.h`: the clouds and contours per frequency.
 - `src/core/gpu/template_contour_cuda.cu`: the CUDA version.

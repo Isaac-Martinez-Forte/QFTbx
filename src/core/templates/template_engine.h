@@ -14,7 +14,9 @@
  * not the canonical hull, empty at its step limit so that a partial contour
  * never passes for a whole one. Each \f$\varepsilon\f$-connected component
  * is walked apart (Gutman, Nordin and Cohen 2007), the contours joined in
- * order of rightmost point. ContourReport records this per frequency after
+ * order of rightmost point; the order, the projection and the components
+ * are prepared apart from the walk (walk_cloud.h), once per cloud for all
+ * the epsilons a proposal tries. ContourReport records this per frequency after
  * the parallel loop, since nothing may warn or throw inside an OpenMP
  * region; a contour that never closes becomes the whole cloud, or an error
  * naming the frequency. The alpha-shape contour is the same boundary by
@@ -48,7 +50,8 @@
  * sweep only reaches as high as its plants go; the plan and the run of the
  * sweep are in sweep_plan.h. An engine that sweeps elsewhere hands its
  * clouds over with the plan (adoptSweep) and has them contoured here
- * (contourClouds). The token is read once per frequency and throws
+ * (contourClouds), or, once proposeMissingEpsilon() has fixed the epsilon,
+ * prepares them itself and has them walked here (contourPrepared). The token is read once per frequency and throws
  * qftbx::Cancelled; null cannot be cancelled. The engine keeps copies of all it is given, and the
  * combination count is a size_t: the product of grid sizes overflows 32
  * bits.
@@ -74,6 +77,7 @@
 #include "src/core/templates/hull_metric.h"
 #include "src/core/templates/sweep_plan.h"
 #include "src/core/templates/template_computation.h"
+#include "src/core/templates/walk_cloud.h"
 #include "src/core/system/parameter.h"
 
 namespace qftbx {
@@ -93,7 +97,11 @@ public:
 
     bool contourClouds();
 
-    bool computeContourSet();
+    void proposeMissingEpsilon();
+
+    bool contourPrepared(const std::vector<PreparedCloud> & prepared);
+
+    bool computeContourSet(const std::vector<PreparedCloud> * prepared = nullptr);
 
     void logContours(std::chrono::steady_clock::time_point since) const;
 
@@ -172,12 +180,19 @@ private:
 
     void adoptPlan(const SweepPlan & plan);
 
-    class NeighbourGrid;
-
-    std::vector<std::vector<std::int32_t>> components(const ComplexCloud & cv, double epsilon,
-                                                      const NeighbourGrid & neighbours);
+    bool contourAt(const std::vector<PreparedCloud> * prepared);
 
     ComplexCloud projected(const ComplexCloud & points) const;
+
+    ComplexCloud walkSorted(const SortedCloud & sorted, const ComplexCloud & tempWalk, const ComplexCloud & temp,
+                            double epsilon, const CloudParts * given, bool * fellBack, bool * truncated,
+                            std::vector<std::size_t> * componentStarts);
+
+    ComplexCloud alphaShapeOfSorted(const SortedCloud & sorted, double epsilon,
+                                    std::vector<std::size_t> * componentStarts) const;
+
+    double withoutRetracing(const SortedCloud & sorted, const ComplexCloud & cloudWalk, const ComplexCloud & cloud,
+                            double closing, double diameter);
 
     ComplexCloud walkComponent(const ComplexCloud & source, const ComplexCloud & walk,
                                const ComplexCloud & fallbackSource, const ComplexCloud & fallbackWalk,
