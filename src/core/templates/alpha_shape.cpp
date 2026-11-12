@@ -4,11 +4,14 @@
  *
  * Neighbours within epsilon come from a grid of cells of side epsilon, so a
  * blocker of an edge is always in the neighbour list of one end. The
- * boundary edges form a planar graph whose faces are walked clockwise; the
- * outer border of each component is its face of largest area, holes are
- * components lying inside another loop and are dropped, and isolated points
- * are components of their own. Loops start at their rightmost point and are
- * returned rightmost first.
+ * boundary edges form a planar graph whose faces are walked clockwise, the
+ * neighbours of a point in order of angle and then of index; the outer
+ * border of each component is its face of largest area, the first found on
+ * a tie. finishedLoops() drops the holes, components lying inside another
+ * loop, every candidate checked against all the others; adds the isolated
+ * points as components of their own; starts every loop at its rightmost
+ * point and returns them rightmost first. loopsContour() lists each loop's
+ * points once, in order, and closes it.
  */
 
 #include "src/core/templates/alpha_shape.h"
@@ -113,7 +116,11 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
     };
     for (std::int32_t v = 0; v < n; ++v) {
         std::vector<std::int32_t> & o = out[static_cast<std::size_t>(v)];
-        std::sort(o.begin(), o.end(), [&](std::int32_t x, std::int32_t y) { return angle(v, x) < angle(v, y); });
+        std::sort(o.begin(), o.end(), [&](std::int32_t x, std::int32_t y) {
+            const double ax = angle(v, x);
+            const double ay = angle(v, y);
+            return ax != ay ? ax < ay : x < y;
+        });
     }
 
     std::vector<std::int32_t> parent(static_cast<std::size_t>(n));
@@ -164,7 +171,21 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
     for (auto & entry : outer) {
         candidates.push_back(std::move(entry.second.second));
     }
+    std::vector<std::int32_t> isolated;
+    for (std::int32_t v = 0; v < n; ++v) {
+        if (near[static_cast<std::size_t>(v)].empty()) {
+            isolated.push_back(v);
+        }
+    }
 
+    shape.loops = finishedLoops(points, std::move(candidates), isolated);
+    return shape;
+}
+
+std::vector<std::vector<std::int32_t>> finishedLoops(const ComplexCloud & points,
+                                                     std::vector<std::vector<std::int32_t>> candidates,
+                                                     const std::vector<std::int32_t> & isolated)
+{
     const auto inside = [&points](const Complex & z, const std::vector<std::int32_t> & poly) {
         bool in = false;
         for (std::size_t k = 0, m = poly.size(); k < m; ++k) {
@@ -177,20 +198,19 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         }
         return in;
     };
-    std::vector<std::vector<std::int32_t>> loops;
+    std::vector<char> hole(candidates.size(), 0);
     for (std::size_t i = 0; i < candidates.size(); ++i) {
         const Complex & z = points[static_cast<std::size_t>(candidates[i].front())];
-        bool hole = false;
-        for (std::size_t j = 0; j < candidates.size() && !hole; ++j) {
-            if (j != i && candidates[j].size() > 2 && inside(z, candidates[j])) hole = true;
+        for (std::size_t j = 0; j < candidates.size() && !hole[i]; ++j) {
+            if (j != i && candidates[j].size() > 2 && inside(z, candidates[j])) hole[i] = 1;
         }
-        if (!hole) loops.push_back(std::move(candidates[i]));
     }
-
-    for (std::int32_t v = 0; v < n; ++v) {
-        if (near[static_cast<std::size_t>(v)].empty()) {
-            loops.push_back(std::vector<std::int32_t>(1, v));
-        }
+    std::vector<std::vector<std::int32_t>> loops;
+    for (std::size_t i = 0; i < candidates.size(); ++i) {
+        if (!hole[i]) loops.push_back(std::move(candidates[i]));
+    }
+    for (const std::int32_t v : isolated) {
+        loops.push_back(std::vector<std::int32_t>(1, v));
     }
 
     const auto rightmost = [&points](const std::vector<std::int32_t> & loop) {
@@ -210,9 +230,35 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
         const Complex & b = points[static_cast<std::size_t>(y.front())];
         return a.real() != b.real() ? a.real() > b.real() : a.imag() > b.imag();
     });
+    return loops;
+}
 
-    shape.loops = std::move(loops);
-    return shape;
+ComplexCloud loopsContour(const ComplexCloud & points, const std::vector<std::vector<std::int32_t>> & loops,
+                          std::vector<std::size_t> * starts)
+{
+    if (starts != nullptr) {
+        starts->clear();
+    }
+    ComplexCloud result;
+    std::vector<char> emitted(points.size(), 0);
+    for (const std::vector<std::int32_t> & loop : loops) {
+        if (starts != nullptr) {
+            starts->push_back(result.size());
+        }
+        for (const std::int32_t index : loop) {
+            if (!emitted[static_cast<std::size_t>(index)]) {
+                emitted[static_cast<std::size_t>(index)] = 1;
+                result.push_back(points[static_cast<std::size_t>(index)]);
+            }
+        }
+        for (const std::int32_t index : loop) {
+            emitted[static_cast<std::size_t>(index)] = 0;
+        }
+        if (loop.size() > 1) {
+            result.push_back(points[static_cast<std::size_t>(loop.front())]);
+        }
+    }
+    return result;
 }
 
 }

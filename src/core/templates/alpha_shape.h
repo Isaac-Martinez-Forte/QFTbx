@@ -22,11 +22,17 @@
  * rightmost first and each starts at its own rightmost point. The points
  * must be distinct, and the cost is n times the square of the number of
  * neighbours within epsilon.
+ *
+ * finishedLoops() is the last stage on its own, for faces found elsewhere:
+ * the largest face of each component and the isolated points in, the loops
+ * out. loopsContour() turns loops into a contour, each loop's points once
+ * in order and the first again to close it, and says where each starts.
  */
 
 #ifndef QFTBX_ALPHA_SHAPE_H
 #define QFTBX_ALPHA_SHAPE_H
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -40,6 +46,13 @@ struct AlphaShape
 };
 
 AlphaShape alphaShape(const ComplexCloud & points, double epsilon);
+
+std::vector<std::vector<std::int32_t>> finishedLoops(const ComplexCloud & points,
+                                                     std::vector<std::vector<std::int32_t>> candidates,
+                                                     const std::vector<std::int32_t> & isolated);
+
+ComplexCloud loopsContour(const ComplexCloud & points, const std::vector<std::vector<std::int32_t>> & loops,
+                          std::vector<std::size_t> * starts);
 
 }
 

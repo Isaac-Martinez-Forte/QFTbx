@@ -267,7 +267,7 @@ bool TemplateEngine::computeContourSet(const std::vector<PreparedCloud> * prepar
         }
         const SortedCloud & sorted = prepared != nullptr ? (*prepared)[i].sorted : own;
         out.contour = m_borderSweepApplied
-                ? alphaShapeOfSorted(sorted, roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &out.starts)
+                ? alphaShapeOfSorted(sorted, borderSweepEpsilon(m_clouds[i]), &out.starts)
                 : m_alphaShape
                 ? alphaShapeOfSorted(sorted, m_epsilon.at(i), &out.starts)
                 : walkSorted(sorted, projected(m_clouds[i]), m_clouds[i], m_epsilon.at(i),
@@ -611,27 +611,11 @@ ComplexCloud TemplateEngine::alphaShapeOfSorted(const SortedCloud & sorted, doub
         return {};
     }
 
-    const ComplexCloud & cv = sorted.points;
-    const AlphaShape shape = alphaShape(sorted.walk, epsilon);
+    return loopsContour(sorted.points, alphaShape(sorted.walk, epsilon).loops, componentStarts);
+}
 
-    ComplexCloud result;
-    std::vector<char> emitted(cv.size(), 0);
-    for (const std::vector<std::int32_t> & loop : shape.loops){
-        if (componentStarts != nullptr){
-            componentStarts->push_back(result.size());
-        }
-        std::fill(emitted.begin(), emitted.end(), 0);
-        for (const std::int32_t idx : loop){
-            if (!emitted[static_cast<std::size_t>(idx)]){
-                emitted[static_cast<std::size_t>(idx)] = 1;
-                result.push_back(cv[static_cast<std::size_t>(idx)]);
-            }
-        }
-        if (loop.size() > 1){
-            result.push_back(cv[static_cast<std::size_t>(loop.front())]);
-        }
-    }
-    return result;
+double TemplateEngine::borderSweepEpsilon(const ComplexCloud & cloud) const{
+    return roundedUpToThreeFigures(connectingEpsilon(cloud));
 }
 
 ComplexCloud TemplateEngine::epsilonHull(const ComplexCloud & temp, double epsilon,

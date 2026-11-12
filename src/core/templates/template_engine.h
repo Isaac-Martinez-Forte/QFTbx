@@ -139,6 +139,7 @@ public:
                                    std::vector<std::size_t> * componentStarts) const;
 
     double connectingEpsilon(const ComplexCloud & cloud) const;
+    double borderSweepEpsilon(const ComplexCloud & cloud) const;
     double dbPerDegree() const { return m_dbPerDegree; }
 
     std::vector<EpsilonProposal> proposeEpsilon() override;

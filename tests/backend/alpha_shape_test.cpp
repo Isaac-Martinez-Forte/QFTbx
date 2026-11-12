@@ -8,7 +8,9 @@
  * component as a loop, rightmost first. The cases pin the shapes the walk is
  * tested on, grids, separated blocks, a ring, collinear points, isolated
  * points, and what the walk cannot do: closing at the connecting epsilon on
- * every frequency of QFT toolbox example 2. The last case checks that the
+ * every frequency of QFT toolbox example 2. A loop inside another is a hole
+ * whichever of the two comes first, and a loop becomes a contour with each
+ * point once and the first again. The last case checks that the
  * alpha-shape and the walk lead the boundaries and NT to the same gain.
  */
 
@@ -19,6 +21,7 @@
 #include <complex>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "src/app/project_controller.h"
 #include "src/core/project/settings.h"
@@ -85,6 +88,29 @@ TEST(AlphaShape, ARingReturnsItsOuterBorderOnly)
     const AlphaShape s = alphaShape(c, 1.2);
     ASSERT_EQ(s.loops.size(), 1u);
     EXPECT_EQ(s.loops[0].size(), 32u);
+}
+
+TEST(AlphaShape, ALoopInsideAnotherIsAHoleWhicheverComesFirst)
+{
+    const ComplexCloud points{{0, 0}, {4, 0}, {4, 4}, {0, 4}, {1, 1}, {3, 1}, {3, 3}, {1, 3}};
+    const std::vector<std::int32_t> outer{0, 1, 2, 3};
+    const std::vector<std::int32_t> inner{4, 5, 6, 7};
+
+    for (const auto & candidates : {std::vector<std::vector<std::int32_t>>{outer, inner},
+                                    std::vector<std::vector<std::int32_t>>{inner, outer}}) {
+        const std::vector<std::vector<std::int32_t>> loops = finishedLoops(points, candidates, {});
+        ASSERT_EQ(loops.size(), 1u);
+        EXPECT_EQ(loops[0], (std::vector<std::int32_t>{2, 3, 0, 1})) << "the outer loop, from its rightmost point";
+    }
+}
+
+TEST(AlphaShape, TheContourListsEachPointOfALoopOnceAndClosesIt)
+{
+    const ComplexCloud points{{0, 0}, {1, 0}, {2, 0}, {9, 9}};
+    std::vector<std::size_t> starts;
+    const ComplexCloud contour = loopsContour(points, {{2, 1, 0, 1}, {3}}, &starts);
+    EXPECT_EQ(contour, (ComplexCloud{{2, 0}, {1, 0}, {0, 0}, {2, 0}, {9, 9}}));
+    EXPECT_EQ(starts, (std::vector<std::size_t>{0, 4}));
 }
 
 TEST(AlphaShape, CollinearPointsAreWalkedOutAndBack)
