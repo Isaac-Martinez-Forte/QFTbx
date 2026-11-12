@@ -12,7 +12,9 @@
  * wide: each part lists its points in their order, and the parts go
  * rightmost first, the one whose first point comes first on a tie. They are
  * what the template engine does before walking, and what an engine on
- * another processor may hand it instead.
+ * another processor may hand it instead. WalkedContour is what the walk of
+ * one frequency gives: the contour, whether a part fell back to the relaxed
+ * walk or ran out of steps in it, and where each part starts.
  */
 
 #ifndef QFTBX_WALK_CLOUD_H
@@ -99,6 +101,14 @@ struct PreparedCloud
 {
     SortedCloud sorted;
     CloudParts parts;
+};
+
+struct WalkedContour
+{
+    ComplexCloud contour;
+    bool fellBack = false;
+    bool truncated = false;
+    std::vector<std::size_t> starts;
 };
 
 }

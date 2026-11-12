@@ -252,6 +252,44 @@ bool TemplateEngine::computeContourSet(const std::vector<PreparedCloud> * prepar
         throw qftbx::InvalidInput(QFTBX_TR("Core", "The contours need one epsilon per design frequency: %1 given for %2 frequencies.").arg(m_epsilon.size()).arg(m_clouds.size()));
     }
 
+    const std::size_t digitCount = m_clouds.size();
+    std::vector<WalkedContour> walked(digitCount);
+
+#ifdef OpenMP_AVAILABLE
+#pragma omp parallel for
+#endif
+    for (std::size_t i = 0; i < digitCount; i++){
+
+        WalkedContour & out = walked[i];
+        SortedCloud own;
+        if (prepared == nullptr){
+            own = sortedCloud(m_clouds[i], m_metric, m_dbPerDegree);
+        }
+        const SortedCloud & sorted = prepared != nullptr ? (*prepared)[i].sorted : own;
+        out.contour = m_borderSweepApplied
+                ? alphaShapeOfSorted(sorted, roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &out.starts)
+                : m_alphaShape
+                ? alphaShapeOfSorted(sorted, m_epsilon.at(i), &out.starts)
+                : walkSorted(sorted, projected(m_clouds[i]), m_clouds[i], m_epsilon.at(i),
+                             prepared != nullptr ? &(*prepared)[i].parts : nullptr, &out.fellBack, &out.truncated,
+                             &out.starts);
+    }
+
+    return finishContours(std::move(walked));
+}
+
+bool TemplateEngine::contourWalked(std::vector<WalkedContour> walked){
+
+    if (walked.size() != m_clouds.size()){
+        throw qftbx::ComputationError("The contours were given the walks of " + std::to_string(walked.size())
+                                      + " frequencies for " + std::to_string(m_clouds.size()) + ".");
+    }
+
+    return finishContours(std::move(walked));
+}
+
+bool TemplateEngine::finishContours(std::vector<WalkedContour> walked){
+
     bool succeeded = true;
     const std::size_t digitCount = m_clouds.size();
 
@@ -268,59 +306,30 @@ bool TemplateEngine::computeContourSet(const std::vector<PreparedCloud> * prepar
     m_contours = CloudSet(digitCount);
 
     std::vector<char> failed (digitCount, 0);
-    std::vector<char> relaxedFrequencies (digitCount, 0);
-    std::vector<char> truncatedFrequencies (digitCount, 0);
 
-#ifdef OpenMP_AVAILABLE
-#pragma omp parallel for
-#endif
     for (std::size_t i = 0; i < digitCount; i++){
 
-        bool fellBack = false;
-        bool truncated = false;
-        std::vector<std::size_t> starts;
-        SortedCloud own;
-        if (prepared == nullptr){
-            own = sortedCloud(m_clouds[i], m_metric, m_dbPerDegree);
-        }
-        const SortedCloud & sorted = prepared != nullptr ? (*prepared)[i].sorted : own;
-        ComplexCloud cont = m_borderSweepApplied
-                ? alphaShapeOfSorted(sorted, roundedUpToThreeFigures(connectingEpsilon(m_clouds[i])), &starts)
-                : m_alphaShape
-                ? alphaShapeOfSorted(sorted, m_epsilon.at(i), &starts)
-                : walkSorted(sorted, projected(m_clouds[i]), m_clouds[i], m_epsilon.at(i),
-                             prepared != nullptr ? &(*prepared)[i].parts : nullptr, &fellBack, &truncated, &starts);
-
-        if (fellBack){
-            relaxedFrequencies[i] = true;
-        }
-        if (truncated){
-            truncatedFrequencies[i] = true;
-        }
+        WalkedContour & out = walked[i];
+        ComplexCloud cont = std::move(out.contour);
+        std::vector<std::size_t> starts = std::move(out.starts);
 
         bool wholeCloud = false;
-        if ((truncated || cont.empty()) && m_wholeCloudStandsIn){
+        if ((out.truncated || cont.empty()) && m_wholeCloudStandsIn){
             cont = m_clouds[i];
             starts.assign(1, 0);
             wholeCloud = true;
         }
 
         m_reports[i].contourPoints = cont.size();
-        m_reports[i].relaxed = fellBack;
-        m_reports[i].truncated = truncated;
+        m_reports[i].relaxed = out.fellBack;
+        m_reports[i].truncated = out.truncated;
         m_reports[i].wholeCloud = wholeCloud;
         m_reports[i].components = std::max<std::size_t>(starts.size(), 1);
         m_reports[i].componentStarts = std::move(starts);
 
         if (cont.empty()){
             failed[i] = true;
-
-#ifdef OpenMP_AVAILABLE
-#pragma omp critical
-#endif
-            {
-                succeeded = false;
-            }
+            succeeded = false;
         }
 
         m_contours[i] = std::move(cont);
@@ -328,7 +337,7 @@ bool TemplateEngine::computeContourSet(const std::vector<PreparedCloud> * prepar
 
     std::vector<std::string> relaxed;
     for (std::size_t i = 0; i < digitCount; i++){
-        if (relaxedFrequencies.at(i) && i < m_frequencies.size()){
+        if (m_reports[i].relaxed && i < m_frequencies.size()){
             relaxed.push_back(qftbx::text::number(m_frequencies.at(i)));
         }
     }

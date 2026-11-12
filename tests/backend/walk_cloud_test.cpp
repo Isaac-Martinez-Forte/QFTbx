@@ -10,7 +10,9 @@
  * point comes first. An engine handed the prepared clouds of every
  * frequency walks them into the contours it would have walked itself, on
  * either plane and with the cloud split into parts, and refuses prepared
- * clouds that are not one per frequency.
+ * clouds that are not one per frequency; handed the walks of every
+ * frequency, it finishes them as its own, the whole cloud standing in where
+ * none closed, or the error when it may not.
  */
 
 #include <gtest/gtest.h>
@@ -165,4 +167,54 @@ TEST(WalkCloud, PreparedCloudsThatAreNotOnePerFrequencyAreRefused)
     engine.setClouds(clouds);
     engine.setEpsilon(*project.epsilon());
     EXPECT_THROW(engine.contourPrepared(prepared), ComputationError);
+}
+
+TEST(WalkCloud, TheEngineFinishesTheWalksMadeElsewhereAsItFinishesItsOwn)
+{
+    ProjectController project;
+    project.load(std::string(QFTBX_EXAMPLES_DIR) + "/dcm-AC.qft");
+    const CloudSet clouds = project.templates();
+
+    for (const double scale : {1.0, 0.5, 1e-6}) {
+        std::vector<double> epsilon = *project.epsilon();
+        for (double & e : epsilon) {
+            e *= scale;
+        }
+        const std::string where = "x" + std::to_string(scale);
+
+        TemplateEngine own;
+        own.setClouds(clouds);
+        own.computeContours(epsilon);
+
+        TemplateEngine walking;
+        std::vector<WalkedContour> walked(clouds.size());
+        for (std::size_t i = 0; i < clouds.size(); ++i) {
+            walked[i].contour = walking.epsilonHull(clouds[i], epsilon[i], &walked[i].fellBack, &walked[i].truncated,
+                                                    &walked[i].starts);
+        }
+
+        TemplateEngine handed;
+        handed.setClouds(clouds);
+        handed.takeEpsilon(epsilon);
+        handed.contourWalked(walked);
+
+        EXPECT_EQ(handed.contours(), own.contours()) << where;
+        ASSERT_EQ(handed.contourReports().size(), own.contourReports().size()) << where;
+        for (std::size_t i = 0; i < own.contourReports().size(); ++i) {
+            const ContourReport & a = handed.contourReports()[i];
+            const ContourReport & b = own.contourReports()[i];
+            EXPECT_EQ(a.componentStarts, b.componentStarts) << where;
+            EXPECT_EQ(a.wholeCloud, b.wholeCloud) << where;
+            EXPECT_EQ(a.contourPoints, b.contourPoints) << where;
+        }
+        if (scale < 1e-3) {
+            EXPECT_TRUE(own.contourReports().front().wholeCloud) << where;
+
+            TemplateEngine failing;
+            failing.setWholeCloudStandsIn(false);
+            failing.setClouds(clouds);
+            failing.takeEpsilon(epsilon);
+            EXPECT_THROW(failing.contourWalked(walked), ComputationError) << where;
+        }
+    }
 }

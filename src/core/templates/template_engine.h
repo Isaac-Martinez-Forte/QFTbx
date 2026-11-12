@@ -52,7 +52,10 @@
  * clouds over with the plan (adoptSweep) and has them contoured here
  * (contourClouds), or, once proposeMissingEpsilon() or takeEpsilon() has
  * fixed the epsilon, prepares them itself and has them walked here
- * (contourPrepared), which reads no token, as computeContours() does not. The token is read once per frequency and throws
+ * (contourPrepared), or walks them itself and hands the walks over
+ * (contourWalked), for the whole cloud to stand in, the reports and the
+ * record, the walk's own time being the other engine's to record; neither
+ * reads the token, as computeContours() does not. The token is read once per frequency and throws
  * qftbx::Cancelled; null cannot be cancelled. The engine keeps copies of all it is given, and the
  * combination count is a size_t: the product of grid sizes overflows 32
  * bits.
@@ -103,6 +106,8 @@ public:
     void takeEpsilon(std::vector<double> epsilon);
 
     bool contourPrepared(const std::vector<PreparedCloud> & prepared);
+
+    bool contourWalked(std::vector<WalkedContour> walked);
 
     bool computeContourSet(const std::vector<PreparedCloud> * prepared = nullptr);
 
@@ -184,6 +189,8 @@ private:
     void adoptPlan(const SweepPlan & plan);
 
     ComplexCloud projected(const ComplexCloud & points) const;
+
+    bool finishContours(std::vector<WalkedContour> walked);
 
     ComplexCloud walkSorted(const SortedCloud & sorted, const ComplexCloud & tempWalk, const ComplexCloud & temp,
                             double epsilon, const CloudParts * given, bool * fellBack, bool * truncated,
