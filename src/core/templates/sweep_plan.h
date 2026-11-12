@@ -14,6 +14,12 @@
  *   family that changes its number of right half-plane poles;
  * - it marks the bands that poles on the imaginary axis sweep.
  *
+ * It is planCombinations(), all of it but the poles of the family, and
+ * checkFamily(), which finds them on the processor. FamilyPoles is what the
+ * poles say, counted over the combinations in order, wherever they were
+ * found; adoptFamily() refuses the family from it, or keeps its count and
+ * its bands in the plan.
+ *
  * A combination's digits are its grids' values, the first parameter
  * changing fastest, or a point of the border. sweepOnProcessor() evaluates
  * every combination at every frequency, one frequency per thread, and any
@@ -58,8 +64,24 @@ struct SweepPlan
     bool borderSweepApplied() const { return !border.empty(); }
 };
 
+struct FamilyPoles
+{
+    std::optional<int> firstCount;
+    std::optional<std::size_t> unplaceableAt;
+    std::optional<std::size_t> otherCountAt;
+    int otherCount = 0;
+    std::vector<std::array<double, 2>> bands;
+};
+
 SweepPlan planSweep(LtiSystem & plant, const std::vector<double> & frequencies, const ParameterGrids & grids,
                     bool borderSweep);
+
+SweepPlan planCombinations(LtiSystem & plant, const std::vector<double> & frequencies, const ParameterGrids & grids,
+                           bool borderSweep);
+
+FamilyPoles checkFamily(LtiSystem & plant, const SweepPlan & plan);
+
+void adoptFamily(SweepPlan & plan, const FamilyPoles & poles, const std::vector<double> & frequencies);
 
 CloudSet sweepOnProcessor(LtiSystem & plant, const std::vector<double> & frequencies, const SweepPlan & plan,
                           const CancellationToken * cancellation);

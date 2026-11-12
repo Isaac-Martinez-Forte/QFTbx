@@ -170,7 +170,12 @@ const CloudSet & TemplateEngine::contours() const{
 CloudSet TemplateEngine::computeClouds(LtiSystem *plant, std::vector<double> *omega){
 
     m_proposals.reset();
-    const SweepPlan plan = planSweep(*plant, *omega, m_grids, m_borderSweep);
+    SweepPlan plan = planCombinations(*plant, *omega, m_grids, m_borderSweep);
+    const auto checking = std::chrono::steady_clock::now();
+    adoptFamily(plan, checkFamily(*plant, plan), *omega);
+    qftbx::record::write("templates", "family",
+                      qftbx::record::milliseconds(std::chrono::duration<double, std::milli>(
+                                                   std::chrono::steady_clock::now() - checking).count()));
     adoptPlan(plan);
 
     return sweepOnProcessor(*plant, *omega, plan, m_cancellation);

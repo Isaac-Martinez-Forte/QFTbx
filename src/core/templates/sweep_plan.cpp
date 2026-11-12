@@ -6,8 +6,9 @@
  * plant, moved here unchanged so that the processor and the GPU sweep the
  * same family: on the processor the plants come out as they always have,
  * to the bit. The family's poles are found once per distinct denominator,
- * and a plant whose poles cannot be placed leaves the family's count
- * unknown rather than refusing it.
+ * going through the combinations in order up to the first whose count
+ * differs, and a plant whose poles cannot be placed stops the search and
+ * leaves the family's count unknown rather than refusing it.
  */
 
 #include "src/core/templates/sweep_plan.h"
@@ -27,8 +28,8 @@ using std::complex;
 
 namespace qftbx {
 
-SweepPlan planSweep(LtiSystem & plant, const std::vector<double> & frequencies, const ParameterGrids & sweepGrids,
-                    bool borderSweep)
+SweepPlan planCombinations(LtiSystem & plant, const std::vector<double> & frequencies, const ParameterGrids & sweepGrids,
+                           bool borderSweep)
 {
     SweepPlan plan;
 
@@ -68,7 +69,6 @@ SweepPlan planSweep(LtiSystem & plant, const std::vector<double> & frequencies, 
     }
 
     const std::size_t digitCount = names.size();
-    const std::size_t frequencyCount = frequencies.size();
 
     const std::optional<std::vector<std::complex<double>>> nominalPoles = plant.nominalPoles();
     const std::vector<double> nominalResonances = nominalPoles.has_value()
@@ -147,95 +147,135 @@ SweepPlan planSweep(LtiSystem & plant, const std::vector<double> & frequencies, 
     plan.gainNominal = plant.gain().nominal();
     plan.delayNominal = plant.delay().nominal();
 
+    return plan;
+}
+
+namespace {
+
+void digitsAt(const SweepPlan & plan, std::size_t combination, std::vector<double> & digit)
+{
+    if (plan.borderSweepApplied()){
+        digit[0] = plan.border[combination][0];
+        digit[1] = plan.border[combination][1];
+    } else {
+        std::size_t rest = combination;
+        for (std::size_t j = 0; j < digit.size(); j++){
+            const std::vector<double> & grid = plan.grids[j];
+            digit[j] = grid[rest % grid.size()];
+            rest /= grid.size();
+        }
+    }
+}
+
+std::vector<double> denominatorAt(const SweepPlan & plan, std::size_t combination)
+{
+    std::vector<double> digit(plan.grids.size());
+    digitsAt(plan, combination, digit);
+    std::vector<double> denominator = plan.denominatorNominal;
+    for (std::size_t c = 0; c < plan.denominatorSlot.size(); c++){
+        if (plan.denominatorSlot[c] >= 0){
+            denominator[c] = digit[static_cast<std::size_t>(plan.denominatorSlot[c])];
+        }
+    }
+    return denominator;
+}
+
+}
+
+FamilyPoles checkFamily(LtiSystem & plant, const SweepPlan & plan)
+{
+    FamilyPoles family;
     std::map<std::vector<double>, std::vector<double>> axisByDenominator;
-    {
-        std::vector<double> numeratorValues = numeratorNominal;
-        std::vector<double> denominatorValues = denominatorNominal;
-        std::vector<double> digit(digitCount);
-        std::map<std::vector<double>, int> countByDenominator;
-        std::optional<int> familyCount;
-        std::vector<double> firstDenominator;
-        bool placeable = true;
+    std::vector<double> numeratorValues = plan.numeratorNominal;
+    std::vector<double> denominatorValues = plan.denominatorNominal;
+    std::vector<double> digit(plan.grids.size());
+    std::map<std::vector<double>, int> countByDenominator;
 
-        for (std::size_t i = 0; i < plan.combinationCount && placeable; i++){
-            if (plan.borderSweepApplied()){
-                digit[0] = border[i][0];
-                digit[1] = border[i][1];
-            } else {
-                std::size_t rest = i;
-                for (std::size_t j = 0; j < digitCount; j++){
-                    const std::vector<double> & grid = *grids.at(j);
-                    digit[j] = grid[rest % grid.size()];
-                    rest /= grid.size();
-                }
+    for (std::size_t i = 0; i < plan.combinationCount; i++){
+        digitsAt(plan, i, digit);
+        for (std::size_t c = 0; c < plan.numeratorSlot.size(); c++){
+            if (plan.numeratorSlot[c] >= 0){
+                numeratorValues[c] = digit[static_cast<std::size_t>(plan.numeratorSlot[c])];
             }
-            for (std::size_t c = 0; c < numeratorSlot.size(); c++){
-                if (numeratorSlot[c] >= 0){
-                    numeratorValues[c] = digit[static_cast<std::size_t>(numeratorSlot[c])];
-                }
-            }
-            for (std::size_t c = 0; c < denominatorSlot.size(); c++){
-                if (denominatorSlot[c] >= 0){
-                    denominatorValues[c] = digit[static_cast<std::size_t>(denominatorSlot[c])];
-                }
-            }
-
-            const auto known = countByDenominator.find(denominatorValues);
-            int count = 0;
-            if (known != countByDenominator.end()){
-                count = known->second;
-            } else {
-                const std::optional<std::vector<std::complex<double>>> poles =
-                        plant.polesAt(numeratorValues, denominatorValues);
-                if (!poles.has_value()){
-                    placeable = false;
-                    break;
-                }
-                count = qftbx::math::rightHalfPlaneCount(*poles);
-                countByDenominator[denominatorValues] = count;
-                axisByDenominator[denominatorValues] = qftbx::math::imaginaryAxisFrequencies(*poles);
-            }
-
-            if (!familyCount.has_value()){
-                familyCount = count;
-                firstDenominator = denominatorValues;
-            } else if (count != *familyCount){
-                const auto listed = [](const std::vector<double> & values) {
-                    std::string text;
-                    for (std::size_t k = 0; k < values.size(); k++){
-                        text += (k ? ", " : "") + qftbx::text::number(values[k]);
-                    }
-                    return text;
-                };
-                throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.")
-                                          .arg(*familyCount).arg(listed(firstDenominator)).arg(count).arg(listed(denominatorValues)));
+        }
+        for (std::size_t c = 0; c < plan.denominatorSlot.size(); c++){
+            if (plan.denominatorSlot[c] >= 0){
+                denominatorValues[c] = digit[static_cast<std::size_t>(plan.denominatorSlot[c])];
             }
         }
 
-        if (placeable){
-            plan.familyRhpPoles = familyCount;
+        const auto known = countByDenominator.find(denominatorValues);
+        int count = 0;
+        if (known != countByDenominator.end()){
+            count = known->second;
+        } else {
+            const std::optional<std::vector<std::complex<double>>> poles =
+                    plant.polesAt(numeratorValues, denominatorValues);
+            if (!poles.has_value()){
+                family.unplaceableAt = i;
+                break;
+            }
+            count = qftbx::math::rightHalfPlaneCount(*poles);
+            countByDenominator[denominatorValues] = count;
+            axisByDenominator[denominatorValues] = qftbx::math::imaginaryAxisFrequencies(*poles);
+        }
+
+        if (!family.firstCount.has_value()){
+            family.firstCount = count;
+        } else if (count != *family.firstCount){
+            family.otherCountAt = i;
+            family.otherCount = count;
+            break;
         }
     }
 
-    std::vector<std::array<double, 2>> bands;
     for (const auto & [denominator, frequencies] : axisByDenominator){
         for (std::size_t j = 0; j < frequencies.size(); j++){
-            if (bands.size() <= j){
-                bands.push_back({frequencies[j], frequencies[j]});
+            if (family.bands.size() <= j){
+                family.bands.push_back({frequencies[j], frequencies[j]});
             }
-            bands[j][0] = std::min(bands[j][0], frequencies[j]);
-            bands[j][1] = std::max(bands[j][1], frequencies[j]);
+            family.bands[j][0] = std::min(family.bands[j][0], frequencies[j]);
+            family.bands[j][1] = std::max(family.bands[j][1], frequencies[j]);
         }
     }
-    plan.resonanceBands.assign(frequencyCount, std::nullopt);
-    for (std::size_t u = 0; u < frequencyCount; u++){
-        for (const std::array<double, 2> & band : bands){
+
+    return family;
+}
+
+void adoptFamily(SweepPlan & plan, const FamilyPoles & family, const std::vector<double> & frequencies)
+{
+    const bool changes = family.otherCountAt.has_value()
+            && (!family.unplaceableAt.has_value() || *family.otherCountAt < *family.unplaceableAt);
+    if (changes){
+        const auto listed = [](const std::vector<double> & values) {
+            std::string text;
+            for (std::size_t k = 0; k < values.size(); k++){
+                text += (k ? ", " : "") + qftbx::text::number(values[k]);
+            }
+            return text;
+        };
+        throw qftbx::InvalidInput(QFTBX_TR("Core", "The plant family changes its number of right half-plane poles: %1 with the denominator values (%2) and %3 with (%4). The stability of the nominal loop only carries to a family whose members all have the same number; split the uncertainty at the crossing.")
+                                  .arg(family.firstCount.value_or(0)).arg(listed(denominatorAt(plan, 0)))
+                                  .arg(family.otherCount).arg(listed(denominatorAt(plan, *family.otherCountAt))));
+    }
+
+    plan.familyRhpPoles = family.unplaceableAt.has_value() ? std::nullopt : family.firstCount;
+
+    plan.resonanceBands.assign(frequencies.size(), std::nullopt);
+    for (std::size_t u = 0; u < frequencies.size(); u++){
+        for (const std::array<double, 2> & band : family.bands){
             if (band[0] < frequencies.at(u) && frequencies.at(u) < band[1]){
                 plan.resonanceBands[u] = band;
             }
         }
     }
+}
 
+SweepPlan planSweep(LtiSystem & plant, const std::vector<double> & frequencies, const ParameterGrids & grids,
+                    bool borderSweep)
+{
+    SweepPlan plan = planCombinations(plant, frequencies, grids, borderSweep);
+    adoptFamily(plan, checkFamily(plant, plan), frequencies);
     return plan;
 }
 
