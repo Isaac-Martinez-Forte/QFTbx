@@ -44,41 +44,15 @@
 #include "src/core/gpu/common/stream.cuh"
 #include "src/core/gpu/templates/device_clouds.cuh"
 #include "src/core/gpu/templates/walk_keys.cuh"
+#include "src/core/gpu/templates/walk_work.cuh"
 
 namespace qftbx::gpu {
 
 namespace {
 
-using Bits = unsigned long long;
-using Index = std::uint32_t;
-
-constexpr int kThreads = 256;
 constexpr int kBoundsThreads = 256;
 constexpr int kPartWarps = 4;
 constexpr int kPartBlock = 32 * kPartWarps;
-constexpr unsigned int kFull = 0xffffffffu;
-constexpr Index kNoPoint = 0xffffffffu;
-constexpr std::int64_t kCellLimit = (std::int64_t{1} << kCellBits) - 1;
-constexpr std::size_t kBytesPerPoint = 2 * sizeof(Bits) + 9 * sizeof(Index) + 2 * sizeof(DeviceComplex)
-        + 2 * sizeof(Bits) + sizeof(double);
-constexpr std::size_t kLargestBatch = (std::size_t{1} << 31) - 2;
-
-QFTBX_HD inline double valueOfBits(Bits ordered)
-{
-    const std::uint64_t bits = (ordered >> 63) != 0 ? ordered & ~(std::uint64_t{1} << 63) : ~ordered;
-    double value;
-    std::memcpy(&value, &bits, sizeof value);
-    return value;
-}
-
-int bitsFor(std::size_t count)
-{
-    int bits = 1;
-    while (bits < 32 && (std::size_t{1} << bits) < count) {
-        ++bits;
-    }
-    return bits;
-}
 
 __global__ void angleKeys(const DeviceComplex * cloud, Index n, Bits * keys, Index * order)
 {
@@ -277,32 +251,6 @@ __global__ void sortedCells(const DeviceComplex * walk, const Index * frequencyO
     }
 }
 
-__device__ Index lowerBound(const Bits * keys, Index first, Index last, Bits key)
-{
-    while (first < last) {
-        const Index middle = first + (last - first) / 2;
-        if (keys[middle] < key) {
-            first = middle + 1;
-        } else {
-            last = middle;
-        }
-    }
-    return first;
-}
-
-__device__ Index upperBound(const Bits * keys, Index first, Index last, Bits key)
-{
-    while (first < last) {
-        const Index middle = first + (last - first) / 2;
-        if (keys[middle] <= key) {
-            first = middle + 1;
-        } else {
-            last = middle;
-        }
-    }
-    return first;
-}
-
 __device__ Index representative(Index * parent, Index x)
 {
     Index current = __ldcg(parent + x);
@@ -359,39 +307,16 @@ __global__ void __launch_bounds__(kPartBlock) uniteParts(const DeviceComplex * w
         const double reach = epsilon[f];
         const DeviceComplex centre = walk[i];
 
+        const PointSet set{walk, cells, cellOrder, start, end, frame};
         Index lo = 0;
         Index hi = 0;
-        if (frame.indexed) {
-            const std::int64_t x = cellCoordinate(centre.real(), frame.minRe, frame.side) - kCellReach + lane;
-            const std::int64_t y = cellCoordinate(centre.imag(), frame.minIm, frame.side);
-            if (lane < kCellColumns && x >= 0 && x <= kCellLimit) {
-                const std::int64_t below = y - kCellReach < 0 ? 0 : y - kCellReach;
-                const std::int64_t above = y + kCellReach > kCellLimit ? kCellLimit : y + kCellReach;
-                lo = lowerBound(cells, start, end, static_cast<Bits>(cellKey(x, below)));
-                hi = upperBound(cells, lo, end, static_cast<Bits>(cellKey(x, above)));
-            }
-        } else if (lane == 0) {
-            lo = start;
-            hi = end;
-        }
-
-        const Index count = hi - lo;
-        Index inclusive = count;
-        for (int d = 1; d < 32; d <<= 1) {
-            const Index below = __shfl_up_sync(kFull, inclusive, d);
-            inclusive += lane >= d ? below : 0u;
-        }
-        const Index exclusive = inclusive - count;
-        const Index total = __shfl_sync(kFull, inclusive, 31);
+        columnOf(set, centre, lane, lo, hi);
+        Index total = 0;
+        const Index exclusive = warpExclusive(hi - lo, lane, total);
 
         for (Index base = 0; base < total; base += 32) {
             const Index c = base + static_cast<Index>(lane);
-            Index place = 0;
-            for (int k = 0; k < kCellColumns; ++k) {
-                const Index from = __shfl_sync(kFull, exclusive, k);
-                const Index first = __shfl_sync(kFull, lo, k);
-                place = c >= from ? first + (c - from) : place;
-            }
+            const Index place = candidateAt(c, exclusive, lo);
             const bool valid = c < total;
             const Index j = valid ? cellOrder[place] : 0u;
             if (valid && j > i && reaches(walk[j], centre, reach)) {
@@ -480,11 +405,6 @@ __global__ void rootOffsetsOf(const Index * offsets, const Index * places, Index
     }
 }
 
-unsigned int blocks(std::size_t threads)
-{
-    return std::max(1u, blocksFor(threads, kThreads));
-}
-
 template <typename Kernel>
 unsigned int residentBlocks(Kernel kernel, int block, std::size_t needed)
 {
@@ -496,109 +416,9 @@ unsigned int residentBlocks(Kernel kernel, int block, std::size_t needed)
     return static_cast<unsigned int>(std::max<std::size_t>(1, std::min(resident, needed)));
 }
 
-class Sorter
-{
-public:
-    Sorter(std::size_t items, const Stream & stream) : m_stream(stream)
-    {
-        const int n = static_cast<int>(items);
-        std::size_t bytes = 0;
-        std::size_t largest = 0;
-        cub::DoubleBuffer<Bits> wide(nullptr, nullptr);
-        cub::DoubleBuffer<Index> narrow(nullptr, nullptr);
-        cub::DoubleBuffer<Index> values(nullptr, nullptr);
-        check(cub::DeviceRadixSort::SortPairs(nullptr, bytes, wide, values, n), "cub::DeviceRadixSort::SortPairs");
-        largest = std::max(largest, bytes);
-        check(cub::DeviceRadixSort::SortPairs(nullptr, bytes, narrow, values, n), "cub::DeviceRadixSort::SortPairs");
-        largest = std::max(largest, bytes);
-        check(cub::DeviceScan::ExclusiveSum(nullptr, bytes, static_cast<const Index *>(nullptr),
-                                            static_cast<Index *>(nullptr), n + 1),
-              "cub::DeviceScan::ExclusiveSum");
-        largest = std::max(largest, bytes);
-        m_bytes = largest;
-        m_storage = DeviceBuffer<unsigned char>(std::max<std::size_t>(largest, 1), stream);
-    }
-
-    template <typename Key>
-    void sort(Key *& keys, Key * spareKeys, Index *& values, Index *& spareValues, Index n, int bits)
-    {
-        if (n == 0) {
-            return;
-        }
-        cub::DoubleBuffer<Key> k(keys, spareKeys);
-        cub::DoubleBuffer<Index> v(values, spareValues);
-        std::size_t bytes = m_bytes;
-        check(cub::DeviceRadixSort::SortPairs(m_storage.data(), bytes, k, v, static_cast<int>(n), 0, bits,
-                                              m_stream.get()),
-              "cub::DeviceRadixSort::SortPairs");
-        keys = k.Current();
-        values = v.Current();
-        spareValues = v.Alternate();
-    }
-
-    void scan(const Index * in, Index * out, Index n)
-    {
-        std::size_t bytes = m_bytes;
-        check(cub::DeviceScan::ExclusiveSum(m_storage.data(), bytes, in, out, static_cast<int>(n), m_stream.get()),
-              "cub::DeviceScan::ExclusiveSum");
-    }
-
-private:
-    const Stream & m_stream;
-    std::size_t m_bytes = 0;
-    DeviceBuffer<unsigned char> m_storage;
-};
-
-struct Work
-{
-    Work(std::size_t points, std::size_t frequencies, bool nichols, const Stream & stream)
-        : keysA(points, stream), keysB(points, stream), valuesA(points, stream), valuesB(points, stream),
-          flags(points + 1, stream), places(points + 1, stream), cloudPoints(points, stream), walk(points, stream),
-          frequencyOf(points, stream), parent(points, stream), label(points, stream), rankOf(points, stream),
-          starts(points, stream), rightmost(points, stream), phases(nichols ? points : 0, stream),
-          offsets(frequencies + 1, stream), rootOffsets(frequencies + 1, stream), epsilon(frequencies, stream),
-          frames(frequencies, stream), low(2 * frequencies, stream), high(2 * frequencies, stream),
-          widest(frequencies, stream), at(frequencies, stream), shift(frequencies, stream), cut(frequencies, stream),
-          sorter(points, stream)
-    {
-    }
-
-    DeviceBuffer<Bits> keysA;
-    DeviceBuffer<Bits> keysB;
-    DeviceBuffer<Index> valuesA;
-    DeviceBuffer<Index> valuesB;
-    DeviceBuffer<Index> flags;
-    DeviceBuffer<Index> places;
-    DeviceBuffer<DeviceComplex> cloudPoints;
-    DeviceBuffer<DeviceComplex> walk;
-    DeviceBuffer<Index> frequencyOf;
-    DeviceBuffer<Index> parent;
-    DeviceBuffer<Index> label;
-    DeviceBuffer<Index> rankOf;
-    DeviceBuffer<Index> starts;
-    DeviceBuffer<Bits> rightmost;
-    DeviceBuffer<double> phases;
-    DeviceBuffer<Index> offsets;
-    DeviceBuffer<Index> rootOffsets;
-    DeviceBuffer<double> epsilon;
-    DeviceBuffer<GridFrame> frames;
-    DeviceBuffer<Bits> low;
-    DeviceBuffer<Bits> high;
-    DeviceBuffer<Bits> widest;
-    DeviceBuffer<Index> at;
-    DeviceBuffer<int> shift;
-    DeviceBuffer<double> cut;
-    Sorter sorter;
-};
-
 Index * narrowed(DeviceBuffer<Bits> & keys)
 {
     return reinterpret_cast<Index *>(keys.data());
-}
-
-double millisecondsSince(std::chrono::steady_clock::time_point start)
-{
-    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 }
 
 Index sortedWithoutRepeats(Work & work, const DeviceComplex * cloud, Index n, Index plants, Index frequencies,
@@ -668,7 +488,7 @@ void projectOntoNichols(Work & work, Index m, Index frequencies, double dbPerDeg
     checkLaunch("the kernel of the Nichols projection");
 }
 
-Index splitIntoParts(Work & work, Index m, Index plants, Index frequencies, cudaStream_t stream, Index *& members)
+Index splitIntoParts(Work & work, Index m, Index plants, Index frequencies, cudaStream_t stream)
 {
     work.low.fill(0xff);
     work.high.fill(0);
@@ -691,17 +511,18 @@ Index splitIntoParts(Work & work, Index m, Index plants, Index frequencies, cuda
     frequencyKeys<<<blocks(m), kThreads, 0, stream>>>(order, work.frequencyOf.data(), m, frequencyKeysOf);
     checkLaunch("the kernel of the frequencies of the cells");
     work.sorter.sort(frequencyKeysOf, narrowed(work.keysB), order, spare, m, bitsFor(frequencies));
-    Bits * cells = work.keysA.data();
+    check(cudaMemcpyAsync(work.cellOrder.data(), order, m * sizeof(Index), cudaMemcpyDeviceToDevice, stream),
+          "cudaMemcpyAsync of the order of the cells");
     sortedCells<<<blocks(m), kThreads, 0, stream>>>(work.walk.data(), work.frequencyOf.data(), work.frames.data(),
-                                                    order, m, cells);
+                                                    order, m, work.cells.data());
     checkLaunch("the kernel of the sorted cells");
 
     initialParents<<<blocks(m), kThreads, 0, stream>>>(m, work.parent.data());
     checkLaunch("the kernel of the first parents");
     const unsigned int partBlocks = residentBlocks(uniteParts, kPartBlock, (m + kPartWarps - 1) / kPartWarps);
     uniteParts<<<partBlocks, kPartBlock, 0, stream>>>(work.walk.data(), work.frequencyOf.data(), work.offsets.data(),
-                                                      work.frames.data(), work.epsilon.data(), cells, order, m,
-                                                      work.parent.data());
+                                                      work.frames.data(), work.epsilon.data(), work.cells.data(),
+                                                      work.cellOrder.data(), m, work.parent.data());
     checkLaunch("the kernel of the parts");
     finishLabels<<<blocks(m), kThreads, 0, stream>>>(work.parent.data(), m, work.label.data());
     checkLaunch("the kernel of the labels");
@@ -735,16 +556,46 @@ Index splitIntoParts(Work & work, Index m, Index plants, Index frequencies, cuda
     checkLaunch("the kernel of the offsets of the parts");
 
     Index * memberRanks = narrowed(work.keysA);
-    members = work.valuesA.data();
+    Index * members = work.valuesA.data();
     spare = work.valuesB.data();
     memberKeys<<<blocks(m), kThreads, 0, stream>>>(work.label.data(), work.rankOf.data(), m, memberRanks, members);
     checkLaunch("the kernel of the members");
     work.sorter.sort(memberRanks, narrowed(work.keysB), members, spare, m, bitsFor(roots));
     partStarts<<<blocks(m), kThreads, 0, stream>>>(memberRanks, m, work.starts.data());
     checkLaunch("the kernel of the starts of the parts");
+    check(cudaMemcpyAsync(work.members.data(), members, m * sizeof(Index), cudaMemcpyDeviceToDevice, stream),
+          "cudaMemcpyAsync of the members");
     return roots;
 }
 
+}
+
+std::size_t batchFrequencies(std::size_t frequencies, std::size_t plants, std::size_t bytesPerPoint)
+{
+    std::size_t freeBytes = 0;
+    std::size_t totalBytes = 0;
+    check(cudaMemGetInfo(&freeBytes, &totalBytes), "cudaMemGetInfo");
+    const std::size_t perFrequency = plants * bytesPerPoint * 2;
+    if (perFrequency > freeBytes / 2 || plants > kLargestBatch) {
+        throw CudaError("the card's free memory cannot hold the contour of one frequency", 0);
+    }
+    return std::min<std::size_t>({frequencies, (freeBytes / 2) / perFrequency, kLargestBatch / plants, 65535});
+}
+
+PreparedBatch prepareBatch(Work & work, const DeviceComplex * cloud, Index plants, Index frequencies,
+                           HullMetric metric, double dbPerDegree, cudaStream_t stream)
+{
+    PreparedBatch batch;
+    const Index n = frequencies * plants;
+    batch.points = sortedWithoutRepeats(work, cloud, n, plants, frequencies, stream);
+    if (metric == HullMetric::Nichols) {
+        projectOntoNichols(work, batch.points, frequencies, dbPerDegree, stream);
+    } else {
+        check(cudaMemcpyAsync(work.walk.data(), work.cloudPoints.data(), batch.points * sizeof(DeviceComplex),
+                              cudaMemcpyDeviceToDevice, stream), "cudaMemcpyAsync of the walk");
+    }
+    batch.parts = splitIntoParts(work, batch.points, plants, frequencies, stream);
+    return batch;
 }
 
 std::shared_ptr<const DeviceClouds> cloudsOnCard(const CloudSet & clouds)
@@ -796,35 +647,20 @@ PreparedOnCard preparedOnCard(const DeviceClouds & clouds, const std::vector<dou
     const Stream & stream = clouds.stream();
     const bool nichols = metric == HullMetric::Nichols;
 
-    std::size_t freeBytes = 0;
-    std::size_t totalBytes = 0;
-    check(cudaMemGetInfo(&freeBytes, &totalBytes), "cudaMemGetInfo");
-    const std::size_t perFrequency = plants * kBytesPerPoint * 2;
-    if (perFrequency > freeBytes / 2 || plants > kLargestBatch) {
-        throw CudaError("the card's free memory cannot hold the preparation of one frequency", 0);
-    }
-    const std::size_t batch = std::min<std::size_t>({frequencyCount, (freeBytes / 2) / perFrequency,
-                                                     kLargestBatch / plants, 65535});
-
+    const std::size_t batch = batchFrequencies(frequencyCount, plants, Work::kBytesPerPoint);
     Work work(batch * plants, batch, nichols, stream);
 
     for (std::size_t first = 0; first < frequencyCount; first += batch) {
         const Index count = static_cast<Index>(std::min(batch, frequencyCount - first));
-        const Index n = static_cast<Index>(count * plants);
         const DeviceComplex * cloud = clouds.values() + first * plants;
 
         const auto computing = std::chrono::steady_clock::now();
         check(cudaMemcpyAsync(work.epsilon.data(), epsilon.data() + first, count * sizeof(double),
                               cudaMemcpyHostToDevice, stream.get()), "cudaMemcpyAsync of the epsilons");
-        const Index m = sortedWithoutRepeats(work, cloud, n, static_cast<Index>(plants), count, stream.get());
-        if (nichols) {
-            projectOntoNichols(work, m, count, dbPerDegree, stream.get());
-        } else {
-            check(cudaMemcpyAsync(work.walk.data(), work.cloudPoints.data(), m * sizeof(DeviceComplex),
-                                  cudaMemcpyDeviceToDevice, stream.get()), "cudaMemcpyAsync of the walk");
-        }
-        Index * members = nullptr;
-        const Index roots = splitIntoParts(work, m, static_cast<Index>(plants), count, stream.get(), members);
+        const PreparedBatch prepared = prepareBatch(work, cloud, static_cast<Index>(plants), count, metric,
+                                                    dbPerDegree, stream.get());
+        const Index m = prepared.points;
+        const Index roots = prepared.parts;
         if (!stream.finish(cancellation, nullptr)) {
             result.cancelled = true;
             return result;
@@ -845,7 +681,7 @@ PreparedOnCard preparedOnCard(const DeviceClouds & clouds, const std::vector<dou
         };
         download(points.data(), work.cloudPoints.data(), m * sizeof(DeviceComplex), "cudaMemcpyAsync of the points");
         download(walk.data(), work.walk.data(), m * sizeof(DeviceComplex), "cudaMemcpyAsync of the walk");
-        download(memberList.data(), members, m * sizeof(Index), "cudaMemcpyAsync of the members");
+        download(memberList.data(), work.members.data(), m * sizeof(Index), "cudaMemcpyAsync of the members");
         download(starts.data(), work.starts.data(), roots * sizeof(Index), "cudaMemcpyAsync of the starts");
         download(offsets.data(), work.offsets.data(), (count + 1) * sizeof(Index), "cudaMemcpyAsync of the offsets");
         download(rootOffsets.data(), work.rootOffsets.data(), (count + 1) * sizeof(Index),
@@ -876,162 +712,180 @@ PreparedOnCard preparedOnCard(const DeviceClouds & clouds, const std::vector<dou
     return result;
 }
 
+std::vector<std::pair<Index, Index>> hostColumns(const GridFrame & frame, const std::vector<Bits> & cells,
+                                                 DeviceComplex centre)
+{
+    std::vector<std::pair<Index, Index>> ranges;
+    if (!frame.indexed) {
+        ranges.emplace_back(0u, static_cast<Index>(cells.size()));
+        return ranges;
+    }
+    const std::int64_t x0 = cellCoordinate(centre.real(), frame.minRe, frame.side);
+    const std::int64_t y = cellCoordinate(centre.imag(), frame.minIm, frame.side);
+    for (int lane = 0; lane < kCellColumns; ++lane) {
+        const std::int64_t x = x0 - kCellReach + lane;
+        if (x < 0 || x > kCellLimit) {
+            continue;
+        }
+        const std::int64_t below = std::max<std::int64_t>(y - kCellReach, 0);
+        const std::int64_t above = std::min<std::int64_t>(y + kCellReach, kCellLimit);
+        const auto lo = std::lower_bound(cells.begin(), cells.end(), static_cast<Bits>(cellKey(x, below)));
+        const auto hi = std::upper_bound(lo, cells.end(), static_cast<Bits>(cellKey(x, above)));
+        ranges.emplace_back(static_cast<Index>(lo - cells.begin()), static_cast<Index>(hi - cells.begin()));
+    }
+    return ranges;
+}
+
+void hostCells(const GridFrame & frame, const ComplexCloud & walk, std::vector<Bits> & cells,
+               std::vector<Index> & cellOrder)
+{
+    const std::size_t m = walk.size();
+    std::vector<Bits> cellOf(m);
+    for (std::size_t i = 0; i < m; ++i) {
+        cellOf[i] = cellKeyOf(frame, DeviceComplex(walk[i].real(), walk[i].imag()));
+    }
+    cellOrder.resize(m);
+    std::iota(cellOrder.begin(), cellOrder.end(), 0u);
+    std::stable_sort(cellOrder.begin(), cellOrder.end(), [&](Index a, Index b) { return cellOf[a] < cellOf[b]; });
+    cells.resize(m);
+    for (std::size_t t = 0; t < m; ++t) {
+        cells[t] = cellOf[cellOrder[t]];
+    }
+}
+
+HostPrepared hostPrepared(const ComplexCloud & cloud, double epsilon, HullMetric metric, double dbPerDegree)
+{
+    HostPrepared host;
+    PreparedCloud & out = host.prepared;
+    const std::size_t n = cloud.size();
+    if (n == 0) {
+        return host;
+    }
+
+    std::vector<Index> order(n);
+    std::iota(order.begin(), order.end(), 0u);
+    std::vector<Bits> angle(n);
+    std::vector<Bits> magnitude(n);
+    for (std::size_t t = 0; t < n; ++t) {
+        const DeviceComplex z(cloud[t].real(), cloud[t].imag());
+        angle[t] = orderedBits(angleOf(z));
+        magnitude[t] = orderedBits(magnitudeOf(z));
+    }
+    std::stable_sort(order.begin(), order.end(), [&](Index a, Index b) {
+        return magnitude[a] != magnitude[b] ? magnitude[a] < magnitude[b] : angle[a] < angle[b];
+    });
+    for (std::size_t t = 0; t < n; ++t) {
+        if (t == 0 || !(cloud[order[t]] == cloud[order[t - 1]])) {
+            out.sorted.points.push_back(cloud[order[t]]);
+        }
+    }
+    const std::size_t m = out.sorted.points.size();
+
+    if (metric == HullMetric::Nichols) {
+        std::vector<double> phases(m);
+        for (std::size_t i = 0; i < m; ++i) {
+            phases[i] = phaseOf(DeviceComplex(out.sorted.points[i].real(), out.sorted.points[i].imag()));
+        }
+        std::stable_sort(phases.begin(), phases.end(), [](double a, double b) {
+            return orderedBits(a) < orderedBits(b);
+        });
+        Bits widest = 0;
+        for (std::size_t t = 1; t < m; ++t) {
+            widest = std::max<Bits>(widest, orderedBits(phases[t] - phases[t - 1]));
+        }
+        std::size_t at = m;
+        for (std::size_t t = 1; t < m && at == m; ++t) {
+            if (orderedBits(phases[t] - phases[t - 1]) == widest) {
+                at = t;
+            }
+        }
+        const double wrap = phases.front() + 360.0 - phases.back();
+        host.shift = m >= 2 && phases[at] - phases[at - 1] > wrap;
+        host.cut = host.shift ? phases[at - 1] : 0.0;
+        for (const std::complex<double> & z : out.sorted.points) {
+            const DeviceComplex w = nicholsPoint(DeviceComplex(z.real(), z.imag()), dbPerDegree, host.shift, host.cut);
+            out.sorted.walk.emplace_back(w.real(), w.imag());
+        }
+    } else {
+        out.sorted.walk = out.sorted.points;
+    }
+    const ComplexCloud & walk = out.sorted.walk;
+
+    double minRe = walk[0].real();
+    double maxRe = walk[0].real();
+    double minIm = walk[0].imag();
+    double maxIm = walk[0].imag();
+    for (const std::complex<double> & w : walk) {
+        minRe = std::min(minRe, w.real());
+        maxRe = std::max(maxRe, w.real());
+        minIm = std::min(minIm, w.imag());
+        maxIm = std::max(maxIm, w.imag());
+    }
+    host.frame = gridFrame(minRe, maxRe, minIm, maxIm, epsilon);
+    hostCells(host.frame, walk, host.cells, host.cellOrder);
+
+    std::vector<Index> parent(m);
+    std::iota(parent.begin(), parent.end(), 0u);
+    const auto find = [&parent](Index x) {
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
+        return x;
+    };
+    for (Index i = 0; i < m; ++i) {
+        const DeviceComplex centre(walk[i].real(), walk[i].imag());
+        for (const auto & [lo, hi] : hostColumns(host.frame, host.cells, centre)) {
+            for (Index place = lo; place < hi; ++place) {
+                const Index j = host.cellOrder[place];
+                if (j > i && reaches(DeviceComplex(walk[j].real(), walk[j].imag()), centre, epsilon)) {
+                    const Index a = find(i);
+                    const Index b = find(j);
+                    if (a != b) {
+                        parent[std::max(a, b)] = std::min(a, b);
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<Index> label(m);
+    std::vector<Bits> rightmost(m, 0);
+    for (Index i = 0; i < m; ++i) {
+        label[i] = find(i);
+        rightmost[label[i]] = std::max<Bits>(rightmost[label[i]], orderedBits(walk[i].real()));
+    }
+    std::vector<Index> roots;
+    for (Index i = 0; i < m; ++i) {
+        if (label[i] == i) {
+            roots.push_back(i);
+        }
+    }
+    std::stable_sort(roots.begin(), roots.end(), [&](Index a, Index b) { return ~rightmost[a] < ~rightmost[b]; });
+    std::vector<Index> rankOf(m);
+    for (Index r = 0; r < roots.size(); ++r) {
+        rankOf[roots[r]] = r;
+    }
+    std::vector<Index> members(m);
+    std::iota(members.begin(), members.end(), 0u);
+    std::stable_sort(members.begin(), members.end(), [&](Index a, Index b) {
+        return rankOf[label[a]] < rankOf[label[b]];
+    });
+    for (std::size_t t = 0; t < m; ++t) {
+        out.parts.members.push_back(static_cast<std::int32_t>(members[t]));
+        if (t == 0 || rankOf[label[members[t]]] != rankOf[label[members[t - 1]]]) {
+            out.parts.starts.push_back(t);
+        }
+    }
+    return host;
+}
+
 std::vector<PreparedCloud> preparedOnProcessor(const CloudSet & clouds, const std::vector<double> & epsilon,
                                                HullMetric metric, double dbPerDegree)
 {
-    std::vector<PreparedCloud> prepared(clouds.size());
+    std::vector<PreparedCloud> prepared;
     for (std::size_t f = 0; f < clouds.size(); ++f) {
-        const ComplexCloud & cloud = clouds[f];
-        const std::size_t n = cloud.size();
-        PreparedCloud & out = prepared[f];
-        if (n == 0) {
-            continue;
-        }
-
-        std::vector<Index> order(n);
-        std::iota(order.begin(), order.end(), 0u);
-        std::vector<Bits> angle(n);
-        std::vector<Bits> magnitude(n);
-        for (std::size_t t = 0; t < n; ++t) {
-            const DeviceComplex z(cloud[t].real(), cloud[t].imag());
-            angle[t] = orderedBits(angleOf(z));
-            magnitude[t] = orderedBits(magnitudeOf(z));
-        }
-        std::stable_sort(order.begin(), order.end(), [&](Index a, Index b) {
-            return magnitude[a] != magnitude[b] ? magnitude[a] < magnitude[b] : angle[a] < angle[b];
-        });
-        for (std::size_t t = 0; t < n; ++t) {
-            if (t == 0 || !(cloud[order[t]] == cloud[order[t - 1]])) {
-                out.sorted.points.push_back(cloud[order[t]]);
-            }
-        }
-        const std::size_t m = out.sorted.points.size();
-
-        if (metric == HullMetric::Nichols) {
-            std::vector<double> phases(m);
-            for (std::size_t i = 0; i < m; ++i) {
-                phases[i] = phaseOf(DeviceComplex(out.sorted.points[i].real(), out.sorted.points[i].imag()));
-            }
-            std::stable_sort(phases.begin(), phases.end(), [](double a, double b) {
-                return orderedBits(a) < orderedBits(b);
-            });
-            Bits widest = 0;
-            for (std::size_t t = 1; t < m; ++t) {
-                widest = std::max<Bits>(widest, orderedBits(phases[t] - phases[t - 1]));
-            }
-            std::size_t at = m;
-            for (std::size_t t = 1; t < m && at == m; ++t) {
-                if (orderedBits(phases[t] - phases[t - 1]) == widest) {
-                    at = t;
-                }
-            }
-            const double wrap = phases.front() + 360.0 - phases.back();
-            const bool shift = m >= 2 && phases[at] - phases[at - 1] > wrap;
-            const double cut = shift ? phases[at - 1] : 0.0;
-            for (const std::complex<double> & z : out.sorted.points) {
-                const DeviceComplex w = nicholsPoint(DeviceComplex(z.real(), z.imag()), dbPerDegree, shift, cut);
-                out.sorted.walk.emplace_back(w.real(), w.imag());
-            }
-        } else {
-            out.sorted.walk = out.sorted.points;
-        }
-        const ComplexCloud & walk = out.sorted.walk;
-
-        double minRe = walk[0].real();
-        double maxRe = walk[0].real();
-        double minIm = walk[0].imag();
-        double maxIm = walk[0].imag();
-        for (const std::complex<double> & w : walk) {
-            minRe = std::min(minRe, w.real());
-            maxRe = std::max(maxRe, w.real());
-            minIm = std::min(minIm, w.imag());
-            maxIm = std::max(maxIm, w.imag());
-        }
-        const GridFrame frame = gridFrame(minRe, maxRe, minIm, maxIm, epsilon.at(f));
-
-        std::vector<Bits> cellOf(m);
-        std::vector<Index> cellOrder(m);
-        for (std::size_t i = 0; i < m; ++i) {
-            cellOf[i] = cellKeyOf(frame, DeviceComplex(walk[i].real(), walk[i].imag()));
-        }
-        std::iota(cellOrder.begin(), cellOrder.end(), 0u);
-        std::stable_sort(cellOrder.begin(), cellOrder.end(), [&](Index a, Index b) { return cellOf[a] < cellOf[b]; });
-        std::vector<Bits> cells(m);
-        for (std::size_t t = 0; t < m; ++t) {
-            cells[t] = cellOf[cellOrder[t]];
-        }
-
-        std::vector<Index> parent(m);
-        std::iota(parent.begin(), parent.end(), 0u);
-        const auto find = [&parent](Index x) {
-            while (parent[x] != x) {
-                parent[x] = parent[parent[x]];
-                x = parent[x];
-            }
-            return x;
-        };
-        for (Index i = 0; i < m; ++i) {
-            const DeviceComplex centre(walk[i].real(), walk[i].imag());
-            std::vector<std::pair<Index, Index>> ranges;
-            if (frame.indexed) {
-                const std::int64_t x0 = cellCoordinate(centre.real(), frame.minRe, frame.side);
-                const std::int64_t y = cellCoordinate(centre.imag(), frame.minIm, frame.side);
-                for (int lane = 0; lane < kCellColumns; ++lane) {
-                    const std::int64_t x = x0 - kCellReach + lane;
-                    if (x < 0 || x > kCellLimit) {
-                        continue;
-                    }
-                    const std::int64_t below = std::max<std::int64_t>(y - kCellReach, 0);
-                    const std::int64_t above = std::min<std::int64_t>(y + kCellReach, kCellLimit);
-                    const auto lo = std::lower_bound(cells.begin(), cells.end(), static_cast<Bits>(cellKey(x, below)));
-                    const auto hi = std::upper_bound(lo, cells.end(), static_cast<Bits>(cellKey(x, above)));
-                    ranges.emplace_back(static_cast<Index>(lo - cells.begin()), static_cast<Index>(hi - cells.begin()));
-                }
-            } else {
-                ranges.emplace_back(0u, static_cast<Index>(m));
-            }
-            for (const auto & [lo, hi] : ranges) {
-                for (Index place = lo; place < hi; ++place) {
-                    const Index j = cellOrder[place];
-                    if (j > i && reaches(DeviceComplex(walk[j].real(), walk[j].imag()), centre, epsilon.at(f))) {
-                        const Index a = find(i);
-                        const Index b = find(j);
-                        if (a != b) {
-                            parent[std::max(a, b)] = std::min(a, b);
-                        }
-                    }
-                }
-            }
-        }
-
-        std::vector<Index> label(m);
-        std::vector<Bits> rightmost(m, 0);
-        for (Index i = 0; i < m; ++i) {
-            label[i] = find(i);
-            rightmost[label[i]] = std::max<Bits>(rightmost[label[i]], orderedBits(walk[i].real()));
-        }
-        std::vector<Index> roots;
-        for (Index i = 0; i < m; ++i) {
-            if (label[i] == i) {
-                roots.push_back(i);
-            }
-        }
-        std::stable_sort(roots.begin(), roots.end(), [&](Index a, Index b) { return ~rightmost[a] < ~rightmost[b]; });
-        std::vector<Index> rankOf(m);
-        for (Index r = 0; r < roots.size(); ++r) {
-            rankOf[roots[r]] = r;
-        }
-        std::vector<Index> members(m);
-        std::iota(members.begin(), members.end(), 0u);
-        std::stable_sort(members.begin(), members.end(), [&](Index a, Index b) {
-            return rankOf[label[a]] < rankOf[label[b]];
-        });
-        for (std::size_t t = 0; t < m; ++t) {
-            out.parts.members.push_back(static_cast<std::int32_t>(members[t]));
-            if (t == 0 || rankOf[label[members[t]]] != rankOf[label[members[t - 1]]]) {
-                out.parts.starts.push_back(t);
-            }
-        }
+        prepared.push_back(hostPrepared(clouds[f], epsilon.at(f), metric, dbPerDegree).prepared);
     }
     return prepared;
 }

@@ -8,7 +8,9 @@
  * plane of the walk, and split into its epsilon-connected parts, rightmost
  * first. It goes as many frequencies at a time as half the card's free
  * memory holds, stops between batches when the computation is cancelled,
- * and brings back what the walk on the processor reads. cloudsOnCard()
+ * and brings back what the walk reads: it is the first half of
+ * walkedOnCard() (contour_walk.h), on its own so that it can be checked
+ * apart. cloudsOnCard()
  * puts clouds that came from elsewhere, a file, on the card, when they all
  * have the same number of points and fit in half its free memory, and is
  * null otherwise. Plain C++, so the glue includes it without the toolkit;
