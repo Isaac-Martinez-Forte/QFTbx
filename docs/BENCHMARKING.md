@@ -207,7 +207,8 @@ A case with phases also keeps, under `phases` in its record:
   `contours/walk`, `boundaries/sheets (OpenMP)`, `boundaries/union`…; on the
   GPU `templates/sweep (GPU)`, `templates/family (GPU)`,
   `contours/walk (GPU)` (the order, the projection, the parts and the walk
-  of every contour) and `boundaries/sheets and readings (GPU)`,
+  of every contour) or `contours/alpha-shape (GPU)`, and
+  `boundaries/sheets and readings (GPU)`,
   with `boundaries/closed form (OpenMP)` when the closed-form columns are
   on).
   The check of the family's poles, `templates/family`, is part of the

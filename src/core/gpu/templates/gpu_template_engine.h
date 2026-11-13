@@ -8,9 +8,9 @@
  * over to an engine of the processor, which proposes epsilon. The clouds
  * stay on the card when they fit, for the phases after, and clouds loaded
  * from a file go up to it when they fit; there their contours are walked,
- * and the processor's engine finishes them (contourWalked). The
- * alpha-shape, the border sweep and clouds that do not fit are contoured
- * on the processor.
+ * or found as the alpha-shape, the border sweep's at the epsilon the
+ * processor gives, and the processor's engine finishes them
+ * (contourWalked). Clouds that do not fit are contoured on the processor.
  * A failure on the card is a ComputationError with
  * CUDA's text. modelOf() describes the plant for the card and refuses one
  * whose expression or parameters do not fit a thread, or whose denominator
@@ -59,8 +59,6 @@ public:
 
 private:
     void sweep(LtiSystem & plant, const std::vector<double> & frequencies);
-
-    bool walksOnCard() const;
 
     bool contourOnCard(const CancellationToken * cancellation);
 

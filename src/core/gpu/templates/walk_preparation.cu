@@ -251,39 +251,6 @@ __global__ void sortedCells(const DeviceComplex * walk, const Index * frequencyO
     }
 }
 
-__device__ Index representative(Index * parent, Index x)
-{
-    Index current = __ldcg(parent + x);
-    if (current != x) {
-        Index previous = x;
-        Index next;
-        while (current > (next = __ldcg(parent + current))) {
-            __stcg(parent + previous, next);
-            previous = current;
-            current = next;
-        }
-    }
-    return current;
-}
-
-__device__ void unite(Index * parent, Index a, Index b)
-{
-    Index low = representative(parent, a);
-    Index high = representative(parent, b);
-    while (low != high) {
-        if (low > high) {
-            const Index swapped = low;
-            low = high;
-            high = swapped;
-        }
-        const Index seen = atomicCAS(parent + high, high, low);
-        if (seen == high) {
-            return;
-        }
-        high = seen;
-    }
-}
-
 __global__ void initialParents(Index m, Index * parent)
 {
     const Index t = blockIdx.x * blockDim.x + threadIdx.x;

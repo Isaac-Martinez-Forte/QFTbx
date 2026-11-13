@@ -10,7 +10,9 @@
  * the cells in order with the point of each, and the parts: their points
  * part after part, where each starts and which parts each frequency has.
  * A PointSet is the grid of one cloud as the threads search it: eleven
- * columns of cells round the centre, each found by a binary search.
+ * columns of cells round the centre, each found by a binary search; unite()
+ * joins two points in a union-find without locks that always hangs the
+ * larger root under the smaller (Jaiganesh and Burtscher 2018, ECL-CC).
  * hostPrepared() is the same preparation of one cloud run on the processor
  * with the threads' own code, for the tests, and hostColumns() and
  * hostCells() its search and its grid.
@@ -156,6 +158,39 @@ __device__ inline Index warpExclusive(Index count, int lane, Index & total)
     }
     total = __shfl_sync(kFull, inclusive, 31);
     return inclusive - count;
+}
+
+__device__ inline Index representative(Index * parent, Index x)
+{
+    Index current = __ldcg(parent + x);
+    if (current != x) {
+        Index previous = x;
+        Index next;
+        while (current > (next = __ldcg(parent + current))) {
+            __stcg(parent + previous, next);
+            previous = current;
+            current = next;
+        }
+    }
+    return current;
+}
+
+__device__ inline void unite(Index * parent, Index a, Index b)
+{
+    Index low = representative(parent, a);
+    Index high = representative(parent, b);
+    while (low != high) {
+        if (low > high) {
+            const Index swapped = low;
+            low = high;
+            high = swapped;
+        }
+        const Index seen = atomicCAS(parent + high, high, low);
+        if (seen == high) {
+            return;
+        }
+        high = seen;
+    }
 }
 
 class Sorter
