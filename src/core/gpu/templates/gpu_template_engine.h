@@ -56,6 +56,8 @@ public:
     const std::vector<ContourReport> & contourReports() const override;
     const std::optional<PoleCountChange> & poleCountChange() const override;
 
+    std::shared_ptr<const ResidentClouds> residentClouds() const override;
+
     const std::shared_ptr<const DeviceClouds> & resident() const { return m_resident; }
 
 private:

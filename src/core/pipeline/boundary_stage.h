@@ -11,8 +11,9 @@
  * computation reads each template's contour or the whole cloud, and a
  * missing one throws InvalidInput naming it. run() answers whether it
  * produced a set, computed on the processor asked for, the GPU through the
- * installed provider; the choice of closed-form columns for the magnitude
- * specifications applies to every computation.
+ * installed provider, which reads the clouds where the card holds them when
+ * it is given them (TemplateStage::cloudsOnCard); the choice of closed-form
+ * columns for the magnitude specifications applies to every computation.
  */
 
 #ifndef QFTBX_BOUNDARY_STAGE_H
@@ -37,7 +38,8 @@ public:
     bool run(ProjectData & data, Range phaseRange, std::int32_t phaseCount,
              Range magnitudeRange, std::int32_t magnitudeCount,
              double exportInfinity, bool fromContour, Processor processor,
-             const CancellationToken * cancellation = nullptr);
+             const CancellationToken * cancellation = nullptr,
+             std::shared_ptr<const ResidentClouds> resident = nullptr);
 
     void setClosedFormColumns(bool on) { m_closedForm = on; }
     bool closedFormColumns() const { return m_closedForm; }

@@ -4,9 +4,10 @@
  *
  * The prerequisite check names what is missing, and asks for the contour or
  * the whole cloud according to what the run will read. The closed-form
- * column setting and the cancellation token are applied to the engine on
- * every run, so nothing carries over from a previous one; the engine is
- * replaced when the run asks for the other processor.
+ * column setting, the cancellation token and the clouds on the card are
+ * applied to the engine on every run, so nothing carries over from a
+ * previous one; the engine is replaced when the run asks for the other
+ * processor.
  */
 
 #include "src/core/pipeline/boundary_stage.h"
@@ -59,13 +60,15 @@ bool BoundaryStage::run(ProjectData & data, Range phaseRange,
                         std::int32_t phaseCount, Range magnitudeRange,
                         std::int32_t magnitudeCount, double exportInfinity,
                         bool fromContour, Processor processor,
-                        const CancellationToken * cancellation)
+                        const CancellationToken * cancellation,
+                        std::shared_ptr<const ResidentClouds> resident)
 {
     requirePrerequisites(data, fromContour);
 
     BoundaryComputation & bounds = engine(processor);
     bounds.setClosedFormColumns(m_closedForm);
     bounds.setCancellation(cancellation);
+    bounds.setResidentClouds(std::move(resident));
 
     bounds.compute(data.frequencies(), data.plant(),
                    fromContour ? data.contour() : data.templates(), fromContour,

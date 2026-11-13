@@ -601,6 +601,16 @@ std::shared_ptr<const DeviceClouds> cloudsOnCard(const CloudSet & clouds)
     return std::make_shared<const DeviceClouds>(stream, std::move(values), clouds.size(), plants);
 }
 
+std::shared_ptr<const ResidentClouds> residentOf(std::shared_ptr<const DeviceClouds> clouds)
+{
+    return clouds;
+}
+
+std::shared_ptr<const DeviceClouds> deviceCloudsOf(std::shared_ptr<const ResidentClouds> clouds)
+{
+    return std::dynamic_pointer_cast<const DeviceClouds>(std::move(clouds));
+}
+
 PreparedOnCard preparedOnCard(const DeviceClouds & clouds, const std::vector<double> & epsilon, HullMetric metric,
                               double dbPerDegree, const CancellationToken * cancellation)
 {

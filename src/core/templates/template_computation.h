@@ -13,13 +13,15 @@
  * frequency went through, and the first two plants of the sweep, in its
  * order, whose numbers of right half-plane poles differ, with the values of
  * their denominators. A family like that is swept like any other, but the
- * stability of the nominal loop does not carry to it.
+ * stability of the nominal loop does not carry to it. residentClouds() are
+ * the clouds an engine keeps on a card, none on the processor.
  */
 
 #ifndef QFTBX_TEMPLATE_COMPUTATION_H
 #define QFTBX_TEMPLATE_COMPUTATION_H
 
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -28,6 +30,7 @@
 #include "src/core/templates/cloud_set.h"
 #include "src/core/templates/hull_metric.h"
 #include "src/core/templates/parameter_grids.h"
+#include "src/core/templates/resident_clouds.h"
 
 namespace qftbx {
 
@@ -86,6 +89,8 @@ public:
     virtual const std::vector<double> & epsilon() const = 0;
     virtual const std::vector<ContourReport> & contourReports() const = 0;
     virtual const std::optional<PoleCountChange> & poleCountChange() const = 0;
+
+    virtual std::shared_ptr<const ResidentClouds> residentClouds() const { return nullptr; }
 };
 
 }

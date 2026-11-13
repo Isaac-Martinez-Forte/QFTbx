@@ -14,7 +14,9 @@
  * give the boundaries it computes itself. With a card, the sheets the card
  * computes are the processor's cell by cell, on a coarser grid of five
  * examples in all four ways, and the engine of the GPU gives the
- * processor's boundaries on every example.
+ * processor's boundaries on every example; reading the whole clouds where
+ * the card holds them gives the boundaries of uploading them, to the bit,
+ * and so do clouds the templates were swept into on the card.
  *
  * The card takes P0/P itself, and its last bit may differ from the
  * processor's. A cell's values are |N| over its distance d to the template,
@@ -55,6 +57,7 @@
 #include "src/core/boundaries/singular_locus.h"
 #include "src/core/gpu/boundaries/gpu_boundary_engine.h"
 #include "src/core/gpu/boundaries/sheet_sweep.h"
+#include "src/core/gpu/templates/walk_preparation.h"
 #include "src/core/project/settings.h"
 #include "tests/gpu/boundary_checks.h"
 #include "tests/gpu/card.h"
@@ -481,5 +484,52 @@ TEST(GpuBoundaries, TheEngineOfTheCardGivesTheProcessorsBoundaries)
             EXPECT_EQ(gap.traces, 0.0) << where;
             EXPECT_LE(gap.columns, kColumnToleranceDb) << where;
         }
+    }
+}
+
+TEST(GpuBoundaries, TheCloudsTheCardHoldsGiveTheBoundariesOfUploadingThem)
+{
+    QFTBX_REQUIRE_CARD();
+
+    for (const char * name : {"toolbox-1.qft", "dcm-T33.qft", "msf.qft", "unstable.qft"}) {
+        Loaded loaded;
+        ASSERT_TRUE(load(loaded, std::filesystem::path(QFTBX_EXAMPLES_DIR) / name)) << name;
+        const Grid & g = loaded.grid;
+        const CloudSet & clouds = loaded.project.templates();
+
+        std::vector<double> omega = loaded.omega;
+        gpu::GpuBoundaryEngine uploading;
+        uploading.compute(&omega, loaded.project.plant(), clouds, false, loaded.project.specifications(),
+                          g.phaseRange, g.phaseCount, g.magnitudeRange, g.magnitudeCount, -1.0);
+
+        const std::shared_ptr<const ResidentClouds> resident = gpu::residentOf(gpu::cloudsOnCard(clouds));
+        ASSERT_NE(resident, nullptr) << name;
+        gpu::GpuBoundaryEngine reading;
+        reading.setResidentClouds(resident);
+        reading.compute(&omega, loaded.project.plant(), clouds, false, loaded.project.specifications(),
+                        g.phaseRange, g.phaseCount, g.magnitudeRange, g.magnitudeCount, -1.0);
+
+        const Gap gap = compareBoundaries(uploading.boundaryData(), reading.boundaryData());
+        EXPECT_EQ(gap.differ, 0u) << name;
+        EXPECT_EQ(gap.traces, 0.0) << name;
+        EXPECT_EQ(gap.columns, 0.0) << name;
+    }
+
+    for (const char * name : {"toolbox-1.qft", "msf.qft"}) {
+        Loaded loaded;
+        ASSERT_TRUE(load(loaded, std::filesystem::path(QFTBX_EXAMPLES_DIR) / name)) << name;
+        const Grid & g = loaded.grid;
+        ASSERT_TRUE(loaded.project.computeTemplates(*loaded.project.epsilon(), loaded.project.sweepGrids(),
+                                                    Processor::Gpu)) << name;
+        ASSERT_TRUE(loaded.project.computeBoundaries(g.phaseRange, g.phaseCount, g.magnitudeRange, g.magnitudeCount,
+                                                     -1.0, false, Processor::Gpu)) << name;
+        const BoundaryData card = *loaded.project.boundaries();
+        ASSERT_TRUE(loaded.project.computeBoundaries(g.phaseRange, g.phaseCount, g.magnitudeRange, g.magnitudeCount,
+                                                     -1.0, false, Processor::Cpu)) << name;
+
+        const Gap gap = compareBoundaries(*loaded.project.boundaries(), card);
+        EXPECT_EQ(gap.differ, 0u) << name;
+        EXPECT_EQ(gap.traces, 0.0) << name;
+        EXPECT_LE(gap.columns, kColumnToleranceDb) << name;
     }
 }

@@ -3,7 +3,8 @@
  * @brief The clouds of a sweep, kept on the card for the phases after it.
  *
  * One buffer, frequency after frequency, each the same number of plants,
- * with the stream it was reserved in, which lives as long as it does.
+ * with the stream it was reserved in, which lives as long as it does. The
+ * core sees them as ResidentClouds.
  */
 
 #ifndef QFTBX_GPU_DEVICE_CLOUDS_CUH
@@ -15,10 +16,11 @@
 #include "src/core/gpu/common/device_buffer.cuh"
 #include "src/core/gpu/common/stream.cuh"
 #include "src/core/gpu/templates/plant_evaluation.cuh"
+#include "src/core/templates/resident_clouds.h"
 
 namespace qftbx::gpu {
 
-class DeviceClouds
+class DeviceClouds : public ResidentClouds
 {
 public:
     DeviceClouds(std::shared_ptr<Stream> stream, DeviceBuffer<DeviceComplex> values,
@@ -29,8 +31,8 @@ public:
 
     const Stream & stream() const { return *m_stream; }
     const DeviceComplex * values() const { return m_values.data(); }
-    std::size_t frequencies() const { return m_frequencies; }
-    std::size_t plants() const { return m_plants; }
+    std::size_t frequencies() const override { return m_frequencies; }
+    std::size_t plants() const override { return m_plants; }
 
 private:
     std::shared_ptr<Stream> m_stream;

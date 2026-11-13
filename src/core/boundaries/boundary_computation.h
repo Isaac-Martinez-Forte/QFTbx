@@ -8,13 +8,16 @@
  * templates, contours or whole clouds, the specifications and the Nichols
  * grid, and boundaryData() is its result by value. The guard near the
  * singular locus is on unless switched off, and the closed-form columns off
- * unless switched on.
+ * unless switched on. An engine on a card reads the whole clouds from
+ * setResidentClouds() when they are the templates it is given; the
+ * processor's ignores them.
  */
 
 #ifndef QFTBX_BOUNDARY_COMPUTATION_H
 #define QFTBX_BOUNDARY_COMPUTATION_H
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "src/core/boundaries/boundary_data.h"
@@ -23,6 +26,7 @@
 #include "src/core/specifications/specification_record.h"
 #include "src/core/system/lti_system.h"
 #include "src/core/templates/cloud_set.h"
+#include "src/core/templates/resident_clouds.h"
 
 namespace qftbx {
 
@@ -34,6 +38,7 @@ public:
     virtual void setCancellation(const CancellationToken * token) = 0;
     virtual void setSingularLocusGuard(bool on) = 0;
     virtual void setClosedFormColumns(bool on) = 0;
+    virtual void setResidentClouds(std::shared_ptr<const ResidentClouds>) {}
 
     virtual void compute(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
                          bool templatesAreContours, const SpecificationRecords * specifications,

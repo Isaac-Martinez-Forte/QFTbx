@@ -3,8 +3,8 @@
  * @brief The kernels of the sheets, the batches that launch them, and the
  * run that brings the sheets back.
  *
- * A batch of frequencies (SheetBatch) goes up with its templates, and on
- * the card:
+ * A batch of frequencies (SheetBatch) goes up with its templates, or reads
+ * the whole clouds where the card holds them, and on the card:
  * - prepareSamples() takes P0/P, its radius and its single precision copy,
  *   one thread per sample, and measureScale() the largest radius of each
  *   frequency, which says whether single precision holds;
@@ -50,6 +50,7 @@
 #include "src/core/gpu/common/device_probe.h"
 #include "src/core/gpu/common/launch.cuh"
 #include "src/core/gpu/common/stream.cuh"
+#include "src/core/gpu/templates/device_clouds.cuh"
 
 namespace qftbx::gpu {
 
@@ -762,10 +763,12 @@ SheetBatch::SheetBatch(SheetRun & run, BatchRange batch) : range(batch)
         }
     }
     std::vector<DeviceComplex> plants;
-    plants.reserve(samples);
-    for (std::size_t u = 0; u < count; ++u) {
-        for (const std::complex<double> & p : templates[range.first + u]) {
-            plants.emplace_back(p.real(), p.imag());
+    if (problem.resident == nullptr) {
+        plants.reserve(samples);
+        for (std::size_t u = 0; u < count; ++u) {
+            for (const std::complex<double> & p : templates[range.first + u]) {
+                plants.emplace_back(p.real(), p.imag());
+            }
         }
     }
 
@@ -794,7 +797,8 @@ SheetBatch::SheetBatch(SheetRun & run, BatchRange batch) : range(batch)
     view.nominal = m_nominal.data();
     view.nominalMagnitude = m_nominalMagnitude.data();
     view.sheetOffset = m_sheetOffset.data();
-    view.plants = m_plants.data();
+    view.plants = problem.resident != nullptr ? problem.resident->values() + range.first * problem.resident->plants()
+                                              : m_plants.data();
     view.q = m_q.data();
     view.radius = m_radius.data();
     view.single = m_single.data();

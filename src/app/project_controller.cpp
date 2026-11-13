@@ -62,6 +62,14 @@ void requireUsableNames(LtiSystem & system)
 
 }
 
+std::shared_ptr<const qftbx::ResidentClouds> ProjectController::cloudsOnCard(bool contour,
+                                                                           qftbx::Processor processor){
+    if (contour || processor != qftbx::Processor::Gpu) {
+        return nullptr;
+    }
+    return m_templates.cloudsOnCard(m_data);
+}
+
 void ProjectController::dropTemplatesAndBelow(){
     m_data.setTemplates({});
     m_data.setContour({});
@@ -248,7 +256,8 @@ bool ProjectController::computeBoundaries(qftbx::Range phaseRange, std::int32_t 
 
     const bool produced = m_boundaries.run(m_data, phaseRange, phaseCount,
                                            magnitudeRange, magnitudeCount,
-                                           exportInfinity, contour, processor);
+                                           exportInfinity, contour, processor, nullptr,
+                                           cloudsOnCard(contour, processor));
 
     dropLoopShaping();
 
@@ -402,7 +411,8 @@ bool ProjectController::startBoundaries(qftbx::Range phaseRange, std::int32_t ph
          contour, processor]() {
             return m_boundaries.run(m_data, phaseRange, phaseCount,
                                     magnitudeRange, magnitudeCount,
-                                    exportInfinity, contour, processor, &m_cancellation);
+                                    exportInfinity, contour, processor, &m_cancellation,
+                                    cloudsOnCard(contour, processor));
         },
         std::move(finished));
 }

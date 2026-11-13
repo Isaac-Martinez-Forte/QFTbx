@@ -6,7 +6,8 @@
  * magnitude's 10^(dB/20) and the cosine and sine of the phase in radians,
  * computed here with the processor's functions, so that the card only
  * multiplies. The record says what the boundaries cost on the card: the
- * kernels, the copies back, and in how many batches.
+ * kernels, the copies back, in how many batches, and whether the clouds
+ * were read where the card held them.
  */
 
 #include "src/core/gpu/boundaries/gpu_boundary_engine.h"
@@ -18,11 +19,29 @@
 #include "src/core/common/exception.h"
 #include "src/core/common/record.h"
 #include "src/core/gpu/common/cuda_error.h"
+#include "src/core/gpu/templates/walk_preparation.h"
 #include "src/core/math/constants.h"
 #include "src/core/math/sequence_vectors.h"
 #include "src/core/pipeline/gpu_provider.h"
 
 namespace qftbx::gpu {
+
+namespace {
+
+bool holds(const std::shared_ptr<const ResidentClouds> & resident, const CloudSet & templates, bool contours)
+{
+    if (resident == nullptr || contours || resident->frequencies() != templates.size()) {
+        return false;
+    }
+    for (const ComplexCloud & cloud : templates) {
+        if (cloud.size() != resident->plants()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+}
 
 std::vector<ReadingRequest> requestsOf(const std::vector<SheetReading> & named)
 {
@@ -122,6 +141,11 @@ void GpuBoundaryEngine::setClosedFormColumns(bool on)
     m_processor.setClosedFormColumns(on);
 }
 
+void GpuBoundaryEngine::setResidentClouds(std::shared_ptr<const ResidentClouds> clouds)
+{
+    m_resident = std::move(clouds);
+}
+
 void GpuBoundaryEngine::compute(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
                                 bool templatesAreContours, const SpecificationRecords * specifications,
                                 Range phaseRange, std::int32_t phaseCount,
@@ -131,8 +155,11 @@ void GpuBoundaryEngine::compute(std::vector<double> * omega, LtiSystem * plant, 
     const auto started = std::chrono::steady_clock::now();
 
     BoundaryPlan plan = planBoundaries(*omega, *specifications, phaseRange, phaseCount, magnitudeRange, magnitudeCount);
-    const SheetProblem problem = sheetProblemOf(*omega, *plant, templates, templatesAreContours, m_guard, plan,
-                                                phaseRange, phaseCount, magnitudeRange, magnitudeCount);
+    SheetProblem problem = sheetProblemOf(*omega, *plant, templates, templatesAreContours, m_guard, plan,
+                                          phaseRange, phaseCount, magnitudeRange, magnitudeCount);
+    const std::shared_ptr<const DeviceClouds> resident = holds(m_resident, templates, templatesAreContours)
+            ? deviceCloudsOf(m_resident) : nullptr;
+    problem.resident = resident.get();
 
     std::vector<std::vector<SheetReading>> named;
     std::vector<std::vector<ReadingRequest>> requests;
@@ -163,7 +190,8 @@ void GpuBoundaryEngine::compute(std::vector<double> * omega, LtiSystem * plant, 
                       + " " + record::number("frequencies", omega->size())
                       + " " + record::number("kernel-ms", computed.kernelMilliseconds)
                       + " " + record::number("copy-ms", computed.copyMilliseconds)
-                      + " " + record::number("batches", computed.batches));
+                      + " " + record::number("batches", computed.batches)
+                      + " " + record::number("resident", problem.resident != nullptr ? 1 : 0));
 
     m_processor.adoptBoundaries(omega, plant, templates, templatesAreContours, std::move(plan), phaseRange, phaseCount,
                                 magnitudeRange, magnitudeCount, std::move(boundaries));

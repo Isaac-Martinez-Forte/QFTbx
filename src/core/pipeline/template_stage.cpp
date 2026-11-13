@@ -88,6 +88,7 @@ bool TemplateStage::run(ProjectData & data, std::vector<double> epsilon,
     data.setEpsilon(sweep->epsilon());
 
     m_engine = std::move(sweep);
+    m_uploaded.reset();
 
     return produced;
 }
@@ -150,10 +151,29 @@ const std::optional<PoleCountChange> & TemplateStage::poleCountChange() const
     return m_engine != nullptr ? m_engine->poleCountChange() : none;
 }
 
+std::shared_ptr<const ResidentClouds> TemplateStage::cloudsOnCard(const ProjectData & data)
+{
+    if (data.templates().empty()) {
+        m_uploaded.reset();
+        return nullptr;
+    }
+    if (m_engine != nullptr) {
+        std::shared_ptr<const ResidentClouds> resident = m_engine->residentClouds();
+        if (resident != nullptr) {
+            return resident;
+        }
+    }
+    if (m_uploaded == nullptr) {
+        m_uploaded = requireGpu().cloudsOnCard(data.templates());
+    }
+    return m_uploaded;
+}
+
 void TemplateStage::adopt(ProjectData & data, CloudSet clouds,
                           CloudSet contour, bool hasContour, ParameterGrids grids)
 {
     engine().setClouds(clouds);
+    m_uploaded.reset();
 
     data.setTemplates(std::move(clouds));
     data.setSweepGrids(std::move(grids));

@@ -61,6 +61,11 @@ std::unique_ptr<BoundaryComputation> GpuProvider::boundaryComputation() const
     return nullptr;
 }
 
+std::shared_ptr<const ResidentClouds> GpuProvider::cloudsOnCard(const CloudSet &) const
+{
+    return nullptr;
+}
+
 void installGpuProvider(std::unique_ptr<GpuProvider> provider)
 {
     installed() = std::move(provider);

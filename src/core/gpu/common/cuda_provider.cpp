@@ -5,9 +5,12 @@
 
 #include "src/core/gpu/common/cuda_provider.h"
 
+#include "src/core/common/exception.h"
+#include "src/core/gpu/common/cuda_error.h"
 #include "src/core/gpu/common/device_probe.h"
 #include "src/core/gpu/boundaries/gpu_boundary_engine.h"
 #include "src/core/gpu/templates/gpu_template_engine.h"
+#include "src/core/gpu/templates/walk_preparation.h"
 
 namespace qftbx::gpu {
 
@@ -54,6 +57,15 @@ std::unique_ptr<TemplateComputation> CudaProvider::templateComputation() const
 std::unique_ptr<BoundaryComputation> CudaProvider::boundaryComputation() const
 {
     return std::make_unique<GpuBoundaryEngine>();
+}
+
+std::shared_ptr<const ResidentClouds> CudaProvider::cloudsOnCard(const CloudSet & clouds) const
+{
+    try {
+        return residentOf(gpu::cloudsOnCard(clouds));
+    } catch (const CudaError & failure) {
+        throw ComputationError(gpuFailure(failure.what()));
+    }
 }
 
 std::unique_ptr<GpuProvider> makeCudaProvider()

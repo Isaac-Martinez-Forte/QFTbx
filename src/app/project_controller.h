@@ -25,7 +25,8 @@
  * until the next proposal. The controller structure is the
  * controller being designed, not this class. The templates, the contours and the boundaries take the
  * choices of their dialogs, with the settings giving the defaults, and a
- * project is read whole before the current one is replaced.
+ * project is read whole before the current one is replaced. Boundaries on
+ * the GPU from the whole clouds read them where the card holds them.
  */
 
 #ifndef QFTBX_PROJECT_CONTROLLER_H
@@ -176,6 +177,8 @@ public:
     qftbx::StepSet load(std::string path);
 
 private:
+    std::shared_ptr<const qftbx::ResidentClouds> cloudsOnCard(bool contour, qftbx::Processor processor);
+
     void dropTemplatesAndBelow();
     void dropBoundariesAndBelow();
     void dropLoopShaping();

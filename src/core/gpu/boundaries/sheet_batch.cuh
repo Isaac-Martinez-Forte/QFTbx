@@ -6,10 +6,11 @@
  * read to stop, the loop values of the grid and the guard. batchesOf() cuts
  * the frequencies into batches that half the card's free memory holds,
  * counting the bytes a reader of the sheets adds to each frequency. A
- * SheetBatch uploads the templates of its frequencies and launches the
- * kernels of the sheets in the run's stream without waiting for them; the
- * sheets and everything they were computed from stay on the card for
- * whoever reads them next.
+ * SheetBatch uploads the templates of its frequencies, unless they are the
+ * whole clouds the card already holds, and launches the kernels of the
+ * sheets in the run's stream without waiting for them; the sheets and
+ * everything they were computed from stay on the card for whoever reads
+ * them next.
  */
 
 #ifndef QFTBX_GPU_SHEET_BATCH_CUH

@@ -6,7 +6,9 @@
  * the sheets of every frequency on the card and reads them there
  * (boundariesOnCard): the traces, their labels and the columns come back,
  * and an engine of the processor does the union and, when they are on, the
- * closed-form columns. The loop value of each cell is the processor's to
+ * closed-form columns. Whole clouds the card holds already (setResidentClouds)
+ * are read there when they are the templates given, as many frequencies of
+ * as many plants. The loop value of each cell is the processor's to
  * the bit. A failure on the card is a ComputationError with CUDA's text.
  * boundariesOf() turns what one frequency's readings brought back into the
  * processor's traces, labels and columns, the nodes mapped to the Nichols
@@ -17,6 +19,7 @@
 #define QFTBX_GPU_BOUNDARY_ENGINE_H
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "src/core/boundaries/boundary_engine.h"
@@ -31,6 +34,7 @@ public:
     void setCancellation(const CancellationToken * token) override;
     void setSingularLocusGuard(bool on) override;
     void setClosedFormColumns(bool on) override;
+    void setResidentClouds(std::shared_ptr<const ResidentClouds> clouds) override;
 
     void compute(std::vector<double> * omega, LtiSystem * plant, const CloudSet & templates,
                  bool templatesAreContours, const SpecificationRecords * specifications,
@@ -44,6 +48,7 @@ private:
     BoundaryEngine m_processor;
     const CancellationToken * m_cancellation = nullptr;
     bool m_guard = true;
+    std::shared_ptr<const ResidentClouds> m_resident;
 };
 
 FrequencyBoundaries boundariesOf(const std::vector<SheetReading> & named, const std::vector<ReadingOnCard> & read,

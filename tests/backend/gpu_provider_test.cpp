@@ -7,8 +7,11 @@
  * used, the computation fails with the reason; with a usable card whose
  * provider lacks the engine of a phase, it fails saying so. None of them
  * publishes anything or loses what the project held. A provider that has
- * the engine is the one the stage computes with. The reasons name the
- * versions as CUDA writes them, 12040 being 12.4.
+ * the engine is the one the stage computes with. Boundaries on the GPU from
+ * the whole clouds are given the clouds on the card: those the template
+ * engine keeps, or else uploaded once until the templates change; from the
+ * contours or on the processor, none. The reasons name the versions as
+ * CUDA writes them, 12040 being 12.4.
  */
 
 #include <gtest/gtest.h>
@@ -33,6 +36,35 @@ using namespace qftbx;
 
 namespace {
 
+class StandInClouds : public ResidentClouds
+{
+public:
+    std::size_t frequencies() const override { return 3; }
+    std::size_t plants() const override { return 9; }
+};
+
+class KeepingTemplateEngine : public TemplateEngine
+{
+public:
+    explicit KeepingTemplateEngine(std::shared_ptr<const ResidentClouds> kept) : m_kept(std::move(kept)) {}
+
+    std::shared_ptr<const ResidentClouds> residentClouds() const override { return m_kept; }
+
+private:
+    std::shared_ptr<const ResidentClouds> m_kept;
+};
+
+class TellingBoundaryEngine : public BoundaryEngine
+{
+public:
+    explicit TellingBoundaryEngine(std::vector<std::shared_ptr<const ResidentClouds>> & given) : m_given(given) {}
+
+    void setResidentClouds(std::shared_ptr<const ResidentClouds> clouds) override { m_given.push_back(clouds); }
+
+private:
+    std::vector<std::shared_ptr<const ResidentClouds>> & m_given;
+};
+
 class StandInProvider : public GpuProvider
 {
 public:
@@ -56,6 +88,9 @@ public:
             return nullptr;
         }
         ++templateEngines;
+        if (kept != nullptr) {
+            return std::make_unique<KeepingTemplateEngine>(kept);
+        }
         return std::make_unique<TemplateEngine>();
     }
 
@@ -65,11 +100,22 @@ public:
             return nullptr;
         }
         ++boundaryEngines;
-        return std::make_unique<BoundaryEngine>();
+        return std::make_unique<TellingBoundaryEngine>(given);
+    }
+
+    std::shared_ptr<const ResidentClouds> cloudsOnCard(const CloudSet & clouds) const override
+    {
+        ++uploads;
+        uploadedFrequencies = clouds.size();
+        return std::make_shared<StandInClouds>();
     }
 
     mutable int templateEngines = 0;
     mutable int boundaryEngines = 0;
+    mutable int uploads = 0;
+    mutable std::size_t uploadedFrequencies = 0;
+    mutable std::vector<std::shared_ptr<const ResidentClouds>> given;
+    std::shared_ptr<const ResidentClouds> kept;
 
 private:
     GpuStatus m_status;
@@ -119,9 +165,10 @@ ParameterGrids grids()
     return sweep;
 }
 
-bool computeBoundaries(ProjectController & controller, Processor processor)
+bool computeBoundaries(ProjectController & controller, Processor processor, bool fromContour = true)
 {
-    return controller.computeBoundaries(Range(-360.0, 0.0), 37, Range(-40.0, 40.0), 21, -1.0, true, processor);
+    return controller.computeBoundaries(Range(-360.0, 0.0), 37, Range(-40.0, 40.0), 21, -1.0, fromContour,
+                                        processor);
 }
 
 }
@@ -191,6 +238,41 @@ TEST(GpuProvider, TheStagesComputeWithTheEnginesOfTheProvider)
     ASSERT_TRUE(computeBoundaries(controller, Processor::Cpu));
     ASSERT_TRUE(computeBoundaries(controller, Processor::Gpu));
     EXPECT_EQ(counts.boundaryEngines, 2);
+}
+
+TEST(GpuProvider, TheBoundariesOfTheGpuReadTheCloudsTheCardHolds)
+{
+    auto provider = std::make_unique<StandInProvider>(GpuAvailability::Usable, true);
+    StandInProvider & stand = *provider;
+    const ProviderInstalled installed(std::move(provider));
+
+    ProjectController controller;
+    publishProblem(controller);
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids(), Processor::Gpu));
+
+    ASSERT_TRUE(computeBoundaries(controller, Processor::Gpu, true));
+    ASSERT_TRUE(computeBoundaries(controller, Processor::Gpu, false));
+    ASSERT_TRUE(computeBoundaries(controller, Processor::Gpu, false));
+    ASSERT_EQ(stand.given.size(), 3u);
+    EXPECT_EQ(stand.given[0], nullptr);
+    ASSERT_NE(stand.given[1], nullptr);
+    EXPECT_EQ(stand.given[2], stand.given[1]);
+    EXPECT_EQ(stand.uploads, 1);
+    EXPECT_EQ(stand.uploadedFrequencies, 3u);
+
+    ASSERT_TRUE(computeBoundaries(controller, Processor::Cpu, false));
+    EXPECT_EQ(stand.uploads, 1);
+
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids(), Processor::Cpu));
+    ASSERT_TRUE(computeBoundaries(controller, Processor::Gpu, false));
+    EXPECT_EQ(stand.uploads, 2);
+    EXPECT_NE(stand.given.back(), stand.given[1]);
+
+    stand.kept = std::make_shared<StandInClouds>();
+    ASSERT_TRUE(controller.computeTemplates(std::vector<double>(3, 10.0), grids(), Processor::Gpu));
+    ASSERT_TRUE(computeBoundaries(controller, Processor::Gpu, false));
+    EXPECT_EQ(stand.given.back(), stand.kept);
+    EXPECT_EQ(stand.uploads, 2);
 }
 
 TEST(GpuProvider, EachReasonSaysWhatIsMissing)

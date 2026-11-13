@@ -13,7 +13,8 @@
  * Every extreme over the template is taken in two passes (sheet_bounds.cuh): a
  * pass in single precision with a bound on its error leaves the few plants
  * or segments that can hold the extreme, and the double one decides among
- * them. It uploads the templates and computes as many frequencies at a time
+ * them. It uploads the templates, unless they are whole clouds the card
+ * already holds (resident), and computes as many frequencies at a time
  * as half the card's free memory holds; a failure on the card throws
  * CudaError, and a cancelled computation stops between and inside kernels
  * and answers cancelled. Plain C++, so the glue includes it without the
@@ -36,6 +37,8 @@
 
 namespace qftbx::gpu {
 
+class DeviceClouds;
+
 struct SheetProblem
 {
     const std::vector<std::vector<std::complex<double>>> * templates = nullptr;
@@ -46,6 +49,7 @@ struct SheetProblem
     std::vector<double> sines;
     bool contours = true;
     bool guard = true;
+    const DeviceClouds * resident = nullptr;
 };
 
 struct SheetsOnCard

@@ -10,13 +10,13 @@
  * memory holds, stops between batches when the computation is cancelled,
  * and brings back what the walk reads: it is the first half of
  * walkedOnCard() (contour_walk.h), on its own so that it can be checked
- * apart. cloudsOnCard()
- * puts clouds that came from elsewhere, a file, on the card, when they all
- * have the same number of points and fit in half its free memory, and is
- * null otherwise. Plain C++, so the glue includes it without the toolkit;
- * a failure on the card throws CudaError. preparedOnProcessor() runs the
- * threads' own code on the processor, which is how the tests check it
- * without a card.
+ * apart. cloudsOnCard() puts clouds that came from elsewhere, a file or
+ * the processor's sweep, on the card, when they all have the same number of
+ * points and fit in half its free memory, and is null otherwise;
+ * residentOf() and deviceCloudsOf() hand clouds on the card to the core and
+ * back. Plain C++, so the glue includes it without the toolkit; a failure
+ * on the card throws CudaError. preparedOnProcessor() runs the threads' own
+ * code on the processor, which is how the tests check it without a card.
  */
 
 #ifndef QFTBX_GPU_WALK_PREPARATION_H
@@ -29,6 +29,7 @@
 #include "src/core/pipeline/cancellation.h"
 #include "src/core/templates/cloud_set.h"
 #include "src/core/templates/hull_metric.h"
+#include "src/core/templates/resident_clouds.h"
 #include "src/core/templates/walk_cloud.h"
 
 namespace qftbx::gpu {
@@ -45,6 +46,10 @@ struct PreparedOnCard
 };
 
 std::shared_ptr<const DeviceClouds> cloudsOnCard(const CloudSet & clouds);
+
+std::shared_ptr<const ResidentClouds> residentOf(std::shared_ptr<const DeviceClouds> clouds);
+
+std::shared_ptr<const DeviceClouds> deviceCloudsOf(std::shared_ptr<const ResidentClouds> clouds);
 
 PreparedOnCard preparedOnCard(const DeviceClouds & clouds, const std::vector<double> & epsilon, HullMetric metric,
                               double dbPerDegree, const CancellationToken * cancellation);

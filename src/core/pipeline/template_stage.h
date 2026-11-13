@@ -23,7 +23,10 @@
  * no templates. The contour options apply to every computation from then
  * on, and contourReports is empty until a contour has been computed;
  * poleCountChange is the last sweep's, empty for templates loaded from a
- * file.
+ * file. cloudsOnCard() are the published clouds on the card, for a stage
+ * that reads them there: those the engine keeps, or else uploaded once and
+ * kept until the templates change; null when there are no templates or
+ * they do not fit.
  */
 
 #ifndef QFTBX_TEMPLATE_STAGE_H
@@ -70,6 +73,8 @@ public:
     const std::vector<ContourReport> & contourReports() const;
     const std::optional<PoleCountChange> & poleCountChange() const;
 
+    std::shared_ptr<const ResidentClouds> cloudsOnCard(const ProjectData & data);
+
     void adopt(ProjectData & data, CloudSet clouds, CloudSet contour,
                bool hasContour, ParameterGrids grids = ParameterGrids());
 
@@ -77,6 +82,7 @@ private:
     TemplateComputation & engine();
 
     std::unique_ptr<TemplateComputation> m_engine;
+    std::shared_ptr<const ResidentClouds> m_uploaded;
     bool m_wholeCloudStandsIn = true;
     bool m_alphaShape = false;
     bool m_borderSweep = false;

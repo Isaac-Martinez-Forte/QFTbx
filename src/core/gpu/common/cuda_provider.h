@@ -5,7 +5,8 @@
  * Installed by the application at start in a build with CUDA. It reads the
  * card the first time it is asked, not at start, so a program that never
  * offers the GPU never initialises CUDA. The engines it gives are those
- * built so far: the templates and the boundaries.
+ * built so far: the templates and the boundaries; a failure putting clouds
+ * on the card is a ComputationError with CUDA's text.
  */
 
 #ifndef QFTBX_GPU_CUDA_PROVIDER_H
@@ -25,6 +26,7 @@ public:
 
     std::unique_ptr<TemplateComputation> templateComputation() const override;
     std::unique_ptr<BoundaryComputation> boundaryComputation() const override;
+    std::shared_ptr<const ResidentClouds> cloudsOnCard(const CloudSet & clouds) const override;
 
 private:
     mutable std::once_flag m_once;

@@ -7,7 +7,8 @@
  * status() is what the provider found on the card, read once; reason()
  * turns it into a sentence for the user, here so that the translation is
  * the same whatever the build. A provider answers null for a phase it has
- * no engine for. requireGpu() is what a stage calls before asking for an
+ * no engine for, and cloudsOnCard() puts clouds on the card, null when it
+ * cannot or they do not fit. requireGpu() is what a stage calls before asking for an
  * engine: it throws InvalidInput when the build has no GPU support and
  * ComputationError, with the reason, when the card cannot be used.
  * gpuFailure() is the message of a failure on the card during a
@@ -22,6 +23,8 @@
 #include <string>
 
 #include "src/core/common/message.h"
+#include "src/core/templates/cloud_set.h"
+#include "src/core/templates/resident_clouds.h"
 
 namespace qftbx {
 
@@ -56,6 +59,7 @@ public:
 
     virtual std::unique_ptr<TemplateComputation> templateComputation() const;
     virtual std::unique_ptr<BoundaryComputation> boundaryComputation() const;
+    virtual std::shared_ptr<const ResidentClouds> cloudsOnCard(const CloudSet & clouds) const;
 };
 
 void installGpuProvider(std::unique_ptr<GpuProvider> provider);

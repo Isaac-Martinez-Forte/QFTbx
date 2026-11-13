@@ -372,4 +372,9 @@ const std::optional<PoleCountChange> & GpuTemplateEngine::poleCountChange() cons
     return m_processor.poleCountChange();
 }
 
+std::shared_ptr<const ResidentClouds> GpuTemplateEngine::residentClouds() const
+{
+    return residentOf(m_resident);
+}
+
 }
