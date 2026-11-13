@@ -32,14 +32,13 @@
 
 #include "src/core/math/polynomial.h"
 #include "src/core/templates/alpha_shape.h"
+#include "src/core/templates/epsilon_climb.h"
 
 #include "src/core/common/text_tokens.h"
 #include "src/core/common/exception.h"
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
-#include <cstdio>
 #include <stdexcept>
 #include <cmath>
 #include <limits>
@@ -229,21 +228,6 @@ const std::vector <double> & TemplateEngine::omega() const{
 
 const std::vector <double> & TemplateEngine::epsilon() const{
     return m_epsilon;
-}
-
-namespace {
-
-double roundedUpToThreeFigures(double value)
-{
-    if (!(value > 0.0) || !std::isfinite(value)){
-        return value;
-    }
-    const double scale = std::pow(10.0, std::floor(std::log10(value)) - 2.0);
-    char text[32];
-    std::snprintf(text, sizeof text, "%.3g", std::ceil(value / scale) * scale);
-    return std::strtod(text, nullptr);
-}
-
 }
 
 bool TemplateEngine::computeContourSet(const std::vector<PreparedCloud> * prepared){
@@ -498,18 +482,7 @@ double TemplateEngine::withoutRetracing(const ComplexCloud & cloud, double closi
 double TemplateEngine::withoutRetracing(const SortedCloud & sorted, const ComplexCloud & cloudWalk,
                                         const ComplexCloud & cloud, double closing, double diameter)
 {
-    constexpr int kRungs = 4;
-    constexpr double kStep = 1.5;
-
-    double raw = closing;
-    for (int rung = 0; rung < kRungs; ++rung){
-        raw *= kStep;
-        if (raw > diameter){
-            break;
-        }
-
-        const double candidate = roundedUpToThreeFigures(raw);
-
+    for (const double candidate : rungCandidates(closing, diameter)){
         bool truncated = false;
         bool fellBack = false;
         const ComplexCloud walked = walkSorted(sorted, cloudWalk, cloud, candidate, nullptr, &fellBack, &truncated,
@@ -521,6 +494,10 @@ double TemplateEngine::withoutRetracing(const SortedCloud & sorted, const Comple
     }
 
     return closing;
+}
+
+void TemplateEngine::adoptProposals(std::vector<EpsilonProposal> proposals){
+    m_proposals = std::move(proposals);
 }
 
 std::vector<EpsilonProposal> TemplateEngine::proposeEpsilon(){
@@ -559,25 +536,17 @@ std::vector<EpsilonProposal> TemplateEngine::proposeEpsilon(){
 
             const SortedCloud sorted = sortedCloud(cloud, m_metric, m_dbPerDegree);
             const ComplexCloud cloudWalk = projected(cloud);
-            double previous = 0.0;
-            for (double raw = longest; ; raw *= 1.01){
-                const bool last = raw >= diameter;
-                const double candidate = roundedUpToThreeFigures(last ? diameter : raw);
-                if (candidate > previous){
-                    previous = candidate;
-                    bool truncated = false;
-                    bool fellBack = false;
-                    const ComplexCloud walked = walkSorted(sorted, cloudWalk, cloud, candidate, nullptr, &fellBack,
-                                                           &truncated, nullptr);
-                    if (!walked.empty() && !truncated && !fellBack){
-                        proposal.epsilon = retraces(walked)
-                                               ? withoutRetracing(sorted, cloudWalk, cloud, candidate, diameter)
-                                               : candidate;
-                        proposal.closes = true;
-                        break;
-                    }
-                }
-                if (last){
+            EpsilonClimb climb(longest, diameter);
+            while (const std::optional<double> candidate = climb.next()){
+                bool truncated = false;
+                bool fellBack = false;
+                const ComplexCloud walked = walkSorted(sorted, cloudWalk, cloud, *candidate, nullptr, &fellBack,
+                                                       &truncated, nullptr);
+                if (!walked.empty() && !truncated && !fellBack){
+                    proposal.epsilon = retraces(walked)
+                                           ? withoutRetracing(sorted, cloudWalk, cloud, *candidate, diameter)
+                                           : *candidate;
+                    proposal.closes = true;
                     break;
                 }
             }

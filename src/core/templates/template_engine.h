@@ -29,13 +29,14 @@
  * climbs from the longest edge of the minimum spanning tree, the least
  * epsilon keeping the cloud connected, one per cent at a time in three
  * significant figures, to the first that closes (or stays there, with
- * closes false). withoutRetracing() then tries at most four steps of 1.5
- * for a walk that passes no point twice, since the least closing epsilon
- * goes into every notch of the lattice; on a curve it returns the closing
- * one. compute() given no epsilon contours each template at its proposal,
- * made on the clouds it has just swept, so a proposal costs no second
- * sweep; the proposals are kept until the clouds, the plane or the contour
- * method change.
+ * closes false), the steps of epsilon_climb.h. withoutRetracing() then
+ * tries at most four steps of 1.5 for a walk that passes no point twice,
+ * since the least closing epsilon goes into every notch of the lattice; on
+ * a curve it returns the closing one. compute() given no epsilon contours
+ * each template at its proposal, made on the clouds it has just swept, so
+ * a proposal costs no second sweep; the proposals are kept until the
+ * clouds, the plane or the contour method change, and an engine that
+ * proposes elsewhere hands them over (adoptProposals).
  *
  * With exactly two uncertain parameters the border sweep spends the same
  * budget on the edges of the box, round it along the user's grids: the
@@ -143,6 +144,8 @@ public:
     double dbPerDegree() const { return m_dbPerDegree; }
 
     std::vector<EpsilonProposal> proposeEpsilon() override;
+
+    void adoptProposals(std::vector<EpsilonProposal> proposals);
 
     const std::vector<ContourReport> & contourReports() const override { return m_reports; }
     const std::optional<PoleCountChange> & poleCountChange() const override { return m_poleCountChange; }
