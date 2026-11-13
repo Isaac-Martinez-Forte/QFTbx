@@ -57,7 +57,9 @@ TEST(EpsilonClimb, AnEngineReturnsTheProposalsItIsHanded)
     proposal.epsilon = 1.5;
     proposal.diameter = 1.0;
     proposal.closes = true;
+    EXPECT_FALSE(engine.proposed());
     engine.adoptProposals({proposal});
+    EXPECT_TRUE(engine.proposed());
     const std::vector<EpsilonProposal> proposals = engine.proposeEpsilon();
     ASSERT_EQ(proposals.size(), 1u);
     EXPECT_EQ(proposals[0].epsilon, 1.5);

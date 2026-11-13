@@ -5,16 +5,17 @@
  * It plans the combinations as the processor does (planCombinations),
  * checks the poles of the family on the card and notes what the processor
  * notes (adoptFamily), sweeps the family on the card and hands the clouds
- * over to an engine of the processor, which proposes epsilon. The clouds
- * stay on the card when they fit, for the phases after, and clouds loaded
- * from a file go up to it when they fit; there their contours are walked,
- * or found as the alpha-shape, the border sweep's at the epsilon the
- * processor gives, and the processor's engine finishes them
- * (contourWalked). Clouds that do not fit are contoured on the processor.
- * A failure on the card is a ComputationError with
- * CUDA's text. modelOf() describes the plant for the card and refuses one
- * whose expression or parameters do not fit a thread, or whose denominator
- * does not fit a warp; gridOf() is the plan's combinations.
+ * over to an engine of the processor. The clouds stay on the card when they
+ * fit, for the phases after, and clouds loaded from a file go up to it when
+ * they fit; there epsilon is proposed, and the processor's engine keeps the
+ * proposals (adoptProposals), and the contours are walked, or found as the
+ * alpha-shape, the border sweep's at the epsilon proposed there, and the
+ * processor's engine finishes them (contourWalked). Clouds that do not
+ * fit are proposed for and contoured on the processor. A failure on the
+ * card is a ComputationError with CUDA's text. modelOf() describes the
+ * plant for the card and refuses one whose expression or parameters do not
+ * fit a thread, or whose denominator does not fit a warp; gridOf() is the
+ * plan's combinations.
  */
 
 #ifndef QFTBX_GPU_TEMPLATE_ENGINE_H
@@ -61,6 +62,8 @@ private:
     void sweep(LtiSystem & plant, const std::vector<double> & frequencies);
 
     bool contourOnCard(const CancellationToken * cancellation);
+
+    std::vector<EpsilonProposal> proposeOnCard(const CancellationToken * cancellation);
 
     TemplateEngine m_processor;
     const CancellationToken * m_cancellation = nullptr;

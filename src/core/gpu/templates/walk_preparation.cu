@@ -549,18 +549,24 @@ std::size_t batchFrequencies(std::size_t frequencies, std::size_t plants, std::s
     return std::min<std::size_t>({frequencies, (freeBytes / 2) / perFrequency, kLargestBatch / plants, 65535});
 }
 
+Index sortedBatch(Work & work, const DeviceComplex * cloud, Index plants, Index frequencies, HullMetric metric,
+                  double dbPerDegree, cudaStream_t stream)
+{
+    const Index points = sortedWithoutRepeats(work, cloud, frequencies * plants, plants, frequencies, stream);
+    if (metric == HullMetric::Nichols) {
+        projectOntoNichols(work, points, frequencies, dbPerDegree, stream);
+    } else {
+        check(cudaMemcpyAsync(work.walk.data(), work.cloudPoints.data(), points * sizeof(DeviceComplex),
+                              cudaMemcpyDeviceToDevice, stream), "cudaMemcpyAsync of the walk");
+    }
+    return points;
+}
+
 PreparedBatch prepareBatch(Work & work, const DeviceComplex * cloud, Index plants, Index frequencies,
                            HullMetric metric, double dbPerDegree, cudaStream_t stream)
 {
     PreparedBatch batch;
-    const Index n = frequencies * plants;
-    batch.points = sortedWithoutRepeats(work, cloud, n, plants, frequencies, stream);
-    if (metric == HullMetric::Nichols) {
-        projectOntoNichols(work, batch.points, frequencies, dbPerDegree, stream);
-    } else {
-        check(cudaMemcpyAsync(work.walk.data(), work.cloudPoints.data(), batch.points * sizeof(DeviceComplex),
-                              cudaMemcpyDeviceToDevice, stream), "cudaMemcpyAsync of the walk");
-    }
+    batch.points = sortedBatch(work, cloud, plants, frequencies, metric, dbPerDegree, stream);
     batch.parts = splitIntoParts(work, batch.points, plants, frequencies, stream);
     return batch;
 }
@@ -720,10 +726,10 @@ void hostCells(const GridFrame & frame, const ComplexCloud & walk, std::vector<B
     }
 }
 
-HostPrepared hostPrepared(const ComplexCloud & cloud, double epsilon, HullMetric metric, double dbPerDegree)
+HostSorted hostSorted(const ComplexCloud & cloud, HullMetric metric, double dbPerDegree)
 {
-    HostPrepared host;
-    PreparedCloud & out = host.prepared;
+    HostSorted host;
+    SortedCloud & out = host.sorted;
     const std::size_t n = cloud.size();
     if (n == 0) {
         return host;
@@ -743,15 +749,15 @@ HostPrepared hostPrepared(const ComplexCloud & cloud, double epsilon, HullMetric
     });
     for (std::size_t t = 0; t < n; ++t) {
         if (t == 0 || !(cloud[order[t]] == cloud[order[t - 1]])) {
-            out.sorted.points.push_back(cloud[order[t]]);
+            out.points.push_back(cloud[order[t]]);
         }
     }
-    const std::size_t m = out.sorted.points.size();
+    const std::size_t m = out.points.size();
 
     if (metric == HullMetric::Nichols) {
         std::vector<double> phases(m);
         for (std::size_t i = 0; i < m; ++i) {
-            phases[i] = phaseOf(DeviceComplex(out.sorted.points[i].real(), out.sorted.points[i].imag()));
+            phases[i] = phaseOf(DeviceComplex(out.points[i].real(), out.points[i].imag()));
         }
         std::stable_sort(phases.begin(), phases.end(), [](double a, double b) {
             return orderedBits(a) < orderedBits(b);
@@ -769,13 +775,28 @@ HostPrepared hostPrepared(const ComplexCloud & cloud, double epsilon, HullMetric
         const double wrap = phases.front() + 360.0 - phases.back();
         host.shift = m >= 2 && phases[at] - phases[at - 1] > wrap;
         host.cut = host.shift ? phases[at - 1] : 0.0;
-        for (const std::complex<double> & z : out.sorted.points) {
+        for (const std::complex<double> & z : out.points) {
             const DeviceComplex w = nicholsPoint(DeviceComplex(z.real(), z.imag()), dbPerDegree, host.shift, host.cut);
-            out.sorted.walk.emplace_back(w.real(), w.imag());
+            out.walk.emplace_back(w.real(), w.imag());
         }
     } else {
-        out.sorted.walk = out.sorted.points;
+        out.walk = out.points;
     }
+    return host;
+}
+
+HostPrepared hostPrepared(const ComplexCloud & cloud, double epsilon, HullMetric metric, double dbPerDegree)
+{
+    HostPrepared host;
+    PreparedCloud & out = host.prepared;
+    if (cloud.empty()) {
+        return host;
+    }
+    HostSorted sorted = hostSorted(cloud, metric, dbPerDegree);
+    out.sorted = std::move(sorted.sorted);
+    host.shift = sorted.shift;
+    host.cut = sorted.cut;
+    const std::size_t m = out.sorted.points.size();
     const ComplexCloud & walk = out.sorted.walk;
 
     double minRe = walk[0].real();

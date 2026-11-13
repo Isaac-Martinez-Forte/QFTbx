@@ -3,13 +3,15 @@
  * @brief The template engine on the GPU, and the description of a plant
  * for the card.
  *
- * Everything but the check of the family's poles, the sweep and the
- * contours, the walk or the alpha-shape, goes to the engine of the
- * processor, which keeps the settings, the clouds and what it computes from
- * them, gives the epsilon of the border sweep and finishes the contours.
- * The record says what each cost on the card: for the check, its
- * denominators and its kernels; for the sweep and the contours, the
- * kernels, the copies back and in how many batches.
+ * Everything but the check of the family's poles, the sweep, the epsilon
+ * proposal and the contours, the walk or the alpha-shape, goes to the
+ * engine of the processor, which keeps the settings, the clouds and what it
+ * computes from them, the proposals among them, and finishes the contours;
+ * the border sweep's epsilon is the one proposed. The record says what each
+ * cost on the card: for the check, its denominators and its kernels; for
+ * the sweep, the proposal and the contours, the kernels, the copies back and
+ * in how many batches, and for the proposal how many walks in how many
+ * rounds.
  */
 
 #include "src/core/gpu/templates/gpu_template_engine.h"
@@ -23,6 +25,7 @@
 #include "src/core/gpu/templates/family_poles.h"
 #include "src/core/gpu/templates/alpha_contour.h"
 #include "src/core/gpu/templates/contour_walk.h"
+#include "src/core/gpu/templates/epsilon_proposal.h"
 #include "src/core/gpu/templates/plant_sweep.h"
 #include "src/core/gpu/templates/walk_preparation.h"
 #include "src/core/pipeline/gpu_provider.h"
@@ -217,7 +220,13 @@ bool GpuTemplateEngine::compute(LtiSystem * plant, std::vector<double> * frequen
     if (m_processor.clouds().empty()) {
         return m_processor.contourClouds();
     }
-    m_processor.proposeMissingEpsilon();
+    if (m_processor.epsilon().empty()) {
+        std::vector<double> epsilon;
+        for (const EpsilonProposal & proposal : proposeOnCard(m_cancellation)) {
+            epsilon.push_back(proposal.epsilon);
+        }
+        m_processor.setEpsilon(std::move(epsilon));
+    }
     const bool contoured = contourOnCard(m_cancellation);
     if (cancellationAsked(m_cancellation)) {
         throw Cancelled();
@@ -248,8 +257,9 @@ bool GpuTemplateEngine::contourOnCard(const CancellationToken * cancellation)
     const bool alpha = m_processor.alphaShapeContour() || m_processor.borderSweepApplied();
     std::vector<double> epsilon = m_processor.epsilon();
     if (m_processor.borderSweepApplied()) {
+        const std::vector<EpsilonProposal> proposals = proposeOnCard(cancellation);
         for (std::size_t i = 0; i < epsilon.size(); ++i) {
-            epsilon[i] = m_processor.borderSweepEpsilon(m_processor.clouds()[i]);
+            epsilon[i] = proposals[i].epsilon;
         }
     }
     const auto started = std::chrono::steady_clock::now();
@@ -297,9 +307,44 @@ bool GpuTemplateEngine::contourOnCard(const CancellationToken * cancellation)
     return m_processor.contourWalked(std::move(walks));
 }
 
+std::vector<EpsilonProposal> GpuTemplateEngine::proposeOnCard(const CancellationToken * cancellation)
+{
+    if (m_processor.proposed() || m_processor.clouds().empty()) {
+        return m_processor.proposeEpsilon();
+    }
+    const auto started = std::chrono::steady_clock::now();
+    ProposedOnCard proposed;
+    try {
+        if (m_resident == nullptr) {
+            m_resident = cloudsOnCard(m_processor.clouds());
+        }
+        if (m_resident == nullptr) {
+            return m_processor.proposeEpsilon();
+        }
+        const bool walked = !m_processor.alphaShapeContour() && !m_processor.borderSweepApplied();
+        proposed = proposedOnCard(*m_resident, m_processor.hullMetric(), m_processor.dbPerDegree(), walked,
+                                  cancellation);
+    } catch (const CudaError & failure) {
+        throw ComputationError(gpuFailure(failure.what()));
+    }
+    if (proposed.cancelled) {
+        throw Cancelled();
+    }
+    record::write("templates", "proposal (GPU)",
+                  record::milliseconds(std::chrono::duration<double, std::milli>(
+                                           std::chrono::steady_clock::now() - started).count())
+                      + " " + record::number("kernel-ms", proposed.kernelMilliseconds)
+                      + " " + record::number("copy-ms", proposed.copyMilliseconds)
+                      + " " + record::number("batches", proposed.batches)
+                      + " " + record::number("walks", proposed.walks)
+                      + " " + record::number("rounds", proposed.rounds));
+    m_processor.adoptProposals(proposed.proposals);
+    return proposed.proposals;
+}
+
 std::vector<EpsilonProposal> GpuTemplateEngine::proposeEpsilon()
 {
-    return m_processor.proposeEpsilon();
+    return proposeOnCard(nullptr);
 }
 
 const CloudSet & GpuTemplateEngine::clouds() const

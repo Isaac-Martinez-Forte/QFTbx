@@ -8,14 +8,16 @@
  * prepareBatch() leaves in Work, for each frequency, the points in MATLAB's
  * order without repeats, their projection, the frame of the neighbour grid,
  * the cells in order with the point of each, and the parts: their points
- * part after part, where each starts and which parts each frequency has.
+ * part after part, where each starts and which parts each frequency has;
+ * sortedBatch() leaves only what does not depend on epsilon, the points in
+ * order without repeats and their projection.
  * A PointSet is the grid of one cloud as the threads search it: eleven
  * columns of cells round the centre, each found by a binary search; unite()
  * joins two points in a union-find without locks that always hangs the
  * larger root under the smaller (Jaiganesh and Burtscher 2018, ECL-CC).
  * hostPrepared() is the same preparation of one cloud run on the processor
- * with the threads' own code, for the tests, and hostColumns() and
- * hostCells() its search and its grid.
+ * with the threads' own code, for the tests, hostSorted() its first half,
+ * and hostColumns() and hostCells() its search and its grid.
  */
 
 #ifndef QFTBX_GPU_WALK_WORK_CUH
@@ -301,8 +303,20 @@ struct PreparedBatch
     Index parts = 0;
 };
 
+Index sortedBatch(Work & work, const DeviceComplex * cloud, Index plants, Index frequencies, HullMetric metric,
+                  double dbPerDegree, cudaStream_t stream);
+
 PreparedBatch prepareBatch(Work & work, const DeviceComplex * cloud, Index plants, Index frequencies,
                            HullMetric metric, double dbPerDegree, cudaStream_t stream);
+
+struct HostSorted
+{
+    SortedCloud sorted;
+    bool shift = false;
+    double cut = 0.0;
+};
+
+HostSorted hostSorted(const ComplexCloud & cloud, HullMetric metric, double dbPerDegree);
 
 struct HostPrepared
 {
