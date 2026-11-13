@@ -12,7 +12,9 @@
  * the faces of a component in the order alphaShape() does, the same code
  * on both processors, and keeps the one of largest area: sequential by
  * nature, but one thread per component. The faces of every component and
- * the isolated points come back to the processor.
+ * the isolated points come back to the processor. A warp asks every 32
+ * points, and a thread every 1024 steps of a face, whether the computation
+ * was cancelled, and stops if it was.
  */
 
 #include "src/core/gpu/templates/alpha_contour.h"
@@ -27,6 +29,8 @@
 #include <vector>
 
 #include <cuda_runtime.h>
+
+#include "src/core/gpu/common/cancel_flag.cuh"
 
 #include "src/core/gpu/common/check.cuh"
 #include "src/core/gpu/common/device_buffer.cuh"
@@ -45,6 +49,8 @@ namespace {
 constexpr int kEdgeWarps = 4;
 constexpr int kEdgeBlock = 32 * kEdgeWarps;
 constexpr Bits kLowHalf = 0xffffffffull;
+constexpr Index kPollPoints = 32;
+constexpr Index kPollSteps = 1024;
 constexpr std::size_t kAlphaBytesPerPoint = 12 * sizeof(Index) + 4 * sizeof(Bits) + sizeof(double)
         + 3 * sizeof(DeviceComplex);
 
@@ -76,10 +82,11 @@ QFTBX_HD inline Index halfEdge(const FaceGraph & g, Index u, Index w)
 }
 
 QFTBX_HD inline void largestFace(const FaceGraph & g, const Index * componentEdges, Index from, Index to,
-                                 Index & bestAt, Index & bestLength)
+                                 Index & bestAt, Index & bestLength, int * cancel)
 {
     const Index base = 2 * from;
     Index written = 0;
+    Index steps = 0;
     double bestArea = 0.0;
     bestAt = base;
     bestLength = 0;
@@ -96,6 +103,10 @@ QFTBX_HD inline void largestFace(const FaceGraph & g, const Index * componentEdg
             }
             const Index begin = written;
             while (g.used[h] == 0) {
+                if (++steps % kPollSteps == 0 && cancelAsked(cancel)) {
+                    bestLength = 0;
+                    return;
+                }
                 g.used[h] = 1;
                 g.scratch[base + written] = u;
                 ++written;
@@ -137,6 +148,7 @@ struct BatchView
     const Bits * cells;
     const Index * cellOrder;
     Index points;
+    int * cancel;
 };
 
 __device__ PointSet setOf(const BatchView & v, Index f)
@@ -187,7 +199,11 @@ __global__ void __launch_bounds__(kEdgeBlock) boundaryEdges(BatchView v, const I
 {
     const int lane = static_cast<int>(threadIdx.x % 32);
     const Index warps = gridDim.x * kEdgeWarps;
+    Index handled = 0;
     for (Index i = blockIdx.x * kEdgeWarps + threadIdx.x / 32; i < v.points; i += warps) {
+        if (++handled % kPollPoints == 0 && warpCancelRequested(v.cancel)) {
+            return;
+        }
         const Index f = v.frequencyOf[i];
         const PointSet set = setOf(v, f);
         const double epsilon = v.epsilon[f];
@@ -352,13 +368,13 @@ __global__ void componentRanges(const Index * keys, const Index * flags, const I
 }
 
 __global__ void largestFaces(FaceGraph g, const Index * componentEdges, const Index * start, Index components,
-                             Index * faceAt, Index * faceLength)
+                             Index * faceAt, Index * faceLength, int * cancel)
 {
     const Index c = blockIdx.x * blockDim.x + threadIdx.x;
     if (c < components) {
         Index at = 0;
         Index length = 0;
-        largestFace(g, componentEdges, start[c], start[c + 1], at, length);
+        largestFace(g, componentEdges, start[c], start[c + 1], at, length, cancel);
         faceAt[c] = at;
         faceLength[c] = length;
     }
@@ -488,9 +504,14 @@ AlphaOnCard alphaOnCard(const DeviceClouds & clouds, const std::vector<double> &
         const std::size_t needed = (warpsNeeded + kEdgeWarps - 1) / kEdgeWarps;
         return static_cast<unsigned int>(std::max<std::size_t>(1, std::min(resident, needed)));
     };
+    CancelFlag flag;
     const auto readBack = [&](Index * to, const Index * from) {
         check(cudaMemcpyAsync(to, from, sizeof(Index), cudaMemcpyDeviceToHost, s), "cudaMemcpyAsync of a count");
         stream.synchronize();
+    };
+    const auto readBackUnlessCancelled = [&](Index * to, const Index * from) {
+        check(cudaMemcpyAsync(to, from, sizeof(Index), cudaMemcpyDeviceToHost, s), "cudaMemcpyAsync of a count");
+        return stream.finish(cancellation, &flag);
     };
 
     for (std::size_t first = 0; first < frequencyCount; first += batch) {
@@ -505,7 +526,7 @@ AlphaOnCard alphaOnCard(const DeviceClouds & clouds, const std::vector<double> &
         const Index m = prepared.points;
         const Index parts = prepared.parts;
         const BatchView view{work.walk.data(), work.frequencyOf.data(), work.offsets.data(), work.frames.data(),
-                             work.epsilon.data(), work.cells.data(), work.cellOrder.data(), m};
+                             work.epsilon.data(), work.cells.data(), work.cellOrder.data(), m, flag.device()};
 
         bound.fill(0);
         pairBounds<<<edgeBlocks(pairBounds, m), kEdgeBlock, 0, s>>>(view, bound.data());
@@ -520,8 +541,7 @@ AlphaOnCard alphaOnCard(const DeviceClouds & clouds, const std::vector<double> &
         checkLaunch("the kernel of the boundary edges");
         work.sorter.scan(accepted.data(), places.data(), m + 1);
         Index edgeCount = 0;
-        readBack(&edgeCount, places.data() + m);
-        if (!stream.finish(cancellation, nullptr)) {
+        if (!readBackUnlessCancelled(&edgeCount, places.data() + m)) {
             result.cancelled = true;
             return result;
         }
@@ -592,11 +612,14 @@ AlphaOnCard alphaOnCard(const DeviceClouds & clouds, const std::vector<double> &
         const FaceGraph graph{edges, edgeCount, adjOffsets.data(), adjacency.data(), work.walk.data(), used.data(),
                               scratch.data()};
         largestFaces<<<blocks(components + 1), kThreads, 0, s>>>(graph, componentEdges, start.data(), components,
-                                                                 faceAt.data(), faceLength.data());
+                                                                 faceAt.data(), faceLength.data(), flag.device());
         checkLaunch("the kernel of the faces");
         sorter.scan(faceLength.data(), facePlaces.data(), components + 1);
         Index faceEntries = 0;
-        readBack(&faceEntries, facePlaces.data() + components);
+        if (!readBackUnlessCancelled(&faceEntries, facePlaces.data() + components)) {
+            result.cancelled = true;
+            return result;
+        }
 
         DeviceBuffer<Index> isolatedFlag(parts + 1, stream);
         DeviceBuffer<Index> isolatedPlaces(parts + 1, stream);
@@ -787,7 +810,7 @@ std::vector<WalkedContour> alphaOnProcessor(const CloudSet & clouds, const std::
             }
             Index at = 0;
             Index length = 0;
-            largestFace(graph, componentEdges.data(), from, to, at, length);
+            largestFace(graph, componentEdges.data(), from, to, at, length, nullptr);
             faces.emplace_back(scratch.begin() + at, scratch.begin() + at + length);
             from = to;
         }

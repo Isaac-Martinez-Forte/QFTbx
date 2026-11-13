@@ -11,7 +11,8 @@
  * is a single part, is rare, so its frequencies are projected, gridded and
  * walked apart, after the rest. A last kernel gathers the points of every
  * part into one array, and the processor joins them into contours as the
- * template engine does.
+ * template engine does. A warp asks every 1024 steps whether the
+ * computation was cancelled, and stops if it was.
  */
 
 #include "src/core/gpu/templates/contour_walk.h"
@@ -25,6 +26,7 @@
 #include <cuda_runtime.h>
 #include <math_constants.h>
 
+#include "src/core/gpu/common/cancel_flag.cuh"
 #include "src/core/gpu/common/check.cuh"
 #include "src/core/gpu/common/device_buffer.cuh"
 #include "src/core/gpu/common/device_probe.h"
@@ -41,6 +43,7 @@ namespace {
 constexpr int kWalkWarps = 2;
 constexpr int kWalkBlock = 32 * kWalkWarps;
 constexpr std::size_t kWalkBytesPerPoint = 3 * sizeof(Index) + sizeof(unsigned char) + 6 * sizeof(Index);
+constexpr Index kPollSteps = 1024;
 
 enum PartKind : int { kEmpty = 0, kWalked = 1, kRelaxed = 2, kTruncated = 3, kPendingRaw = 4 };
 
@@ -120,6 +123,22 @@ __device__ Index firstExtreme(const DeviceComplex * walk, const Index * list, In
     return __shfl_sync(kFull, at, 0);
 }
 
+struct Poll
+{
+    int * flag;
+    Index steps;
+    bool stopped;
+};
+
+__device__ bool stopped(Poll & poll)
+{
+    if (++poll.steps >= kPollSteps) {
+        poll.steps = 0;
+        poll.stopped = warpCancelRequested(poll.flag);
+    }
+    return poll.stopped;
+}
+
 struct Trail
 {
     Index * out;
@@ -151,7 +170,7 @@ __device__ Choice stepFrom(const PointSet & set, double epsilon, Index previous,
 }
 
 __device__ WalkEnd walkFrom(const PointSet & set, double epsilon, Index b1, Index maxSteps, bool excludePrevious,
-                            int lane, Trail & trail)
+                            int lane, Trail & trail, Poll & poll)
 {
     const DeviceComplex first = set.walk[b1];
     const Choice second = warpChoice(set, first, lane, [&](DeviceComplex candidate, Index j) {
@@ -174,6 +193,9 @@ __device__ WalkEnd walkFrom(const PointSet & set, double epsilon, Index b1, Inde
     while (b1 != current || b2 != next.index) {
         if (counter + 1 > maxSteps) {
             return WalkEnd::Exceeded;
+        }
+        if (stopped(poll)) {
+            return WalkEnd::Dead;
         }
         keep(trail, next.index, lane);
         ++counter;
@@ -206,13 +228,15 @@ struct PartsView
     Index * length;
     int * kind;
     int * fellBack;
+    int * cancel;
 };
 
 __global__ void __launch_bounds__(kWalkBlock) walkParts(PartsView v)
 {
     const int lane = static_cast<int>(threadIdx.x % 32);
     const Index warps = gridDim.x * kWalkWarps;
-    for (Index r = blockIdx.x * kWalkWarps + threadIdx.x / 32; r < v.parts; r += warps) {
+    Poll poll{v.cancel, 0, false};
+    for (Index r = blockIdx.x * kWalkWarps + threadIdx.x / 32; r < v.parts && !poll.stopped; r += warps) {
         const Index from = v.partStarts[r];
         const Index to = r + 1 < v.parts ? v.partStarts[r + 1] : v.points;
         const Index size = to - from;
@@ -223,7 +247,7 @@ __global__ void __launch_bounds__(kWalkBlock) walkParts(PartsView v)
         Trail trail{v.steps + 3 * static_cast<std::size_t>(from), nullptr, 0};
 
         const Index start = firstExtreme(v.walk, v.members, from, to, false, lane);
-        const WalkEnd end = walkFrom(set, epsilon, start, 3 * size, false, lane, trail);
+        const WalkEnd end = walkFrom(set, epsilon, start, 3 * size, false, lane, trail, poll);
         int kind = end == WalkEnd::Closed ? kWalked : kEmpty;
         int fell = 0;
         if (end == WalkEnd::Exceeded) {
@@ -233,7 +257,7 @@ __global__ void __launch_bounds__(kWalkBlock) walkParts(PartsView v)
             } else {
                 trail = Trail{trail.out, v.visited, 0};
                 const Index highest = firstExtreme(v.walk, v.members, from, to, true, lane);
-                const WalkEnd relaxed = walkFrom(set, epsilon, highest, 3 * size, true, lane, trail);
+                const WalkEnd relaxed = walkFrom(set, epsilon, highest, 3 * size, true, lane, trail, poll);
                 kind = relaxed == WalkEnd::Closed ? kRelaxed : relaxed == WalkEnd::Dead ? kEmpty : kTruncated;
             }
         }
@@ -260,19 +284,21 @@ struct RawView
     unsigned char * visited;
     Index * length;
     int * kind;
+    int * cancel;
 };
 
 __global__ void __launch_bounds__(kWalkBlock) walkRaw(RawView v)
 {
     const int lane = static_cast<int>(threadIdx.x % 32);
     const Index warps = gridDim.x * kWalkWarps;
-    for (Index k = blockIdx.x * kWalkWarps + threadIdx.x / 32; k < v.pending; k += warps) {
+    Poll poll{v.cancel, 0, false};
+    for (Index k = blockIdx.x * kWalkWarps + threadIdx.x / 32; k < v.pending && !poll.stopped; k += warps) {
         const Index f = v.frequency[k];
         const Index first = k * v.plants;
         const PointSet set{v.walk, v.cells, v.order, first, first + v.plants, v.frames[f]};
         Trail trail{v.out + first, v.visited, 0};
         const Index highest = firstExtreme(v.walk, nullptr, first, first + v.plants, true, lane);
-        const WalkEnd end = walkFrom(set, v.epsilon[f], highest, 3 * v.plants, true, lane, trail);
+        const WalkEnd end = walkFrom(set, v.epsilon[f], highest, 3 * v.plants, true, lane, trail, poll);
         if (lane == 0) {
             v.kind[v.part[k]] = end == WalkEnd::Closed ? kRelaxed : end == WalkEnd::Dead ? kEmpty : kTruncated;
             v.length[v.part[k]] = trail.written;
@@ -442,10 +468,11 @@ WalkedContour joined(const std::vector<PartWalk> & parts)
     return out;
 }
 
-void walkOnRaw(Work & work, const DeviceComplex * cloud, Index plants, bool nichols, double dbPerDegree,
+bool walkOnRaw(Work & work, const DeviceComplex * cloud, Index plants, bool nichols, double dbPerDegree,
                const std::vector<Index> & frequency, const std::vector<Index> & part, Index parts,
                DeviceBuffer<Index> & length, DeviceBuffer<int> & kind, DeviceBuffer<Index> & rawSlot,
-               DeviceBuffer<Index> & rawOut, const Stream & stream)
+               DeviceBuffer<Index> & rawOut, const Stream & stream, CancelFlag & flag,
+               const CancellationToken * cancellation)
 {
     const Index pending = static_cast<Index>(frequency.size());
     const Index n = pending * plants;
@@ -489,10 +516,10 @@ void walkOnRaw(Work & work, const DeviceComplex * cloud, Index plants, bool nich
 
     const RawView view{walk.data(), cells.data(), order, plants, frequencyOnCard.data(), partOnCard.data(),
                        work.frames.data(), work.epsilon.data(), pending, rawOut.data(), visited.data(),
-                       length.data(), kind.data()};
+                       length.data(), kind.data(), flag.device()};
     walkRaw<<<walkBlocks(walkRaw, pending), kWalkBlock, 0, s>>>(view);
     checkLaunch("the kernel of the relaxed walks over the swept clouds");
-    stream.synchronize();
+    return stream.finish(cancellation, &flag);
 }
 
 struct HostSet
@@ -619,6 +646,7 @@ WalkedOnCard walkedOnCard(const DeviceClouds & clouds, const std::vector<double>
     DeviceBuffer<int> fellBack(points, stream);
     DeviceBuffer<Index> outLength(points + 1, stream);
     DeviceBuffer<Index> places(points + 1, stream);
+    CancelFlag flag;
 
     for (std::size_t first = 0; first < frequencyCount; first += batch) {
         const Index count = static_cast<Index>(std::min(batch, frequencyCount - first));
@@ -636,7 +664,7 @@ WalkedOnCard walkedOnCard(const DeviceClouds & clouds, const std::vector<double>
         const PartsView view{work.walk.data(), work.frequencyOf.data(), work.offsets.data(), work.frames.data(),
                              work.epsilon.data(), work.cells.data(), work.cellOrder.data(), work.members.data(),
                              work.starts.data(), work.rootOffsets.data(), m, parts, steps.data(), visited.data(),
-                             length.data(), kind.data(), fellBack.data()};
+                             length.data(), kind.data(), fellBack.data(), flag.device()};
         walkParts<<<walkBlocks(walkParts, parts), kWalkBlock, 0, s>>>(view);
         checkLaunch("the kernel of the walks");
 
@@ -646,7 +674,7 @@ WalkedOnCard walkedOnCard(const DeviceClouds & clouds, const std::vector<double>
               "cudaMemcpyAsync of the kinds of the walks");
         check(cudaMemcpyAsync(rootOffsets.data(), work.rootOffsets.data(), (count + 1) * sizeof(Index),
                               cudaMemcpyDeviceToHost, s), "cudaMemcpyAsync of the offsets of the parts");
-        if (!stream.finish(cancellation, nullptr)) {
+        if (!stream.finish(cancellation, &flag)) {
             result.cancelled = true;
             return result;
         }
@@ -663,9 +691,11 @@ WalkedOnCard walkedOnCard(const DeviceClouds & clouds, const std::vector<double>
         }
         DeviceBuffer<Index> rawSlot;
         DeviceBuffer<Index> rawOut;
-        if (!pendingPart.empty()) {
-            walkOnRaw(work, cloud, static_cast<Index>(plants), nichols, dbPerDegree, pendingFrequency, pendingPart,
-                      parts, length, kind, rawSlot, rawOut, stream);
+        if (!pendingPart.empty()
+            && !walkOnRaw(work, cloud, static_cast<Index>(plants), nichols, dbPerDegree, pendingFrequency,
+                          pendingPart, parts, length, kind, rawSlot, rawOut, stream, flag, cancellation)) {
+            result.cancelled = true;
+            return result;
         }
 
         outLengths<<<blocks(parts + 1), kThreads, 0, s>>>(work.starts.data(), work.members.data(),

@@ -11,7 +11,9 @@
  * The first epsilon of the climb and its rungs are walked together, since
  * they almost always decide it; the clouds they leave open go on climbing,
  * twice as many epsilons each round, and their rungs are walked once one
- * closes. Every epsilon is walked on its own copy of the cloud.
+ * closes. Every epsilon is walked on its own copy of the cloud. A block
+ * asks at every frequency, and every 1024 steps of the tree or rows of the
+ * pairs, whether the computation was cancelled, and stops if it was.
  */
 
 #include "src/core/gpu/templates/epsilon_proposal.h"
@@ -28,6 +30,7 @@
 #include <cuda_runtime.h>
 #include <math_constants.h>
 
+#include "src/core/gpu/common/cancel_flag.cuh"
 #include "src/core/gpu/common/check.cuh"
 #include "src/core/gpu/common/device_buffer.cuh"
 #include "src/core/gpu/common/device_probe.h"
@@ -46,6 +49,7 @@ constexpr int kSpanWarps = 8;
 constexpr int kSpanThreads = 32 * kSpanWarps;
 constexpr std::size_t kSpanBytesPerPoint = sizeof(double) + sizeof(Index);
 constexpr std::size_t kWidestClimb = 64;
+constexpr Index kPollSteps = 1024;
 
 struct Edge
 {
@@ -126,14 +130,18 @@ __device__ Edge blockBest(Edge mine, Edge * shared, Better better)
 
 __global__ void __launch_bounds__(kSpanThreads) spanningPairs(const DeviceComplex * walk, const Index * offsets,
                                                                Index frequencies, double * reach, Index * nearest,
-                                                               SpanPairs * out)
+                                                               SpanPairs * out, int * cancel)
 {
     __shared__ Edge reduced[2][kSpanWarps];
+    __shared__ int asked;
     const auto byShorter = [](const Edge & a, const Edge & b) { return shorter(a, b); };
     const auto byFarther = [](const Edge & a, const Edge & b) { return farther(a, b); };
     const Index t = threadIdx.x;
     int parity = 0;
     for (Index f = blockIdx.x; f < frequencies; f += gridDim.x) {
+        if (blockCancelRequested(cancel, asked)) {
+            return;
+        }
         const Index first = offsets[f];
         const Index n = offsets[f + 1] - first;
         const DeviceComplex * points = walk + first;
@@ -148,6 +156,9 @@ __global__ void __launch_bounds__(kSpanThreads) spanningPairs(const DeviceComple
             Edge longest = noEdge();
             Index current = 0;
             for (Index added = 1; added < n; ++added) {
+                if (added % kPollSteps == 0 && blockCancelRequested(cancel, asked)) {
+                    return;
+                }
                 const DeviceComplex p = points[current];
                 Edge mine = noEdge();
                 for (Index j = t; j < n; j += kSpanThreads) {
@@ -176,6 +187,9 @@ __global__ void __launch_bounds__(kSpanThreads) spanningPairs(const DeviceComple
 
             Edge farthest = noEdge();
             for (Index i = 0; i + 1 < n; ++i) {
+                if (i % kPollSteps == kPollSteps - 1 && blockCancelRequested(cancel, asked)) {
+                    return;
+                }
                 const DeviceComplex p = points[i];
                 for (Index j = i + 1 + t; j < n; j += kSpanThreads) {
                     const Edge candidate{squaredDistance(points[j], p), j, i};
@@ -440,6 +454,7 @@ std::optional<std::vector<Extremes>> extremesOnCard(const DeviceClouds & clouds,
     DeviceBuffer<double> reach(points, stream);
     DeviceBuffer<Index> nearest(points, stream);
     DeviceBuffer<SpanPairs> pairs(batch, stream);
+    CancelFlag flag;
 
     std::vector<Extremes> extremes(frequencyCount);
     for (std::size_t first = 0; first < frequencyCount; first += batch) {
@@ -448,9 +463,10 @@ std::optional<std::vector<Extremes>> extremesOnCard(const DeviceClouds & clouds,
         const auto computing = std::chrono::steady_clock::now();
         sortedBatch(work, clouds.values() + first * plants, static_cast<Index>(plants), count, metric, dbPerDegree, s);
         spanningPairs<<<spanBlocks(count), kSpanThreads, 0, s>>>(work.walk.data(), work.offsets.data(), count,
-                                                                 reach.data(), nearest.data(), pairs.data());
+                                                                 reach.data(), nearest.data(), pairs.data(),
+                                                                 flag.device());
         checkLaunch("the kernel of the spanning trees");
-        if (!stream.finish(cancellation, nullptr)) {
+        if (!stream.finish(cancellation, &flag)) {
             return std::nullopt;
         }
         result.kernelMilliseconds += millisecondsSince(computing);
