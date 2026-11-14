@@ -9,11 +9,12 @@
  * did. A case on toolbox-1 times each phase and keeps the steps the engines
  * record and the size of what it computed, on the project's grids or denser
  * ones. A comparison whose GPU engines are the processor's own finds
- * nothing apart, the design included; without GPU support it fails with the
- * reason. comparePhases notices a plant moved, a contour point added and a
- * column end displaced; it measures how far traces that keep their shape
- * moved and counts those that change it. The phases and the comparison
- * survive their JSON.
+ * nothing apart, the design included, and a problem both refuse is a
+ * comparison of their reasons; without GPU support it fails with the
+ * reason. comparePhases notices a plant moved, a contour point added, a
+ * column end displaced and a notice of the poles that only one gives; it
+ * measures how far traces that keep their shape moved and counts those
+ * that change it. The phases and the comparison survive their JSON.
  */
 
 #include <gtest/gtest.h>
@@ -33,7 +34,10 @@
 #include "src/bench/record.h"
 #include "src/core/boundaries/boundary_engine.h"
 #include "src/core/common/exception.h"
+#include "src/app/project_controller.h"
 #include "src/core/pipeline/gpu_provider.h"
+#include "src/core/system/parameter.h"
+#include "src/core/system/polynomial_form.h"
 #include "src/core/templates/template_engine.h"
 
 using namespace qftbx;
@@ -257,6 +261,38 @@ TEST(BenchmarkPhases, AComparisonWithTheSameEnginesFindsNothingApart)
     EXPECT_TRUE(c.sameDesign);
 }
 
+TEST(BenchmarkPhases, AProblemBothRefuseIsAComparisonOfTheirReasons)
+{
+    const ProviderInstalled installed(std::make_unique<ProcessorEnginesProvider>());
+
+    QTemporaryDir directory;
+    const std::string refused = directory.filePath("refused.qft").toStdString();
+    {
+        ProjectController project;
+        project.load(std::string(QFTBX_EXAMPLES_DIR "/toolbox-1.qft"));
+        const double w = project.omega()->values()->front();
+        project.setPlant(std::make_unique<PolynomialForm>(
+                std::string("P"), std::vector<Parameter>{Parameter(1.0)},
+                std::vector<Parameter>{Parameter(1.0), Parameter(0.0), Parameter(w * w)}, Parameter(1.0),
+                Parameter(0.0)));
+        project.save(refused);
+    }
+
+    Plan plan = phasesPlan(directory.path().toStdString());
+    plan.projectFile = refused;
+    const Record record = runCase(plan, expandCases(plan).back());
+
+    EXPECT_EQ(record.status, "refused");
+    const Comparison & c = record.comparison;
+    ASSERT_TRUE(c.made);
+    EXPECT_EQ(c.cpuStatus, "refused");
+    EXPECT_EQ(c.gpuStatus, "refused");
+    EXPECT_NE(c.cpuRefusal.find("The nominal plant has a pole on the imaginary axis"), std::string::npos)
+            << c.cpuRefusal;
+    EXPECT_EQ(c.gpuRefusal, c.cpuRefusal);
+    EXPECT_EQ(record.message, c.gpuRefusal);
+}
+
 TEST(BenchmarkPhases, AComparisonWithoutGpuSupportFailsWithTheReason)
 {
     ASSERT_EQ(gpuProvider(), nullptr);
@@ -302,6 +338,25 @@ TEST(BenchmarkPhases, TheComparisonNoticesWhatMoved)
     Comparison fewer;
     comparePhases(cpu, gpu, fewer);
     EXPECT_EQ(fewer.cloudSizesDiffer, 1u);
+    EXPECT_EQ(fewer.noticesDiffer, 0u);
+
+    PoleCountChange change;
+    change.firstCount = 0;
+    change.firstDenominator = {1.0, 1.0};
+    change.otherCount = 1;
+    change.otherDenominator = {1.0, -1.0};
+    cpu.poleCountChange = change;
+    Comparison oneNotice;
+    comparePhases(cpu, gpu, oneNotice);
+    EXPECT_EQ(oneNotice.noticesDiffer, 1u);
+    gpu.poleCountChange = change;
+    Comparison bothNotices;
+    comparePhases(cpu, gpu, bothNotices);
+    EXPECT_EQ(bothNotices.noticesDiffer, 0u);
+    gpu.poleCountChange->otherDenominator = {1.0, -2.0};
+    Comparison otherPlant;
+    comparePhases(cpu, gpu, otherPlant);
+    EXPECT_EQ(otherPlant.noticesDiffer, 1u);
 }
 
 TEST(BenchmarkPhases, TracesAreComparedByTheirShapeAndTheirLargestGap)
@@ -360,6 +415,9 @@ TEST(BenchmarkPhases, ThePhasesAndTheComparisonSurviveTheirJson)
     record.comparison.cpuStatus = "solved";
     record.comparison.gpuStatus = "solved";
     record.comparison.gainRelative = 1e-15;
+    record.comparison.noticesDiffer = 1;
+    record.comparison.cpuRefusal = "the processor's reason";
+    record.comparison.gpuRefusal = "the card's reason";
 
     const Record back = recordFromJson(toJson(record));
     EXPECT_EQ(back.processor, "compare");
@@ -380,6 +438,9 @@ TEST(BenchmarkPhases, ThePhasesAndTheComparisonSurviveTheirJson)
     EXPECT_TRUE(std::isnan(back.comparison.columnLargestDb));
     EXPECT_EQ(back.comparison.columnsDiffer, 1u);
     EXPECT_EQ(back.comparison.gainRelative, 1e-15);
+    EXPECT_EQ(back.comparison.noticesDiffer, 1u);
+    EXPECT_EQ(back.comparison.cpuRefusal, "the processor's reason");
+    EXPECT_EQ(back.comparison.gpuRefusal, "the card's reason");
 
     Record plain;
     plain.status = "solved";

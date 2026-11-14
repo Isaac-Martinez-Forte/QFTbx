@@ -15,10 +15,14 @@
  *   match, in dB;
  * - the traces of every specification and the union, by those whose
  *   shape differs (how many traces, how many points each) and by the
- *   largest gap between points that match, in degrees or dB.
+ *   largest gap between points that match, in degrees or dB;
+ * - the notice of a family whose number of unstable poles changes, which
+ *   must say the same on both.
  *
  * A distance that was never measured stays not-a-number. The search, when
- * the case runs one, is compared by the caller.
+ * the case runs one, is compared by the caller, and so are the phases a
+ * processor refuses: each one's reason, the same on both when they refuse
+ * alike.
  */
 
 #ifndef QFTBX_BENCH_COMPARISON_H
@@ -42,6 +46,7 @@ struct PhaseOutputs
     CloudSet contours;
     std::vector<double> epsilon;
     std::vector<ContourReport> reports;
+    std::optional<PoleCountChange> poleCountChange;
     std::optional<BoundaryData> boundaries;
 };
 
@@ -56,6 +61,7 @@ struct Comparison
     double contourLargestHausdorff = std::numeric_limits<double>::quiet_NaN();
     std::size_t reportsDiffer = 0;
     std::size_t epsilonsDiffer = 0;
+    std::size_t noticesDiffer = 0;
 
     std::size_t columnsDiffer = 0;
     double columnLargestDb = std::numeric_limits<double>::quiet_NaN();
@@ -66,6 +72,8 @@ struct Comparison
 
     std::string cpuStatus;
     std::string gpuStatus;
+    std::string cpuRefusal;
+    std::string gpuRefusal;
     double gainRelative = std::numeric_limits<double>::quiet_NaN();
     bool sameDesign = false;
 };

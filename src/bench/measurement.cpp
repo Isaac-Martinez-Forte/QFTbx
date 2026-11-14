@@ -322,6 +322,7 @@ PhaseOutputs outputsOf(ProjectController & controller)
         outputs.epsilon = *controller.epsilon();
     }
     outputs.reports = controller.contourReports();
+    outputs.poleCountChange = controller.poleCountChange();
     if (const BoundaryData * boundaries = controller.boundaries()) {
         outputs.boundaries = *boundaries;
     }
@@ -474,17 +475,41 @@ void compareProcessors(const Plan & plan, const Case & c, const PhaseInputs & in
     const Phases & phases = *plan.phases;
 
     Record cpu = record;
-    computePhases(phases, inputs, controller, Processor::Cpu, cpu);
+    std::string cpuRefusal;
+    try {
+        computePhases(phases, inputs, controller, Processor::Cpu, cpu);
+    } catch (const Exception & refused) {
+        cpuRefusal = refused.what();
+    }
     const PhaseOutputs cpuOutputs = outputsOf(controller);
-    if (c.loopShaping) {
+    if (cpuRefusal.empty() && c.loopShaping) {
         measureSearch(plan, c, controller, cpu);
     }
 
+    std::string gpuRefusal;
     try {
         computePhases(phases, inputs, controller, Processor::Gpu, record);
+    } catch (const Exception & refused) {
+        gpuRefusal = refused.what();
     } catch (const std::exception & failure) {
         record.status = "error";
         record.message = failure.what();
+        return;
+    }
+    if (cpuRefusal.empty() && !gpuRefusal.empty()) {
+        record.status = "error";
+        record.message = gpuRefusal;
+        return;
+    }
+    if (!cpuRefusal.empty()) {
+        Comparison & into = record.comparison;
+        into.made = true;
+        into.cpuStatus = "refused";
+        into.gpuStatus = gpuRefusal.empty() ? "computed" : "refused";
+        into.cpuRefusal = cpuRefusal;
+        into.gpuRefusal = gpuRefusal;
+        record.status = into.gpuStatus;
+        record.message = gpuRefusal;
         return;
     }
     comparePhases(cpuOutputs, outputsOf(controller), record.comparison);

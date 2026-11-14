@@ -179,6 +179,7 @@ QJsonObject comparisonToJson(const Comparison & c)
     putNumber(o, "contour_largest_hausdorff", c.contourLargestHausdorff);
     o["reports_differ"] = static_cast<qint64>(c.reportsDiffer);
     o["epsilons_differ"] = static_cast<qint64>(c.epsilonsDiffer);
+    o["notices_differ"] = static_cast<qint64>(c.noticesDiffer);
     o["columns_differ"] = static_cast<qint64>(c.columnsDiffer);
     putNumber(o, "column_largest_db", c.columnLargestDb);
     o["trace_sets_differ"] = static_cast<qint64>(c.traceSetsDiffer);
@@ -190,6 +191,10 @@ QJsonObject comparisonToJson(const Comparison & c)
         o["gpu_status"] = QString::fromStdString(c.gpuStatus);
         putNumber(o, "gain_relative", c.gainRelative);
         o["same_design"] = c.sameDesign;
+    }
+    if (!c.cpuRefusal.empty() || !c.gpuRefusal.empty()) {
+        o["cpu_refusal"] = QString::fromStdString(c.cpuRefusal);
+        o["gpu_refusal"] = QString::fromStdString(c.gpuRefusal);
     }
     return o;
 }
@@ -205,6 +210,7 @@ Comparison comparisonFromJson(const QJsonObject & o)
     c.contourLargestHausdorff = numberOr(o, "contour_largest_hausdorff");
     c.reportsDiffer = static_cast<std::size_t>(o["reports_differ"].toInteger());
     c.epsilonsDiffer = static_cast<std::size_t>(o["epsilons_differ"].toInteger());
+    c.noticesDiffer = static_cast<std::size_t>(o["notices_differ"].toInteger());
     c.columnsDiffer = static_cast<std::size_t>(o["columns_differ"].toInteger());
     c.columnLargestDb = numberOr(o, "column_largest_db");
     c.traceSetsDiffer = static_cast<std::size_t>(o["trace_sets_differ"].toInteger());
@@ -215,6 +221,8 @@ Comparison comparisonFromJson(const QJsonObject & o)
     c.gpuStatus = o["gpu_status"].toString().toStdString();
     c.gainRelative = numberOr(o, "gain_relative");
     c.sameDesign = o["same_design"].toBool();
+    c.cpuRefusal = o["cpu_refusal"].toString().toStdString();
+    c.gpuRefusal = o["gpu_refusal"].toString().toStdString();
     return c;
 }
 

@@ -228,6 +228,16 @@ void comparePhases(const PhaseOutputs & cpu, const PhaseOutputs & gpu, Compariso
         }
     }
 
+    const std::optional<PoleCountChange> & noticeA = cpu.poleCountChange;
+    const std::optional<PoleCountChange> & noticeB = gpu.poleCountChange;
+    if (noticeA.has_value() != noticeB.has_value()
+        || (noticeA.has_value()
+            && (noticeA->firstCount != noticeB->firstCount || noticeA->otherCount != noticeB->otherCount
+                || noticeA->firstDenominator != noticeB->firstDenominator
+                || noticeA->otherDenominator != noticeB->otherDenominator))) {
+        into.noticesDiffer = 1;
+    }
+
     if (cpu.boundaries && gpu.boundaries) {
         compareBoundaries(*cpu.boundaries, *gpu.boundaries, into);
     }
