@@ -16,7 +16,7 @@
 namespace qftbx {
 namespace math {
 
-#if __has_include(<numbers>)
+#if defined(__cpp_lib_math_constants) && __cpp_lib_math_constants >= 201907L
 inline constexpr double kPi = std::numbers::pi;
 inline constexpr double kE = std::numbers::e;
 #else
