@@ -667,6 +667,10 @@ WalkedOnCard walkedOnCard(const DeviceClouds & clouds, const std::vector<double>
                              length.data(), kind.data(), fellBack.data(), flag.device()};
         walkParts<<<walkBlocks(walkParts, parts), kWalkBlock, 0, s>>>(view);
         checkLaunch("the kernel of the walks");
+        if (!stream.finish(cancellation, &flag)) {
+            result.cancelled = true;
+            return result;
+        }
 
         std::vector<int> kinds(parts);
         std::vector<Index> rootOffsets(count + 1);
@@ -674,10 +678,7 @@ WalkedOnCard walkedOnCard(const DeviceClouds & clouds, const std::vector<double>
               "cudaMemcpyAsync of the kinds of the walks");
         check(cudaMemcpyAsync(rootOffsets.data(), work.rootOffsets.data(), (count + 1) * sizeof(Index),
                               cudaMemcpyDeviceToHost, s), "cudaMemcpyAsync of the offsets of the parts");
-        if (!stream.finish(cancellation, &flag)) {
-            result.cancelled = true;
-            return result;
-        }
+        stream.synchronize();
 
         std::vector<Index> pendingFrequency;
         std::vector<Index> pendingPart;

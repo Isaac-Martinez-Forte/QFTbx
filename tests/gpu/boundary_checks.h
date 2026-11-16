@@ -25,7 +25,7 @@
 
 namespace qftbx::gputest {
 
-constexpr double kColumnToleranceDb = 1e-6;
+constexpr double kColumnToleranceDb = 1e-3;
 
 struct Grid
 {

@@ -10,7 +10,8 @@
  * by search: two fall back to the relaxed walk and two run out of steps in
  * it, each once as one part and once as several. walkPlaneGap() is the
  * Hausdorff distance between two contours of one cloud on the plane of
- * their walk.
+ * their walk, and oneSize() says whether every cloud of a case has as many
+ * points, which the card needs to hold them.
  */
 
 #ifndef QFTBX_TESTS_GPU_WALK_CASES_H
@@ -169,6 +170,12 @@ inline std::vector<WalkedContour> walksOnTheProcessor(const WalkCase & c)
                                               &walks[i].starts);
     }
     return walks;
+}
+
+inline bool oneSize(const CloudSet & clouds)
+{
+    return std::all_of(clouds.begin(), clouds.end(),
+                       [&clouds](const ComplexCloud & cloud) { return cloud.size() == clouds.front().size(); });
 }
 
 inline double walkPlaneGap(const ComplexCloud & cloud, HullMetric metric, const ComplexCloud & a,

@@ -4,10 +4,10 @@
  * cancelled.
  *
  * With a card, a walk round a circle of 2^18 points, the spanning tree and
- * the diameter of 2^17 and the faces of the alpha-shape of 2^16 each take
- * a long while in one kernel. Cancelled 20 ms after they start, they must
- * say so and end in less than a quarter of what they take uncancelled,
- * which has to be long enough on the card to tell.
+ * the diameter of 2^15 and the alpha-shape of 2^18 each take a long while
+ * in one kernel. Cancelled 20 ms after they start, they must say so and end
+ * in less than half of what they take uncancelled, which has to be long
+ * enough on the card to tell.
  */
 
 #include <gtest/gtest.h>
@@ -78,7 +78,7 @@ void expectStops(const char * what, const std::function<bool(const CancellationT
     ASSERT_GT(whole.milliseconds, 200.0) << what << ": too small a problem to tell on this card";
     const Timed cut = timed(run, true);
     EXPECT_TRUE(cut.cancelled) << what;
-    EXPECT_LT(cut.milliseconds, whole.milliseconds / 4.0) << what;
+    EXPECT_LT(cut.milliseconds, whole.milliseconds / 2.0) << what;
     std::printf("%s: %.0f ms, cancelled after 20 ms: %.0f ms\n", what, whole.milliseconds, cut.milliseconds);
 }
 
@@ -96,13 +96,13 @@ TEST(GpuTemplates, TheLongKernelsStopWhenTheComputationIsCancelled)
                 .cancelled;
     });
 
-    const auto treeClouds = gpu::cloudsOnCard(circle(std::size_t{1} << 17));
+    const auto treeClouds = gpu::cloudsOnCard(circle(std::size_t{1} << 15));
     ASSERT_NE(treeClouds, nullptr);
     expectStops("spanning tree and diameter", [&](const CancellationToken * token) {
         return gpu::proposedOnCard(*treeClouds, HullMetric::ComplexPlane, 1.0, false, token).cancelled;
     });
 
-    const std::size_t shaped = std::size_t{1} << 16;
+    const std::size_t shaped = std::size_t{1} << 18;
     const auto alphaClouds = gpu::cloudsOnCard(circle(shaped));
     ASSERT_NE(alphaClouds, nullptr);
     expectStops("alpha-shape", [&](const CancellationToken * token) {

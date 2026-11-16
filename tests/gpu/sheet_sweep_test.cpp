@@ -34,8 +34,10 @@
  * bound each cell lies, so they and the unions must come out the same. The
  * ends of the columns are interpolated where a sheet crosses its bound,
  * dividing by the difference between neighbouring cells, which magnifies
- * the last bits of a sheet that is nearly flat there; they are compared
- * within 1e-6 dB.
+ * the last bits of a sheet that is nearly flat there, and a build that
+ * fuses products and sums moves those bits on the processor too (9e-5 dB
+ * between the threads' code and the engine on one machine); they are
+ * compared within 1e-3 dB.
  */
 
 #include <gtest/gtest.h>

@@ -510,8 +510,11 @@ AlphaOnCard alphaOnCard(const DeviceClouds & clouds, const std::vector<double> &
         stream.synchronize();
     };
     const auto readBackUnlessCancelled = [&](Index * to, const Index * from) {
-        check(cudaMemcpyAsync(to, from, sizeof(Index), cudaMemcpyDeviceToHost, s), "cudaMemcpyAsync of a count");
-        return stream.finish(cancellation, &flag);
+        if (!stream.finish(cancellation, &flag)) {
+            return false;
+        }
+        readBack(to, from);
+        return true;
     };
 
     for (std::size_t first = 0; first < frequencyCount; first += batch) {

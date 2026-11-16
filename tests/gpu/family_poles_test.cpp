@@ -13,8 +13,9 @@
  * form of degree nine with a triple root, the processor's transform is
  * already 2e-9 off the exact frequency, and the warps' 3e-10. A family
  * whose denominator does not fit a warp is refused. With a card, the card's
- * check must be the processor's run of the same code, the bands within
- * 1e-12.
+ * check must be the processor's run of the same code, the bands within the
+ * same 1e-8: the card's sine and cosine move the last bits of the
+ * transform, which the triple root magnifies (6e-10 on an RTX 3060).
  */
 
 #include <gtest/gtest.h>
@@ -47,7 +48,7 @@ using namespace qftbx;
 namespace {
 
 constexpr double kProcessorTolerance = 1e-8;
-constexpr double kCardTolerance = 1e-12;
+constexpr double kCardTolerance = 1e-8;
 
 struct Family
 {

@@ -8,7 +8,9 @@
  * once the token is raised it raises the flag the kernels read, so a long
  * kernel stops early, still waits for the stream to drain, since its
  * buffers must outlive the work, and answers false. A failure on the card
- * throws CudaError either way.
+ * throws CudaError either way. A copy back into memory that is not pinned
+ * holds the processor until everything before it in the stream is done, so
+ * it goes after finish(), or a long kernel cannot be cancelled.
  */
 
 #ifndef QFTBX_GPU_STREAM_CUH

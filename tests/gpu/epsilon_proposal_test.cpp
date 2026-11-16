@@ -9,10 +9,13 @@
  * the first epsilon of the climb, so the later rounds are run too. With a
  * card, its proposals are compared with the threads' code on the processor
  * and the GPU engine's with the processor's engine: the longest edge and
- * the diameter must agree, exactly in the complex plane, and whether the
- * walk closes; the epsilon comes from walks that may differ where two
- * candidates are almost equally good (contour_walk_test.cpp), so how many
- * are identical is printed.
+ * the diameter must agree, exactly in the complex plane and on the Nichols
+ * plane within 1e-12 of the largest coordinate of the cloud, since the
+ * card's logarithm and arc tangent move the points by their last bits, and
+ * whether the walk closes; the epsilon comes from walks that may differ
+ * where two candidates are almost equally good (contour_walk_test.cpp), so
+ * how many are identical is printed. The card holds only clouds of one
+ * size, so a case of clouds of several is left to the processor.
  */
 
 #include <gtest/gtest.h>
@@ -83,12 +86,16 @@ void expectEquivalent(const gputest::WalkCase & c, const std::vector<EpsilonProp
                       const std::vector<EpsilonProposal> & found, const std::string & where, Equivalence & tally)
 {
     ASSERT_EQ(found.size(), expected.size()) << where;
-    const double tolerance = c.metric == HullMetric::ComplexPlane ? 0.0 : 1e-12;
     for (std::size_t i = 0; i < expected.size(); ++i) {
         const std::string at = where + ", frequency " + std::to_string(i);
         ++tally.proposals;
-        EXPECT_LE(std::abs(found[i].connected - expected[i].connected), tolerance * expected[i].connected) << at;
-        EXPECT_LE(std::abs(found[i].diameter - expected[i].diameter), tolerance * expected[i].diameter) << at;
+        double scale = 0.0;
+        for (const std::complex<double> & w : projectedCloud(c.clouds[i], c.metric, 1.0)) {
+            scale = std::max({scale, std::abs(w.real()), std::abs(w.imag())});
+        }
+        const double tolerance = c.metric == HullMetric::ComplexPlane ? 0.0 : 1e-12 * scale;
+        EXPECT_LE(std::abs(found[i].connected - expected[i].connected), tolerance) << at;
+        EXPECT_LE(std::abs(found[i].diameter - expected[i].diameter), tolerance) << at;
         EXPECT_EQ(found[i].closes, expected[i].closes) << at;
         if (found[i].epsilon == expected[i].epsilon) {
             ++tally.identical;
@@ -136,10 +143,11 @@ TEST(GpuTemplates, TheCardProposesAsTheThreadsCodeOnTheProcessor)
     Equivalence tally;
     std::size_t rounds = 0;
     for (const gputest::WalkCase & c : proposalCases()) {
-        const auto resident = gpu::cloudsOnCard(c.clouds);
-        if (resident == nullptr) {
+        if (!gputest::oneSize(c.clouds)) {
             continue;
         }
+        const auto resident = gpu::cloudsOnCard(c.clouds);
+        ASSERT_NE(resident, nullptr) << c.name;
         for (const bool walked : {true, false}) {
             const gpu::ProposedOnCard proposed = gpu::proposedOnCard(*resident, c.metric, 1.0, walked, nullptr);
             EXPECT_FALSE(proposed.cancelled) << named(c, walked);
