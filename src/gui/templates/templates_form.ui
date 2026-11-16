@@ -275,16 +275,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QCheckBox" name="gpuCheck">
-       <property name="toolTip">
-         <string>Sweep the family on the GPU.</string>
-        </property>
-       <property name="text">
-        <string>On the GPU</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <spacer name="diagramSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -296,6 +286,31 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="gpuRadio">
+       <property name="toolTip">
+         <string>Sweep the family and contour it on the GPU.</string>
+        </property>
+       <property name="text">
+        <string>GPU</string>
+       </property>
+        <attribute name="buttonGroup"><string notr="true">processor</string></attribute>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="cpuRadio">
+       <property name="toolTip">
+         <string>Sweep the family and contour it on the processor.</string>
+        </property>
+       <property name="text">
+        <string>CPU</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+        <attribute name="buttonGroup"><string notr="true">processor</string></attribute>
+      </widget>
      </item>
     </layout>
    </item>
@@ -531,6 +546,7 @@
  <buttongroups>
   <buttongroup name="variablesMode"/>
   <buttongroup name="diagramKind"/>
+  <buttongroup name="processor"/>
  </buttongroups>
  <resources/>
  <connections/>

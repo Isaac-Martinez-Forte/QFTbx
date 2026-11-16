@@ -1606,10 +1606,6 @@ del controlador</translation>
         <translation>Calcular</translation>
     </message>
     <message>
-        <source>On the GPU</source>
-        <translation>En la GPU</translation>
-    </message>
-    <message>
         <source>One grid for every uncertain parameter, with the same number of values for all of them.</source>
         <translation>Una rejilla para todos los parámetros inciertos, con el mismo número de valores para todos.</translation>
     </message>
@@ -1646,10 +1642,6 @@ del controlador</translation>
         <translation>Dibujarlas en el plano complejo.</translation>
     </message>
     <message>
-        <source>Sweep the family on the GPU.</source>
-        <translation>Barrer la familia en la GPU.</translation>
-    </message>
-    <message>
         <source>How many decibels one degree is worth when the epsilon is measured on the Nichols plane, which has two units on its axes.</source>
         <translation>Cuántos decibelios vale un grado cuando el épsilon se mide en el plano de Nichols, que tiene dos unidades distintas en sus ejes.</translation>
     </message>
@@ -1668,6 +1660,22 @@ del controlador</translation>
     <message>
         <source>Sweep the family over the grids entered above and fill in the least epsilon at which the contour of each template closes, in the plane chosen below, to see it or change it before accepting.</source>
         <translation>Barre la familia sobre las mallas de arriba y rellena el menor épsilon con el que cierra el contorno de cada template, en el plano elegido abajo, para verlo o cambiarlo antes de aceptar.</translation>
+    </message>
+    <message>
+        <source>Sweep the family and contour it on the GPU.</source>
+        <translation>Barrer la familia y calcular sus contornos en la GPU.</translation>
+    </message>
+    <message>
+        <source>GPU</source>
+        <translation>GPU</translation>
+    </message>
+    <message>
+        <source>Sweep the family and contour it on the processor.</source>
+        <translation>Barrer la familia y calcular sus contornos en el procesador.</translation>
+    </message>
+    <message>
+        <source>CPU</source>
+        <translation>CPU</translation>
     </message>
 </context>
 <context>

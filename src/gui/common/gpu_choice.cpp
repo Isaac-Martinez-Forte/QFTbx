@@ -30,6 +30,12 @@ void offerGpu(QAbstractButton & gpu, QWidget * companion)
     }
 }
 
+void chooseProcessor(QAbstractButton & gpu, QAbstractButton & cpu, Processor processor)
+{
+    const bool onGpu = processor == Processor::Gpu && !gpu.isHidden() && gpu.isEnabled();
+    (onGpu ? gpu : cpu).setChecked(true);
+}
+
 Processor processorChosen(const QAbstractButton & gpu)
 {
     return !gpu.isHidden() && gpu.isEnabled() && gpu.isChecked() ? Processor::Gpu : Processor::Cpu;

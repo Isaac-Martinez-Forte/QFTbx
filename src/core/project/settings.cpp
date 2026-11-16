@@ -282,6 +282,8 @@ const std::vector<Binding> & bindings()
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.defaults.dbPerDegree = realIn(text, key, line, 1.0e-6, 1.0e6);
          }},
+        {"defaults.templates.gpu",
+         flag([](Settings & into) -> bool & { return into.defaults.templatesOnGpu; })},
         {"defaults.loop-shaping.start",
          [](const std::string & text, const std::string & key, std::int64_t line, Settings & into) {
              into.defaults.loopStart = realIn(text, key, line, 1.0e-300, 1.0e300);

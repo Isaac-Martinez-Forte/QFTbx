@@ -119,6 +119,12 @@
 # Range: 1e-6 to 1e6.
 # db-per-degree = 1
 
+# Where the templates are first computed: 1 on the GPU, when the build has it
+# and the card can be used. Every later step starts with the choice of the
+# step before and keeps it until it is changed in one.
+# Range: 0 or 1.
+# gpu = 0
+
 # The frequency range the loop-shaping plot starts with, in rad/s, and the
 # points over it.
 # Ranges: ends 1e-300 to 1e300, points 2 to 1e6.

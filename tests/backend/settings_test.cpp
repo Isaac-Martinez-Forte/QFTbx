@@ -513,6 +513,7 @@ TEST(Settings, TheExampleFileIsValidAndStatesTheRealDefaults)
     EXPECT_EQ(fromExample.defaults.templatePointCount, defaults.defaults.templatePointCount);
     EXPECT_EQ(fromExample.defaults.epsilonInNichols, defaults.defaults.epsilonInNichols);
     EXPECT_EQ(fromExample.defaults.dbPerDegree, defaults.defaults.dbPerDegree);
+    EXPECT_EQ(fromExample.defaults.templatesOnGpu, defaults.defaults.templatesOnGpu);
     EXPECT_EQ(fromExample.defaults.loopStart, defaults.defaults.loopStart);
     EXPECT_EQ(fromExample.defaults.loopEnd, defaults.defaults.loopEnd);
     EXPECT_EQ(fromExample.defaults.loopPointCount, defaults.defaults.loopPointCount);

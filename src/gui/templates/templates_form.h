@@ -30,7 +30,8 @@
  * refuses to publish until it is given one again, and shownPlant() tells
  * the window which plant the grids on screen were built for. The line
  * edits and radio buttons of the rows are owned by Qt through their row
- * widget.
+ * widget. The CPU/GPU choice is set by the window (setProcessor) and says
+ * when the user changes it (processorChanged).
  */
 
 #ifndef QFTBX_TEMPLATES_FORM_H
@@ -97,6 +98,7 @@ public:
     bool nicholsSelected();
 
     qftbx::Processor processor() const;
+    void setProcessor(qftbx::Processor processor);
 
     qftbx::EpsilonMetric epsilonMetric() const;
     void setEpsilonMetric(qftbx::EpsilonMetric metric);
@@ -122,6 +124,7 @@ public:
 
 signals:
     void proposalAsked(qftbx::ParameterGrids grids, qftbx::EpsilonMetric metric);
+    void processorChanged(qftbx::Processor processor);
 
 private slots:
     void on_allVariablesRadio_clicked();

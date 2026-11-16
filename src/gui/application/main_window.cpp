@@ -83,7 +83,8 @@ private:
 MainWindow::MainWindow(qftbx::Settings settings, QWidget *parent) :
     QMainWindow(parent),
     ui(std::make_unique<Ui::MainWindow>()),
-    m_settings(std::move(settings))
+    m_settings(std::move(settings)),
+    m_processor(m_settings.defaults.templatesOnGpu ? qftbx::Processor::Gpu : qftbx::Processor::Cpu)
 {
 
     ui->setupUi(this);
@@ -583,6 +584,8 @@ void MainWindow::ensureTemplatesPhase()
         installContourRecomputer();
         connect(templatesForm, &StepPanel::accepted, this, &MainWindow::applyTemplates);
         connect(templatesForm, &TemplatesForm::proposalAsked, this, &MainWindow::proposeTemplateEpsilon);
+        connect(templatesForm, &TemplatesForm::processorChanged, this,
+                [this](qftbx::Processor processor) { m_processor = processor; });
         templatesCard = addPhaseCard(tr("Templates"), "templatesCard", templatesForm,
                                      {{tr("Templates"), templateViewer}});
         relaunchTemplates();
@@ -598,6 +601,8 @@ void MainWindow::ensureBoundariesPhase()
         boundaryViewer = new BoundaryViewer(this);
         boundaryUnionViewer = new BoundaryUnionViewer(this);
         connect(boundaryGridForm, &StepPanel::accepted, this, &MainWindow::applyBoundaries);
+        connect(boundaryGridForm, &BoundaryGridForm::processorChanged, this,
+                [this](qftbx::Processor processor) { m_processor = processor; });
         boundariesCard = addPhaseCard(tr("Boundaries"), "boundariesCard", boundaryGridForm,
                                       {{tr("Union"), boundaryUnionViewer},
                                        {tr("Per frequency"), boundaryViewer}});
@@ -863,6 +868,7 @@ void MainWindow::on_templatesButton_clicked()
         if (m_templatesStale) {
             relaunchTemplates();
         }
+        templatesForm->setProcessor(m_processor);
         templatesForm->clearAcceptance();
         showPhase(templatesCard);
     });
@@ -923,6 +929,7 @@ void MainWindow::on_boundariesButton_clicked()
 {
     reportingErrors(tr("Boundaries"), [this]() {
         ensureBoundariesPhase();
+        boundaryGridForm->setProcessor(m_processor);
         boundaryGridForm->clearAcceptance();
         showPhase(boundariesCard);
     });

@@ -109,7 +109,11 @@ TemplatesForm::TemplatesForm(QWidget *parent) :
     ui->globalPointCount->setText(
         qftbx::numberText(qftbx::Settings().defaults.templatePointCount));
 
-    qftbx::offerGpu(*ui->gpuCheck);
+    qftbx::offerGpu(*ui->gpuRadio, ui->cpuRadio);
+    for (QRadioButton * button : {ui->gpuRadio, ui->cpuRadio}) {
+        connect(button, &QRadioButton::clicked, this,
+                [this]() { emit processorChanged(qftbx::processorChosen(*ui->gpuRadio)); });
+    }
 
     selectDefaultsWhereEmpty();
 }
@@ -581,7 +585,7 @@ void TemplatesForm::on_okButton_clicked()
     else if (ui->nicholsRadio->isChecked())
         nicholsDiagram = true;
 
-    processorChoice = qftbx::processorChosen(*ui->gpuCheck);
+    processorChoice = qftbx::processorChosen(*ui->gpuRadio);
 
     gridMap.clear();
     duplicateNames.clear();
@@ -868,6 +872,10 @@ bool TemplatesForm::nicholsSelected(){
 
 qftbx::Processor TemplatesForm::processor() const{
     return processorChoice;
+}
+
+void TemplatesForm::setProcessor(qftbx::Processor processor){
+    qftbx::chooseProcessor(*ui->gpuRadio, *ui->cpuRadio, processor);
 }
 
 }

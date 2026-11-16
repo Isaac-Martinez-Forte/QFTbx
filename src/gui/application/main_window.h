@@ -33,11 +33,15 @@
  * with, and nothing is swept until it is accepted. The epsilon it asks to
  * have proposed is swept off the GUI thread like a phase, and the
  * template viewer asks the project for nothing while a phase computes.
+ * The templates and the boundaries are computed on the CPU or the GPU: the
+ * first choice is the settings' (defaults.templates.gpu), and every step
+ * opens with the last one the user made in any of them.
  */
 
 #ifndef QFTBX_MAIN_WINDOW_H
 #define QFTBX_MAIN_WINDOW_H
 
+#include "src/core/pipeline/processor.h"
 #include "src/core/project/settings.h"
 
 #include "src/gui/application/phase_card.h"
@@ -208,6 +212,8 @@ private:
     QString chooseFile(bool forSaving, const QString & title);
 
     qftbx::Settings m_settings;
+
+    qftbx::Processor m_processor = qftbx::Processor::Cpu;
 
     std::vector<std::pair<QString, int>> m_rememberedCanvas;
 

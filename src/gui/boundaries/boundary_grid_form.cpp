@@ -42,6 +42,10 @@ BoundaryGridForm::BoundaryGridForm(QWidget *parent) :
     setWindowTitle(tr("Boundary grid input"));
 
     qftbx::offerGpu(*ui->gpuRadio, ui->cpuRadio);
+    for (QRadioButton * button : {ui->gpuRadio, ui->cpuRadio}) {
+        connect(button, &QRadioButton::clicked, this,
+                [this]() { emit processorChanged(qftbx::processorChosen(*ui->gpuRadio)); });
+    }
 
 }
 
@@ -146,6 +150,10 @@ void BoundaryGridForm::on_okButton_clicked()
 
 qftbx::Processor BoundaryGridForm::processor() const{
     return processorChoice;
+}
+
+void BoundaryGridForm::setProcessor(qftbx::Processor processor){
+    qftbx::chooseProcessor(*ui->gpuRadio, *ui->cpuRadio, processor);
 }
 
 }

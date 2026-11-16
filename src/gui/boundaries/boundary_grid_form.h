@@ -8,11 +8,12 @@
  * infinity used on export (negative for none; it takes no part in the
  * computation), whether the engine is fed the template contours, far fewer
  * points at the epsilon hull's accuracy, or the full value sets, and the
- * CPU/GPU choice. Defaults come from the settings and only prefill the
- * fields; setFromProject() shows instead the grid the project's boundaries
- * were computed on, and leaves the defaults when there are none. A ceiling
- * on grid cells, also from the settings, only ever refuses input, so
- * moving it changes no result.
+ * CPU/GPU choice, which the window sets (setProcessor) and which says when
+ * the user changes it (processorChanged). Defaults come from the settings
+ * and only prefill the fields; setFromProject() shows instead the grid the
+ * project's boundaries were computed on, and leaves the defaults when there
+ * are none. A ceiling on grid cells, also from the settings, only ever
+ * refuses input, so moving it changes no result.
  */
 
 #ifndef QFTBX_BOUNDARY_GRID_FORM_H
@@ -66,6 +67,10 @@ public:
     bool contourSelected();
 
     qftbx::Processor processor() const;
+    void setProcessor(qftbx::Processor processor);
+
+signals:
+    void processorChanged(qftbx::Processor processor);
 
 private slots:
     void on_okButton_clicked();

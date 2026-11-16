@@ -77,6 +77,7 @@ here changes a result, since the value is on screen and can be typed over.
 | `templates.point-count` | 25 | 1 to 1e6 | Points per parameter grid in the template sweep; with n uncertain parameters the sweep evaluates this many to the power of n plants |
 | `templates.epsilon-in-nichols` | 1 | 0 or 1 | The plane a new project measures its contour epsilon in: 1 the Nichols plane, 0 the complex plane (the historical reading) |
 | `templates.db-per-degree` | 1 | 1e-6 to 1e6 | Decibels that weigh as much as one degree in the Nichols plane |
+| `templates.gpu` | 0 | 0 or 1 | Where the templates are first computed: 1 on the GPU, when the build has it and the card can be used. Every later step starts with the choice of the step before and keeps it until it is changed in one |
 | `loop-shaping.start`, `end` | 1e-9, 10 | 1e-300 to 1e300 | The frequency range the loop-shaping plot starts with, in rad/s |
 | `loop-shaping.point-count` | 100 | 2 to 1e6 | Points over that range |
 

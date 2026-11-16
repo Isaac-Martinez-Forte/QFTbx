@@ -3,10 +3,12 @@
  * @brief The choice of the GPU in a form, offered only where the program
  * can use it.
  *
- * offerGpu() shows the control, and its companion if it has one, only in a
- * build with GPU support, and leaves it disabled when the card cannot be
- * used, with the reason as its tooltip. processorChosen() reads it back:
- * the GPU only when the control is shown, enabled and checked.
+ * A step chooses with a pair of buttons, GPU and CPU. offerGpu() shows them
+ * only in a build with GPU support, and leaves the GPU disabled when the
+ * card cannot be used, with the reason as its tooltip. chooseProcessor()
+ * checks the one asked for, the CPU when the GPU cannot be had, and
+ * processorChosen() reads the choice back: the GPU only when its button is
+ * shown, enabled and checked.
  */
 
 #ifndef QFTBX_GUI_GPU_CHOICE_H
@@ -20,6 +22,8 @@
 namespace qftbx {
 
 void offerGpu(QAbstractButton & gpu, QWidget * companion = nullptr);
+
+void chooseProcessor(QAbstractButton & gpu, QAbstractButton & cpu, Processor processor);
 
 Processor processorChosen(const QAbstractButton & gpu);
 

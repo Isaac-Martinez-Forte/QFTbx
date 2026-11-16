@@ -87,6 +87,7 @@ struct Settings {
 
         bool epsilonInNichols = true;
         double dbPerDegree = 1.0;
+        bool templatesOnGpu = false;
 
         double loopStart = 1.0e-9;
         double loopEnd = 10.0;
