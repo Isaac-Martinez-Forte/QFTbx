@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QFT version="4" name="ACC'90 benchmark, Martínez-Forte and Cervera, undamped, margin at every frequency" description="The ACC'90 benchmark of Martínez-Forte and Cervera with the plant as the benchmark has it, undamped, and the stability margin asked at every frequency from 0.001 to 10^6 rad/s. The design frequencies 1 and 2, on poles of the nominal plant and of the stiffest one, become 1.01 and 2.01, and two frequencies inside the resonance band are added where the margin was exceeded; the controller meets it over a grid of 1001 frequencies." doi="10.1002/rnc.5499">
     <inputs>
-        <plant name="ACC'90 benchmark e/(s^2(s^2+0.02s+2e)), stability 1.75">
+        <plant name="ACC'90 benchmark e/(s^2(s^2+2e)), undamped, stability 1.75">
             <type id="0">
                 <expression size="2">
                     <numerator>ev</numerator>

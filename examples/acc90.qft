@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QFT version="4" name="ACC'90 benchmark, Martínez-Forte and Cervera" description="The ACC'90 benchmark as Martínez-Forte and Cervera (IJRNC 2021) pose it: e/(s^2 (s^2+0.01 s+2e)) with e in [0.5,2], two masses joined by an uncertain spring whose resonance sweeps 1 to 2 rad/s, lightly damped as the paper does to plot the loop, and a stability margin of 1.75 alone at its twelve design frequencies. Three zeros and four poles in the box Nataraj and Kubal (IJRNC 2007) searched. The design meets the margin at every frequency as posed, and closes a stable loop with the undamped plant too; acc90-extended poses the benchmark undamped." doi="10.1002/rnc.5499">
     <inputs>
-        <plant name="ACC'90 benchmark e/(s^2(s^2+0.02s+2e)), stability 1.75">
+        <plant name="ACC'90 benchmark e/(s^2(s^2+0.01s+2e)), lightly damped as in IJRNC 2021, stability 1.75">
             <type id="0">
                 <expression size="2">
                     <numerator>ev</numerator>

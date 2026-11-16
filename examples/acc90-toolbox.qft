@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QFT version="4" name="ACC'90 benchmark, QFT Toolbox example 5" description="The ACC'90 benchmark as example 5 of the MATLAB QFT Toolbox manual poses it: the plant undamped, a stability margin of 2.25, and design frequencies inside the resonance band that miss every resonance of the sweep. A margin alone admits ever smaller gains, so a bound of 0.2 on the sensitivity up to 0.05 rad/s, which the published designs checked meet, is added here. One zero and two poles, the manual's branch with its complex pole pair made real. At the design frequencies only: between them, at 0.15 rad/s, the design exceeds the margin by 33 dB; acc90-toolbox-extended asks it at every frequency.">
     <inputs>
-        <plant name="ACC'90 benchmark e/(s^2(s^2+0.02s+2e)), stability 1.75">
+        <plant name="ACC'90 benchmark e/(s^2(s^2+2e)), undamped, stability 2.25 and sensitivity 0.2">
             <type id="0">
                 <expression size="2">
                     <numerator>ev</numerator>
