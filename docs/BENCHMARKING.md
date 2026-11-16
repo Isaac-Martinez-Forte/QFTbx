@@ -206,9 +206,11 @@ A case with phases also keeps, under `phases` in its record:
   its stage and detail (`templates/sweep`, `templates/family`,
   `contours/walk`, `boundaries/sheets (OpenMP)`, `boundaries/union`…; on the
   GPU `templates/sweep (GPU)`, `templates/family (GPU)`,
-  `contours/walk (GPU)` (the order, the projection, the parts and the walk
-  of every contour) or `contours/alpha-shape (GPU)`, and
-  `boundaries/sheets and readings (GPU)`,
+  `templates/proposal (GPU)` (with how many contours it walked, in how many
+  rounds), `contours/walk (GPU)` (the order, the projection, the parts and
+  the walk of every contour) or `contours/alpha-shape (GPU)`, and
+  `boundaries/sheets and readings (GPU)` (with `resident 1` when it read
+  the clouds the card already held),
   with `boundaries/closed form (OpenMP)` when the closed-form columns are
   on).
   The check of the family's poles, `templates/family`, is part of the
@@ -227,7 +229,9 @@ frequency, what differs:
 | `cloud_sizes_differ`, `cloud_largest_relative` | templates whose size differs, and the largest distance between plants of the same index, relative to the plant |
 | `contour_points_differ`, `contour_largest_hausdorff` | points in one contour and not the other, and the largest Hausdorff distance between them over the frequency's epsilon |
 | `reports_differ`, `epsilons_differ` | contour reports and epsilons that differ |
+| `notices_differ` | 1 when the notice of a family whose number of unstable poles changes is not the same on both |
 | `columns_differ`, `column_largest_db` | columns whose allowed intervals differ in number or in an infinite end, and the largest gap between finite ends, in dB |
 | `trace_sets_differ`, `trace_largest` | specifications whose traces differ in shape (how many traces, how many points), and the largest gap between points that match, in degrees or dB |
 | `unions_differ`, `union_largest` | the same for the union of each frequency |
 | `cpu_status`, `gpu_status`, `gain_relative`, `same_design` | when it searches: how each search ended, the relative gap between the gains and whether the designs agree to the bit |
+| `cpu_refusal`, `gpu_refusal` | when the processor refuses the phases: the reason each gave. The GPU computes them all the same, and the case passes when both refuse with the same reason; its statuses are then `refused` |

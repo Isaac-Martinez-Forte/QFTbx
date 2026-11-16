@@ -48,7 +48,7 @@ in [docs/algorithms](algorithms/README.md).
 | `src/core/loopshaping/` | The loop-shaping entry point and its result; `common/` holds what the algorithms share (the interval projection, the box classification, the nominal stability check, the search list, the Quick Solution cuts) and `nt/`, `nk/`, `mr/`, `mc1/`, `mc_thesis/`, `mc2/`, `mc3/` one algorithm each |
 | `src/core/project/` | What a project holds, owned by value (`ProjectData`); the user settings (`Settings`) |
 | `src/core/pipeline/` | The design steps as data (`Step`), one stage per step, background execution and cancellation |
-| `src/core/gpu/` | The GPU engines (`USE_CUDA`): a library of their own, `qftbx_cuda`, that implements what the core declares, the engine of each phase (`TemplateComputation`, `BoundaryComputation`) and the provider of them (`src/core/pipeline/gpu_provider.h`), which the application installs at start; `common/` is the base, from the errors, memory and streams to the probe of the card, `templates/` the check of the family's poles, one warp per distinct denominator, the sweep of the plant family on the card, with a free-form plant run as the postfix programs of its expression and of its denominator (`src/core/math/expression_program.h`), and the contours, the clouds sorted, projected and split into their ε-connected parts by radix sorts and a union-find without locks, every part walked by a warp, or the alpha-shape's edges tested by warps and its faces walked by a thread per component, and `boundaries/` the sheets of the boundaries, worst case and guard near the singular locus, bounded in single precision and decided in double, and read where they are into traces, their labels and columns |
+| `src/core/gpu/` | The GPU engines (`USE_CUDA`): a library of their own, `qftbx_cuda`, that implements what the core declares, the engine of each phase (`TemplateComputation`, `BoundaryComputation`) and the provider of them (`src/core/pipeline/gpu_provider.h`), which the application installs at start; `common/` is the base, from the errors, memory and streams to the probe of the card, `templates/` the check of the family's poles, one warp per distinct denominator, the sweep of the plant family on the card, with a free-form plant run as the postfix programs of its expression and of its denominator (`src/core/math/expression_program.h`), and the contours, the clouds sorted, projected and split into their ε-connected parts by radix sorts and a union-find without locks, every part walked by a warp, or the alpha-shape's edges tested by warps and its faces walked by a thread per component, and the epsilon proposal, the minimum spanning tree and the diameter by a block per frequency and the climb walked in rounds, and `boundaries/` the sheets of the boundaries, worst case and guard near the singular locus, bounded in single precision and decided in double, and read where they are into traces, their labels and columns |
 | `src/persistence/` | Load/save of `.qft` project files (pugixml; the version-2 dialect, see [PROJECT_FORMAT.md](PROJECT_FORMAT.md)) |
 | `src/app/` | `ProjectController`: the single mediator between GUI and core, one method per design step |
 | `src/gui/` | Qt Widgets HMI: one folder per design step with its dialog and viewers (QCustomPlot), plus `application/` (shell, main window) and `common/` (shared widgets and helpers) |
@@ -61,6 +61,45 @@ Build targets: `qftbx_core` (the algorithms and the model), `qftbx_persistence`,
 mediator: it depends on the core, and the core never on it. Every folder has a `CMakeLists.txt` that adds its own
 files to the target it belongs to (`cmake/QftbxFunctions.cmake`), so no file list is
 kept by hand.
+
+## The GPU engines
+
+The GPU engines implement the same interfaces as the processor's
+(`TemplateComputation`, `BoundaryComputation`), and each holds an engine of
+the processor that keeps the settings and the results and does what is left
+on the processor. The template engine checks the family's poles, sweeps it,
+proposes epsilon and walks or shapes the contours on the card; the
+processor's engine finishes the contours (the whole cloud standing in for
+one that does not close, the reports) from what comes back. The boundary
+engine computes the sheets and reads them on the card into traces, their
+labels and columns; the union of each frequency and the closed-form columns
+stay on the processor, and so does the loop shaping.
+
+The data stay on the card between phases. The clouds of a sweep stay there,
+and the proposal, the contours and the boundaries from the whole cloud read
+them there; clouds computed on the processor or read from a file go up once,
+the first time a step on the GPU needs them, and stay until the templates
+change (`TemplateStage::cloudsOnCard`). The core passes them along as
+`ResidentClouds` without knowing what they are. Only what the processor
+needs comes back: the clouds after the sweep, for the project and the
+plots, the contours, and the traces and columns.
+
+A phase goes in batches of frequencies that half the card's free memory
+holds, and stops between them when the computation is cancelled; the long
+kernels (the walk, the spanning tree, the faces of the alpha-shape, the
+sheets) also ask for it while they run, one thread for its warp or its
+block. A failure on the card is a `ComputationError` with CUDA's text, and
+each phase writes to the program's record what it cost on the card.
+
+Everything is in double precision; the sheets bound their extremes in
+single precision first and decide in double, and `USE_FP_CONTRACTION=OFF`
+compiles the kernels with `--fmad=false`. The card's square root, arc
+tangent and logarithm are not the processor's, so its results agree with
+the processor's to rounding, not to the bit: the same clouds to their last
+bits, contours within epsilon of each other, the same proposals. The step
+of the templates and that of the boundaries choose the processor in the
+interface; the first choice is the settings' (`defaults.templates.gpu`), and
+every step opens with the last one made.
 
 ## Expressions
 

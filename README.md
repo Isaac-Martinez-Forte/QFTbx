@@ -111,8 +111,9 @@ The tests are built with `-DQFTBX_BUILD_TESTS=ON` and run with
 
 If CUDA 11.8 or later is installed, the build also compiles the GPU engines
 for the templates and the boundaries; configure with `-DUSE_CUDA=OFF` to
-leave them out. The program uses the GPU only when it is chosen, and only on
-a card it can use.
+leave them out. The program uses the GPU only when it is chosen, in the
+templates or the boundaries step, which then keep the choice until it is
+changed, and only on a card it can use.
 
 ---
 

@@ -5,7 +5,7 @@ off by default) into two binaries, both GoogleTest: `qftbx_tests`, the backend s
 `qftbx_gui_tests`, the headless smoke suite of the dialogs. A build with
 `USE_CUDA` adds a third, `qftbx_gpu_tests`, the GPU suite: what needs a card
 skips without a usable one, and the rest checks what the program found on
-the machine. CTest knows every test of all of them.
+the machine and runs the code of the card's threads on the processor. CTest knows every test of all of them.
 
 ## Running
 
@@ -69,7 +69,26 @@ when their inputs change.
 
 **The application layer.** The design steps and their sequence, cancellation,
 the background runner, the failed-computation paths, and the dialogs opened
-and driven headless (`GuiSmoke`).
+and driven headless (`GuiSmoke`), the choice of the processor among them
+(`GpuChoice`).
+
+**The GPU.** Every piece the card's threads run is also run on the processor
+and checked against the engine it stands for, on the examples and on small
+cases made to reach its corners: the plant and the check of the family's
+poles (`PlantOnTheCard`, `FamilyOnTheCard`), the order, projection and
+parts of a cloud and its walk (`WalkOnTheCard`), the alpha-shape
+(`AlphaOnTheCard`), the epsilon proposal (`ProposalOnTheCard`), and the
+sheets and their reading (`SheetsOnTheCard`, `BoundaryReading`). With a
+card, what the card computes is compared with that run on the processor,
+and the GPU engines with the processor's (`GpuTemplates`, `GpuBoundaries`),
+to rounding and not to the bit, since the card's square root, arc tangent
+and logarithm are not the processor's: clouds to the last bits, contours
+within epsilon of each other, the same proposals, boundaries within a
+tolerance on the ends of their columns. Clouds the card holds give the
+boundaries of uploading them to the bit, the long kernels stop when the
+computation is cancelled, and `GpuEndToEnd` designs three examples with
+MC2 after the templates and the boundaries on either processor and asks for
+the same controller.
 
 ## The fixtures
 

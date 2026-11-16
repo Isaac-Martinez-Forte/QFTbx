@@ -130,11 +130,16 @@ should disable `USE_NATIVE_ARCH` if their flags already select the target CPU.
 With `USE_CUDA=ON` the configuration fails if no CUDA compiler is available
 or it is older than CUDA 11.8; with `AUTO` it goes on without the GPU engines.
 11.8 is what the engines use: the memory pools, libcu++'s `atomic_ref` and the
-code for Ada and Hopper.
+code for Ada and Hopper. The CUDA code is compiled as C++17, whatever the
+rest is compiled as, since nvcc takes C++20 only from CUDA 12. nvcc also
+accepts only the host compilers it knows: with a newer GCC, name one it takes,
+`-DCMAKE_CUDA_HOST_COMPILER=g++-13`. The engines are built with CUDA 11.8, 12.4
+and 13.4, and have been run on an RTX 3060 with 13.4.
 The value stays in the build directory's cache, as every option does. Disabling `USE_FP_CONTRACTION` also passes
 `--fmad=false` to CUDA kernels. The program looks for the card when it is
-first asked for: without a usable one, the choice of the GPU is shown
-disabled with the reason, and everything is computed on the processor.
+first asked for: without a usable one, the GPU button of the templates and
+the boundaries steps is shown disabled with the reason, and everything is
+computed on the processor.
 
 ## Targets
 
