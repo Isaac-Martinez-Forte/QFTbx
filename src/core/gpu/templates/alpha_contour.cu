@@ -10,9 +10,10 @@
  * neighbours of every point ordered by angle and then by index, and the
  * components joined by the union-find of the preparation. A thread walks
  * the faces of a component in the order alphaShape() does, the same code
- * on both processors, and keeps the one of largest area: sequential by
- * nature, but one thread per component. The faces of every component and
- * the isolated points come back to the processor. A warp asks every 32
+ * on both processors, and keeps the clockwise exterior by its smallest
+ * signed area: sequential by nature, but one thread per component. The
+ * faces of every component and the isolated points come back to the
+ * processor. A warp asks every 32
  * points, and a thread every 1024 steps of a face, whether the computation
  * was cancelled, and stops if it was.
  */
@@ -128,8 +129,8 @@ QFTBX_HD inline void largestFace(const FaceGraph & g, const Index * componentEdg
                 const DeviceComplex b = g.walk[g.scratch[base + begin + (k + 1) % length]];
                 area += a.real() * b.imag() - b.real() * a.imag();
             }
-            area = ::fabs(area) / 2.0;
-            if (bestLength == 0 || area > bestArea) {
+            area /= 2.0;
+            if (bestLength == 0 || area < bestArea) {
                 bestArea = area;
                 bestAt = base + begin;
                 bestLength = length;

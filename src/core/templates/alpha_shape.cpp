@@ -4,14 +4,15 @@
  *
  * Neighbours within epsilon come from a grid of cells of side epsilon, so a
  * blocker of an edge is always in the neighbour list of one end. The
- * boundary edges form a planar graph whose faces are walked clockwise, the
- * neighbours of a point in order of angle and then of index; the outer
- * border of each component is its face of largest area, the first found on
- * a tie. finishedLoops() drops the holes, components lying inside another
- * loop, every candidate checked against all the others; adds the isolated
- * points as components of their own; starts every loop at its rightmost
- * point and returns them rightmost first. loopsContour() lists each loop's
- * points once, in order, and closes it.
+ * boundary edges form a planar graph. At each vertex a face follows the
+ * clockwise neighbour of the incoming edge, with neighbours ordered by
+ * angle and then index. The outer border is the clockwise face, whose
+ * signed area is the smallest. Taking the absolute area would confuse it
+ * with the inside of a single cycle and could discard attached branches.
+ * finishedLoops() drops the holes, checking each candidate against all the
+ * others; adds the isolated points as components of their own; starts each
+ * loop at its rightmost point and returns them rightmost first.
+ * loopsContour() lists each loop's points once, in order, and closes it.
  */
 
 #include "src/core/templates/alpha_shape.h"
@@ -160,9 +161,9 @@ AlphaShape alphaShape(const ComplexCloud & points, double epsilon)
                 const Complex & b = points[static_cast<std::size_t>(loop[(k + 1) % loop.size()])];
                 area += a.real() * b.imag() - b.real() * a.imag();
             }
-            area = std::abs(area) / 2.0;
+            area /= 2.0;
             auto & best = outer[find(start.first)];
-            if (best.second.empty() || area > best.first) {
+            if (best.second.empty() || area < best.first) {
                 best = std::make_pair(area, std::move(loop));
             }
         }

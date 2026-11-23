@@ -11,9 +11,9 @@
  * which puts in the contour a template point that is there anyway. Being a
  * test per edge, nothing can fail to close or lose a component.
  *
- * The result is the outer loop of every connected component, the face of
- * largest area of its graph of boundary edges, which is what the walk of
- * the template engine approximates and what a border sweep, a curve rather
+ * The result is the outer loop of every connected component, the clockwise
+ * face of its graph of boundary edges, which is what the walk of the
+ * template engine approximates and what a border sweep, a curve rather
  * than a cloud, needs computed exactly. Holes are not returned, as the walk
  * does not return them either, and a hole taken as filled only adds what
  * the plants around it enclose; a spike is walked out and back. Each loop

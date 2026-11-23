@@ -121,6 +121,19 @@ TEST(AlphaShape, CollinearPointsAreWalkedOutAndBack)
     EXPECT_EQ(s.loops[0].size(), 8u);
 }
 
+TEST(AlphaShape, TheOuterFaceKeepsABranchWhenTheInnerFaceComesFirst)
+{
+    const ComplexCloud points{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {2, 0}};
+    const AlphaShape shape = alphaShape(points, 1.1);
+    ASSERT_EQ(shape.loops.size(), 1u);
+    const std::vector<std::int32_t> & loop = shape.loops.front();
+    for (std::int32_t i = 0; i < static_cast<std::int32_t>(points.size()); ++i) {
+        EXPECT_NE(std::find(loop.begin(), loop.end(), i), loop.end()) << "missing point " << i;
+    }
+    EXPECT_EQ(std::count(loop.begin(), loop.end(), 1), 2)
+            << "the exterior walks the attachment out and back";
+}
+
 TEST(AlphaShape, TooSmallAnEpsilonLeavesIsolatedPoints)
 {
     ComplexCloud c{{0.0, 0.0}, {2.0, 0.0}, {2.0, 1.0}, {0.0, 1.0}};

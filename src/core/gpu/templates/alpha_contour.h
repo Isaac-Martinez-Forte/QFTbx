@@ -4,7 +4,7 @@
  *
  * alphaOnCard() prepares the clouds the card holds, as preparedOnCard()
  * does, and finds there the boundary edges of each, its components and the
- * face of largest area of each component, as alphaShape() does. Those
+ * clockwise exterior face of each component, as alphaShape() does. Those
  * faces come back with the points that have no neighbour within epsilon,
  * and the processor finishes them into contours with finishedLoops() and
  * loopsContour(): what the template engine hands back for the alpha-shape
